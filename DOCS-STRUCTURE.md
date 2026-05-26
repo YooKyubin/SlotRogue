@@ -10,7 +10,7 @@
 
 | 위치 | 언어 |
 |------|------|
-| 모든 문서 (`CLAUDE.md`, `DOCS-STRUCTURE.md`, `docs/`, `references/`) | **한국어** |
+| 모든 문서 (`AGENT.md`, `DOCS-STRUCTURE.md`, `docs/`, `references/`) | **한국어** |
 | 코드 / 주석 / 식별자 / 파일명 | **영어** |
 
 기술 용어는 원문 유지 (Addressables, ScriptableObject, asmdef, UniTask, DOTween 등).
@@ -21,7 +21,7 @@
 
 ```
 SlotRogue/
-├── CLAUDE.md                 # 에이전트/사람 진입점: 규칙, ADR 인덱스, 거버넌스 요약
+├── AGENT.md                 # 에이전트/사람 진입점: 규칙, ADR 인덱스, 거버넌스 요약
 ├── DOCS-STRUCTURE.md         # ← 이 파일 — 구조 지도 (메타, 상태 아님)
 ├── .editorconfig             # C# 포매팅 권위 (Allman / var 정책 / 네이밍)
 ├── .git-blame-ignore-revs    # format-only 커밋 skip 목록
@@ -81,7 +81,7 @@ flowchart TB
     DoneEP["exec-plans/completed/*.md"]
     Status["docs/STATUS.md"]
   end
-  Claude["CLAUDE.md"] --> Index["docs/INDEX.md"]
+  Agent["AGENT.md"] --> Index["docs/INDEX.md"]
   Index --> DD
   Index --> ADR
   DD -. cites .-> ADR
@@ -100,12 +100,12 @@ flowchart TB
 
 | 파일 | 역할 |
 |------|------|
-| [`CLAUDE.md`](CLAUDE.md) | 에이전트 자동 로드 가이드: 언어 규칙, 코딩 절대 규칙, ADR 인덱스, 거버넌스 요약 |
+| [`AGENT.md`](AGENT.md) | 에이전트 자동 로드 가이드: 언어 규칙, 코딩 절대 규칙, ADR 인덱스, 거버넌스 요약 |
 | [`docs/INDEX.md`](docs/INDEX.md) | `docs/` 정식 진입점 — 카테고리, 기여자 읽기 순서 |
 | [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md) | 전체 규칙: 각 아티팩트 작성/갱신 시점, 네이밍, 날짜, 팀 규칙, 안티패턴 |
 | [`DOCS-STRUCTURE.md`](DOCS-STRUCTURE.md) | 구조 지도 (이 파일) — 상태에 손대지 않고 안전하게 읽을 수 있음 |
 
-**허브 문서**(`CLAUDE.md`, `docs/INDEX.md`, `docs/GOVERNANCE.md`)를 편집할 땐, 해당 문서를 인용하는 inbound 링크를 repo 전체에 grep하고 **같은 변경 안에서** 갱신할 것. 안정된 앵커(파일 경로 + 섹션 제목) 우선, 깨지기 쉬운 숫자 섹션 ID 회피.
+**허브 문서**(`AGENT.md`, `docs/INDEX.md`, `docs/GOVERNANCE.md`)를 편집할 땐, 해당 문서를 인용하는 inbound 링크를 repo 전체에 grep하고 **같은 변경 안에서** 갱신할 것. 안정된 앵커(파일 경로 + 섹션 제목) 우선, 깨지기 쉬운 숫자 섹션 ID 회피.
 
 ---
 
@@ -197,7 +197,7 @@ flowchart TB
 
 1. 외부 자료를 손대기 전 `references/INDEX.md`부터 읽는다.
 2. 외부 repo는 grep으로 좁힌 뒤 필요한 부분만. 벤더 트리를 문서로 통째로 읽지 않는다.
-3. `CLAUDE.md` §4의 제외 경로 규칙을 동일하게 적용.
+3. `AGENT.md` §4의 제외 경로 규칙을 동일하게 적용.
 
 ---
 
@@ -205,8 +205,8 @@ flowchart TB
 
 ### 사람 또는 에이전트 — 첫 세션
 
-1. [`CLAUDE.md`](CLAUDE.md) — 규칙과 결정 인덱스
-2. [`DOCS-STRUCTURE.md`](DOCS-STRUCTURE.md) — 이 지도 (선택, `CLAUDE.md`로 충분하면 skip)
+1. [`AGENT.md`](AGENT.md) — 규칙과 결정 인덱스
+2. [`DOCS-STRUCTURE.md`](DOCS-STRUCTURE.md) — 이 지도 (선택, `AGENT.md`로 충분하면 skip)
 3. [`docs/INDEX.md`](docs/INDEX.md) — 문서 카테고리
 4. [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md) — 작업 중 문서 유지 방법
 5. [`docs/STATUS.md`](docs/STATUS.md) — *현재 포커스가 필요할 때만*
@@ -255,7 +255,7 @@ flowchart TB
 
 | 경로 | 문서와의 관계 |
 |------|---------------|
-| `CLAUDE.md` | 한국어 허브, `docs/`로 진입 |
+| `AGENT.md` | 한국어 허브, `docs/`로 진입 |
 | `references/INDEX.md` | 외부 학습 자료 인덱스 |
 | `docs/adr/`, `docs/design-docs/` | *왜*의 source of truth |
 | `docs/exec-plans/`, `docs/STATUS.md` | *진행*의 source of truth |

@@ -59,7 +59,7 @@ UPM (`Window > Package Manager`)으로 설치. `Packages/manifest.json`이 sourc
 
 - Package Manager에서 `com.unity.addressables` 설치.
 - `Window > Asset Management > Addressables > Groups`로 그룹 관리.
-- **키는 상수 / SO로 관리**하고 문자열 리터럴 산재 금지 (CLAUDE.md §6).
+- **키는 상수 / SO로 관리**하고 문자열 리터럴 산재 금지 (AGENT.md §6).
 - 빌드 전략(로컬 only vs 원격 호스팅), 그룹 분할은 결정 시 ADR로 박제.
 
 ### UniTask
@@ -69,14 +69,14 @@ UPM (`Window > Package Manager`)으로 설치. `Packages/manifest.json`이 sourc
   ```json
   "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask"
   ```
-- **모든 비동기는 UniTask 사용**, `async void` 금지 (CLAUDE.md §6).
+- **모든 비동기는 UniTask 사용**, `async void` 금지 (AGENT.md §6).
 - 이벤트 핸들러는 `UniTaskVoid`, 일반은 `UniTask` / `UniTask<T>`.
 
 ### DOTween
 
 - Asset Store에서 무료 버전 또는 DOTween Pro 임포트.
 - 설치 후 `Tools > Demigiant > DOTween Utility Panel > Setup DOTween...` 실행 (필수).
-- **`OnDisable` / `OnDestroy`에서 `transform.DOKill(true)` 또는 핸들 보관 후 명시적 Kill** (CLAUDE.md §6).
+- **`OnDisable` / `OnDestroy`에서 `transform.DOKill(true)` 또는 핸들 보관 후 명시적 Kill** (AGENT.md §6).
 
 ---
 
@@ -128,7 +128,7 @@ Assets/
 
 ### "메타 파일이 없다" 경고
 
-새 자산을 만들고 다른 팀원이 pull 했을 때 `.meta` 파일이 누락되면 발생. **`.meta`는 항상 같은 커밋에 포함** (CLAUDE.md §6).
+새 자산을 만들고 다른 팀원이 pull 했을 때 `.meta` 파일이 누락되면 발생. **`.meta`는 항상 같은 커밋에 포함** (AGENT.md §6).
 
 ### 첫 임포트 실패
 

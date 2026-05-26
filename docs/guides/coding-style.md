@@ -1,6 +1,6 @@
 # C# / Unity 코딩 스타일
 
-SlotRogue 코드 작성 시 따르는 규칙. **절대 규칙**은 [`../../CLAUDE.md`](../../CLAUDE.md) §6에 있고, 이 문서는 세부 사항을 펼친다.
+SlotRogue 코드 작성 시 따르는 규칙. **절대 규칙**은 [`../../AGENT.md`](../../AGENT.md) §6에 있고, 이 문서는 세부 사항을 펼친다.
 
 ---
 
@@ -381,5 +381,5 @@ git config blame.ignoreRevsFile .git-blame-ignore-revs
 |----|----------|
 | 들여쓰기·중괄호·`var` 정책·간단 네이밍 | `.editorconfig` (자동) |
 | 멤버 순서·using 그룹 시멘틱 | 리뷰 (수동) |
-| Unity 라이프사이클·async·트윈·null | 리뷰 (수동) — CLAUDE.md §6 |
+| Unity 라이프사이클·async·트윈·null | 리뷰 (수동) — AGENT.md §6 |
 | 포매팅 sweep | 단독 커밋 + `.git-blame-ignore-revs` |
