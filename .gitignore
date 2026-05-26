@@ -35,6 +35,7 @@ ExportedObj/
 *.csproj
 *.unityproj
 *.sln
+*.slnx
 *.suo
 *.tmp
 *.user
@@ -54,6 +55,10 @@ ExportedObj/
 
 # Unity3D generated file on crash reports
 sysinfo.txt
+
+# Local test runner output
+UnityTest.log
+TestResults.xml
 
 # Builds
 *.apk

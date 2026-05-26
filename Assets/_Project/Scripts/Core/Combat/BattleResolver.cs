@@ -39,7 +39,7 @@ namespace SlotRogue.Core.Combat
                 return;
             }
 
-            var damage = CombatDamage.Apply(outcome.Attack, State.PendingMonsterDefense);
+            int damage = CombatDamage.Apply(outcome.Attack, State.PendingMonsterDefense);
             State.MonsterHp -= damage;
             State.PendingMonsterDefense = 0;
         }
@@ -57,19 +57,19 @@ namespace SlotRogue.Core.Combat
 
         private void RunMonsterPhase(CombatSpinOutcome outcome)
         {
-            var pattern = _monsterDefinition.Pattern;
+            MonsterPattern pattern = _monsterDefinition.Pattern;
             if (pattern == null || pattern.Steps == null || pattern.Steps.Length == 0)
             {
                 return;
             }
 
-            var stepIndex = State.PatternIndex;
+            int stepIndex = State.PatternIndex;
             if (stepIndex < 0 || stepIndex >= pattern.Steps.Length)
             {
                 stepIndex = 0;
             }
 
-            var step = pattern.Steps[stepIndex];
+            PatternStep step = pattern.Steps[stepIndex];
             if (step?.Action != null)
             {
                 ApplyMonsterAction(PatternActionResolver.Resolve(step), outcome);
@@ -83,7 +83,7 @@ namespace SlotRogue.Core.Combat
             switch (action.Kind)
             {
                 case MonsterActionKind.Attack:
-                    var damageToPlayer = CombatDamage.Apply(action.RawAttack, outcome.Defense);
+                    int damageToPlayer = CombatDamage.Apply(action.RawAttack, outcome.Defense);
                     State.PlayerHp -= damageToPlayer;
                     break;
                 case MonsterActionKind.Defend:
@@ -97,8 +97,8 @@ namespace SlotRogue.Core.Combat
 
         private void AdvancePatternIndex(MonsterPattern pattern)
         {
-            var steps = pattern.Steps;
-            var nextIndex = State.PatternIndex + 1;
+            PatternStep[] steps = pattern.Steps;
+            int nextIndex = State.PatternIndex + 1;
 
             if (nextIndex >= steps.Length)
             {

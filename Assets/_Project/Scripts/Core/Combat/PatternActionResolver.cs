@@ -1,3 +1,4 @@
+using System;
 using SlotRogue.Data.Combat;
 
 namespace SlotRogue.Core.Combat
@@ -6,12 +7,13 @@ namespace SlotRogue.Core.Combat
     {
         public static MonsterAction Resolve(PatternStep step)
         {
-            var definition = step?.Action;
+            MonsterActionDefinition definition = step?.Action;
             if (definition == null)
             {
-                throw new System.ArgumentException("Pattern step action is missing.", nameof(step));
+                throw new ArgumentException("Pattern step action is missing.", nameof(step));
             }
-            var rawAttack = definition.RawAttack;
+
+            int rawAttack = definition.RawAttack;
 
             if (step.OverrideRawAttack && definition.Kind == MonsterActionKind.Attack)
             {
