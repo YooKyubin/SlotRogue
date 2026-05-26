@@ -8,7 +8,9 @@
 
 ## 현재 상태
 
-_(진행 중인 plan 없음.)_
+| Plan | Phase |
+|------|--------|
+| [`feature-combat-core.md`](./feature-combat-core.md) | A: 로직+테스트 → B: BattleTest·UI 스텁 |
 
 새 plan을 시작하면 같은 커밋에서 [`../../STATUS.md`](../../STATUS.md)의 "Active exec-plans" 표에도 등록한다.
 

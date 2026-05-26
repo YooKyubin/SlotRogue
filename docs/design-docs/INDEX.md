@@ -8,7 +8,9 @@
 
 ## 현재 상태
 
-**비어있다.** 기획 문서(슬롯 메커닉 / 로그라이크 메타 / 경제 모델 등)가 확정된 후 시스템별 doc을 추가한다.
+| 파일 | Status | 범위 |
+|------|--------|------|
+| [`combat-core.md`](./combat-core.md) | draft | 1스핀=1턴, 당턴 방어, 슬롯 DTO 스케치, 턴 흐름 |
 
 ---
 
@@ -27,6 +29,8 @@
 | `data-pipeline.md` | ScriptableObject vs JSON vs CSV, 밸런스 데이터 편집 워크플로 |
 | `build-and-release.md` | Android/iOS 빌드 설정, 키스토어, 버전 코드 정책 |
 | `testing-policy.md` | EditMode/PlayMode 테스트 범위, 플레이테스트 로그 양식 |
+
+`combat-core.md`는 전투 담당 합의에 따라 draft로 먼저 추가됨. 슬롯 연동 시 `slot-core.md`와 Q6(전달 방식)을 맞춘다.
 
 ---
 
