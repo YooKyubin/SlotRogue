@@ -14,10 +14,8 @@ namespace SlotRogue.Core.Combat
             }
 
             BattlePresenter presenter = _bootstrap.Presenter;
-            presenter.PlayerHpChanged += OnPlayerHpChanged;
-            presenter.MonsterHpChanged += OnMonsterHpChanged;
-            presenter.MonsterActionExecuted += OnMonsterActionExecuted;
-            presenter.BattleEnded += OnBattleEnded;
+            presenter.CombatEventEmitted += OnCombatEventEmitted;
+            presenter.TurnCompleted += OnTurnCompleted;
         }
 
         private void OnDisable()
@@ -28,30 +26,39 @@ namespace SlotRogue.Core.Combat
             }
 
             BattlePresenter presenter = _bootstrap.Presenter;
-            presenter.PlayerHpChanged -= OnPlayerHpChanged;
-            presenter.MonsterHpChanged -= OnMonsterHpChanged;
-            presenter.MonsterActionExecuted -= OnMonsterActionExecuted;
-            presenter.BattleEnded -= OnBattleEnded;
+            presenter.CombatEventEmitted -= OnCombatEventEmitted;
+            presenter.TurnCompleted -= OnTurnCompleted;
         }
 
-        private static void OnPlayerHpChanged(int currentHp, int maxHp)
+        private static void OnCombatEventEmitted(CombatEvent combatEvent)
         {
-            Debug.Log($"[Battle] Player HP: {currentHp}/{maxHp}");
+            switch (combatEvent.Kind)
+            {
+                case CombatEventKind.PlayerDamageToMonster:
+                    Debug.Log($"[Battle] Player dealt {combatEvent.Amount} to monster");
+                    break;
+                case CombatEventKind.MonsterDamageToPlayer:
+                    Debug.Log($"[Battle] Monster dealt {combatEvent.Amount} to player");
+                    break;
+                case CombatEventKind.MonsterActionExecuted:
+                    MonsterAction action = combatEvent.MonsterAction;
+                    Debug.Log($"[Battle] Monster action: {action.Kind} (atk={action.RawAttack}, def={action.DefendValue})");
+                    break;
+                case CombatEventKind.PlayerHealed:
+                    Debug.Log($"[Battle] Player healed {combatEvent.Amount}");
+                    break;
+                case CombatEventKind.MonsterHealed:
+                    Debug.Log($"[Battle] Monster healed {combatEvent.Amount}");
+                    break;
+                case CombatEventKind.BattleEnded:
+                    Debug.Log($"[Battle] Ended: {combatEvent.EndReason}");
+                    break;
+            }
         }
 
-        private static void OnMonsterHpChanged(int currentHp, int maxHp)
+        private static void OnTurnCompleted(BattleStateSnapshot snapshot)
         {
-            Debug.Log($"[Battle] Monster HP: {currentHp}/{maxHp}");
-        }
-
-        private static void OnMonsterActionExecuted(MonsterAction action)
-        {
-            Debug.Log($"[Battle] Monster action: {action.Kind} (atk={action.RawAttack}, def={action.DefendValue})");
-        }
-
-        private static void OnBattleEnded(BattleEndReason reason)
-        {
-            Debug.Log($"[Battle] Ended: {reason}");
+            Debug.Log($"[Battle] Turn end -> Player {snapshot.PlayerHp}/{snapshot.PlayerMaxHp}, Monster {snapshot.MonsterHp}/{snapshot.MonsterMaxHp}, PatternIndex {snapshot.PatternIndex}");
         }
     }
 }

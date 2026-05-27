@@ -51,6 +51,7 @@
 - **Finished**: 2026-05-27
 - **Outcome**: `BattleResolver`(C1–C10) + EditMode 테스트, `ISpinCombatConsumer`/`BattlePresenter`, Goblin 샘플 SO, `BattleTest` Mock 스핀 씬(Play Mode 검증). 슬롯·실 UI 없이 전투 코어 MVP 달성.
 - **Follow-ups**:
+  - **턴 이벤트 로그**: [`feature-combat-turn-events`](./feature-combat-turn-events.md) — Presenter diff 스텁 → `TurnResult` / `CombatEvent` (ADR [`0001`](../../adr/0001-combat-turn-event-log.md)).
   - 슬롯 팀: `slot-core.md` 작성 후 `OnSpinResolved` 호출 타이밍 확정 및 `ISpinCombatConsumer` 연동 (`feature-slot-core` 등 별도 plan).
-  - UI: `BattlePresenter` 구독 HP 바·피격/승패 연출 (`SlotRogue.UI` asmdef).
+  - UI: HP 바·순차 연출 (`SlotRogue.UI` asmdef) — turn-events plan 이후.
   - Buff/Special 몬스터 액션 구현(C4 범위 밖이면 design-doc 갱신 후).

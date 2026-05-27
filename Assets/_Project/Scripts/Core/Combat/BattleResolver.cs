@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using SlotRogue.Data.Combat;
 
 namespace SlotRogue.Core.Combat
@@ -6,10 +7,9 @@ namespace SlotRogue.Core.Combat
     public sealed class BattleResolver : ISpinCombatConsumer
     {
         private readonly MonsterDefinition _monsterDefinition;
+        private readonly List<CombatEvent> _turnEvents = new();
 
         public BattleState State { get; private set; }
-
-        public event Action SpinProcessed;
 
         public BattleResolver(MonsterDefinition monsterDefinition, int playerMaxHp)
         {
@@ -22,24 +22,64 @@ namespace SlotRogue.Core.Combat
             ProcessSpin(outcome);
         }
 
-        public void ProcessSpin(CombatSpinOutcome outcome)
+        public TurnResult ProcessSpin(CombatSpinOutcome outcome)
         {
+            _turnEvents.Clear();
+
             if (State.IsBattleOver)
             {
-                return;
+                return BuildTurnResult();
             }
 
             RunPlayerPhase(outcome);
 
             if (TryEndBattleAfterPlayerPhase())
             {
-                SpinProcessed?.Invoke();
-                return;
+                return CompleteTurn();
             }
 
             RunMonsterPhase(outcome);
             TryEndBattleFinal();
-            SpinProcessed?.Invoke();
+            return CompleteTurn();
+        }
+
+        public void ApplyPlayerHeal(int amount)
+        {
+            if (State.IsBattleOver || amount <= 0)
+            {
+                return;
+            }
+
+            int before = State.PlayerHp;
+            State.PlayerHp = Math.Min(State.PlayerHp + amount, State.PlayerMaxHp);
+            int healed = State.PlayerHp - before;
+            if (healed > 0)
+            {
+                _turnEvents.Add(CombatEvent.PlayerHealed(healed));
+            }
+        }
+
+        public void ApplyMonsterHeal(int amount)
+        {
+            if (State.IsBattleOver || amount <= 0)
+            {
+                return;
+            }
+
+            int before = State.MonsterHp;
+            State.MonsterHp = Math.Min(State.MonsterHp + amount, State.MonsterMaxHp);
+            int healed = State.MonsterHp - before;
+            if (healed > 0)
+            {
+                _turnEvents.Add(CombatEvent.MonsterHealed(healed));
+            }
+        }
+
+        private TurnResult CompleteTurn() => BuildTurnResult();
+
+        private TurnResult BuildTurnResult()
+        {
+            return new TurnResult(_turnEvents.ToArray(), BattleStateSnapshot.From(State));
         }
 
         private void RunPlayerPhase(CombatSpinOutcome outcome)
@@ -50,7 +90,12 @@ namespace SlotRogue.Core.Combat
             }
 
             int damage = CombatDamage.Apply(outcome.Attack, State.PendingMonsterDefense);
-            State.MonsterHp -= damage;
+            if (damage > 0)
+            {
+                State.MonsterHp -= damage;
+                _turnEvents.Add(CombatEvent.PlayerDamageToMonster(damage));
+            }
+
             State.PendingMonsterDefense = 0;
         }
 
@@ -59,6 +104,7 @@ namespace SlotRogue.Core.Combat
             if (State.PlayerHp <= 0)
             {
                 State.EndReason = BattleEndReason.Defeat;
+                _turnEvents.Add(CombatEvent.BattleEnded(State.EndReason));
                 return true;
             }
 
@@ -82,10 +128,20 @@ namespace SlotRogue.Core.Combat
             PatternStep step = pattern.Steps[stepIndex];
             if (step?.Action != null)
             {
-                ApplyMonsterAction(PatternActionResolver.Resolve(step), outcome);
+                MonsterAction action = PatternActionResolver.Resolve(step);
+                PublishMonsterAction(action);
+                ApplyMonsterAction(action, outcome);
             }
 
             AdvancePatternIndex(pattern);
+        }
+
+        private void PublishMonsterAction(MonsterAction action)
+        {
+            if (action.Kind is MonsterActionKind.Attack or MonsterActionKind.Defend)
+            {
+                _turnEvents.Add(CombatEvent.MonsterActionExecuted(action));
+            }
         }
 
         private void ApplyMonsterAction(MonsterAction action, CombatSpinOutcome outcome)
@@ -94,7 +150,12 @@ namespace SlotRogue.Core.Combat
             {
                 case MonsterActionKind.Attack:
                     int damageToPlayer = CombatDamage.Apply(action.RawAttack, outcome.Defense);
-                    State.PlayerHp -= damageToPlayer;
+                    if (damageToPlayer > 0)
+                    {
+                        State.PlayerHp -= damageToPlayer;
+                        _turnEvents.Add(CombatEvent.MonsterDamageToPlayer(damageToPlayer));
+                    }
+
                     break;
                 case MonsterActionKind.Defend:
                     State.PendingMonsterDefense = action.DefendValue;
@@ -123,12 +184,15 @@ namespace SlotRogue.Core.Combat
             if (State.PlayerHp <= 0)
             {
                 State.EndReason = BattleEndReason.Defeat;
-                return;
             }
-
-            if (State.MonsterHp <= 0)
+            else if (State.MonsterHp <= 0)
             {
                 State.EndReason = BattleEndReason.Victory;
+            }
+
+            if (State.IsBattleOver)
+            {
+                _turnEvents.Add(CombatEvent.BattleEnded(State.EndReason));
             }
         }
     }

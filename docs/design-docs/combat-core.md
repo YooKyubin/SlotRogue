@@ -1,7 +1,7 @@
 # 전투 코어 (Combat Core)
 
 **Status**: draft  
-**Last updated**: 2026-05-26 _(C10 반영 — MVP 전투 설계 합의 완료)_
+**Last updated**: 2026-05-27 _(C10 턴 이벤트 로그 — ADR-0001, [`feature-combat-turn-events`](../exec-plans/completed/feature-combat-turn-events.md))_
 
 ## Purpose
 
@@ -9,7 +9,7 @@
 
 ## Decisions
 
-_(ADR 없음 — 팀 합의 초안. 본질 변경 시 ADR 추가 검토.)_
+_(C10 전달 모델 변경: [`ADR-0001`](../adr/0001-combat-turn-event-log.md). 그 외 본질 변경 시 ADR 추가 검토.)_
 
 | # | 결정 | 요약 |
 |---|------|------|
@@ -22,7 +22,7 @@ _(ADR 없음 — 팀 합의 초안. 본질 변경 시 ADR 추가 검토.)_
 | C7 | **몬스터 Defend = 당턴·1회 피해 감소** | `Defend` 행동의 `DefendValue`는 **몬스터가 맞는 피해 1회**에만 C2와 동일식 적용. 다음 턴 이월·누적 없음. C3(플레이어 선행) 때문에 **다음 스핀 PlayerPhase**에 소비(아래). |
 | C8 | **승패 = HP 0만 (MVP)** | 플레이어 HP≤0 → 패배, 몬스터 HP≤0 → 승리. 도주·턴 제한·시간 제한 없음. 추후 메타/러닝에서 확장. |
 | C9 | **0 공격·0 방어도 턴 진행** | `attack`/`defense`가 0이어도 스핀=1턴(C1). PlayerPhase·MonsterPhase·CheckEnd 모두 수행. 미스·스킵 없음(MVP). |
-| C10 | **슬롯→전투: 인터페이스 / UI: 이벤트** | 스핀 결과는 `ISpinCombatConsumer` **단일 호출**. HP·행동·승패 등 **표시·연출**은 전투→UI 이벤트(또는 SO Event Channel). 슬롯↔전투 global event 금지(MVP). |
+| C10 | **슬롯→전투: 인터페이스 / UI: 턴 이벤트 로그** | 스핀 결과는 `ISpinCombatConsumer` **단일 호출**. Resolver가 스핀당 `TurnResult`(순서 있는 `CombatEvent` + 턴 종료 스냅샷) 생성 → Presenter/UI가 연출. 슬롯↔전투 global event 금지(MVP). 상세·ADR: [`0001-combat-turn-event-log`](../adr/0001-combat-turn-event-log.md). |
 
 ### C2 — 피해 계산 (당턴)
 
@@ -251,42 +251,94 @@ namespace SlotRogue.Core.Combat
 sequenceDiagram
   participant Slot as Slot (SpinController)
   participant BR as BattleResolver
-  participant UI as UI listeners
+  participant Caller as SlotOrMockCaller
+  participant BP as BattlePresenter
+  participant UI as UI / Timeline
   Slot->>BR: OnSpinResolved(outcome)
-  BR->>BR: PlayerPhase / MonsterPhase / CheckEnd
-  BR-->>UI: Combat UI events
+  BR->>BR: PlayerPhase / MonsterPhase / CheckEnd\n(record CombatEvent list)
+  BR-->>Caller: return TurnResult
+  Caller->>BP: Consume(TurnResult)
+  BP->>UI: per-event + FinalState sync
 ```
 
-### 전투 → UI (이벤트)
+### 전투 → UI — 턴 이벤트 로그 (canonical)
 
 **게임 로직 경로(C10)와 분리.** UI·VFX·사운드는 구독만 하고 전투 상태를 mutate 하지 않는다.
 
-| 이벤트 (예시) | 발행 시점 | 구독 예 |
-|---------------|-----------|---------|
-| `PlayerHpChanged` | 피해/회복 후 | 상단 HP 바 |
-| `MonsterHpChanged` | 피해 후 | 몬스터 HP·히트 연출 |
-| `MonsterActionExecuted` | MonsterPhase 후 | 1인칭 공격/방어 애니 |
-| `BattleEnded` | C8 승패 확정 | 결과 팝업 |
+**canonical 모델**: 스핀당 **`TurnResult`** 1개.
 
-구현 선택 (MVP 하나로 통일):
+| 구성 | 역할 |
+|------|------|
+| `Events` (`IReadOnlyList<CombatEvent>`) | 턴 처리 **중** 발생한 사건의 **발생 순서**. 연출·피드백의 1차 소스. |
+| `FinalState` (`BattleStateSnapshot`) | 턴 **종료 후** HP·패턴 인덱스·승패. HP 바 등 UI 상태 **동기화**용. |
 
-- **권장**: `BattlePresenter`가 C# `event` 또는 `Action` 발행 — `SlotRogue.UI`가 구독 (`OnDisable`에서 구독 해제).
-- **대안**: ScriptableObject Event Channel — 씬 간 느슨 결합이 필요해질 때.
+**왜 스냅샷 diff만으로는 부족한가**
+
+- 턴 안에 피해 후 회복 등으로 **최종 HP가 이전과 같으면** diff는 변화 없음 → 연출 누락.
+- C3(플레이어 후 몬스터) **연출 순서**는 “최종값 비교”로는 알 수 없음 → **이벤트 순서**가 필요.
+
+#### `CombatEvent` (도메인, `SlotRogue.Core`)
+
+런타임 **사건** DTO. Resolver가 기록, Presenter/UI가 소비.
+
+| `CombatEventKind` (MVP) | 의미 | 기록 시점 (Resolver) |
+|-------------------------|------|----------------------|
+| `PlayerDamageToMonster` | 플레이어 공격으로 몬스터가 받은 피해량 | PlayerPhase, `damage > 0` |
+| `MonsterDamageToPlayer` | 몬스터 공격으로 플레이어가 받은 피해량 | MonsterPhase, Attack 적용 시 |
+| `MonsterActionExecuted` (`Kind=Defend`) | 몬스터 Defend, `DefendValue` (C7 pending) | MonsterPhase, Defend 적용 직후 |
+| `MonsterActionExecuted` | 이번 턴 몬스터 행동(`MonsterAction`) | MonsterPhase, 행동 실행 직후 |
+| `PlayerHealed` / `MonsterHealed` | 회복량 | 효과·버프 파이프라인 도입 시 (MVP 타입만 예약 가능) |
+| `BattleEnded` | `BattleEndReason` | CheckEnd, 승패 확정 시 |
+
+**턴 내 기록 순서 (규칙)**
+
+1. PlayerPhase에서 발생한 이벤트(예: `PlayerDamageToMonster`)
+2. PlayerPhase 직후 전투 종료면 `BattleEnded` 후 **MonsterPhase 생략**
+3. MonsterPhase: `MonsterActionExecuted` → (Attack이면) `MonsterDamageToPlayer`, (Defend면 pending 갱신)
+4. CheckEnd 후 `BattleEnded`(아직 없으면)
+
+로직 계산은 Resolver에서 **동기·한 번에** 끝난다. **표시 순서**는 UI 타임라인이 `Events`를 순차 재생한다(대기·애니 길이는 UI 책임).
+
+#### `BattlePresenter` 역할
+
+- 호출자(Mock/Slot)가 `BattleResolver.ProcessSpin` 반환값을 받아 `BattlePresenter.Consume(TurnResult)` 호출.
+- `Events`를 순회해 UI용 C# `event` / `Action`으로 **번역**(피격 연출, 몬스터 행동 연출 등).
+- 턴 종료 시 `FinalState`로 HP 바 등 **최종값 동기화** (기존 `PlayerHpChanged` / `MonsterHpChanged`를 여기서 1회 쏘는 방식 가능 — API는 구현 plan에서 확정).
+
+**거절 (이전 Phase B 스텁)**: Presenter가 스핀 전·후 `BattleState`만 diff해 이벤트를 추론하는 방식. ADR: [`0001-combat-turn-event-log`](../adr/0001-combat-turn-event-log.md).
+
+#### UI 타임라인 (연출)
+
+| 책임 | 담당 |
+|------|------|
+| 무슨 일이 있었는가, 순서 | `TurnResult.Events` (Resolver 기록) |
+| 언제·얼마나 보여줄지 | UI `CombatTimelineController`(가칭) — 코루틴/await, 입력 잠금 |
+| HP 숫자 맞추기 | `TurnResult.FinalState` |
+
+슬롯 릴 연출과 전투 연출의 선후는 `slot-core.md`에서 확정. 전투 **규칙**은 `OnSpinResolved` 호출 시점에 이미 확정되어야 한다(C1).
+
+#### 구현·전송 방식 (MVP)
+
+- **권장**: `BattlePresenter`가 C# `event` — `SlotRogue.UI` 구독 (`OnDisable` 해제).
+- **대안**: ScriptableObject Event Channel — 씬 간 느슨 결합 필요 시.
 
 **금지 (MVP)**
 
-- `SpinResolved`를 **static/global bus**로 쏴서 전투가 구독 — 디버깅·중복·씬 전환 누수 위험.
-- UI가 `ISpinCombatConsumer`를 구현해 스핀을 가로채기 — 로직 이중 실행.
+- `SpinResolved` / 스핀 결과를 **static/global bus**로 — 디버깅·중복·씬 전환 누수.
+- UI가 `ISpinCombatConsumer` 구현 — 로직 이중 실행.
+- Presenter가 `BattleState`를 mutate.
 
 ### asmdef 의존 (목표)
 
 | asmdef | 알아야 하는 것 |
 |--------|----------------|
-| `SlotRogue.Core` | DTO, `ISpinCombatConsumer`, `BattleResolver`, UI 이벤트 args |
+| `SlotRogue.Core` | DTO, `ISpinCombatConsumer`, `BattleResolver`, `TurnResult`, `CombatEvent` |
 | `SlotRogue.Slot` _(또는 Core.Slot)_ | `ISpinCombatConsumer`만 |
-| `SlotRogue.UI` | 전투 이벤트·표시 DTO. **슬롯 직접 참조 불필요** |
+| `SlotRogue.UI` | Presenter 이벤트·타임라인. **슬롯 직접 참조 불필요** |
 
 - 전투는 `CombatSpinOutcome`을 **한 턴에 한 번** 수신한다(C1·C10).
+
+**구현 상태**: [`feature-combat-turn-events`](../exec-plans/completed/feature-combat-turn-events.md) 완료. 후속은 UI 타임라인 컨트롤러 plan으로 분리.
 
 ## Open questions
 
@@ -295,9 +347,8 @@ MVP 전투 코어 설계 질문은 **모두 Decisions로 승격됨**. 남은 것
 | ID | 질문 | 비고 |
 |----|------|------|
 | — | 슬롯 `OnSpinResolved` vs 릴 애니 선후 | `slot-core.md` 작성 시 슬롯 팀과 확정 |
-| — | UI 이벤트 전송 방식 (C# event vs SO Channel) | 구현 착수 시 하나 선택 |
-
-## Alternatives considered
+| — | UI 이벤트 전송 방식 (C# event vs SO Channel) | `feature-combat-turn-events` 구현 시 하나 선택 |
+| — | 슬롯 릴 연출 완료 타이밍 vs `ProcessSpin` 호출 시점 | `slot-core.md`에서 확정 |
 
 ## Alternatives considered
 
@@ -370,3 +421,8 @@ MVP 전투 코어 설계 질문은 **모두 Decisions로 승격됨**. 남은 것
 
 - **내용**: `BattleResolver`도 이벤트만 듣고 턴 진행.
 - **거절 이유**: 턴 순서(C3)·승패(C8) 추적이 불명확. 스핀 입력만 인터페이스, 이후는 동기 resolver.
+
+### 전투→UI — Presenter 스냅샷 diff만 — 거절
+
+- **내용**: `BattlePresenter`가 스핀 전·후 `BattleState` HP·`PatternIndex`만 비교해 UI 이벤트 발행 (`feature-combat-core` Phase B 스텁).
+- **거절 이유**: 턴 내부 사건·순차 연출 불가. **이벤트 로그 + `TurnResult`** 채택 — ADR [`0001-combat-turn-event-log`](../adr/0001-combat-turn-event-log.md).

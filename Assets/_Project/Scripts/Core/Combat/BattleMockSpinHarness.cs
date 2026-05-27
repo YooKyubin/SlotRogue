@@ -65,14 +65,16 @@ namespace SlotRogue.Core.Combat
 
         private void ApplySpin(CombatSpinOutcome outcome)
         {
-            ISpinCombatConsumer consumer = _bootstrap?.CombatConsumer;
-            if (consumer == null)
+            BattleResolver resolver = _bootstrap?.Resolver;
+            BattlePresenter presenter = _bootstrap?.Presenter;
+            if (resolver == null || presenter == null)
             {
-                Debug.LogWarning("[BattleMockSpinHarness] Combat consumer is not ready.", this);
+                Debug.LogWarning("[BattleMockSpinHarness] Battle system is not ready.", this);
                 return;
             }
 
-            consumer.OnSpinResolved(outcome);
+            TurnResult result = resolver.ProcessSpin(outcome);
+            presenter.Consume(result);
         }
     }
 }

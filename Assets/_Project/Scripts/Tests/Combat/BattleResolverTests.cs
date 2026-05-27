@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using SlotRogue.Core.Combat;
 using SlotRogue.Data.Combat;
+using System.Linq;
 using UnityEngine;
 
 namespace SlotRogue.Core.Tests.Combat
@@ -83,6 +84,40 @@ namespace SlotRogue.Core.Tests.Combat
         }
 
         [Test]
+        public void ProcessSpin_AttackThenMonsterAttack_RecordsOrderedEvents()
+        {
+            var attack = CreateAction(MonsterActionKind.Attack, rawAttack: 10);
+            var resolver = CreateResolver(attack);
+
+            TurnResult result = resolver.ProcessSpin(new CombatSpinOutcome(5, 0));
+
+            Assert.That(result.Events.Select(evt => evt.Kind), Is.EqualTo(new[]
+            {
+                CombatEventKind.PlayerDamageToMonster,
+                CombatEventKind.MonsterActionExecuted,
+                CombatEventKind.MonsterDamageToPlayer
+            }));
+            Assert.That(result.Events[0].Amount, Is.EqualTo(5));
+            Assert.That(result.Events[2].Amount, Is.EqualTo(10));
+        }
+
+        [Test]
+        public void ProcessSpin_MonsterDefend_RecordsOnlyMonsterActionExecuted()
+        {
+            var defend = CreateAction(MonsterActionKind.Defend, defendValue: 5);
+            var resolver = CreateResolver(defend);
+
+            TurnResult result = resolver.ProcessSpin(new CombatSpinOutcome(0, 0));
+
+            Assert.That(result.Events.Select(evt => evt.Kind), Is.EqualTo(new[]
+            {
+                CombatEventKind.MonsterActionExecuted
+            }));
+            Assert.That(result.Events[0].MonsterAction.Kind, Is.EqualTo(MonsterActionKind.Defend));
+            Assert.That(result.Events[0].MonsterAction.DefendValue, Is.EqualTo(5));
+        }
+
+        [Test]
         public void OnSpinResolved_MonsterHpZero_EndsWithVictory()
         {
             var resolver = CreateResolver(CreateAction(MonsterActionKind.Defend, defendValue: 1));
@@ -104,6 +139,18 @@ namespace SlotRogue.Core.Tests.Combat
 
             Assert.That(resolver.State.EndReason, Is.EqualTo(BattleEndReason.Victory));
             Assert.That(resolver.State.IsBattleOver, Is.True);
+        }
+
+        [Test]
+        public void ProcessSpin_MonsterHpZero_RecordsBattleEndedExactlyOnce()
+        {
+            var resolver = CreateResolver(CreateAction(MonsterActionKind.Defend, defendValue: 1));
+            resolver.State.MonsterHp = 10;
+
+            TurnResult result = resolver.ProcessSpin(new CombatSpinOutcome(10, 0));
+
+            Assert.That(result.Events.Count(evt => evt.Kind == CombatEventKind.BattleEnded), Is.EqualTo(1));
+            Assert.That(result.Events.Last().EndReason, Is.EqualTo(BattleEndReason.Victory));
         }
 
         [Test]

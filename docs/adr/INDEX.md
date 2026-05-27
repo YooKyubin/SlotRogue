@@ -10,7 +10,7 @@
 
 | # | 제목 | Status | Date | Supersedes |
 |---|------|--------|------|------------|
-| _첫 결정 시 추가_ | | | | |
+| [0001](./0001-combat-turn-event-log.md) | 전투 턴 결과는 이벤트 로그(`TurnResult`)로 UI에 전달 | accepted | 2026-05-27 | — |
 
 ---
 

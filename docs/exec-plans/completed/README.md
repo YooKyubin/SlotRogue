@@ -10,6 +10,7 @@
 
 | Plan | Finished | Outcome (한 줄) |
 |------|----------|-----------------|
+| [`feature-combat-turn-events.md`](./feature-combat-turn-events.md) | 2026-05-27 | `TurnResult` return + `BattlePresenter.Consume` 이벤트 스트림 |
 | [`feature-combat-core.md`](./feature-combat-core.md) | 2026-05-27 | BattleResolver + BattleTest Mock 스핀, `ISpinCombatConsumer` |
 
 가장 최근 5~10개는 [`../../STATUS.md`](../../STATUS.md)의 "Recently completed" 표에도 등록된다.

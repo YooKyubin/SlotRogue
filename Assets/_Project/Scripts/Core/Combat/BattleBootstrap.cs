@@ -26,12 +26,7 @@ namespace SlotRogue.Core.Combat
             }
 
             _resolver = new BattleResolver(_monsterDefinition, _playerMaxHp);
-            _presenter = new BattlePresenter(_resolver, _monsterDefinition);
-        }
-
-        private void OnDestroy()
-        {
-            _presenter?.Unsubscribe();
+            _presenter = new BattlePresenter();
         }
     }
 }

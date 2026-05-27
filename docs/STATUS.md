@@ -6,7 +6,7 @@ _Last updated: 2026-05-27_
 
 ## 현재 포커스
 
-**전투 코어 MVP 완료** ([`feature-combat-core`](./exec-plans/completed/feature-combat-core.md)). 다음 우선: Week 1 슬롯 코어(`slot-core.md` + `ISpinCombatConsumer` 연동) 또는 전투 UI(`BattlePresenter` → HP 바·연출).
+**전투 턴 이벤트 로그 전환 완료** ([`feature-combat-turn-events`](./exec-plans/completed/feature-combat-turn-events.md), [`ADR-0001`](./adr/0001-combat-turn-event-log.md)). 다음 우선: UI 타임라인 컨트롤러 후속 plan (`CombatTimelineController`)과 입력 잠금 정책 확정.
 
 ---
 
@@ -38,6 +38,7 @@ _(없음)_
 
 | Plan | Finished | Outcome (한 줄) |
 |------|----------|-----------------|
+| [`feature-combat-turn-events.md`](./exec-plans/completed/feature-combat-turn-events.md) | 2026-05-27 | `TurnResult` return + `BattlePresenter.Consume` 이벤트 스트림 |
 | [`feature-combat-core.md`](./exec-plans/completed/feature-combat-core.md) | 2026-05-27 | `BattleResolver` + `BattleTest` Mock, `ISpinCombatConsumer` |
 
 가장 최근 5~10개의 완료 plan만 표시. 전체는 [`exec-plans/completed/`](./exec-plans/completed/) 참조.
