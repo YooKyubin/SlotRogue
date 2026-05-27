@@ -68,6 +68,88 @@
 
 슬롯 팀은 **인터페이스만** 알면 되고, UI 팀은 **Presenter 이벤트만** 구독하면 된다.
 
+### 레이어 다이어그램 (정적 구조)
+
+```mermaid
+flowchart LR
+  subgraph inputLayer [Input Layer]
+    Slot[SlotController future]
+    Mock[BattleMockSpinHarness current]
+  end
+
+  subgraph domainLayer [Domain Layer SlotRogue.Core.Combat]
+    Resolver[BattleResolver]
+    State[BattleState]
+    SpinDTO[CombatSpinOutcome]
+    TurnResult[TurnResult]
+    EventDTO[CombatEvent]
+    Snapshot[BattleStateSnapshot]
+    PatternResolver[PatternActionResolver]
+  end
+
+  subgraph dataLayer [Data Layer SlotRogue.Data.Combat]
+    MonsterDef[MonsterDefinition]
+    MonsterPattern[MonsterPattern PatternStep]
+    MonsterActionDef[MonsterActionDefinition]
+  end
+
+  subgraph presentationLayer [Presentation Layer]
+    Presenter[BattlePresenter]
+    DebugListener[BattleDebugLogListener current]
+    UITimeline[CombatTimelineController future]
+  end
+
+  Slot -->|build outcome| SpinDTO
+  Mock -->|build outcome| SpinDTO
+  SpinDTO --> Resolver
+
+  Resolver -->|reads| MonsterDef
+  MonsterDef --> MonsterPattern
+  MonsterPattern --> MonsterActionDef
+  Resolver --> PatternResolver
+
+  Resolver --> State
+  Resolver -->|return| TurnResult
+  TurnResult --> EventDTO
+  TurnResult --> Snapshot
+
+  TurnResult -->|Consume| Presenter
+  Presenter -->|CombatEventEmitted| DebugListener
+  Presenter -->|CombatEventEmitted| UITimeline
+  Presenter -->|TurnCompleted final state| DebugListener
+  Presenter -->|TurnCompleted final state| UITimeline
+```
+
+### 한 스핀 시퀀스 (동적 흐름)
+
+```mermaid
+sequenceDiagram
+  participant Caller as SlotOrMockCaller
+  participant Resolver as BattleResolver
+  participant Presenter as BattlePresenter
+  participant UI as UIOrDebugListener
+
+  Caller->>Resolver: ProcessSpin(outcome)
+  Resolver->>Resolver: PlayerPhase
+  Resolver->>Resolver: MonsterPhase
+  Resolver->>Resolver: CheckEnd
+  Resolver-->>Caller: TurnResult(events, finalState)
+  Caller->>Presenter: Consume(turnResult)
+
+  loop each combat event in order
+    Presenter-->>UI: CombatEventEmitted(event)
+  end
+
+  Presenter-->>UI: TurnCompleted(finalState)
+```
+
+### 레이어 책임 요약
+
+- Input Layer: 슬롯/Mock이 `CombatSpinOutcome`을 만들고 `ProcessSpin`을 호출한다.
+- Domain Layer: Resolver가 규칙 계산과 이벤트 기록을 수행하고 `TurnResult`를 반환한다.
+- Data Layer: 몬스터 행동/패턴/수치를 SO로 제공한다.
+- Presentation Layer: Presenter가 이벤트를 전달하고, UI/로그 리스너가 소비한다.
+
 ---
 
 ## 4. 코드 읽는 순서 (추천 45~60분)
