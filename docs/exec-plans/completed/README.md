@@ -8,7 +8,9 @@
 
 ## 현재 상태
 
-_(완료된 plan 없음.)_
+| Plan | Finished | Outcome (한 줄) |
+|------|----------|-----------------|
+| [`feature-combat-core.md`](./feature-combat-core.md) | 2026-05-27 | BattleResolver + BattleTest Mock 스핀, `ISpinCombatConsumer` |
 
 가장 최근 5~10개는 [`../../STATUS.md`](../../STATUS.md)의 "Recently completed" 표에도 등록된다.
 

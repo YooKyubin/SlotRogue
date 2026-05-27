@@ -1,9 +1,10 @@
 # 전투 코어 (Combat Core)
 
-**Status**: active  
+**Status**: completed  
 **Started**: 2026-05-26  
+**Finished**: 2026-05-27  
 **Owner**: _(전투 담당 — GitHub id 기입)_  
-**Contributors**: _(슬롯 담당 — Phase B `ISpinCombatConsumer` 연동 시)_  
+**Contributors**: _(슬롯 담당 — Phase B `ISpinCombatConsumer` 연동은 follow-up)_  
 **Related design-docs**: [`combat-core.md`](../../design-docs/combat-core.md) (C1–C10)
 
 ## Goal
@@ -35,21 +36,21 @@
 - [x] `BattleTest` 씬 — Mock 스핀 버튼(고정 `CombatSpinOutcome`) → Resolver 주입 (`Assets/_Project/Scenes/BattleTest.unity`)
 - [x] 샘플 SO 인스턴스 1세트 (`GoblinPattern`, `Slash`/`Guard` 액션) — `Assets/_Project/Data/Combat/`
 - [x] `BattlePresenter` 스텁 — 전투→UI 이벤트 발행만(HP 변경·`MonsterActionExecuted`·`BattleEnded`, 로그 OK)
-- [ ] 슬롯 팀 핸드오프: `OnSpinResolved` 호출 시점은 `slot-core.md`에서 확정 — **blocked on slot team** (`slot-core.md` 미작성)
 
 ## Notes
 
 - EditMode 테스트 기본값: `playerMaxHp = 30`, `monsterMaxHp = 50` (`BattleResolverTests`).
 - Unity Test Runner: `Window > General > Test Runner > EditMode`, assembly `SlotRogue.Core.Tests`.
-- 구현 순서: **Phase A 전부 → Phase B**. Phase B 중 UI 연출·DOTween은 MVP 스텁 이후.
+- 구현 순서: **Phase A 전부 → Phase B**. Phase B 중 UI 연출·DOTWEEN은 MVP 스텁 이후.
 - `BattleResolver`는 스핀당 `OnSpinResolved` 1회만 처리(C1·C10). global `SpinResolved` 이벤트 사용 안 함.
-- Phase A 완료 시 plan 체크리스트 갱신 + (선택) 슬롯 담당에게 `ISpinCombatConsumer` PR/브랜치 공유.
 - `BattleTest` EventSystem: `InputSystemUIInputModule` GUID는 패키지 버전별로 다름. 씬에 Missing Script가 보이면 `GameObject > UI > Event System`으로 재생성.
+- 구현 커밋: Phase A `c262d7e`, Phase B `77d494c`.
 
 ## Completion
 
-_(completed/로 옮길 때 채움.)_
-
-- **Finished**:
-- **Outcome**:
+- **Finished**: 2026-05-27
+- **Outcome**: `BattleResolver`(C1–C10) + EditMode 테스트, `ISpinCombatConsumer`/`BattlePresenter`, Goblin 샘플 SO, `BattleTest` Mock 스핀 씬(Play Mode 검증). 슬롯·실 UI 없이 전투 코어 MVP 달성.
 - **Follow-ups**:
+  - 슬롯 팀: `slot-core.md` 작성 후 `OnSpinResolved` 호출 타이밍 확정 및 `ISpinCombatConsumer` 연동 (`feature-slot-core` 등 별도 plan).
+  - UI: `BattlePresenter` 구독 HP 바·피격/승패 연출 (`SlotRogue.UI` asmdef).
+  - Buff/Special 몬스터 액션 구현(C4 범위 밖이면 design-doc 갱신 후).
