@@ -118,18 +118,6 @@ namespace SlotRogue.Core.Tests.Combat
         }
 
         [Test]
-        public void OnSpinResolved_MonsterHpZero_EndsWithVictory()
-        {
-            var resolver = CreateResolver(CreateAction(MonsterActionKind.Defend, defendValue: 1));
-            resolver.State.MonsterHp = 10;
-
-            resolver.OnSpinResolved(new CombatSpinOutcome(10, 0));
-
-            Assert.That(resolver.State.EndReason, Is.EqualTo(BattleEndReason.Victory));
-            Assert.That(resolver.State.IsBattleOver, Is.True);
-        }
-
-        [Test]
         public void ProcessSpin_MonsterHpZero_EndsWithVictory()
         {
             var resolver = CreateResolver(CreateAction(MonsterActionKind.Defend, defendValue: 1));

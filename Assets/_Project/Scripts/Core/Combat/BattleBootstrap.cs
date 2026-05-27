@@ -8,14 +8,11 @@ namespace SlotRogue.Core.Combat
         [SerializeField] private MonsterDefinition _monsterDefinition;
         [SerializeField] private int _playerMaxHp = 30;
 
-        private BattleResolver _resolver;
-        private BattlePresenter _presenter;
+        public BattleResolver Resolver { get; private set; }
+        public BattlePresenter Presenter { get; private set; }
+        private CombatPipelineConsumer _combatConsumer;
 
-        public BattleResolver Resolver => _resolver;
-
-        public BattlePresenter Presenter => _presenter;
-
-        public ISpinCombatConsumer CombatConsumer => _resolver;
+        public ISpinCombatConsumer CombatConsumer => _combatConsumer;
 
         private void Awake()
         {
@@ -25,8 +22,9 @@ namespace SlotRogue.Core.Combat
                 return;
             }
 
-            _resolver = new BattleResolver(_monsterDefinition, _playerMaxHp);
-            _presenter = new BattlePresenter();
+            Resolver = new BattleResolver(_monsterDefinition, _playerMaxHp);
+            Presenter = new BattlePresenter();
+            _combatConsumer = new CombatPipelineConsumer(Resolver, Presenter);
         }
     }
 }

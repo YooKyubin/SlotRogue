@@ -6,7 +6,7 @@ _Last updated: 2026-05-27_
 
 ## 현재 포커스
 
-**전투 턴 이벤트 로그 전환 완료** ([`feature-combat-turn-events`](./exec-plans/completed/feature-combat-turn-events.md), [`ADR-0001`](./adr/0001-combat-turn-event-log.md)). 다음 우선: UI 타임라인 컨트롤러 후속 plan (`CombatTimelineController`)과 입력 잠금 정책 확정.
+**전투 턴 이벤트 로그 + 슬롯 진입 어댑터 정리 완료** ([`feature-combat-turn-events`](./exec-plans/completed/feature-combat-turn-events.md), [`ADR-0001`](./adr/0001-combat-turn-event-log.md)). 다음 우선: UI 타임라인 컨트롤러 후속 plan (`CombatTimelineController`)과 입력 잠금 정책 확정.
 
 ---
 

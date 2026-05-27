@@ -8,7 +8,7 @@ namespace SlotRogue.Core.Combat
 
         private void OnEnable()
         {
-            if (_bootstrap?.Presenter == null)
+            if (_bootstrap == null || _bootstrap.Presenter == null)
             {
                 return;
             }
@@ -20,7 +20,7 @@ namespace SlotRogue.Core.Combat
 
         private void OnDisable()
         {
-            if (_bootstrap?.Presenter == null)
+            if (_bootstrap == null || _bootstrap.Presenter == null)
             {
                 return;
             }

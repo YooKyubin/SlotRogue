@@ -20,7 +20,7 @@
 ## 1. 한 줄 요약
 
 **슬롯 1회 = 전투 1턴.**  
-슬롯/Mock이 `attack`/`defense`를 넘기면 `BattleResolver.ProcessSpin`이 `TurnResult`를 반환한다. 호출자는 이 결과를 `BattlePresenter.Consume`에 전달하고, Presenter는 `CombatEvent` 스트림 + 턴 종료 스냅샷(`TurnCompleted`)을 UI에 전달한다.
+슬롯/Mock이 `attack`/`defense`를 넘기면 `ISpinCombatConsumer` 구현체(`CombatPipelineConsumer`)가 호출된다. 이 어댑터가 내부에서 `BattleResolver.ProcessSpin` 결과를 `BattlePresenter.Consume`에 전달하고, Presenter는 `CombatEvent` 스트림 + 턴 종료 스냅샷(`TurnCompleted`)을 UI에 전달한다.
 
 지금은 **진짜 슬롯 UI·HP 바**가 없고, `BattleTest` 씬의 **Mock 버튼**으로 같은 경로를 검증한다.
 
@@ -44,13 +44,12 @@
 [슬롯 (미래)] / [Mock 버튼 (지금)]
              │
              ▼
- BattleResolver.ProcessSpin(outcome)
+ ISpinCombatConsumer.OnSpinResolved(outcome)
              │
              ▼
- return TurnResult (Events + FinalState)
-             │
-             ▼
-  BattlePresenter.Consume(TurnResult)
+ CombatPipelineConsumer
+   ├─ resolver.ProcessSpin(outcome)
+   └─ presenter.Consume(turnResult)
              │
              ├─ CombatEventEmitted (순서대로)
              └─ TurnCompleted(FinalState)
@@ -101,7 +100,9 @@ flowchart LR
 
   Slot -->|build outcome| SpinDTO
   Mock -->|build outcome| SpinDTO
-  SpinDTO --> Resolver
+  SpinDTO --> Consumer[ISpinCombatConsumer]
+  Consumer --> Adapter[CombatPipelineConsumer]
+  Adapter --> Resolver
 
   Resolver -->|reads| MonsterDef
   MonsterDef --> MonsterPattern
@@ -113,7 +114,7 @@ flowchart LR
   TurnResult --> EventDTO
   TurnResult --> Snapshot
 
-  TurnResult -->|Consume| Presenter
+  Adapter -->|Consume TurnResult| Presenter
   Presenter -->|CombatEventEmitted| DebugListener
   Presenter -->|CombatEventEmitted| UITimeline
   Presenter -->|TurnCompleted final state| DebugListener
@@ -124,17 +125,18 @@ flowchart LR
 
 ```mermaid
 sequenceDiagram
-  participant Caller as SlotOrMockCaller
+  participant Adapter as CombatPipelineConsumer
   participant Resolver as BattleResolver
   participant Presenter as BattlePresenter
   participant UI as UIOrDebugListener
 
-  Caller->>Resolver: ProcessSpin(outcome)
+  Caller->>Adapter: OnSpinResolved(outcome)
+  Adapter->>Resolver: ProcessSpin(outcome)
   Resolver->>Resolver: PlayerPhase
   Resolver->>Resolver: MonsterPhase
   Resolver->>Resolver: CheckEnd
-  Resolver-->>Caller: TurnResult(events, finalState)
-  Caller->>Presenter: Consume(turnResult)
+  Resolver-->>Adapter: TurnResult(events, finalState)
+  Adapter->>Presenter: Consume(turnResult)
 
   loop each combat event in order
     Presenter-->>UI: CombatEventEmitted(event)
@@ -145,7 +147,7 @@ sequenceDiagram
 
 ### 레이어 책임 요약
 
-- Input Layer: 슬롯/Mock이 `CombatSpinOutcome`을 만들고 `ProcessSpin`을 호출한다.
+- Input Layer: 슬롯/Mock이 `CombatSpinOutcome`을 만들고 `ISpinCombatConsumer.OnSpinResolved`를 호출한다.
 - Domain Layer: Resolver가 규칙 계산과 이벤트 기록을 수행하고 `TurnResult`를 반환한다.
 - Data Layer: 몬스터 행동/패턴/수치를 SO로 제공한다.
 - Presentation Layer: Presenter가 이벤트를 전달하고, UI/로그 리스너가 소비한다.
@@ -161,7 +163,8 @@ sequenceDiagram
 | 3 | `CombatDamage.cs` | `max(0, atk - def)` (C2) |
 | 4 | `BattleResolver.cs` | `ProcessSpin` → PlayerPhase → MonsterPhase → 승패 |
 | 5 | `ISpinCombatConsumer.cs` | 슬롯이 호출할 계약 |
-| 6 | `BattlePresenter.cs` | `Consume(TurnResult)` → 이벤트 스트림 전달 |
+| 6 | `CombatPipelineConsumer.cs` | `OnSpinResolved`를 Resolver/Presenter 파이프라인으로 연결 |
+| 7 | `BattlePresenter.cs` | `Consume(TurnResult)` → 이벤트 스트림 전달 |
 | 7 | `BattleBootstrap.cs` | 씬에서 Resolver/Presenter 조립 |
 | 8 | `BattleMockSpinHarness.cs` | Mock이 `OnSpinResolved` 호출하는 곳 |
 | 9 | `BattleResolverTests.cs` | 규칙이 테스트로 고정된 예시 |
@@ -178,7 +181,8 @@ sequenceDiagram
 |------|------|
 | `CombatSpinOutcome` | 이번 스핀 결과 DTO (`readonly struct`) |
 | `BattleState` | 현재 HP, `PatternIndex`, `PendingMonsterDefense`, `EndReason` |
-| `BattleResolver` | 규칙 엔진. `ISpinCombatConsumer` 구현 |
+| `BattleResolver` | 규칙 엔진. `ProcessSpin`으로 `TurnResult` 반환 |
+| `CombatPipelineConsumer` | `ISpinCombatConsumer` 구현 어댑터(Resolver→Presenter 연결) |
 | `MonsterDefinition` / `MonsterPattern` / `MonsterActionDefinition` | ScriptableObject — 수치·패턴은 **에셋**에서 |
 | `BattlePresenter` | `TurnResult`를 받아 `CombatEventEmitted`/`TurnCompleted` 전달 |
 | `BattleBootstrap` | `Awake`에서 Resolver + Presenter 생성 |
@@ -294,7 +298,7 @@ Console 예: Monster HP 45/50, Monster action: Defend (def=5).
 
 동작:
 
-1. 호출자(Mock/Slot)가 `TurnResult`를 `Consume`으로 전달
+1. `CombatPipelineConsumer.OnSpinResolved`가 `ProcessSpin` 결과를 `Consume`으로 전달
 2. `Events`를 순서대로 `CombatEventEmitted`로 발행
 3. 마지막에 `TurnCompleted(FinalState)` 발행
 
@@ -332,7 +336,7 @@ Console 예: Monster HP 45/50, Monster action: Defend (def=5).
 ## 12. FAQ
 
 **`ProcessSpin`과 `OnSpinResolved` 차이?**  
-같은 처리다. `OnSpinResolved`는 슬롯이 부를 **인터페이스 이름**이다.
+`OnSpinResolved`는 슬롯/Mock이 호출하는 인터페이스 진입점이고, 실제 규칙 계산은 내부에서 `ProcessSpin`이 한다.
 
 **Resolver가 이벤트를 방송하지 않는 이유는?**  
 B/B 선택 기준으로 Resolver는 `TurnResult`를 return만 한다. 호출자가 Presenter에 전달하고, Presenter가 UI 이벤트를 발행한다.

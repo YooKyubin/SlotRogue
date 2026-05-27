@@ -22,7 +22,7 @@ _(C10 전달 모델 변경: [`ADR-0001`](../adr/0001-combat-turn-event-log.md). 
 | C7 | **몬스터 Defend = 당턴·1회 피해 감소** | `Defend` 행동의 `DefendValue`는 **몬스터가 맞는 피해 1회**에만 C2와 동일식 적용. 다음 턴 이월·누적 없음. C3(플레이어 선행) 때문에 **다음 스핀 PlayerPhase**에 소비(아래). |
 | C8 | **승패 = HP 0만 (MVP)** | 플레이어 HP≤0 → 패배, 몬스터 HP≤0 → 승리. 도주·턴 제한·시간 제한 없음. 추후 메타/러닝에서 확장. |
 | C9 | **0 공격·0 방어도 턴 진행** | `attack`/`defense`가 0이어도 스핀=1턴(C1). PlayerPhase·MonsterPhase·CheckEnd 모두 수행. 미스·스킵 없음(MVP). |
-| C10 | **슬롯→전투: 인터페이스 / UI: 턴 이벤트 로그** | 스핀 결과는 `ISpinCombatConsumer` **단일 호출**. Resolver가 스핀당 `TurnResult`(순서 있는 `CombatEvent` + 턴 종료 스냅샷) 생성 → Presenter/UI가 연출. 슬롯↔전투 global event 금지(MVP). 상세·ADR: [`0001-combat-turn-event-log`](../adr/0001-combat-turn-event-log.md). |
+| C10 | **슬롯→전투: 인터페이스 / UI: 턴 이벤트 로그** | 스핀 결과는 `ISpinCombatConsumer` **단일 호출**. 어댑터(`CombatPipelineConsumer`)가 내부에서 Resolver `TurnResult` 생성 → Presenter/UI 연출 경로를 연결한다. 슬롯↔전투 global event 금지(MVP). 상세·ADR: [`0001-combat-turn-event-log`](../adr/0001-combat-turn-event-log.md). |
 
 ### C2 — 피해 계산 (당턴)
 
@@ -250,14 +250,15 @@ namespace SlotRogue.Core.Combat
 ```mermaid
 sequenceDiagram
   participant Slot as Slot (SpinController)
+  participant CP as CombatPipelineConsumer
   participant BR as BattleResolver
-  participant Caller as SlotOrMockCaller
   participant BP as BattlePresenter
   participant UI as UI / Timeline
-  Slot->>BR: OnSpinResolved(outcome)
+  Slot->>CP: OnSpinResolved(outcome)
+  CP->>BR: ProcessSpin(outcome)
   BR->>BR: PlayerPhase / MonsterPhase / CheckEnd\n(record CombatEvent list)
-  BR-->>Caller: return TurnResult
-  Caller->>BP: Consume(TurnResult)
+  BR-->>CP: return TurnResult
+  CP->>BP: Consume(TurnResult)
   BP->>UI: per-event + FinalState sync
 ```
 
@@ -301,7 +302,7 @@ sequenceDiagram
 
 #### `BattlePresenter` 역할
 
-- 호출자(Mock/Slot)가 `BattleResolver.ProcessSpin` 반환값을 받아 `BattlePresenter.Consume(TurnResult)` 호출.
+- `CombatPipelineConsumer`가 `BattleResolver.ProcessSpin` 반환값을 받아 `BattlePresenter.Consume(TurnResult)` 호출.
 - `Events`를 순회해 UI용 C# `event` / `Action`으로 **번역**(피격 연출, 몬스터 행동 연출 등).
 - 턴 종료 시 `FinalState`로 HP 바 등 **최종값 동기화** (기존 `PlayerHpChanged` / `MonsterHpChanged`를 여기서 1회 쏘는 방식 가능 — API는 구현 plan에서 확정).
 

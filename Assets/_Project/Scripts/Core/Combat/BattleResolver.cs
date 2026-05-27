@@ -4,7 +4,7 @@ using SlotRogue.Data.Combat;
 
 namespace SlotRogue.Core.Combat
 {
-    public sealed class BattleResolver : ISpinCombatConsumer
+    public sealed class BattleResolver
     {
         private readonly MonsterDefinition _monsterDefinition;
         private readonly List<CombatEvent> _turnEvents = new();
@@ -15,11 +15,6 @@ namespace SlotRogue.Core.Combat
         {
             _monsterDefinition = monsterDefinition;
             State = BattleState.Begin(monsterDefinition, playerMaxHp);
-        }
-
-        public void OnSpinResolved(CombatSpinOutcome outcome)
-        {
-            ProcessSpin(outcome);
         }
 
         public TurnResult ProcessSpin(CombatSpinOutcome outcome)
