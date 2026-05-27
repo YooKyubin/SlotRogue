@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: Goblin_Slash
   m_EditorClassIdentifier: SlotRogue.Data::SlotRogue.Data.Combat.MonsterActionDefinition
   Kind: 0
-  RawAttack: 10
+  RawAttack: 1
   DefendValue: 0
   BuffId: 
