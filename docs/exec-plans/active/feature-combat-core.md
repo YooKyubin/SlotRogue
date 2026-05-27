@@ -29,11 +29,13 @@
 
 **완료 기준**: `BattleTest`에서 Mock `OnSpinResolved`로 몬스터 HP·턴 진행 확인. 슬롯 팀에 인터페이스 시그니처 공유.
 
-- [ ] `BattleResolver`가 `ISpinCombatConsumer` 구현(C10)
-- [ ] `BattleTest` 씬 — Mock 스핀 버튼(고정 `CombatSpinOutcome`) → Resolver 주입
-- [ ] 샘플 SO 인스턴스 1세트 (`GoblinPattern`, `Slash`/`Guard` 액션) — `Assets/_Project/Data/Combat/`
-- [ ] `BattlePresenter` 스텁 — 전투→UI 이벤트 발행만(HP 변경·`MonsterActionExecuted`·`BattleEnded`, 로그 OK)
-- [ ] 슬롯 팀 핸드오프: `OnSpinResolved` 호출 시점은 `slot-core.md`에서 확정(로직 확정 직후 권장)
+**검증 (2026-05-27)**: EditMode 테스트 통과 + Play Mode 수동 확인(HP·패턴·승패 Console 로그, Mock 버튼 동작).
+
+- [x] `BattleResolver`가 `ISpinCombatConsumer` 구현(C10)
+- [x] `BattleTest` 씬 — Mock 스핀 버튼(고정 `CombatSpinOutcome`) → Resolver 주입 (`Assets/_Project/Scenes/BattleTest.unity`)
+- [x] 샘플 SO 인스턴스 1세트 (`GoblinPattern`, `Slash`/`Guard` 액션) — `Assets/_Project/Data/Combat/`
+- [x] `BattlePresenter` 스텁 — 전투→UI 이벤트 발행만(HP 변경·`MonsterActionExecuted`·`BattleEnded`, 로그 OK)
+- [ ] 슬롯 팀 핸드오프: `OnSpinResolved` 호출 시점은 `slot-core.md`에서 확정 — **blocked on slot team** (`slot-core.md` 미작성)
 
 ## Notes
 
@@ -42,6 +44,7 @@
 - 구현 순서: **Phase A 전부 → Phase B**. Phase B 중 UI 연출·DOTween은 MVP 스텁 이후.
 - `BattleResolver`는 스핀당 `OnSpinResolved` 1회만 처리(C1·C10). global `SpinResolved` 이벤트 사용 안 함.
 - Phase A 완료 시 plan 체크리스트 갱신 + (선택) 슬롯 담당에게 `ISpinCombatConsumer` PR/브랜치 공유.
+- `BattleTest` EventSystem: `InputSystemUIInputModule` GUID는 패키지 버전별로 다름. 씬에 Missing Script가 보이면 `GameObject > UI > Event System`으로 재생성.
 
 ## Completion
 

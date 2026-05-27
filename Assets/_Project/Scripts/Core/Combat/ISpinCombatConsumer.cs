@@ -1,7 +1,7 @@
 namespace SlotRogue.Core.Combat
 {
     /// <summary>
-    /// Slot calls once per resolved spin. Phase B: implemented by BattleResolver.
+    /// Slot calls once per resolved spin. Implemented by BattleResolver.
     /// </summary>
     public interface ISpinCombatConsumer
     {

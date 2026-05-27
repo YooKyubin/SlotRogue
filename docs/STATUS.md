@@ -1,12 +1,12 @@
 # 프로젝트 상태
 
-_Last updated: 2026-05-26_
+_Last updated: 2026-05-27_
 
 ---
 
 ## 현재 포커스
 
-**전투 코어** — Phase A 구현 완료(Resolver + EditMode 테스트). 다음: Phase B(`BattleTest` Mock, `ISpinCombatConsumer` 구현).
+**전투 코어** — Phase A·B 완료(EditMode + `BattleTest` Play Mode 수동 확인). 다음: 슬롯 팀 `ISpinCombatConsumer` 연동(`slot-core.md`), 실제 UI(HP 바·연출).
 
 ---
 

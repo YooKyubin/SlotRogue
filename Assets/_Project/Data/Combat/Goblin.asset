@@ -1,0 +1,16 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 71d3f9e8ad3fd204197d4ce5c6bf564f, type: 3}
+  m_Name: Goblin
+  m_EditorClassIdentifier: SlotRogue.Data::SlotRogue.Data.Combat.MonsterDefinition
+  MaxHp: 50
+  Pattern: {fileID: 11400000, guid: d5c6b7a8f9e04365869708f5e4d3c2b3, type: 2}
