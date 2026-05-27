@@ -47,8 +47,15 @@ public class Reel : MonoBehaviour
     [SerializeField] private float _spinDuration = 1.5f;
 
     private bool _isSpinning;
+    private Tween _tween;
 
     public bool IsSpinning => _isSpinning;
+    public event Action<int> SpinCompleted;
+
+    private void OnDisable()
+    {
+        transform.DOKill(true);
+    }
 
     public async UniTask SpinAsync(int targetIndex, CancellationToken ct)
     {
@@ -65,18 +72,16 @@ public class Reel : MonoBehaviour
         }
     }
 
-    private void OnDisable()
-    {
-        transform.DOKill(true);
-    }
+    private void HandleTweenComplete() { }
 }
 ```
 
 원칙:
+- **멤버 순서는 §클래스 멤버 순서**를 따른다 (필드 → 프로퍼티/이벤트 → lifecycle → public API → private 헬퍼).
 - **`[SerializeField] private` 우선.** `public` 필드 금지 (불변 상수만 예외).
 - **읽기 전용 노출은 expression-bodied property** (`public bool IsSpinning => _isSpinning;`).
-- **`Awake` / `Start` / `OnEnable` / `OnDisable` 순서로 위에서 아래로 정렬**.
-- **공개 메서드는 위에, 비공개는 아래**.
+- **Unity 메시지**(`Awake` / `OnEnable` / `Start` / `Update` / `OnDisable` / `OnDestroy`)는 lifecycle 블록 안에서 **실행 순서대로** 위에서 아래로.
+- **public API 메서드는 private 헬퍼보다 위**, lifecycle 묶음은 public API **바로 위**.
 - 인스펙터 노출이 필요 없는 컴포넌트 참조는 `GetComponent` 캐시 또는 `[RequireComponent]`.
 
 ---
@@ -264,34 +269,81 @@ if (_audio != null) _audio.Play();
 
 ## 클래스 멤버 순서
 
-`class` / `struct` 내부는 **종류별로 묶고**(메서드 → 필드), 종류 안에서 **접근 수준 순**(public → internal → protected → private). 결과적으로 같은 접근 지시자가 여러 번 나올 수 있다 — 의도된 것.
+`class` / `struct` 내부는 **역할(종류)별로 위에서 아래로** 묶는다. 같은 블록 안에서만 **접근 수준**(public → internal → protected → private)을 적용한다.
+
+| 순서 | 블록 | 내용 |
+|------|------|------|
+| 1 | **필드** | `const` / `static readonly` → `[SerializeField] private` → 그 외 private 필드 |
+| 2 | **프로퍼티·이벤트** | public 읽기 전용 등 (필드 바로 다음) |
+| 3 | **생성자** | (있을 때만) |
+| 4 | **Unity lifecycle** | MonoBehaviour만 — 아래 순서표 참고 |
+| 5 | **public API** | 외부·다른 타입이 호출하는 메서드 |
+| 6 | **private 헬퍼** | lifecycle이 아닌 private 메서드 |
+
+**필드 블록 세부**:
+- `[SerializeField] private`는 **항상 non-serialized private 필드보다 위**. 인스펙터에 보이는 순서 = 코드 순서.
+- `public` 필드는 금지(§MonoBehaviour 패턴). `const`만 public 필드 예외.
+
+**메서드 블록 세부** (4 → 5 → 6):
+- lifecycle 메시지는 **public API보다 위**, private 헬퍼보다 위.
+- lifecycle 안에서는 Unity 실행 순: `Awake` → `OnEnable` → `Start` → `FixedUpdate` / `Update` / `LateUpdate` → `OnDisable` → `OnDestroy`. 쓰는 것만 포함, 순서는 건너뛰지 않음.
+- public API 메서드는 private 헬퍼보다 위. 같은 블록 안에서는 public → protected → private.
+
+### MonoBehaviour 예시
 
 ```csharp
 public class Reel : MonoBehaviour
 {
-    public event Action<int> SpinCompleted;
-
-    public bool IsSpinning => _isSpinning;
-
-    public void BeginSpin(int target) { ... }
-
-    private void OnDisable() { ... }
-
-    private void HandleTweenComplete() { ... }
-
+    // 1 — 필드
     [SerializeField] private Symbol[] _symbols;
     [SerializeField] private float _spinDuration = 1.5f;
-
     private bool _isSpinning;
     private Tween _tween;
+
+    // 2 — 프로퍼티·이벤트
+    public bool IsSpinning => _isSpinning;
+    public event Action<int> SpinCompleted;
+
+    // 4 — lifecycle (3 생성자 없음)
+    private void Awake() { }
+    private void OnEnable() { }
+    private void Start() { }
+    private void OnDisable() { transform.DOKill(true); }
+
+    // 5 — public API
+    public void BeginSpin(int target) { ... }
+    public async UniTask SpinAsync(int targetIndex, CancellationToken ct) { ... }
+
+    // 6 — private 헬퍼
+    private void HandleTweenComplete() { }
 }
 ```
 
-**MonoBehaviour 한정 추가 룰**:
-- Unity 메시지(`Awake` / `OnEnable` / `Start` / `Update` / `OnDisable` / `OnDestroy`)는 **메서드 블록 안에서 라이프사이클 순서대로** 둔다. 다른 private 헬퍼는 라이프사이클 묶음 아래.
-- `[SerializeField] private` 필드는 인스펙터에서 보일 순서를 의도해 위에서 아래로 배치.
+### Plain C# 예시 (lifecycle 없음)
 
-근거: 이 코드베이스에서 클래스는 "공개 API vs 내부"보다 "무엇을 하는지(메서드) + 무슨 상태를 가지는지(필드)" 관점으로 더 자주 읽힌다.
+```csharp
+public sealed class BattleResolver
+{
+    // 1 — 필드
+    private readonly MonsterDefinition _monsterDefinition;
+
+    // 2 — 프로퍼티
+    public BattleState State { get; private set; }
+
+    // 3 — 생성자
+    public BattleResolver(MonsterDefinition monsterDefinition, int playerMaxHp) { ... }
+
+    // 5 — public API (4 lifecycle 생략)
+    public void ProcessSpin(CombatSpinOutcome outcome) { ... }
+
+    // 6 — private 헬퍼
+    private void RunPlayerPhase(CombatSpinOutcome outcome) { ... }
+}
+```
+
+**ScriptableObject**도 동일: `[SerializeField]` 필드 → public 프로퍼티(§ScriptableObject 예시).
+
+근거: Unity에서는 **상태(필드·인스펙터) → 외부 계약(프로퍼티) → Unity 콜백 → 게임 API → 내부 구현** 순이 읽기와 인스펙터 편집에 맞다.
 
 `.editorconfig` / IDE는 멤버 순서를 자동 재정렬하지 **않는다** — 리뷰에서 수동 강제.
 
