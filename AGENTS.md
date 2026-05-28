@@ -7,7 +7,7 @@
 ## 0. 언어 규칙 (CRITICAL — 절대 위반 금지)
 
 - **내부 추론은 영어, 사용자 응답은 항상 한국어.** 예외 없음.
-- 문서 언어: **전부 한국어** (`AGENT.md`, `DOCS-STRUCTURE.md`, `docs/`, `references/` 모두).
+- 문서 언어: **전부 한국어** (`AGENTS.md`, `DOCS-STRUCTURE.md`, `docs/`, `references/` 모두).
 - 코드 / 주석 / 식별자 / 파일명: **영어**.
 - 기술 용어는 원문 유지 (Addressables, ScriptableObject, asmdef, UniTask, DOTween 등).
 
@@ -45,7 +45,7 @@
 1. **구현 전**: [`docs/INDEX.md`](docs/INDEX.md) → 관련 `design-docs/` 및 인용된 `docs/adr/` 확인. 결정이 미정이면 ADR + (필요 시) design-doc 먼저.
 2. **구현 중**: `docs/exec-plans/active/*.md` 체크리스트를 즉시 갱신.
 3. **완료 시**: exec-plan을 `git mv`로 `active/` → `completed/`. **같은 커밋에서 [`docs/STATUS.md`](docs/STATUS.md) 갱신**.
-4. **허브 문서 변경 시 sweep**: `AGENT.md`, `docs/INDEX.md`, `docs/GOVERNANCE.md` 등 다른 문서가 인용하는 허브 문서의 섹션 구조(번호·제목·이동)를 바꿀 땐, **같은 변경 안에서** inbound 참조를 grep으로 전수 검사하고 갱신.
+4. **허브 문서 변경 시 sweep**: `AGENTS.md`, `docs/INDEX.md`, `docs/GOVERNANCE.md` 등 다른 문서가 인용하는 허브 문서의 섹션 구조(번호·제목·이동)를 바꿀 땐, **같은 변경 안에서** inbound 참조를 grep으로 전수 검사하고 갱신.
 
 ### 팀 규칙 요약 (A~G)
 
@@ -118,7 +118,7 @@ Unity 셋업 (버전 / 패키지 / 프로젝트 설정): [`docs/guides/unity-set
 
 | 매 세션 진입점 | 경로 |
 |----------------|------|
-| 본 가이드 | `AGENT.md` |
+| 본 가이드 | `AGENTS.md` |
 | 문서 진입점 | [`docs/INDEX.md`](docs/INDEX.md) |
 | 현재 상태 | [`docs/STATUS.md`](docs/STATUS.md) |
 | 운용 규칙 상세 | [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md) |
