@@ -16,7 +16,7 @@
 
 ## 후보 결정 (아직 작성 안 됨)
 
-[`../../AGENT.md`](../../AGENT.md) §2의 미정 영역. 실제 결정이 내려질 때 ADR로 작성:
+[`../../AGENTS.md`](../../AGENTS.md) §2의 미정 영역. 실제 결정이 내려질 때 ADR로 작성:
 
 - 슬롯 RNG / 페이아웃 모델 (결정론적 시드 vs 비결정론, 고정 RTP vs 동적)
 - 세이브 포맷 (JSON 평문 vs 암호화 binary, PlayerPrefs 사용 한계)

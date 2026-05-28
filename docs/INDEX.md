@@ -2,7 +2,7 @@
 
 SlotRogue의 모든 문서 진입점. `docs/`를 처음 탐색할 때 이 파일부터 읽는다.
 
-> 모든 문서는 한국어로 작성된다. 코드/식별자만 영어. 자세한 언어 규칙은 [`../AGENT.md`](../AGENT.md) §0 참조.
+> 모든 문서는 한국어로 작성된다. 코드/식별자만 영어. 자세한 언어 규칙은 [`../AGENTS.md`](../AGENTS.md) §0 참조.
 
 ---
 
@@ -54,7 +54,7 @@ design-doc도 exec-plan도 아닌 실용 가이드.
 
 ## 새 기여자 (또는 새 세션) 읽기 순서
 
-1. 루트 [`../AGENT.md`](../AGENT.md) — 규칙과 결정 인덱스
+1. 루트 [`../AGENTS.md`](../AGENTS.md) — 규칙과 결정 인덱스
 2. [`STATUS.md`](./STATUS.md) — 프로젝트 현재 위치
 3. [`GOVERNANCE.md`](./GOVERNANCE.md) — 작업을 어떻게 추적하는가
 4. 손댈 시스템의 `design-docs/` → 거기서 인용된 `adr/NNNN-*.md` ADR

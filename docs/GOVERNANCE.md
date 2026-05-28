@@ -2,7 +2,7 @@
 
 ADR / design-doc / exec-plan / STATUS.md 유지 규칙 상세.
 
-High-level 워크플로는 [`../AGENT.md`](../AGENT.md) §3에 있다. 이 문서는 각 단계를 펼친다.
+High-level 워크플로는 [`../AGENTS.md`](../AGENTS.md) §3에 있다. 이 문서는 각 단계를 펼친다.
 
 ---
 
@@ -191,7 +191,7 @@ STATUS 갱신 없이 exec-plan을 `completed/`로 옮긴 커밋은 즉시 보강
 
 ## 팀 규칙 (A~G)
 
-3명 팀 + AI 에이전트 활용 환경에서 가장 실전적인 7개 규칙. [`../AGENT.md`](../AGENT.md) §3에 요약, 여기에 상세.
+3명 팀 + AI 에이전트 활용 환경에서 가장 실전적인 7개 규칙. [`../AGENTS.md`](../AGENTS.md) §3에 요약, 여기에 상세.
 
 ### A. 한 plan에 한 오너
 
@@ -279,14 +279,14 @@ STATUS 갱신 없이 exec-plan을 `completed/`로 옮긴 커밋은 즉시 보강
 - **active → completed 이동 누락**: 끝난 작업을 "일단" `active/`에 두기. 디렉터리가 거짓말을 한다.
 - **STATUS drift**: STATUS.md가 `active/`/`completed/`와 어긋남 — 버그로 취급.
 - **과잉 문서화**: 한 줄 코드 주석으로 충분한 결정에 design-doc.
-- **허브 문서 재작성 후 상호 참조 stale**: `AGENT.md`, `docs/INDEX.md`, `docs/GOVERNANCE.md` 등을 재구조화할 때 inbound 참조 grep을 같은 변경에 안 함. 아래 "허브 문서 sweep" 참조.
+- **허브 문서 재작성 후 상호 참조 stale**: `AGENTS.md`, `docs/INDEX.md`, `docs/GOVERNANCE.md` 등을 재구조화할 때 inbound 참조 grep을 같은 변경에 안 함. 아래 "허브 문서 sweep" 참조.
 - **채팅 단계 결정 코드 박제**: `C-2`, `B-4-①`, "Category D decision 14" 같은 것은 planning 채팅에서만 존재하는 라벨이다. 커밋된 문서에는 안정된 앵커(파일 경로 + 섹션 제목)로 번역해 적는다.
 
 ---
 
 ## 허브 문서 상호 참조 sweep
 
-**허브 문서**는 다른 파일이 섹션 번호 또는 제목으로 인용하는 파일 — 보통 `AGENT.md`, `docs/INDEX.md`, `docs/GOVERNANCE.md`. 허브 문서의 구조를 바꾸면(renumber, retitle, 내용 이동) inbound 참조가 조용히 깨진다.
+**허브 문서**는 다른 파일이 섹션 번호 또는 제목으로 인용하는 파일 — 보통 `AGENTS.md`, `docs/INDEX.md`, `docs/GOVERNANCE.md`. 허브 문서의 구조를 바꾸면(renumber, retitle, 내용 이동) inbound 참조가 조용히 깨진다.
 
 **절차** — 허브 문서 편집과 같은 변경 안에서:
 
