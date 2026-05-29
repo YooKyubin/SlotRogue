@@ -8,7 +8,9 @@
 
 ## 현재 상태
 
-_(진행 중인 plan 없음.)_
+| Plan | Started |
+|------|---------|
+| [`feature-combat-timeline-controller.md`](./feature-combat-timeline-controller.md) | 2026-05-28 |
 
 새 plan을 시작하면 같은 커밋에서 [`../../STATUS.md`](../../STATUS.md)의 "Active exec-plans" 표에도 등록한다.
 
