@@ -261,3 +261,41 @@ PatternBundles[1] = [ {Attack,15} ]
 
 - v1 구현 중: [`feature-combat-timeline-controller`](../exec-plans/active/feature-combat-timeline-controller.md) — v2 확정 시 재정렬
 - v1 설계: [`combat-core.md`](./combat-core.md), [`ADR-0001`](../adr/0001-combat-turn-event-log.md)
+
+---
+
+## 세션 시작 프롬프트 (복붙용)
+
+아래 블록을 새 세션 첫 메시지에 붙여 넣는다. **Locked는 임의 변경 금지** — 변경 시 사용자 확인 후 draft·ADR 갱신.
+
+```text
+SlotRogue — 전투 v2 설계 이어하기.
+
+【필수 읽기】
+- docs/design-docs/combat-core-v2-draft.md (Locked = 합의됨, Open = 논의 중)
+- docs/STATUS.md (한 줄 맥락)
+
+【유지】
+- ISpinCombatConsumer + CombatSpinOutcome(attack/defense) — v2에서도 슬롯 경계
+
+【Locked 요약】
+- 1스핀 = 1라운드: 플레이어(Attack→Defend, 값0 생략) → 몬스터
+- 몬스터: PatternBundles[][] — 스핀당 행 1묶음 전부 실행, turnIndex++, 빈 [] OK
+- Director + Participant 행동 큐, Apply 후 await Presenter
+- 피해: damage=max(0,raw-def), def=max(0,def-raw)
+- 몬스터 Defend: 다음 스핀 플레이어 Attack에 적용 → 플레이어 차례 끝 만료
+- 플레이어 Defend: 모든 피해, 몬스터 묶음 끝까지 → 몬스터 차례 끝 만료
+- 몬스터 TurnStep 값0: 행동 유지. Died 이벤트→Director. 동시사망=패배
+- Buff MVP: 로그+대기만. 고블린 예시는 draft canonical 참고
+
+【Open / Next】
+- Next: CombatAction MVP 타입 스케치
+- TBD: 버프 중첩/갱신(O4), TurnStep 에디터(O7), ADR supersede
+
+【작업 방식】
+- 설계 논의: 한 번에 질문 1개, 한국어 간결
+- 코드/공식 draft 반영: 사용자 요청 시 Agent 모드
+- v1 combat-core.md / ADR-0001 은 supersede 전까지 참고만
+
+이번 목표: <여기에 한 줄, 예: CombatAction MVP 스케치>
+```
