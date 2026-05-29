@@ -11,7 +11,7 @@
 | 파일 | Status | 범위 |
 |------|--------|------|
 | [`combat-core.md`](./combat-core.md) | draft (v1) | 1스핀=1턴, `TurnResult` 이벤트 로그 — **v2 논의 중** |
-| [`combat-core-v2-draft.md`](./combat-core-v2-draft.md) | in-discussion | Participant 큐, Director, TurnStep 1안 — **진행 중 설계** |
+| [`combat-core-v2-draft.md`](./combat-core-v2-draft.md) | in-discussion | PatternBundles[][], V12~V19 방어·피해 — **다음: CombatAction** |
 | [`slot-core.md`](./slot-core.md) | draft | 5 x 3 슬롯 MVP, lightweight MVVM, 패턴 판정, 전투 요청 DTO |
 
 ---

@@ -5,13 +5,13 @@
 **Supersedes (예정)**: [`combat-core.md`](./combat-core.md), [`ADR-0001`](../adr/0001-combat-turn-event-log.md)  
 **유지 계약**: [`ISpinCombatConsumer`](../../Assets/_Project/Scripts/Core/Combat/ISpinCombatConsumer.cs) + `CombatSpinOutcome` (attack / defense)
 
-> 구현 전 논의 기록. Locked는 합의된 결정. Open은 다음 세션에서 이어서 논의한다.
+> 구현 전 논의 기록. **Locked**는 합의된 결정. **Open**은 다음 세션에서 이어서 논의한다.
 
 ---
 
 ## Purpose
 
-슬롯 1스핀 = 전투 1라운드. **참가자(플레이어·몬스터) 대칭**으로 행동 큐를 두고, **로직 적용 후 Presenter 연출을 await** 하며 순서대로 진행한다. 기존 v1(`BattleResolver` + `CombatEventKind` + 동기 이벤트 로그)은 본 문서 확정 후 교체·폐기 예정.
+슬롯 **스핀 1회**(릴 결과 확정) = 전투 **라운드 1회**. **참가자(플레이어 → 몬스터)** 순으로 **행동 큐**를 실행하고, **로직 `Apply` 직후 `await Presenter`** 로 연출한다. v1(`BattleResolver`, `CombatEventKind`, `TurnResult` canonical)은 본 문서 확정 후 교체·폐기 예정.
 
 ---
 
@@ -20,16 +20,83 @@
 | ID | 결정 |
 |----|------|
 | **V1** | 1스핀 = 1라운드. 참가자 순서 **항상 [플레이어 → 몬스터]** |
-| **V2** | **BattleDirector**가 라운드·입력 잠금·큐 실행의 단일 진입점. 참가자 큐 + **행동 큐**. 행동 목록은 **미리 계획**, 실행 중 HP≤0이면 **남은 행동 스킵** |
+| **V2** | **BattleDirector**가 라운드·입력 잠금·큐 실행의 단일 진입점. 행동 목록 **미리 계획**, 실행 중 HP≤0이면 **남은 행동 스킵** |
 | **V3** | `Apply`(로직) 즉시 확정 → `await Presenter.PlayAsync` → 다음 행동 |
-| **V4** | HP·버프는 **Participant** 소유. 버프는 **N턴 지속** 전제, 규칙은 `ApplyBuff` 단일 진입점 (중첩/갱신 상세 **TBD**) |
-| **V5** | 몬스터가 먼저 HP≤0 → **몬스터 차례 생략**. 플레이어 HP≤0 → **즉시 전투 종료**(몬스터 차례 없음) |
-| **V6** | **동시 사망** → **패배 우선** (플레이어 HP 0은 다음 전투 참여 불가) |
-| **V7** | 슬롯 입력: `ISpinCombatConsumer.OnSpinResolved(CombatSpinOutcome)`. 당분간 **attack / defense** 만 |
-| **V8** | 사망: Participant가 HP 변경 **단일 진입점**에서 **`Died` 이벤트** 발행. 승패·차례 생략·동시 사망은 **Director**만 처리. **전역 static bus 금지** |
-| **V9** | 플레이어 스핀 → 행동 계획: **`Attack` → `Defend` 순**, 둘 다 행동 큐 + 연출. `defense`는 행동 후 Participant에 **이번 라운드 방어값** 저장, 몬스터 공격 시 소비 |
-| **V10** | 몬스터 데이터 **1안**: `MonsterDefinition` 안에 `TurnStep[] Pattern` + `Loop`. 행동 SO 참조 없음 |
-| **V11** | 몬스터 패턴: **1스핀당 Pattern 인덱스 1칸 진행** (연타·StepsPerRound는 Open) |
+| **V4** | HP·버프는 **Participant** 소유. 버프 **N턴** 전제, `ApplyBuff` 단일 진입점 (**중첩/갱신 규칙 TBD**) |
+| **V5** | 몬스터 선사망 → **몬스터 차례 생략**. 플레이어 사망 → **즉시 전투 종료** |
+| **V6** | **동시 사망** → **패배 우선** |
+| **V7** | 슬롯: `ISpinCombatConsumer` + `CombatSpinOutcome` (**attack / defense** 만, 당분간) |
+| **V8** | 사망: Participant **HP 단일 진입점** → **`Died` 이벤트**. 승패·큐 제어는 **Director**. **전역 static bus 금지** |
+| **V9** | 플레이어 스핀 행동 순서: **`Attack` → `Defend`** (당분간 고정). 둘 다 큐+연출 (**값 0이면 생략**, V15) |
+| **V10** | 몬스터 데이터 **1안**: `MonsterDefinition`에 **`PatternBundles` 2차원** (행동 묶음). 별도 Action SO 없음 |
+| **V11** | **1스핀 = `PatternBundles[turnIndex]` 행 1개 전체 실행** 후 `turnIndex++` (`Loop` 시 0) |
+| **V12** | **피해·방어 감소 (O3)**: `actualDamage = max(0, rawAttack - defense)`; 방어 수치 `defense = max(0, defense - rawAttack)` (**공격에 의해 방어도 감소**) |
+| **V13** | **몬스터 Defend (D4)**: 몬스터 차례 `Defend`로 방어 저장 → **다음 스핀** 플레이어 `Attack`에 적용(V12) → **플레이어 차례 종료 시 남은 방어 만료** (Attack 0·잔여 방어 동일) |
+| **V14** | **플레이어 Defend**: `Defend` 후 **모든 피해 유형**에 V12 적용. **몬스터 차례(묶음 행동 전부) 종료 시** 남은 방어 만료. 몬스터 Attack 연속 시 방어 **누적 감소** |
+| **V15** | 플레이어: `attack==0` / `defense==0` → 해당 **행동 큐 생략** (연출·Apply 없음) |
+| **V16** | 몬스터: `TurnStep` Value 0이어도 **행동 유지** (데이터 의도·연출) |
+| **V17** | 플레이어 `attack==0` && `defense==0` → 플레이어 행동 없음, **몬스터 묶음·`turnIndex++`는 그대로** |
+| **V18** | `PatternBundles[i]`가 **빈 배열** → 몬스터 차례 즉시 종료, **`turnIndex++` 유지** |
+| **V19** | `TurnStepKind.Buff` MVP: **로그 + 짧은 대기**만 (게임 효과 나중) |
+
+---
+
+## 피해·방어 (V12~V14)
+
+### 공통 식
+
+```text
+actualDamage = max(0, rawAttack - defense)
+defense      = max(0, defense - rawAttack)   // 피해 계산 후 남은 방어
+```
+
+### 몬스터 Defend (V13) — 고블린 예 기준
+
+| 시점 | 동작 |
+|------|------|
+| 스핀 N, 몬스터 `Defend` | 방어 값 저장 (연출) |
+| 스핀 N+1, 플레이어 `Attack` | V12 적용 후 소비/감소 |
+| 스핀 N+1, 플레이어 차례 **끝** | 남은 몬스터 방어 **0** (Attack 5 vs 방어 8 → 3 남아도 만료) |
+
+### 플레이어 Defend (V14)
+
+| 시점 | 동작 |
+|------|------|
+| 스핀 N, 플레이어 `Defend` | 방어 값 저장 |
+| 스핀 N, 몬스터 차례 | 묶음 내 **모든 피해**마다 V12 (Attack 여러 번 가능) |
+| 스핀 N, 몬스터 차례 **끝** | 남은 플레이어 방어 **0** |
+
+### 대칭 요약
+
+| | 유효 구간 | 만료 |
+|--|-----------|------|
+| **플레이어 방어** | 같은 스핀 **몬스터 차례** | 몬스터 차례 끝 |
+| **몬스터 방어** | 다음 스핀 **플레이어 차례** | 플레이어 차례 끝 |
+
+---
+
+## Canonical 예시 — 고블린 (V11·V13)
+
+```text
+PatternBundles[0] = [ Attack 12, Defend 8 ]
+PatternBundles[1] = [ Attack 15 ]
+Loop = true
+```
+
+**스핀 1**
+
+1. 플레이어: `Attack`(spin.attack) → `Defend`(spin.defense) — 0이면 각각 생략(V15)
+2. 몬스터: `Attack 12` → `Defend 8` (다음 스핀 플레이어 Attack에 8 적용 예정)
+3. `turnIndex` → 1
+
+**스핀 2**
+
+1. 플레이어: `Attack` — 몬스터 방어 8 적용(V12), 플레이어 차례 끝에 몬스터 방어 만료(V13)
+2. 플레이어: `Defend` — 몬스터 `Attack 15`에 사용, 몬스터 차례 끝에 플레이어 방어 만료(V14)
+3. 몬스터: `Attack 15`
+4. `turnIndex` → 0 (`Loop`)
+
+**플레이어 방어 연속 소모 예:** 방어 8, 몬스터 묶음 `[Attack 5, Attack 5]` → 방어 3 → 피해 2 → 몬스터 차례 끝 → 방어 0.
 
 ---
 
@@ -38,135 +105,132 @@
 ```text
 OnSpinResolved(outcome)
     → BattleDirector.RunRoundAsync()
-         1) Plan: 플레이어 행동 리스트, 몬스터 행동 리스트
-         2) ExecutePlayerTurnAsync (행동 큐)
-         3) 전투 종료 아니면 ExecuteMonsterTurnAsync
-         4) 라운드 종료 (버프 턴 감소 등)
+         1) PlanPlayerActions(outcome)   // Attack→Defend, 0 생략
+         2) ExecutePlayerTurnAsync
+         3) CheckEnd / Died → 몬스터 차례 생략?
+         4) PlanMonsterActions(PatternBundles[turnIndex++])
+         5) ExecuteMonsterTurnAsync
+         6) 라운드 종료 (버프 턴 감소 등)
 ```
 
 | 구성요소 | 책임 | Unity |
 |----------|------|-------|
 | **BattleDirector** | 라운드·큐·입력 잠금·`Died` 구독·승패 | MonoBehaviour 또는 씬 서비스 |
-| **ICombatParticipant** | Player / Monster. HP·버프·`PlanTurn`·`Apply`·`Died` | **순수 C#** 권장 |
-| **CombatAction** | 공격·방어·버프·죽음 연출 등 (enum Kind 폭발 대신 타입/데이터) | Core DTO |
-| **IActionPresenter** | `PlayAsync(action, result)` — 애니·UI만 | **MonoBehaviour** |
+| **ICombatParticipant** | Player / Monster. HP·방어·버프·`PlanTurn`·`Apply`·`ChangeHp`·`Died` | **순수 C#** 권장 |
+| **CombatAction** | 공격·방어·버프·죽음 등 (타입/데이터, `CombatEventKind` 대체) | Core DTO |
+| **IActionPresenter** | `PlayAsync(action, result)` | **MonoBehaviour** |
 
-**asmdef**: Core는 UI 참조 안 함. UI → Core.
+**패턴 해석**: `MonsterParticipant`(가칭) / `IMonsterTurnPlanner` **한곳**에서만 `PatternBundles` 읽기 → `CombatAction[]` 변환.
 
-**확장 (나중)**: 유물·속성·특수기는 `PlanTurn` 단계 후크 또는 `CombatSpinOutcome` 필드 확장. `ICombatModifier` 이름은 미채택.
+**확장 (나중)**: 유물·속성·특수기 — `PlanTurn` 후크 또는 `CombatSpinOutcome` 필드. `ICombatModifier` 이름 미채택.
 
 ---
 
 ## 한 라운드 흐름 (MVP)
 
 ```text
-[계획] 플레이어: Attack(outcome.Attack) → Defend(outcome.Defense)
-[실행] foreach action: Apply → await Presenter
-         → Died 시 Director: 스킵 / 몬스터 차례 생략 / CheckEnd
+[플레이어] Plan: Attack( if attack>0 ) → Defend( if defense>0 )
+           Exec: Apply → await Presenter (each)
+           → Died / CheckEnd
 
-[계획] 몬스터: Pattern[PatternIndex] → CombatAction 1개
-[실행] 동일
-         → PatternIndex++ (Loop)
-
-CheckEnd: playerDead && monsterDead → 패배
+[몬스터]   Plan: PatternBundles[turnIndex] → N actions (빈 배열이면 0)
+           Exec: each step (0 Value도 실행, V16)
+           → turnIndex++
+           → 플레이어/몬스터 방어 만료 (V13/V14 시점)
 ```
 
-MVP 시나리오: **스핀 → 플레이어 때림·방어 연출 → 몬스터 패턴 공격 → HP 0이면 끝**.
+MVP 시나리오: **스핀 → (플레이어 공격·방어) → 몬스터 묶음 → HP 0이면 끝**.
 
 ---
 
-## 사망 이벤트
+## 사망 이벤트 (V8)
 
 ```text
-Participant.ChangeHp(...)  // 모든 HP 변경 경로 통합
-  → if HP≤0 && !wasDead → Died 발행 (1회)
+Participant.ChangeHp(...)  // 모든 HP 변경 경로
+  → if HP≤0 && !wasDead → Died (1회)
 
-Director (구독, 전투 시작~종료):
-  → 남은 행동 스킵, 몬스터 차례 생략
-  → (선택) Death 연출 행동 1스텝 await
-  → CheckEnd (동시 사망 → 패배)
+Director:
+  → 행동 큐 스킵, 몬스터 차례 생략(V5)
+  → CheckEnd: 동시 사망 → 패배(V6)
 ```
 
-`ActionResult`는 데미지 수·막힘 등 **행동 결과**용. 큐 제어는 **Died 이벤트 기준**.
+큐 제어는 **`Died` 기준**. `ActionResult`는 연출·피드백용.
 
 ---
 
-## 데이터 스케치 — 1안 (`TurnStep`)
+## 데이터 스케치 — `PatternBundles` (2차원)
 
 ### `MonsterDefinition`
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
 | `MaxHp` | int | 최대 HP |
-| `Loop` | bool | Pattern 끝 → 인덱스 0 |
-| `Pattern` | `TurnStep[]` | 턴 순서 테이블 |
-
-### `TurnStep`
+| `Loop` | bool | `turnIndex` 끝 → 0 |
+| `PatternBundles` | `TurnStep[][]` | **행** = 스핀당 몬스터 묶음, **열** = 묶음 내 행동 순서 |
 
 ```csharp
-public enum TurnStepKind
-{
-    Attack,
-    Defend,
-    Buff,
-    Special,
-}
+// SlotRogue.Data.Combat — 스케치
+public enum TurnStepKind { Attack, Defend, Buff, Special }
 
 [Serializable]
 public sealed class TurnStep
 {
     public TurnStepKind Kind;
-    public int Value;      // Attack: RawAttack, Defend: DefendValue, Buff: magnitude (TBD)
-    public string BuffId;  // Kind == Buff / Special
+    public int Value;
+    public string BuffId;
+}
+
+[CreateAssetMenu(menuName = "SlotRogue/Combat/Monster Definition")]
+public sealed class MonsterDefinition : ScriptableObject
+{
+    public int MaxHp;
+    public bool Loop = true;
+    public TurnStep[][] PatternBundles = Array.Empty<TurnStep[]>();
 }
 ```
 
 ### Kind별 `Value` (MVP)
 
-| Kind | Value | BuffId |
-|------|-------|--------|
-| Attack | 공격력 | — |
-| Defend | 방어 수치 | — |
-| Buff | 효과 크기 (TBD) | 버프 id |
-| Special | TBD | 특수 id |
+| Kind | Value | BuffId | MVP |
+|------|-------|--------|-----|
+| Attack | rawAttack | — | 피해 |
+| Defend | defendValue | — | V13 방어 저장 |
+| Buff | (TBD) | id | V19 스텁 연출 |
+| Special | TBD | id | 미구현 |
 
-### 예시 (고블린)
+### 예시 데이터
 
-| # | Kind | Value | BuffId |
-|---|------|-------|--------|
-| 0 | Attack | 12 | |
-| 1 | Defend | 8 | |
-| 2 | Attack | 12 | |
-| 3 | Buff | 3 | `goblin_rage` |
+```text
+PatternBundles[0] = [ {Attack,12}, {Defend,8} ]
+PatternBundles[1] = [ {Attack,15} ]
+```
 
-`Loop = true`
-
-**나중 분리**: `Pattern`만 별도 SO로 옮겨도 `MonsterParticipant.PlanTurn` 한곳만 수정하면 됨 (Director는 `CombatAction` 리스트만 받음).
+**나중**: `PatternBundles`만 별도 SO로 분리 가능 — Planner 한곳만 수정.
 
 ---
 
 ## v1 대비 폐기·재작성 예정
 
-| v1 (`combat-core.md`) | v2 |
-|------------------------|-----|
-| `BattleResolver` + `BattleState` 중앙 집중 | Director + Participant |
-| `TurnResult` / `CombatEventKind` | `CombatAction` + (선택) 라운드 요약 DTO |
-| `BattlePresenter` 동기 foreach | `TurnReceived` 제거 또는 Director→Timeline 직접 |
-| C3 몬스터 **행동 1회**/스핀 | 몬스터도 **행동 큐** (패턴 1칸 = 기본 1행동) |
-| C2/C7 당턴 방어·다음 스핀 Defend 소비 | Participant 버프/방어 모델로 **재정의** (Open) |
-| SO 3단 (Definition → Pattern → ActionDefinition) | **1안** `TurnStep[]` 인라인 |
+| v1 | v2 |
+|----|-----|
+| `BattleResolver` + 중앙 `BattleState` | Director + Participant |
+| `TurnResult` / `CombatEventKind` | `CombatAction` (+ 선택적 라운드 요약) |
+| C3 몬스터 1행동/스핀 | **묶음 1행 = 행동 N개** (V11) |
+| C7 Defend 다음 스핀 1회 (단순 pending) | V12~V14 (감소·만료 구간 명시) |
+| SO 3단 (Definition→Pattern→Action SO) | `PatternBundles[][]` (V10) |
 
 ---
 
-## Alternatives (논의에서 채택·거절)
+## Alternatives (논의 기록)
 
 | 주제 | 채택 | 거절 |
 |------|------|------|
-| 몬스터 SO | **1안** Definition 내 `Pattern[]` | 2안 별도 Pattern SO (나중 이전 가능) |
-| 플레이어 방어 | **행동 큐에 Defend** | 방어는 상태만, 연출 없음 |
-| 사망 신호 | **Participant `Died` → Director** | `ActionResult.TargetDied` 만 |
-| 행동 계획 | **계획 큐 + 실행 중 스킵** | 매 피해 후 전체 재계획 |
-| 슬롯 확장 | attack/defense 유지, Plan 단계 후크 | `ICombatModifier` (이름 미정) |
+| 몬스터 패턴 | **2D 묶음** (V10~V11) | 1스핀 1 `TurnStep` only |
+| 몬스터 Defend | **D4** (+ 고블린 예) | D1만 (문서상 MVP와 동일 결과) |
+| 플레이어 0 수치 | **큐 생략** (V15) | 0도 연출 |
+| 몬스터 0 수치 | **행동 유지** (V16) | 생략 |
+| 사망 | **Died 이벤트** | `ActionResult`만 |
+| Buff MVP | **스텁 연출** (V19) | 금지 / 완전 구현 |
 
 ---
 
@@ -174,15 +238,13 @@ public sealed class TurnStep
 
 | ID | 질문 |
 |----|------|
-| O1 | **TurnStep**: 1스핀당 패턴 1칸 vs 여러 칸 (`StepsPerRound`) |
-| O2 | **TurnStep → CombatAction**: 몬스터 Defend가 Participant에 쌓이는 타이밍·소비 규칙 |
-| O3 | **피해 공식**: `max(0, raw - defense)` 유지 여부, 방어가 **1피해** vs **라운드 전체** |
-| O4 | **버프**: 중첩 vs 갱신 규칙 (ApplyBuff 구현 시 확정) |
-| O5 | **Attack/Defend 순서** 바꿀지 |
-| O6 | **0 데미지** 연출 강도 (현재: 큐에 포함) |
-| O7 | **Custom Editor** for TurnStep Kind별 필드 숨김 |
+| O4 | 버프 **중첩 vs 갱신** (`ApplyBuff` 구현 시) |
+| O7 | `TurnStep` Kind별 인스펙터 필드 숨김 (Custom Editor) |
+| — | **`CombatAction` 타입** MVP 최소 집합 스케치 |
+| — | `Special` / 유물·속성 공격 확장 시점 |
+| — | v2 확정 후 **ADR supersede** (`0001`), `combat-core.md` → v2 승격 |
 
-**Next topic**: O1·O2 (TurnStep 세부 + Defend 타이밍)
+**Next topic**: `CombatAction` MVP 스케치
 
 ---
 
@@ -190,11 +252,12 @@ public sealed class TurnStep
 
 | 날짜 | 내용 |
 |------|------|
-| 2026-05-29 | v2 방향 합의: Participant 큐, Presenter await, Died 이벤트, 1안 TurnStep 스케치, 플레이어 Attack→Defend |
+| 2026-05-29 | v2 방향: Participant 큐, Presenter await, Died, 플레이어 Attack→Defend |
+| 2026-05-29 | `PatternBundles[][]`, D4 몬스터 방어, V12~V14 피해·방어·만료, O5~O19, 고블린 canonical 예시 |
 
 ---
 
 ## Related
 
-- 구현 중 (v1 파이프라인): [`feature-combat-timeline-controller`](../exec-plans/active/feature-combat-timeline-controller.md)
+- v1 구현 중: [`feature-combat-timeline-controller`](../exec-plans/active/feature-combat-timeline-controller.md) — v2 확정 시 재정렬
 - v1 설계: [`combat-core.md`](./combat-core.md), [`ADR-0001`](../adr/0001-combat-turn-event-log.md)
