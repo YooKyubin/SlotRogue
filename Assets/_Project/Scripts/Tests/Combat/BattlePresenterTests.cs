@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using NUnit.Framework;
 using SlotRogue.Core.Combat;
 using SlotRogue.Data.Combat;
@@ -8,14 +7,19 @@ namespace SlotRogue.Core.Tests.Combat
     public sealed class BattlePresenterTests
     {
         [Test]
-        public void Consume_EmitsAllCombatEventsInOrder_ThenTurnCompleted()
+        public void Consume_EmitsTurnResult_ThenTurnCompleted()
         {
             var presenter = new BattlePresenter();
-            var publishedKinds = new List<CombatEventKind>();
+            TurnResult publishedResult = null;
             BattleStateSnapshot completedSnapshot = default;
+            bool turnReceivedCalled = false;
             bool completedCalled = false;
 
-            presenter.CombatEventEmitted += evt => publishedKinds.Add(evt.Kind);
+            presenter.TurnReceived += result =>
+            {
+                turnReceivedCalled = true;
+                publishedResult = result;
+            };
             presenter.TurnCompleted += snapshot =>
             {
                 completedCalled = true;
@@ -39,12 +43,10 @@ namespace SlotRogue.Core.Tests.Combat
 
             presenter.Consume(result);
 
-            Assert.That(publishedKinds, Is.EqualTo(new[]
-            {
-                CombatEventKind.PlayerDamageToMonster,
-                CombatEventKind.MonsterActionExecuted,
-                CombatEventKind.MonsterDamageToPlayer
-            }));
+            Assert.That(turnReceivedCalled, Is.True);
+            Assert.That(publishedResult, Is.SameAs(result));
+            Assert.That(publishedResult.Events.Count, Is.EqualTo(3));
+            Assert.That(publishedResult.Events[0].Kind, Is.EqualTo(CombatEventKind.PlayerDamageToMonster));
             Assert.That(completedCalled, Is.True);
             Assert.That(completedSnapshot.PlayerHp, Is.EqualTo(expectedFinal.PlayerHp));
             Assert.That(completedSnapshot.MonsterHp, Is.EqualTo(expectedFinal.MonsterHp));

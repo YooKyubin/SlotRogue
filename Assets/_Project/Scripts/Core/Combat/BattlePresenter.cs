@@ -3,7 +3,7 @@ namespace SlotRogue.Core.Combat
 {
     public sealed class BattlePresenter
     {
-        public event Action<CombatEvent> CombatEventEmitted;
+        public event Action<TurnResult> TurnReceived;
 
         public event Action<BattleStateSnapshot> TurnCompleted;
 
@@ -14,11 +14,7 @@ namespace SlotRogue.Core.Combat
                 return;
             }
 
-            foreach (CombatEvent combatEvent in result.Events)
-            {
-                CombatEventEmitted?.Invoke(combatEvent);
-            }
-
+            TurnReceived?.Invoke(result);
             TurnCompleted?.Invoke(result.FinalState);
         }
     }

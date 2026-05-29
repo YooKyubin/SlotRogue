@@ -14,15 +14,22 @@ namespace SlotRogue.Core.Tests.Combat
             var resolver = CreateResolver(CreateAction(MonsterActionKind.Attack, rawAttack: 10));
             var consumer = new CombatPipelineConsumer(resolver, presenter);
             CombatEventKind firstEventKind = default;
+            TurnResult receivedResult = null;
             BattleStateSnapshot completedSnapshot = default;
             bool eventCalled = false;
             bool completedCalled = false;
 
-            presenter.CombatEventEmitted += evt =>
+            presenter.TurnReceived += result =>
             {
+                receivedResult = result;
+                if (result == null || result.Events.Count == 0)
+                {
+                    return;
+                }
+
                 if (!eventCalled)
                 {
-                    firstEventKind = evt.Kind;
+                    firstEventKind = result.Events[0].Kind;
                 }
 
                 eventCalled = true;
@@ -36,6 +43,7 @@ namespace SlotRogue.Core.Tests.Combat
             consumer.OnSpinResolved(new CombatSpinOutcome(5, 0));
 
             Assert.That(eventCalled, Is.True);
+            Assert.That(receivedResult, Is.Not.Null);
             Assert.That(completedCalled, Is.True);
             Assert.That(firstEventKind, Is.EqualTo(CombatEventKind.PlayerDamageToMonster));
             Assert.That(completedSnapshot.PlayerHp, Is.EqualTo(20));

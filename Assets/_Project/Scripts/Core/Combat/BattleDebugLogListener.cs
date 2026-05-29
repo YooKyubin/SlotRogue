@@ -14,7 +14,7 @@ namespace SlotRogue.Core.Combat
             }
 
             BattlePresenter presenter = _bootstrap.Presenter;
-            presenter.CombatEventEmitted += OnCombatEventEmitted;
+            presenter.TurnReceived += OnTurnReceived;
             presenter.TurnCompleted += OnTurnCompleted;
         }
 
@@ -26,33 +26,41 @@ namespace SlotRogue.Core.Combat
             }
 
             BattlePresenter presenter = _bootstrap.Presenter;
-            presenter.CombatEventEmitted -= OnCombatEventEmitted;
+            presenter.TurnReceived -= OnTurnReceived;
             presenter.TurnCompleted -= OnTurnCompleted;
         }
 
-        private static void OnCombatEventEmitted(CombatEvent combatEvent)
+        private static void OnTurnReceived(TurnResult turnResult)
         {
-            switch (combatEvent.Kind)
+            if (turnResult == null)
             {
-                case CombatEventKind.PlayerDamageToMonster:
-                    Debug.Log($"[Battle] Player dealt {combatEvent.Amount} to monster");
-                    break;
-                case CombatEventKind.MonsterDamageToPlayer:
-                    Debug.Log($"[Battle] Monster dealt {combatEvent.Amount} to player");
-                    break;
-                case CombatEventKind.MonsterActionExecuted:
-                    MonsterAction action = combatEvent.MonsterAction;
-                    Debug.Log($"[Battle] Monster action: {action.Kind} (atk={action.RawAttack}, def={action.DefendValue})");
-                    break;
-                case CombatEventKind.PlayerHealed:
-                    Debug.Log($"[Battle] Player healed {combatEvent.Amount}");
-                    break;
-                case CombatEventKind.MonsterHealed:
-                    Debug.Log($"[Battle] Monster healed {combatEvent.Amount}");
-                    break;
-                case CombatEventKind.BattleEnded:
-                    Debug.Log($"[Battle] Ended: {combatEvent.EndReason}");
-                    break;
+                return;
+            }
+
+            foreach (CombatEvent combatEvent in turnResult.Events)
+            {
+                switch (combatEvent.Kind)
+                {
+                    case CombatEventKind.PlayerDamageToMonster:
+                        Debug.Log($"[Battle] Player dealt {combatEvent.Amount} to monster");
+                        break;
+                    case CombatEventKind.MonsterDamageToPlayer:
+                        Debug.Log($"[Battle] Monster dealt {combatEvent.Amount} to player");
+                        break;
+                    case CombatEventKind.MonsterActionExecuted:
+                        MonsterAction action = combatEvent.MonsterAction;
+                        Debug.Log($"[Battle] Monster action: {action.Kind} (atk={action.RawAttack}, def={action.DefendValue})");
+                        break;
+                    case CombatEventKind.PlayerHealed:
+                        Debug.Log($"[Battle] Player healed {combatEvent.Amount}");
+                        break;
+                    case CombatEventKind.MonsterHealed:
+                        Debug.Log($"[Battle] Monster healed {combatEvent.Amount}");
+                        break;
+                    case CombatEventKind.BattleEnded:
+                        Debug.Log($"[Battle] Ended: {combatEvent.EndReason}");
+                        break;
+                }
             }
         }
 
