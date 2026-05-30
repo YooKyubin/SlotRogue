@@ -1,429 +1,207 @@
 # 전투 코어 (Combat Core)
 
 **Status**: draft  
-**Last updated**: 2026-05-27 _(C10 턴 이벤트 로그 — ADR-0001, [`feature-combat-turn-events`](../exec-plans/completed/feature-combat-turn-events.md))_
+**Last updated**: 2026-05-30
 
 ## Purpose
 
-상단 화면의 1인칭 몬스터 전투를 담당한다. 하단 슬롯 머신이 한 스핀마다 산출한 **공격·방어 수치**를 입력으로 받아, 같은 턴 안에서 피해를 계산·적용한다. 슬롯 연출·페이라인 로직과 분리된 **순수 전투 상태·해결(resolver)** 가 이 문서의 범위다.
+슬롯 1스핀 = 전투 1턴 구조에서, **이미 계산된 Effect 목록**을 받아 HP·방어도·턴 진행·승패만 처리하는 순수 전투 코어를 정의한다. 슬롯 RNG·패턴·유물 수치 계산은 슬롯/메타 계층에 두고, 전투는 Participant 상태와 턴 파이프라인에 집중한다.
 
 ## Decisions
 
-_(C10 전달 모델 변경: [`ADR-0001`](../adr/0001-combat-turn-event-log.md). 그 외 본질 변경 시 ADR 추가 검토.)_
-
 | # | 결정 | 요약 |
 |---|------|------|
-| C1 | **1 스핀 = 1 턴** | 플레이어가 스핀을 완료하면 전투도 정확히 한 턴 진행한다. 스핀 없이 전투만 진행하는 턴은 없다(초기 예외는 Open questions). |
-| C2 | **방어는 당턴 피해만 감소** | 해당 턴에 적용되는 피해에만 `defense`가 반영된다. 다음 턴까지 지속되는 방어 버프·실드 누적은 없다. |
-| C3 | **같은 턴, 플레이어 후 몬스터 행동** | 스핀 결과로 플레이어 측을 먼저 해결한 뒤, **같은 턴**에 몬스터가 행동 1회를 실행한다. |
-| C4 | **몬스터 행동 ≠ 공격만** | 몬스터 턴은 “반격” 고정이 아니라 **행동(MonsterAction)** 이다. 공격·버프·방어·특수기 등 행동 종류는 데이터로 정의한다. |
-| C5 | **고정 패턴 (data-driven)** | 몬스터별 **턴 순서 테이블**을 ScriptableObject로 두고, 전투 턴 인덱스에 맞춰 행동을 고른다. 런타임 RNG·반응형 AI는 MVP에서 제외. **“고정”은 런타임 규칙**(인덱스 순환)이지, 데이터를 못 바꾼다는 뜻이 아님 — 아래 C5bis·C6. |
-| C6 | **행동 수치도 SO·인스펙터** | 패턴 칸은 `MonsterActionDefinition` SO를 가리키고, 공격력·버프 등 payload는 **에셋 필드**로 튜닝. 코드 상수·하드코딩 금지(Q8). |
-| C7 | **몬스터 Defend = 당턴·1회 피해 감소** | `Defend` 행동의 `DefendValue`는 **몬스터가 맞는 피해 1회**에만 C2와 동일식 적용. 다음 턴 이월·누적 없음. C3(플레이어 선행) 때문에 **다음 스핀 PlayerPhase**에 소비(아래). |
-| C8 | **승패 = HP 0만 (MVP)** | 플레이어 HP≤0 → 패배, 몬스터 HP≤0 → 승리. 도주·턴 제한·시간 제한 없음. 추후 메타/러닝에서 확장. |
-| C9 | **0 공격·0 방어도 턴 진행** | `attack`/`defense`가 0이어도 스핀=1턴(C1). PlayerPhase·MonsterPhase·CheckEnd 모두 수행. 미스·스킵 없음(MVP). |
-| C10 | **슬롯→전투: 인터페이스 / UI: 턴 이벤트 로그** | 스핀 결과는 `ISpinCombatConsumer` **단일 호출**. 어댑터(`CombatPipelineConsumer`)가 내부에서 Resolver `TurnResult` 생성 → Presenter/UI 연출 경로를 연결한다. 슬롯↔전투 global event 금지(MVP). 상세·ADR: [`0001-combat-turn-event-log`](../adr/0001-combat-turn-event-log.md). |
+| C1 | [ADR-0001](../adr/0001-combat-turn-effect-pipeline.md) | 1스핀=1턴, Effect 목록 파이프라인, Shield-only 방어, Participant 소유 상태, CombatEvent 로그 |
+| C2 | **슬롯 계산 / 전투 진행 분리** | 슬롯 asmdef는 Combat 타입을 참조하지 않는다 (`slot-core.md` S4). 연동 계층에서 `Effect[]` 변환. |
+| C3 | **Resolver 순수 로직** | `BattleResolver`는 MonoBehaviour·UI 없이 EditMode 테스트 가능. |
+| C4 | **플레이어·몬스터 동일 Effect 타입** | 행동 주체는 다르지만 `Kind + Amount + Target` 구조 공유. |
 
-### C2 — 피해 계산 (당턴)
+## Turn pipeline
 
-플레이어가 몬스터에게 가하는 피해, 몬스터가 플레이어에게 가하는 피해 모두 동일 규칙을 쓴다(역할만 다름).
+### Phase
 
-```
-actualDamage = max(0, rawAttack - defense)
-```
-
-- `rawAttack`: 그 턴 공격 측의 공격력(슬롯에서 온 `attack`, `MonsterAction.RawAttack`, 등).
-- `defense`: 그 **피해 1회**를 받는 쪽 방어(슬롯 `defense`, 몬스터 `DefendValue` 소비분, 등).
-- 결과는 0 미만이 되지 않는다.
-
-**대칭 (C7)** — 플레이어·몬스터 동일 규칙, 적용 **시점**만 다름(C3).
-
-| 받는 쪽 | 방어 수치 출처 | 소비 시점 |
-|---------|----------------|-----------|
-| 플레이어 | 이번 스핀 `CombatSpinOutcome.Defense` | 같은 스핀 **MonsterPhase** (몬스터가 Attack 등으로 줄 때) |
-| 몬스터 | `MonsterActionDefinition.DefendValue` (`Defend` 행동) | **다음 스핀 PlayerPhase** (플레이어 `attack`으로 맞을 때) |
-
-### C7 — 몬스터 `Defend` (당턴·1회)
-
-- `Defend` 실행 시 `BattleState.PendingMonsterDefense = DefendValue` 설정. **이미 쌓인 방어와 합산하지 않음** — 새 Defend가 이전 pending을 덮어쓴다(MVP).
-- **다음 스핀** `PlayerPhase`에서 몬스터가 피해를 받을 때:
-
-```
-damageToMonster = max(0, playerAttack - PendingMonsterDefense)
-```
-
-- 소비 후 `PendingMonsterDefense = 0`. 플레이어 `attack`이 0이면 방어는 **소비되지 않고** 전투 턴 종료 시 만료(다음 스핀까지 유지 vs 만료 — 구현 기본값: **유지**, PlayMode 튜닝 시 변경 가능).
-- 플레이어 방어(C2)와 같이 **버프·다음 턴 이월 없음**. “당턴” = **준비된 방어가 실제로 막아 주는 피해 1회분**까지.
-
-**C3 때문에 같은 스핀 안에서는** MonsterPhase `Defend`가 **이미 지난** PlayerPhase 피해에는 소급 적용하지 않는다. (소급 적용이 필요하면 순서 변경이 필요 — MVP 제외.)
-
-### C8 — 승패 (MVP)
-
-`CheckEnd`는 **HP만** 본다.
-
-| 조건 | 결과 |
-|------|------|
-| `monsterHp <= 0` | **승리** — 전투 종료, 다음 노드/보상 등은 메타(`roguelike-meta.md` 추후) |
-| `playerHp <= 0` | **패배** — 런 종료 또는 continue 정책은 메타에서 정의 |
-| 둘 다 ≤0 (동시 사망) | **패배 우선** (MVP 단순 규칙). 추후 동시 사망 처리 ADR 가능. |
-
-- `MonsterDefinition.MaxHp`, 플레이어 최대 HP는 데이터(SO/런 상태). 전투 시작 시 현재 HP = Max.
-- 도주 버튼, 최대 턴 수, 시간 제한: **MVP 없음**.
-
-### C9 — 0 수치 · 턴 스킵 없음
-
-- `attack == 0`: PlayerPhase에서 몬스터 HP **변경 없음**. 턴은 **계속** → MonsterPhase 실행(C3).
-- `defense == 0`: 플레이어가 피해를 받을 때 C2에서 `max(0, rawAttack - 0)` — 방어 없음과 동일.
-- **미스 / 스핀 무효 / 턴 취소**: MVP 없음. 슬롯이 0을 내도 전투는 한 바퀴 돈다.
-- `PendingMonsterDefense > 0`인데 `attack == 0`: C7 기본값 — pending **유지**(다음 스핀까지).
-
-### C1 · C3 · C4 — 턴 순서
-
-한 턴은 **항상** 아래 순서다. 동시 정산하지 않는다.
+| Phase | 설명 | 스핀 가능 |
+|-------|------|-----------|
+| `NotInBattle` | 전투 밖 | — |
+| `PlayerTurn` | 플레이어 입력 대기 | ✓ |
+| `Resolving` | 플레이어 Effect 적용 중 | ✗ |
+| `EnemyTurn` | 몬스터 Effect 적용 중 | ✗ |
+| `Ended` | Victory / Defeat | ✗ |
 
 ```mermaid
 stateDiagram-v2
-  [*] --> AwaitingSpin
-  AwaitingSpin --> PlayerPhase: 스핀 결과 수신\n(attack, defense)
-  PlayerPhase --> MonsterPhase: 플레이어 측 해결\n(예: 몬스터에게 피해)
-  MonsterPhase --> CheckEnd: 몬스터 행동 1회\n(MonsterAction)
-  CheckEnd --> AwaitingSpin: 전투 지속
-  CheckEnd --> [*]: 승패
+    [*] --> NotInBattle
+    NotInBattle --> PlayerTurn: StartBattle(player, monster)
+
+    PlayerTurn --> Resolving: ApplyPlayerTurn(effects)
+    Resolving --> Ended: 몬스터 HP ≤ 0 (Victory)
+    Resolving --> Ended: 플레이어 HP ≤ 0 (Defeat)
+    Resolving --> EnemyTurn: 생존\n(몬스터 shield 초기화)
+
+    EnemyTurn --> Ended: 플레이어 HP ≤ 0 (Defeat)
+    EnemyTurn --> Ended: 몬스터 HP ≤ 0 (Victory)
+    EnemyTurn --> PlayerTurn: 생존\n(플레이어 shield 초기화)
+
+    Ended --> [*]
 ```
 
-| 단계 | 담당 | 내용 (초안) |
-|------|------|-------------|
-| **PlayerPhase** | 슬롯 → 전투 | `CombatSpinOutcome` 반영. `attack==0`이면 몬스터 HP 변화 없음(C9). `defense`는 플레이어가 피해 받을 때만 C2 적용. |
-| **MonsterPhase** | 전투 AI/데이터 | 몬스터 **행동 1회** 실행(C4). 행동이 피해를 주면 플레이어 `defense` 적용(C2). 행동이 공격이 아니면 피해 계산 없음. |
-| **CheckEnd** | 전투 | C8: HP≤0 승패 판정. |
+### 1턴 사이클
 
-- 스핀 결과는 `attack`, `defense`를 최소 포함한다(추가 필드는 슬롯 design-doc과 합의).
-- **한 턴 안에서** 방어(C2)는 그 턴에 들어오는 각 피해 계산에만 쓰인다.
+**플레이어 턴**
 
-```csharp
-public enum MonsterActionKind
-{
-    Attack,   // 플레이어에게 rawAttack (C2로 defense 적용)
-    Defend,   // C7 — PendingMonsterDefense, 다음 스핀 PlayerPhase에 소비
-    Buff,
-    Special,
-}
-```
+1. 슬롯 → `CombatEffect[]` 수신 (`ApplyPlayerTurn`)
+2. 목록 순서대로 Effect 적용 (몬스터 shield가 있으면 Damage 감소·소진)
+3. 몬스터 HP ≤ 0 → `Ended(Victory)`
+4. 플레이어 HP ≤ 0 → `Ended(Defeat)`
+5. 몬스터 **shield = 0**
+6. `EnemyTurn`
 
-- 턴당 **정확히 1개** `MonsterAction` 실행(C3).
-- 행동 **선택**은 C5, **수치**는 C6.
+**적 턴**
 
-### C5 · C5bis — 고정 패턴 · 데이터 주도 · 이후 변경 가능
-
-**코드에 패턴·수치를 하드코딩하지 않는다.** 인스펙터에서 보이는 SO만 수정해도 밸런스·순서가 바뀐다.
-
-| 용어 | 의미 |
-|------|------|
-| **고정 패턴 (C5)** | 전투 중 몬스터 행동 선택이 **결정론적** — `patternIndex`로 `MonsterPattern.Steps[]`를 순서대로 읽음. RNG 없음. |
-| **수정 가능 (C5bis)** | 언제든 (1) 패턴 SO의 Steps 순서·참조 변경, (2) `MonsterDefinition`이 가리키는 패턴 SO 교체, (3) 개별 `MonsterActionDefinition` 수치 변경. **재컴파일 불필요.** 전투 중 인덱스만 유지 — 이미 시작된 전투는 로드된 SO 스냅샷을 쓸지·라이브 참조를 쓸지는 구현 시 선택(PlayMode 튜닝이면 라이브 참조도 가능). |
-
-| 개념 | 역할 |
-|------|------|
-| `MonsterDefinition` | 최대 HP, 표시 id, **기본 패턴 SO 참조**. (추후) HP별 패턴 목록 |
-| `MonsterActionDefinition` | 행동 1종의 **재사용 카탈로그** — Kind + 인스펙터 필드(payload) |
-| `MonsterPattern` | `PatternStep[]` — 각 칸이 **어떤 행동 SO를 쓸지** 순서만 정의 |
-| `PatternStep` | `action` 참조 + (선택) 인스펙터 오버라이드 |
-| `BattleState.PatternIndex` | 0-based. `MonsterPhase`마다 +1 |
-
-**선택 규칙 (MVP)**
-
-1. `MonsterPhase` → `Resolve(actionDef, optionalOverride)` — payload는 **SO에서 읽음**(C6).
-2. `patternIndex++`. 끝 + `Loop == true` → 0.
-3. `BattleResolver`는 **인덱스 증가 + SO 해석**만 담당. 밸런스·순서 변경은 데이터 작업.
-
-**나중에 확장 (Resolver는 그대로, 데이터만 추가)**
-
-| 확장 | 방법 |
-|------|------|
-| HP 50% 이하 다른 패턴 | `MonsterDefinition`에 `MonsterPattern[]` + 간단 `IPatternSelector`(데이터 또는 SO) |
-| 랜덤 행동 | `PatternStep`이 `WeightedAction[]` 참조 — **MVP 이후** |
-| 시즌/밸런스 패치 | 동일 SO 파일 수정 또는 Addressables로 SO 교체 |
-
-### C6 — 행동 payload (Q8 해결)
-
-**Q8 결론**: 공격력 등 수치는 **전부 data-driven** — `MonsterActionDefinition` SO + Unity 인스펙터. MVP는 **고정 정수 `rawAttack`** 필드를 인스펙터에 노출. `baseAttack × 배율`은 필드 추가만으로 확장(Resolver 공식 1곳).
-
-**2계층 구조**
-
-```mermaid
-flowchart LR
-  MD[MonsterDefinition] --> MP[MonsterPattern SO]
-  MP --> PS[PatternStep]
-  PS --> MAD[MonsterActionDefinition SO]
-  MAD --> R[BattleResolver]
-```
-
-1. **카탈로그** — `Assets/_Project/Data/Combat/Actions/`  
-   - 예: `GoblinSlash.asset` (Attack, rawAttack=12), `GoblinGuard.asset` (Defend, …)
-2. **패턴** — `Assets/_Project/Data/Combat/Monsters/GoblinPattern.asset`  
-   - Steps: [Slash, Guard, Slash, SpecialRef, …]
-
-```csharp
-// SlotRogue.Data — 스케치
-[CreateAssetMenu(menuName = "SlotRogue/Combat/Monster Action")]
-public sealed class MonsterActionDefinition : ScriptableObject
-{
-    public MonsterActionKind Kind;
-    [Header("Attack")]
-    public int RawAttack;           // Kind == Attack
-    [Header("Defend (C7)")]
-    public int DefendValue;         // Kind == Defend → PendingMonsterDefense
-    public string BuffId;
-    // 추후: public DamageMode Mode; public float Multiplier;
-}
-
-[CreateAssetMenu(menuName = "SlotRogue/Combat/Monster Pattern")]
-public sealed class MonsterPattern : ScriptableObject
-{
-    public PatternStep[] Steps = Array.Empty<PatternStep>();
-    public bool Loop = true;
-}
-
-[Serializable]
-public sealed class PatternStep
-{
-    public MonsterActionDefinition Action;
-    [Tooltip("체크 시 아래 필드로 이 스텝만 덮어씀. 밸런스 스파이크용")]
-    public bool OverrideRawAttack;
-    public int OverrideRawAttackValue;
-}
-```
-
-- **런타임 DTO** `MonsterAction`은 SO를 **복사한 읽기 전용 스냅샷**(테스트·결정론 유지). SO 참조를 전투 중에 직접 mutate 하지 않음.
-- Kind별로 안 쓰는 인스펙터 필드는 MVP에서 그대로 두고, Custom Editor(`SlotRogue.Editor`)는 **나중에** Kind에 맞게 필드 숨김.
-- `PatternStep` 오버라이드: 새 SO 없이 한 턴만 숫자 바꿀 때 — 선택 기능, 없어도 MVP 가능.
-
-**자산 위치**: 정의 클래스 `SlotRogue.Data` asmdef · 인스턴스 `Assets/_Project/Data/Combat/`.
-
-**테스트**: EditMode — (1) 패턴 인덱스 루프, (2) `MonsterActionDefinition` → `rawAttack` resolve, (3) OverrideRawAttack 적용.
-
-### C4 — MonsterAction (런타임 DTO)
-
-SO가 아니라 **한 턴 실행 시점의 해석 결과**. `BattleResolver`가 `MonsterActionDefinition`(+ optional override)에서 생성.
-
-```csharp
-public readonly struct MonsterAction
-{
-    public MonsterActionKind Kind { get; }
-    public int RawAttack { get; }  // Attack일 때만 사용, C2 적용
-    public int DefendValue { get; } // Defend일 때 — resolver가 pending에 기록
-    // Buff/Special — 추후
-}
-```
-
-## 슬롯 ↔ 전투 · 전투 ↔ UI (C10)
-
-### 슬롯 → 전투 (인터페이스)
-
-계약·DTO·인터페이스는 **`SlotRogue.Core`** (asmdef 최하단 공유). 슬롯 모듈은 `BattleResolver` 클래스를 참조하지 않는다.
-
-```csharp
-namespace SlotRogue.Core.Combat
-{
-    public readonly struct CombatSpinOutcome
-    {
-        public int Attack { get; }
-        public int Defense { get; }
-    }
-
-    /// <summary>슬롯이 스핀 결과 확정 후 호출. 구현체: BattleResolver (전투).</summary>
-    public interface ISpinCombatConsumer
-    {
-        void OnSpinResolved(CombatSpinOutcome outcome);
-    }
-}
-```
-
-| 규칙 | 내용 |
-|------|------|
-| 호출 횟수 | 스핀당 **정확히 1회** `OnSpinResolved` (C1) |
-| 호출 주체 | 슬롯 `SpinController`(가칭) — 페이라인/RNG **확정 후** |
-| 타이밍 | 로직 확정 → `OnSpinResolved`(전투 턴 진행) → 릴/UI 연출은 병렬·지연 가능 (`slot-core.md`에서 상세) |
-| 연결 | 씬/bootstrap에서 `ISpinCombatConsumer` 구현체 주입. `[SerializeField]` + 인터페이스 또는 생성자 주입 |
-| 테스트 | `FakeSpinCombatConsumer` / Mock `BattleResolver` |
+1. 이번 턴 **미리 정해진** 몬스터 Effect 목록 순서대로 적용
+2. 사망 체크 (플레이어 Defeat / 몬스터 Victory)
+3. 플레이어 **shield = 0**
+4. `PlayerTurn`
 
 ```mermaid
 sequenceDiagram
-  participant Slot as Slot (SpinController)
-  participant CP as CombatPipelineConsumer
-  participant BR as BattleResolver
-  participant BP as BattlePresenter
-  participant UI as UI / Timeline
-  Slot->>CP: OnSpinResolved(outcome)
-  CP->>BR: ProcessSpin(outcome)
-  BR->>BR: PlayerPhase / MonsterPhase / CheckEnd\n(record CombatEvent list)
-  BR-->>CP: return TurnResult
-  CP->>BP: Consume(TurnResult)
-  BP->>UI: per-event + FinalState sync
+    participant Slot as Slot
+    participant Battle as BattleSystem
+    participant P as Player
+    participant M as Monster
+
+    Note over Battle: PlayerTurn
+    Slot->>Battle: ApplyPlayerTurn(Effect[])
+    loop 입력 순서
+        Battle->>M: Damage / Shield / Heal
+        Battle->>P: Damage / Shield / Heal
+    end
+    Battle->>M: shield 초기화
+    alt 몬스터 사망
+        Battle-->>Slot: BattleEnded(Victory)
+    else 플레이어 사망
+        Battle-->>Slot: BattleEnded(Defeat)
+    else
+        Note over Battle: EnemyTurn
+        loop UpcomingEnemyActions
+            Battle->>P: Effect 적용
+            Battle->>M: Effect 적용
+        end
+        Battle->>P: shield 초기화
+        Battle-->>Slot: PlayerTurn
+    end
 ```
 
-### 전투 → UI — 턴 이벤트 로그 (canonical)
+## Runtime data
 
-**게임 로직 경로(C10)와 분리.** UI·VFX·사운드는 구독만 하고 전투 상태를 mutate 하지 않는다.
+### CombatEffect (MVP)
 
-**canonical 모델**: 스핀당 **`TurnResult`** 1개.
+| 필드 | MVP | Later |
+|------|-----|-------|
+| `Kind` | `Damage`, `Shield`, `Heal` | `ApplyStatus`, `GainGold`, … |
+| `Amount` | int | — |
+| `Target` | `Self`, `Enemy` | 다중 적 시 확장 |
+| _(optional)_ | — | `Element`, `Status`, `Duration` |
 
-| 구성 | 역할 |
+### Kind 동작
+
+| Kind | 동작 |
 |------|------|
-| `Events` (`IReadOnlyList<CombatEvent>`) | 턴 처리 **중** 발생한 사건의 **발생 순서**. 연출·피드백의 1차 소스. |
-| `FinalState` (`BattleStateSnapshot`) | 턴 **종료 후** HP·패턴 인덱스·승패. HP 바 등 UI 상태 **동기화**용. |
+| `Damage` | `실피해 = max(0, Amount - target.shield)` → shield 차감 → HP 감소 |
+| `Shield` | `target.shield += Amount` |
+| `Heal` | `target.hp = min(target.hp + Amount, target.maxHp)` |
 
-**왜 스냅샷 diff만으로는 부족한가**
+스탯 방어력은 없다. 방어도는 `Shield` Effect로만 얻는다.
 
-- 턴 안에 피해 후 회복 등으로 **최종 HP가 이전과 같으면** diff는 변화 없음 → 연출 누락.
-- C3(플레이어 후 몬스터) **연출 순서**는 “최종값 비교”로는 알 수 없음 → **이벤트 순서**가 필요.
+### Participant
 
-#### `CombatEvent` (도메인, `SlotRogue.Core`)
+플레이어·몬스터가 `currentHp`, `maxHp`, `shield`를 내부 관리한다. Resolver는 Participant에 Effect를 적용한다.
 
-런타임 **사건** DTO. Resolver가 기록, Presenter/UI가 소비.
+### Shield 지속
 
-| `CombatEventKind` (MVP) | 의미 | 기록 시점 (Resolver) |
-|-------------------------|------|----------------------|
-| `PlayerDamageToMonster` | 플레이어 공격으로 몬스터가 받은 피해량 | PlayerPhase, `damage > 0` |
-| `MonsterDamageToPlayer` | 몬스터 공격으로 플레이어가 받은 피해량 | MonsterPhase, Attack 적용 시 |
-| `MonsterActionExecuted` (`Kind=Defend`) | 몬스터 Defend, `DefendValue` (C7 pending) | MonsterPhase, Defend 적용 직후 |
-| `MonsterActionExecuted` | 이번 턴 몬스터 행동(`MonsterAction`) | MonsterPhase, 행동 실행 직후 |
-| `PlayerHealed` / `MonsterHealed` | 회복량 | 효과·버프 파이프라인 도입 시 (MVP 타입만 예약 가능) |
-| `BattleEnded` | `BattleEndReason` | CheckEnd, 승패 확정 시 |
+| 주체 | 유효 구간 | 초기화 |
+|------|-----------|--------|
+| 플레이어 shield | 적 턴 전체 | 적 턴 **모든** Effect 적용 후 |
+| 몬스터 shield | 플레이어 턴 전체 | 플레이어 턴 **모든** Effect 적용 후 |
 
-**턴 내 기록 순서 (규칙)**
+```mermaid
+flowchart TD
+    E[CombatEffect] --> K{Kind}
+    K -->|Damage| D["실피해 = max(0, Amount - shield)\nshield -= 막은 양\nHP -= 실피해"]
+    K -->|Shield| S["shield += Amount"]
+    K -->|Heal| H["HP = min(HP + Amount, maxHp)"]
+```
 
-1. PlayerPhase에서 발생한 이벤트(예: `PlayerDamageToMonster`)
-2. PlayerPhase 직후 전투 종료면 `BattleEnded` 후 **MonsterPhase 생략**
-3. MonsterPhase: `MonsterActionExecuted` → (Attack이면) `MonsterDamageToPlayer`, (Defend면 pending 갱신)
-4. CheckEnd 후 `BattleEnded`(아직 없으면)
+## System boundary
 
-로직 계산은 Resolver에서 **동기·한 번에** 끝난다. **표시 순서**는 UI 타임라인이 `Events`를 순차 재생한다(대기·애니 길이는 UI 책임).
+```mermaid
+flowchart LR
+    subgraph Slot["SlotRogue.Slot"]
+        Spin --> Pattern --> Calc --> Build["Effect[] 또는 DTO"]
+    end
 
-#### `BattlePresenter` 역할
+    subgraph Integration["연동 계층 (별도 plan)"]
+        Adapt["Slot → CombatEffect[]"]
+    end
 
-- `CombatPipelineConsumer`가 `BattleResolver.ProcessSpin` 반환값을 받아 `BattlePresenter.Consume(TurnResult)` 호출.
-- `Events`를 순회해 UI용 C# `event` / `Action`으로 **번역**(피격 연출, 몬스터 행동 연출 등).
-- 턴 종료 시 `FinalState`로 HP 바 등 **최종값 동기화** (기존 `PlayerHpChanged` / `MonsterHpChanged`를 여기서 1회 쏘는 방식 가능 — API는 구현 plan에서 확정).
+    subgraph Combat["SlotRogue.Core / Combat"]
+        StartBattle --> Resolver
+        Adapt --> Apply["ApplyPlayerTurn()"]
+        Apply --> Resolver
+        Resolver --> Events["CombatEvent[]"]
+        Resolver --> Participant["Player / Monster"]
+    end
 
-**거절 (이전 Phase B 스텁)**: Presenter가 스핀 전·후 `BattleState`만 diff해 이벤트를 추론하는 방식. ADR: [`0001-combat-turn-event-log`](../adr/0001-combat-turn-event-log.md).
+    Build --> Adapt
+    Adapt --> Apply
+```
 
-#### UI 타임라인 (연출)
+현재 슬롯 MVP는 `SlotCombatRequest` DTO를 출력한다. 전투 연동 시 변환 규칙은 Open questions(Q1)에서 확정한다.
 
-| 책임 | 담당 |
-|------|------|
-| 무슨 일이 있었는가, 순서 | `TurnResult.Events` (Resolver 기록) |
-| 언제·얼마나 보여줄지 | UI `CombatTimelineController`(가칭) — 코루틴/await, 입력 잠금 |
-| HP 숫자 맞추기 | `TurnResult.FinalState` |
+## Battle API (MVP sketch)
 
-슬롯 릴 연출과 전투 연출의 선후는 `slot-core.md`에서 확정. 전투 **규칙**은 `OnSpinResolved` 호출 시점에 이미 확정되어야 한다(C1).
+| API | 역할 |
+|-----|------|
+| `StartBattle(player, monster)` | 전투 시작 → `PlayerTurn` |
+| `ApplyPlayerTurn(IReadOnlyList<CombatEffect> effects)` | 플레이어 턴 처리. `PlayerTurn`이 아니면 거부 |
+| `CurrentPhase` | UI·슬롯 스핀 가능 여부 |
+| `UpcomingEnemyActions` | UI용 — 이번 적 턴 Effect 목록 (스핀 전 표시) |
 
-#### 구현·전송 방식 (MVP)
+`StartBattle`의 파라미터 vs BattleSystem 멤버 보유는 구현 plan에서 확정한다.
 
-- **권장**: `BattlePresenter`가 C# `event` — `SlotRogue.UI` 구독 (`OnDisable` 해제).
-- **대안**: ScriptableObject Event Channel — 씬 간 느슨 결합 필요 시.
+## CombatEvent (MVP)
 
-**금지 (MVP)**
+Resolver가 턴 처리 중 append한다. UI·디버그·테스트가 동일 소스를 구독한다.
 
-- `SpinResolved` / 스핀 결과를 **static/global bus**로 — 디버깅·중복·씬 전환 누수.
-- UI가 `ISpinCombatConsumer` 구현 — 로직 이중 실행.
-- Presenter가 `BattleState`를 mutate.
-
-### asmdef 의존 (목표)
-
-| asmdef | 알아야 하는 것 |
-|--------|----------------|
-| `SlotRogue.Core` | DTO, `ISpinCombatConsumer`, `BattleResolver`, `TurnResult`, `CombatEvent` |
-| `SlotRogue.Slot` _(또는 Core.Slot)_ | `ISpinCombatConsumer`만 |
-| `SlotRogue.UI` | Presenter 이벤트·타임라인. **슬롯 직접 참조 불필요** |
-
-- 전투는 `CombatSpinOutcome`을 **한 턴에 한 번** 수신한다(C1·C10).
-
-**구현 상태**: [`feature-combat-turn-events`](../exec-plans/completed/feature-combat-turn-events.md) 완료. 후속은 UI 타임라인 컨트롤러 plan으로 분리.
+예시 종류: `PhaseChanged`, `EffectApplied`, `DamageDealt`, `ShieldGained`, `ShieldConsumed`, `HpChanged`, `BattleEnded`.
 
 ## Open questions
 
-MVP 전투 코어 설계 질문은 **모두 Decisions로 승격됨**. 남은 것:
-
 | ID | 질문 | 비고 |
 |----|------|------|
-| — | 슬롯 `OnSpinResolved` vs 릴 애니 선후 | `slot-core.md` 작성 시 슬롯 팀과 확정 |
-| — | UI 이벤트 전송 방식 (C# event vs SO Channel) | `feature-combat-turn-events` 구현 시 하나 선택 |
-| — | 슬롯 릴 연출 완료 타이밍 vs `ProcessSpin` 호출 시점 | `slot-core.md`에서 확정 |
+| Q1 | `SlotCombatRequest` → `CombatEffect[]` 변환 규칙 | 슬롯·전투 연동 plan. `AttackCount`, `IsCritical` 반영 여부 |
+| Q2 | 몬스터 행동 **배열 + 순환 인덱스** | MVP는 턴당 고정 1세트. 패턴 SO 설계는 Later |
+| Q3 | `StartBattle` 시그니처 vs BattleSystem 멤버 | Participant 참조 전달 방식 |
+| Q4 | Effect optional 필드 (`Element`, `Status`) 도입 시점 | 속성·DoT 추가 시 ADR supersede 또는 ADR-0002 |
+| Q5 | Kind별 Resolver 재정렬 필요 여부 | 디버프·상태가 많아지면 검토. MVP는 입력 순서 유지 (ADR-0001) |
+| Q6 | 전투 asmdef 이름·Core 하위 네임스페이스 | `SlotRogue.Core.Combat` vs 별도 asmdef |
 
 ## Alternatives considered
 
-### 방어 지속형(버프) — 거절
+### 단일 DTO 입력 — 거절
 
-- **내용**: `defense`가 다음 턴까지 남거나 누적 실드로 쌓임.
-- **거절 이유**: 슬롯 1스핀=1턴과 맞추기 단순하고, 플레이어가 “이번 스핀 방어”를 직관적으로 읽기 쉽다(C2).
+`SlotCombatRequest` 하나를 전투가 직접 소비하면 필드별 분기가 Resolver에 고정된다. Effect 목록 + 공통 Kind가 확장에 유리하다 (ADR-0001).
 
-### 스핀과 전투 턴 분리 — 거절
+### 몬스터 전용 행동 타입 — 거절
 
-- **내용**: 여러 스핀 후 한 번에 전투 정산, 또는 스핀 없이 적만 행동하는 턴.
-- **거절 이유**: UI(하단 슬롯 / 상단 전투) 리듬을 1:1로 맞추기 위해(C1).
+`MonsterAction` enum과 플레이어 Effect 이중 Resolver를 피하고 동일 `CombatEffect`로 통합한다.
 
-### 몬스터 턴 = 공격만 — 거절
+### 스탯 방어력 + Shield — 거절
 
-- **내용**: 플레이어 스핀 후 몬스터는 항상 `rawAttack`으로만 플레이어를 때림.
-- **거절 이유**: 전투 변주·몬스터 개성을 위해 행동 카탈로그가 필요(C4). 공격은 그중 한 종류.
+MVP는 Shield Effect만 사용한다. 상시 방어력 스탯은 Later.
 
-### 플레이어·몬스터 동시 정산 — 거절
+## Related docs
 
-- **내용**: 스핀 결과와 몬스터 행동을 한 번에 해결.
-- **거절 이유**: 연출·피드백 순서(플레이어 결과 → 몬스터 반응)와 `defense`가 “이번 턴 받는 피해”에만 쓰이는 해석이 순차 흐름과 맞음(C3).
-
-### 몬스터 행동 — 런타임 RNG / 반응형 AI (MVP) — 거절
-
-- **내용**: 매 턴 가중치 추첨, 플레이어 공격력에 따른 즉석 분기.
-- **거절 이유**: 1달 MVP에서 디버깅·밸런스 반복 비용이 큼. C5 고정 패턴 SO로 기획·튜닝 경로를 단순화. 필요 시 C5 “선택기” 레이어만 추가.
-
-### 패턴을 C# switch로 몬스터별 하드코딩 — 거절
-
-- **내용**: `GoblinAI`, `SlimeAI` 클래스에 턴별 행동 나열.
-- **거절 이유**: C5 data-driven 목표와 충돌. 새 몬스터마다 재컴파일·머지 부담.
-
-### Q8 — 패턴 칸에 `Kind + int Value`만 인라인 — 거절
-
-- **내용**: `PatternStep`에 enum과 정수만 두고 SO 참조 없음.
-- **거절 이유**: 행동 재사용·인스펙터 튜닝·이후 수치 스키마 확장(배율 등)이 어렵다. C6(카탈로그 SO + 패턴 참조) 채택.
-
-### Q8 — 수치를 Resolver 코드 상수로 — 거절
-
-- **내용**: `const int GoblinTurn2Damage = 12`.
-- **거절 이유**: C6·프로젝트 data-pipeline 방침(`design-docs/INDEX.md`)과 충돌.
-
-### 몬스터 Defend — 지속 버프 / 실드 누적 — 거절
-
-- **내용**: Defend가 여러 턴 유지되거나 `DefendValue`가 합산됨.
-- **거절 이유**: 플레이어 `defense`(C2)와 규칙을 맞추기 위해 1회 소비·비누적(C7).
-
-### 몬스터 Defend — 같은 스핀 PlayerPhase 피해에 소급 — 거절 (MVP)
-
-- **내용**: 플레이어 공격 직후 MonsterPhase Defend로 방금 받은 피해 감소.
-- **거절 이유**: C3(플레이어 선행)와 순서 충돌. MVP는 **다음 스핀**에 소비. 연출상 소급이 필요하면 턴 순서 ADR 검토.
-
-### 승패 — 도주 / 턴 제한 / 시간 제한 (MVP) — 거절
-
-- **내용**: N턴 지나면 패배, 도주 성공, 제한 시간 등.
-- **거절 이유**: MVP 범위 축소(C8). 로그라이크 메타 설계 시 별도 추가.
-
-### Q5 — 0 공격 시 턴 스킵 / 미스 — 거절
-
-- **내용**: `attack==0`이면 MonsterPhase 생략, 또는 스핀을 무효 처리.
-- **거절 이유**: C1(1스핀=1턴)과 몬스터 패턴 인덱스(C5)가 항상 맞물려야 함. C9 — 0이어도 턴 전체 진행.
-
-### Q6 — 슬롯→전투 global 이벤트 / 직접 호출 — 거절
-
-- **내용**: `CombatEvents.SpinResolved` static 구독, 또는 `SpinController`가 `BattleResolver` 직접 참조.
-- **거절 이유**: 팀 분리·1스핀=1턴 단일 경로·테스트 용이성 — C10(인터페이스) 채택. UI 다중 구독은 전투→UI 이벤트로만.
-
-### Q6 — 전투 로직도 전부 이벤트 — 거절
-
-- **내용**: `BattleResolver`도 이벤트만 듣고 턴 진행.
-- **거절 이유**: 턴 순서(C3)·승패(C8) 추적이 불명확. 스핀 입력만 인터페이스, 이후는 동기 resolver.
-
-### 전투→UI — Presenter 스냅샷 diff만 — 거절
-
-- **내용**: `BattlePresenter`가 스핀 전·후 `BattleState` HP·`PatternIndex`만 비교해 UI 이벤트 발행 (`feature-combat-core` Phase B 스텁).
-- **거절 이유**: 턴 내부 사건·순차 연출 불가. **이벤트 로그 + `TurnResult`** 채택 — ADR [`0001-combat-turn-event-log`](../adr/0001-combat-turn-event-log.md).
+- [`slot-core.md`](./slot-core.md) — 슬롯 MVP, S4 전투 참조 금지
+- [`../adr/0001-combat-turn-effect-pipeline.md`](../adr/0001-combat-turn-effect-pipeline.md)
+- 개인 scratch 다이어그램: `docs/_scratch/combat-turn-pipeline-diagrams.md` (gitignored)

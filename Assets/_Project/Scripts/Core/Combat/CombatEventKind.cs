@@ -2,11 +2,9 @@ namespace SlotRogue.Core.Combat
 {
     public enum CombatEventKind
     {
-        PlayerDamageToMonster,
-        MonsterDamageToPlayer,
-        MonsterActionExecuted,
-        PlayerHealed,
-        MonsterHealed,
-        BattleEnded,
+        PhaseChanged = 0,
+        EffectApplied = 1,
+        ShieldReset = 2,
+        BattleEnded = 3,
     }
 }
