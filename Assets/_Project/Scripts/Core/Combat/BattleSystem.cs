@@ -9,7 +9,7 @@ namespace SlotRogue.Core.Combat
         private readonly List<CombatEvent> _events = new();
         private CombatParticipant _player = null!;
         private CombatParticipant _monster = null!;
-        private IReadOnlyList<CombatEffect> _monsterTurnActions = Array.Empty<CombatEffect>();
+        private MonsterTurnSchedule _monsterTurnSchedule = null!;
 
         public BattleSystem()
             : this(new EffectApplicator())
@@ -31,7 +31,9 @@ namespace SlotRogue.Core.Combat
 
         public IReadOnlyList<CombatEvent> Events => _events;
 
-        public IReadOnlyList<CombatEffect> UpcomingEnemyActions => _monsterTurnActions;
+        public IReadOnlyList<CombatEffect> UpcomingEnemyActions => _monsterTurnSchedule.UpcomingActions;
+
+        public int UpcomingMonsterTurnIndex => _monsterTurnSchedule.UpcomingTurnIndex;
 
         public bool CanApplyPlayerTurn => CurrentPhase == BattlePhase.PlayerTurn;
 
@@ -40,9 +42,18 @@ namespace SlotRogue.Core.Combat
             CombatParticipant monster,
             IReadOnlyList<CombatEffect> monsterTurnActions)
         {
+            StartBattle(player, monster, new MonsterTurnSchedule(monsterTurnActions));
+        }
+
+        public void StartBattle(
+            CombatParticipant player,
+            CombatParticipant monster,
+            MonsterTurnSchedule monsterTurnSchedule)
+        {
             _player = player ?? throw new ArgumentNullException(nameof(player));
             _monster = monster ?? throw new ArgumentNullException(nameof(monster));
-            _monsterTurnActions = monsterTurnActions ?? Array.Empty<CombatEffect>();
+            _monsterTurnSchedule = monsterTurnSchedule ?? throw new ArgumentNullException(nameof(monsterTurnSchedule));
+            _monsterTurnSchedule.Reset();
             EndReason = BattleEndReason.None;
             _events.Clear();
 
@@ -81,7 +92,8 @@ namespace SlotRogue.Core.Combat
         {
             SetPhase(BattlePhase.EnemyTurn);
 
-            ApplyEffects(_monsterTurnActions, _monster, _player);
+            IReadOnlyList<CombatEffect> enemyTurnActions = _monsterTurnSchedule.ConsumeUpcomingTurn();
+            ApplyEffects(enemyTurnActions, _monster, _player);
 
             if (TryEndBattle())
             {

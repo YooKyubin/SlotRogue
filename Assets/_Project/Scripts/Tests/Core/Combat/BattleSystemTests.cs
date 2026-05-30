@@ -25,7 +25,8 @@ namespace SlotRogue.Core.Tests.Combat
 
             Assert.That(_battle.CurrentPhase, Is.EqualTo(BattlePhase.PlayerTurn));
             Assert.That(_battle.CanApplyPlayerTurn, Is.True);
-            Assert.That(_battle.UpcomingEnemyActions, Is.SameAs(enemyActions));
+            Assert.That(_battle.UpcomingEnemyActions, Is.EqualTo(enemyActions));
+            Assert.That(_battle.UpcomingMonsterTurnIndex, Is.Zero);
         }
 
         [Test]
@@ -276,6 +277,32 @@ namespace SlotRogue.Core.Tests.Combat
             Assert.That(enemyTurnIndex, Is.GreaterThan(monsterShieldResetIndex));
             Assert.That(playerShieldResetIndex, Is.GreaterThan(enemyTurnIndex));
             Assert.That(_battle.CurrentPhase, Is.EqualTo(BattlePhase.PlayerTurn));
+        }
+
+        [Test]
+        public void ApplyPlayerTurn_CyclesMonsterTurnSchedule()
+        {
+            var player = new CombatParticipant(maxHp: 30);
+            var monster = new CombatParticipant(maxHp: 50);
+            var schedule = new MonsterTurnSchedule(
+                new[] { new CombatEffect(CombatEffectKind.Damage, 1, CombatEffectTarget.Enemy) },
+                new[] { new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy) },
+                new[] { new CombatEffect(CombatEffectKind.Damage, 3, CombatEffectTarget.Enemy) });
+            _battle.StartBattle(player, monster, schedule);
+
+            Assert.That(_battle.UpcomingMonsterTurnIndex, Is.Zero);
+
+            _battle.ApplyPlayerTurn(System.Array.Empty<CombatEffect>());
+            Assert.That(player.CurrentHp, Is.EqualTo(29));
+            Assert.That(_battle.UpcomingMonsterTurnIndex, Is.EqualTo(1));
+
+            _battle.ApplyPlayerTurn(System.Array.Empty<CombatEffect>());
+            Assert.That(player.CurrentHp, Is.EqualTo(27));
+            Assert.That(_battle.UpcomingMonsterTurnIndex, Is.EqualTo(2));
+
+            _battle.ApplyPlayerTurn(System.Array.Empty<CombatEffect>());
+            Assert.That(player.CurrentHp, Is.EqualTo(24));
+            Assert.That(_battle.UpcomingMonsterTurnIndex, Is.Zero);
         }
     }
 }

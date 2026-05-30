@@ -21,8 +21,8 @@ namespace SlotRogue.UI.Combat
         [SerializeField] private int _monsterMaxHp = 10;
         [SerializeField] private int _monsterCurrentHp = -1;
 
-        [Header("Monster Turn")]
-        [SerializeField] private CombatEffectDefinition[] _monsterTurnActions = Array.Empty<CombatEffectDefinition>();
+        [Header("Monster Turn Schedule")]
+        [SerializeField] private MonsterTurnDefinition[] _monsterTurnSchedule = Array.Empty<MonsterTurnDefinition>();
 
         [Header("SlotCombatRequest (test)")]
         [SerializeField] private int _requestDamage = 5;
@@ -48,13 +48,43 @@ namespace SlotRogue.UI.Combat
 
         private void Reset()
         {
-            _monsterTurnActions = new[]
+            _monsterTurnSchedule = new[]
             {
-                new CombatEffectDefinition
+                new MonsterTurnDefinition
                 {
-                    kind = CombatEffectKind.Damage,
-                    amount = 2,
-                    target = CombatEffectTarget.Enemy,
+                    actions = new[]
+                    {
+                        new CombatEffectDefinition
+                        {
+                            kind = CombatEffectKind.Damage,
+                            amount = 2,
+                            target = CombatEffectTarget.Enemy,
+                        },
+                    },
+                },
+                new MonsterTurnDefinition
+                {
+                    actions = new[]
+                    {
+                        new CombatEffectDefinition
+                        {
+                            kind = CombatEffectKind.Damage,
+                            amount = 4,
+                            target = CombatEffectTarget.Enemy,
+                        },
+                    },
+                },
+                new MonsterTurnDefinition
+                {
+                    actions = new[]
+                    {
+                        new CombatEffectDefinition
+                        {
+                            kind = CombatEffectKind.Damage,
+                            amount = 6,
+                            target = CombatEffectTarget.Enemy,
+                        },
+                    },
                 },
             };
         }
@@ -63,9 +93,9 @@ namespace SlotRogue.UI.Combat
         {
             var player = new CombatParticipant(_playerMaxHp, _playerCurrentHp);
             var monster = new CombatParticipant(_monsterMaxHp, _monsterCurrentHp);
-            CombatEffect[] enemyActions = BuildMonsterTurnActions();
+            MonsterTurnSchedule schedule = BuildMonsterTurnSchedule();
 
-            _battle.StartBattle(player, monster, enemyActions);
+            _battle.StartBattle(player, monster, schedule);
             _eventLogger.LogEventsSince(_battle, eventCursor: 0);
             RefreshStatusText();
         }
@@ -96,20 +126,34 @@ namespace SlotRogue.UI.Combat
             RefreshStatusText();
         }
 
-        private CombatEffect[] BuildMonsterTurnActions()
+        private MonsterTurnSchedule BuildMonsterTurnSchedule()
         {
-            if (_monsterTurnActions == null || _monsterTurnActions.Length == 0)
+            if (_monsterTurnSchedule == null || _monsterTurnSchedule.Length == 0)
             {
-                return new[]
-                {
-                    new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy),
-                };
+                return new MonsterTurnSchedule(
+                    new[] { new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy) });
             }
 
-            var effects = new CombatEffect[_monsterTurnActions.Length];
-            for (int index = 0; index < _monsterTurnActions.Length; index++)
+            var turnSets = new CombatEffect[_monsterTurnSchedule.Length][];
+            for (int turnIndex = 0; turnIndex < _monsterTurnSchedule.Length; turnIndex++)
             {
-                effects[index] = _monsterTurnActions[index].ToCombatEffect();
+                turnSets[turnIndex] = BuildTurnActions(_monsterTurnSchedule[turnIndex].actions);
+            }
+
+            return new MonsterTurnSchedule(turnSets);
+        }
+
+        private static CombatEffect[] BuildTurnActions(CombatEffectDefinition[] actions)
+        {
+            if (actions == null || actions.Length == 0)
+            {
+                return Array.Empty<CombatEffect>();
+            }
+
+            var effects = new CombatEffect[actions.Length];
+            for (int index = 0; index < actions.Length; index++)
+            {
+                effects[index] = actions[index].ToCombatEffect();
             }
 
             return effects;
@@ -143,7 +187,7 @@ namespace SlotRogue.UI.Combat
             _statusText.text =
                 $"Phase: {_battle.CurrentPhase}\n" +
                 $"EndReason: {_battle.EndReason}\n" +
-                $"Upcoming enemy action: {upcomingSummary}\n" +
+                $"Upcoming monster turn #{_battle.UpcomingMonsterTurnIndex}: {upcomingSummary}\n" +
                 $"Player: HP {player.CurrentHp}/{player.MaxHp}, Shield {player.Shield}\n" +
                 $"Monster: HP {monster.CurrentHp}/{monster.MaxHp}, Shield {monster.Shield}\n" +
                 $"Request: dmg={_requestDamage}, def={_requestDefense}, hits={_requestAttackCount}, " +
