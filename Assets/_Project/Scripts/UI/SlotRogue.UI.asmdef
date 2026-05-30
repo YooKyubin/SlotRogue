@@ -1,7 +1,11 @@
 {
     "name": "SlotRogue.UI",
     "rootNamespace": "SlotRogue.UI",
-    "references": [],
+    "references": [
+        "SlotRogue.Core",
+        "SlotRogue.Slot",
+        "UnityEngine.UI"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

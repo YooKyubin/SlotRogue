@@ -10,6 +10,7 @@
 
 | Plan | Finished | Outcome (한 줄) |
 |------|----------|-----------------|
+| [`feature-combat-dev-scene.md`](./feature-combat-dev-scene.md) | 2026-05-31 | `Dev_Battle` Harness + Request 변환 + Console 이벤트 로거 |
 | [`feature-combat-core.md`](./feature-combat-core.md) | 2026-05-31 | `BattleSystem` 턴 파이프라인 + EditMode 테스트 20개 |
 
 가장 최근 5~10개는 [`../../STATUS.md`](../../STATUS.md)의 "Recently completed" 표에도 등록된다.

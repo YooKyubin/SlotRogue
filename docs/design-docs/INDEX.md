@@ -11,7 +11,7 @@
 | 파일 | Status | 범위 |
 |------|--------|------|
 | [`slot-core.md`](./slot-core.md) | draft | 5 x 3 슬롯 MVP, lightweight MVVM, 패턴 판정, 전투 요청 DTO |
-| [`combat-core.md`](./combat-core.md) | draft | 1스핀=1턴, Effect 목록 파이프라인, Participant, shield, CombatEvent |
+| [`combat-core.md`](./combat-core.md) | draft | 1스핀=1턴, Effect, Participant, shield, Q1 닫음 |
 
 ---
 
@@ -30,7 +30,7 @@
 | `build-and-release.md` | Android/iOS 빌드 설정, 키스토어, 버전 코드 정책 |
 | `testing-policy.md` | EditMode/PlayMode 테스트 범위, 플레이테스트 로그 양식 |
 
-슬롯 연동 시 `slot-core.md` Q3과 `combat-core.md` Q1(`SlotCombatRequest` → `CombatEffect[]`)을 맞춘다.
+슬롯 연동 시 `slot-core.md` Q3과 `combat-core.md` ~~Q1~~(닫음, [`feature-combat-dev-scene`](../exec-plans/completed/feature-combat-dev-scene.md))을 맞춘다.
 
 ---
 
