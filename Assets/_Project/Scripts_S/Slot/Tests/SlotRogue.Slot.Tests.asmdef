@@ -3,7 +3,6 @@
     "rootNamespace": "SlotRogue.Slot.Tests",
     "references": [
         "SlotRogue.Slot",
-        "SlotRogue.Core",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

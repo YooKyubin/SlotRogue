@@ -1,6 +1,5 @@
 using System;
 
-using SlotRogue.Core.Combat;
 using SlotRogue.Slot.Core;
 using SlotRogue.Slot.Data;
 
@@ -13,7 +12,7 @@ namespace SlotRogue.Slot.ViewModels
                 new SlotMachineService(),
                 new SlotPatternResolver(),
                 new SlotResultCalculator(),
-                new SlotCombatRequestConverter())
+                new SlotCombatRequestBuilder())
         {
         }
 
@@ -21,17 +20,16 @@ namespace SlotRogue.Slot.ViewModels
             SlotMachineService slotMachineService,
             SlotPatternResolver patternResolver,
             SlotResultCalculator resultCalculator,
-            SlotCombatRequestConverter combatRequestConverter)
+            SlotCombatRequestBuilder combatRequestBuilder)
         {
             _slotMachineService = slotMachineService ?? new SlotMachineService();
             _patternResolver = patternResolver ?? new SlotPatternResolver();
             _resultCalculator = resultCalculator ?? new SlotResultCalculator();
-            _combatRequestConverter = combatRequestConverter ?? new SlotCombatRequestConverter();
+            _combatRequestBuilder = combatRequestBuilder ?? new SlotCombatRequestBuilder();
             CanSpin = true;
             CurrentPatternResult = SlotPatternResult.NoMatch;
             CurrentCalculationResult = SlotCalculationResult.Empty;
             CurrentCombatRequest = SlotCombatRequest.Empty;
-            CurrentCombatOutcome = new CombatSpinOutcome(0, 0);
         }
 
         public event Action StateChanged;
@@ -46,8 +44,6 @@ namespace SlotRogue.Slot.ViewModels
 
         public SlotCombatRequest CurrentCombatRequest { get; private set; }
 
-        public CombatSpinOutcome CurrentCombatOutcome { get; private set; }
-
         public void Spin()
         {
             if (!CanSpin)
@@ -60,8 +56,7 @@ namespace SlotRogue.Slot.ViewModels
             CurrentSpinResult = _slotMachineService.Spin();
             CurrentPatternResult = _patternResolver.Resolve(CurrentSpinResult);
             CurrentCalculationResult = _resultCalculator.Calculate(CurrentPatternResult);
-            CurrentCombatRequest = _combatRequestConverter.Convert(CurrentPatternResult, CurrentCalculationResult);
-            CurrentCombatOutcome = _combatRequestConverter.ToCombatSpinOutcome(CurrentCombatRequest);
+            CurrentCombatRequest = _combatRequestBuilder.Build(CurrentPatternResult, CurrentCalculationResult);
 
             CanSpin = true;
             StateChanged?.Invoke();
@@ -70,6 +65,6 @@ namespace SlotRogue.Slot.ViewModels
         private readonly SlotMachineService _slotMachineService;
         private readonly SlotPatternResolver _patternResolver;
         private readonly SlotResultCalculator _resultCalculator;
-        private readonly SlotCombatRequestConverter _combatRequestConverter;
+        private readonly SlotCombatRequestBuilder _combatRequestBuilder;
     }
 }
