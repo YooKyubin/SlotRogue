@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
 using SlotRogue.Data.Combat;
 using SlotRogue.Slot.Data;
+using SlotRogue.UI.Combat.Presentation;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -33,15 +36,28 @@ namespace SlotRogue.UI.Combat
         private readonly BattleSystem _battle = new();
         private readonly SlotCombatRequestToCombatEffectsConverter _converter = new();
         private readonly CombatEventConsoleLogger _eventLogger = new();
+        private readonly CombatViewModel _combatViewModel = new();
+        private BattleFlowController _flowController = null!;
+        private CancellationTokenSource _presentationCts = null!;
         private Text _statusText = null!;
 
         public BattleSystem Battle => _battle;
 
         private void Awake()
         {
+            _presentationCts = new CancellationTokenSource();
+            var pipeline = new CombatPresentationPipeline(new CombatDummyPresenter());
+            _flowController = new BattleFlowController(pipeline, _combatViewModel);
             CreateEventSystemIfNeeded();
             CreateUi();
             RefreshStatusText();
+        }
+
+        private void OnDestroy()
+        {
+            _presentationCts?.Cancel();
+            _presentationCts?.Dispose();
+            _presentationCts = null!;
         }
 
         public void StartBattle()
@@ -89,6 +105,57 @@ namespace SlotRogue.UI.Combat
             {
                 Debug.Log(
                     $"[BattleDevHarness] ApplyTurn rejected. Phase={result.Phase}, EndReason={result.EndReason}");
+                RefreshStatusText();
+                return;
+            }
+
+            _eventLogger.LogEventsSince(_battle, eventCursor, request);
+            RefreshStatusText();
+        }
+
+        public void ApplyTurnWithPresentation()
+        {
+            ApplyTurnWithPresentationAsync().Forget();
+        }
+
+        private async UniTaskVoid ApplyTurnWithPresentationAsync()
+        {
+            if (_battle.CurrentPhase == BattlePhase.NotInBattle)
+            {
+                Debug.LogWarning("[BattleDevHarness] ApplyTurnWithPresentation ignored — battle not started.");
+                RefreshStatusText();
+                return;
+            }
+
+            if (_flowController.IsBusy)
+            {
+                Debug.Log("[BattleDevHarness] ApplyTurnWithPresentation rejected — presentation busy.");
+                return;
+            }
+
+            var request = new SlotCombatRequest(
+                _requestDamage,
+                _requestDefense,
+                _requestAttackCount,
+                _requestHealAmount,
+                _requestIsCritical,
+                _requestPatternName);
+
+            CombatEffect[] playerEffects = _converter.Convert(request);
+            var context = new PresentationContext(request.IsCritical, request.PatternName);
+            int eventCursor = _eventLogger.CaptureEventCursor(_battle);
+
+            BattleApplyResult result = await _flowController.RunTurnAsync(
+                _battle,
+                playerEffects,
+                context,
+                _presentationCts.Token);
+
+            if (!result.Accepted)
+            {
+                Debug.Log(
+                    $"[BattleDevHarness] ApplyTurnWithPresentation rejected. Phase={result.Phase}, " +
+                    $"EndReason={result.EndReason}");
                 RefreshStatusText();
                 return;
             }
@@ -185,6 +252,9 @@ namespace SlotRogue.UI.Combat
 
             Button applyButton = CreateButton(root, font, "Apply Turn", 82f);
             applyButton.onClick.AddListener(ApplyTurn);
+
+            Button applyPresentationButton = CreateButton(root, font, "Apply Turn (Presentation)", 82f);
+            applyPresentationButton.onClick.AddListener(ApplyTurnWithPresentation);
 
             _statusText = CreateText(root, font, "Status", 24, 760f, TextAnchor.UpperLeft);
             _statusText.horizontalOverflow = HorizontalWrapMode.Wrap;

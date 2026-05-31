@@ -45,14 +45,14 @@
 - **Phase 2 Review 연동:** Harness `Apply Turn` 정식 교체는 Phase 4. Review 전까지 Harness에 **임시** `ApplyTurnWithPresentationAsync().Forget()` 호출 경로 1개(기존 동기 `ApplyTurn` 옆) 또는 동일 버튼에서 Flow 분기 — Play Mode에서 Dummy 순차·연타 거부만 확인.
 - **테스트:** Presentation 계층 PlayMode/EditMode 자동 테스트 **필수 아님** (AGENTS §5 UI). Phase 2는 Play 수동 Review.
 
-- [ ] `SlotRogue.UI.asmdef` — UniTask 패키지 참조
-- [ ] `CombatViewModel` — Player/Monster 표시용 HP·Shield
-- [ ] `PresentationContext` — crit, patternName 등 sidecar (Core·`CombatEffect` 무관)
-- [ ] `BattleFlowController` — `RunTurnAsync`, `_isBusy`, `CancellationToken` (OnDestroy)
-- [ ] 턴 전 `Events.Count` cursor → `ApplyPlayerTurn` → 새 이벤트 slice 유틸
-- [ ] `CombatPresentationPipeline` + `ICombatEventPresenter` (또는 Kind별 인터페이스)
-- [ ] `DummyPresenter` — 즉시 `UniTask.CompletedTask` (큐 순서 검증용)
-- [ ] 턴 종료 `viewModel.SyncFrom(battle)`
+- [x] `SlotRogue.UI.asmdef` — UniTask 패키지 참조
+- [x] `CombatViewModel` — Player/Monster 표시용 HP·Shield
+- [x] `PresentationContext` — crit, patternName 등 sidecar (Core·`CombatEffect` 무관)
+- [x] `BattleFlowController` — `RunTurnAsync`, `_isBusy`, `CancellationToken` (OnDestroy)
+- [x] 턴 전 `Events.Count` cursor → `ApplyPlayerTurn` → 새 이벤트 slice 유틸
+- [x] `CombatPresentationPipeline` + `ICombatEventPresenter` (또는 Kind별 인터페이스)
+- [x] `DummyPresenter` — 즉시 `UniTask.CompletedTask` (큐 순서 검증용)
+- [x] 턴 종료 `viewModel.SyncFrom(battle)`
 
 **🔍 Review:** Dev 씬에서 Dummy만으로 이벤트 N개가 순차 호출·`_isBusy` 중복 Apply 거부.
 

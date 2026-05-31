@@ -5,6 +5,7 @@
         "SlotRogue.Core",
         "SlotRogue.Data",
         "SlotRogue.Slot",
+        "UniTask",
         "UnityEngine.UI"
     ],
     "includePlatforms": [],
