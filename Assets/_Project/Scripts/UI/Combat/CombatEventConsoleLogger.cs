@@ -52,9 +52,13 @@ namespace SlotRogue.UI.Combat
             CombatEffect effect = combatEvent.Effect;
             EffectApplyResult result = combatEvent.ApplyResult;
 
+            CombatParticipantSnapshot before = combatEvent.TargetBefore;
+            CombatParticipantSnapshot after = combatEvent.TargetAfter;
+
             return
                 $"[Combat] Effect {effect.Kind} amount={effect.Amount} target={effect.Target} " +
                 $"on={ParticipantLabel(combatEvent.IsPlayerParticipant)} phase={combatEvent.Phase} " +
+                $"hp {before.Hp}->{after.Hp} shield {before.Shield}->{after.Shield} " +
                 $"dmg={result.DamageDealt} shieldConsumed={result.ShieldConsumed} " +
                 $"shieldGained={result.ShieldGained} heal={result.HealApplied}";
         }

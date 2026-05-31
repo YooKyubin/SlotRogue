@@ -1,9 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
 using SlotRogue.Data.Combat;
 using SlotRogue.Slot.Data;
+using SlotRogue.UI.Combat.Presentation;
 using UnityEngine;
+#if DOTWEEN
+using DG.Tweening;
+#endif
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
@@ -33,15 +39,44 @@ namespace SlotRogue.UI.Combat
         private readonly BattleSystem _battle = new();
         private readonly SlotCombatRequestToCombatEffectsConverter _converter = new();
         private readonly CombatEventConsoleLogger _eventLogger = new();
+        private readonly CombatViewModel _combatViewModel = new();
+        private BattleFlowController _flowController = null!;
+        private CombatPresentationHost _presentationHost = null!;
+        private CancellationTokenSource _presentationCts = null!;
+        private Button _applyTurnButton = null!;
+        private Transform _floatingTextRoot = null!;
         private Text _statusText = null!;
 
         public BattleSystem Battle => _battle;
 
         private void Awake()
         {
+            _presentationCts = new CancellationTokenSource();
             CreateEventSystemIfNeeded();
             CreateUi();
+            _presentationHost = new CombatPresentationHost(
+                gameObject,
+                _statusText,
+                _floatingTextRoot,
+                GetDefaultFont(),
+                RefreshStatusText);
+            CombatPresentationPipeline pipeline = CombatPresentationPipeline.CreateDefault(_presentationHost);
+            _flowController = new BattleFlowController(pipeline, _combatViewModel);
             RefreshStatusText();
+        }
+
+        private void OnDisable()
+        {
+#if DOTWEEN
+            transform.DOKill(true);
+#endif
+        }
+
+        private void OnDestroy()
+        {
+            _presentationCts?.Cancel();
+            _presentationCts?.Dispose();
+            _presentationCts = null!;
         }
 
         public void StartBattle()
@@ -67,13 +102,63 @@ namespace SlotRogue.UI.Combat
                 MonsterTurnScheduleFactory.FromPattern(_monsterDefinition.turnPattern);
 
             _battle.StartBattle(player, monster, schedule);
+            _combatViewModel.SyncFrom(_battle);
             _eventLogger.LogEventsSince(_battle, eventCursor: 0);
             RefreshStatusText();
         }
 
         public void ApplyTurn()
         {
-            var request = new SlotCombatRequest(
+            ApplyTurnAsync().Forget();
+        }
+
+        private async UniTaskVoid ApplyTurnAsync()
+        {
+            if (_battle.CurrentPhase == BattlePhase.NotInBattle)
+            {
+                Debug.LogWarning("[BattleDevHarness] ApplyTurn ignored — battle not started.");
+                RefreshStatusText();
+                return;
+            }
+
+            if (_flowController.IsBusy)
+            {
+                return;
+            }
+
+            SetApplyTurnInteractable(false);
+
+            SlotCombatRequest request = CreateRequest();
+            CombatEffect[] playerEffects = _converter.Convert(request);
+            var context = new PresentationContext(request.IsCritical, request.PatternName);
+            int eventCursor = _eventLogger.CaptureEventCursor(_battle);
+
+            try
+            {
+                BattleApplyResult result = await _flowController.RunTurnAsync(
+                    _battle,
+                    playerEffects,
+                    context,
+                    _presentationCts.Token);
+
+                if (!result.Accepted)
+                {
+                    Debug.Log(
+                        $"[BattleDevHarness] ApplyTurn rejected. Phase={result.Phase}, " +
+                        $"EndReason={result.EndReason}");
+                    return;
+                }
+
+                _eventLogger.LogEventsSince(_battle, eventCursor, request);
+            }
+            finally
+            {
+                RefreshStatusText();
+            }
+        }
+
+        private SlotCombatRequest CreateRequest() =>
+            new(
                 _requestDamage,
                 _requestDefense,
                 _requestAttackCount,
@@ -81,20 +166,26 @@ namespace SlotRogue.UI.Combat
                 _requestIsCritical,
                 _requestPatternName);
 
-            CombatEffect[] playerEffects = _converter.Convert(request);
-            int eventCursor = _eventLogger.CaptureEventCursor(_battle);
-            BattleApplyResult result = _battle.ApplyPlayerTurn(playerEffects);
-
-            if (!result.Accepted)
+        private void SetApplyTurnInteractable(bool interactable)
+        {
+            if (_applyTurnButton != null)
             {
-                Debug.Log(
-                    $"[BattleDevHarness] ApplyTurn rejected. Phase={result.Phase}, EndReason={result.EndReason}");
-                RefreshStatusText();
+                _applyTurnButton.interactable = interactable;
+            }
+        }
+
+        private void UpdateApplyTurnButtonState()
+        {
+            if (_applyTurnButton == null)
+            {
                 return;
             }
 
-            _eventLogger.LogEventsSince(_battle, eventCursor, request);
-            RefreshStatusText();
+            bool canApply = _battle.CurrentPhase != BattlePhase.NotInBattle
+                && _battle.CanApplyPlayerTurn
+                && !_flowController.IsBusy;
+
+            _applyTurnButton.interactable = canApply;
         }
 
         private void RefreshStatusText()
@@ -113,6 +204,7 @@ namespace SlotRogue.UI.Combat
                     $"Next request: dmg={_requestDamage}, def={_requestDefense}, " +
                     $"hits={_requestAttackCount}, heal={_requestHealAmount}, " +
                     $"crit={_requestIsCritical}, pattern={_requestPatternName}";
+                UpdateApplyTurnButtonState();
                 return;
             }
 
@@ -128,10 +220,14 @@ namespace SlotRogue.UI.Combat
                 $"EndReason: {_battle.EndReason}\n" +
                 $"Monster: {GetMonsterSourceLabel()}\n" +
                 $"Upcoming monster turn #{_battle.UpcomingMonsterTurnIndex}: {upcomingSummary}\n" +
-                $"Player: HP {player.CurrentHp}/{player.MaxHp}, Shield {player.Shield}\n" +
-                $"Monster: HP {monster.CurrentHp}/{monster.MaxHp}, Shield {monster.Shield}\n" +
+                $"Player: HP {_combatViewModel.PlayerHp}/{player.MaxHp}, " +
+                $"Shield {_combatViewModel.PlayerShield}\n" +
+                $"Monster: HP {_combatViewModel.MonsterHp}/{monster.MaxHp}, " +
+                $"Shield {_combatViewModel.MonsterShield}\n" +
                 $"Request: dmg={_requestDamage}, def={_requestDefense}, hits={_requestAttackCount}, " +
                 $"heal={_requestHealAmount}, crit={_requestIsCritical}, pattern={_requestPatternName}";
+
+            UpdateApplyTurnButtonState();
         }
 
         private string GetMonsterSourceLabel()
@@ -183,12 +279,13 @@ namespace SlotRogue.UI.Combat
             Button startButton = CreateButton(root, font, "Start Battle", 82f);
             startButton.onClick.AddListener(StartBattle);
 
-            Button applyButton = CreateButton(root, font, "Apply Turn", 82f);
-            applyButton.onClick.AddListener(ApplyTurn);
+            _applyTurnButton = CreateButton(root, font, "Apply Turn", 82f);
+            _applyTurnButton.onClick.AddListener(ApplyTurn);
 
             _statusText = CreateText(root, font, "Status", 24, 760f, TextAnchor.UpperLeft);
             _statusText.horizontalOverflow = HorizontalWrapMode.Wrap;
             _statusText.verticalOverflow = VerticalWrapMode.Overflow;
+            _floatingTextRoot = root;
         }
 
         private static void CreateEventSystemIfNeeded()
