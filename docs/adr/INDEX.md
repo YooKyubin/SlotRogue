@@ -11,6 +11,7 @@
 | # | 제목 | Status | Date | Supersedes |
 |---|------|--------|------|------------|
 | [0001](./0001-combat-turn-effect-pipeline.md) | 전투 턴은 Effect 목록 파이프라인으로 처리한다 | proposed | 2026-05-30 | — |
+| [0002](./0002-combat-presentation-replay.md) | 전투 연출은 CombatEvent Replay로 처리한다 | proposed | 2026-05-31 | — |
 
 ---
 

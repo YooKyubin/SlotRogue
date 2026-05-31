@@ -27,6 +27,7 @@
 
 | 영역 | ADR |
 |------|-----|
+| 전투 연출 (Replay / CombatEvent 타임라인) | [ADR-0002](docs/adr/0002-combat-presentation-replay.md) (proposed) |
 | 슬롯 RNG / 페이아웃 모델 | _미정_ |
 | 세이브 포맷 (JSON / Binary / PlayerPrefs 한계) | _미정_ |
 | Addressables 그룹 / 빌드 전략 | _미정_ |
