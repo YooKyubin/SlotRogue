@@ -35,7 +35,7 @@ namespace SlotRogue.UI.Combat.Presentation
         public static CombatPresentationPipeline CreateDefault(CombatPresentationHost host)
         {
             return new CombatPresentationPipeline(
-                new PhaseChangedPresenter(),
+                new PhaseChangedPresenter(host),
                 new ShieldResetPresenter(host),
                 new BattleEndedPresenter(host),
                 new DamagePresenter(host),

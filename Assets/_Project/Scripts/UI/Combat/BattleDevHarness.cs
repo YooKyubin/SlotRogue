@@ -43,6 +43,7 @@ namespace SlotRogue.UI.Combat
         private BattleFlowController _flowController = null!;
         private CombatPresentationHost _presentationHost = null!;
         private CancellationTokenSource _presentationCts = null!;
+        private Button _applyTurnButton = null!;
         private Transform _floatingTextRoot = null!;
         private Text _statusText = null!;
 
@@ -67,7 +68,7 @@ namespace SlotRogue.UI.Combat
         private void OnDisable()
         {
 #if DOTWEEN
-            gameObject.DOKill(true);
+            transform.DOKill(true);
 #endif
         }
 
@@ -108,51 +109,56 @@ namespace SlotRogue.UI.Combat
 
         public void ApplyTurn()
         {
-            var request = new SlotCombatRequest(
-                _requestDamage,
-                _requestDefense,
-                _requestAttackCount,
-                _requestHealAmount,
-                _requestIsCritical,
-                _requestPatternName);
-
-            CombatEffect[] playerEffects = _converter.Convert(request);
-            int eventCursor = _eventLogger.CaptureEventCursor(_battle);
-            BattleApplyResult result = _battle.ApplyPlayerTurn(playerEffects);
-
-            if (!result.Accepted)
-            {
-                Debug.Log(
-                    $"[BattleDevHarness] ApplyTurn rejected. Phase={result.Phase}, EndReason={result.EndReason}");
-                RefreshStatusText();
-                return;
-            }
-
-            _eventLogger.LogEventsSince(_battle, eventCursor, request);
-            RefreshStatusText();
+            ApplyTurnAsync().Forget();
         }
 
-        public void ApplyTurnWithPresentation()
-        {
-            ApplyTurnWithPresentationAsync().Forget();
-        }
-
-        private async UniTaskVoid ApplyTurnWithPresentationAsync()
+        private async UniTaskVoid ApplyTurnAsync()
         {
             if (_battle.CurrentPhase == BattlePhase.NotInBattle)
             {
-                Debug.LogWarning("[BattleDevHarness] ApplyTurnWithPresentation ignored — battle not started.");
+                Debug.LogWarning("[BattleDevHarness] ApplyTurn ignored — battle not started.");
                 RefreshStatusText();
                 return;
             }
 
             if (_flowController.IsBusy)
             {
-                Debug.Log("[BattleDevHarness] ApplyTurnWithPresentation rejected — presentation busy.");
                 return;
             }
 
-            var request = new SlotCombatRequest(
+            SetApplyTurnInteractable(false);
+
+            SlotCombatRequest request = CreateRequest();
+            CombatEffect[] playerEffects = _converter.Convert(request);
+            var context = new PresentationContext(request.IsCritical, request.PatternName);
+            int eventCursor = _eventLogger.CaptureEventCursor(_battle);
+
+            try
+            {
+                BattleApplyResult result = await _flowController.RunTurnAsync(
+                    _battle,
+                    playerEffects,
+                    context,
+                    _presentationCts.Token);
+
+                if (!result.Accepted)
+                {
+                    Debug.Log(
+                        $"[BattleDevHarness] ApplyTurn rejected. Phase={result.Phase}, " +
+                        $"EndReason={result.EndReason}");
+                    return;
+                }
+
+                _eventLogger.LogEventsSince(_battle, eventCursor, request);
+            }
+            finally
+            {
+                RefreshStatusText();
+            }
+        }
+
+        private SlotCombatRequest CreateRequest() =>
+            new(
                 _requestDamage,
                 _requestDefense,
                 _requestAttackCount,
@@ -160,27 +166,26 @@ namespace SlotRogue.UI.Combat
                 _requestIsCritical,
                 _requestPatternName);
 
-            CombatEffect[] playerEffects = _converter.Convert(request);
-            var context = new PresentationContext(request.IsCritical, request.PatternName);
-            int eventCursor = _eventLogger.CaptureEventCursor(_battle);
-
-            BattleApplyResult result = await _flowController.RunTurnAsync(
-                _battle,
-                playerEffects,
-                context,
-                _presentationCts.Token);
-
-            if (!result.Accepted)
+        private void SetApplyTurnInteractable(bool interactable)
+        {
+            if (_applyTurnButton != null)
             {
-                Debug.Log(
-                    $"[BattleDevHarness] ApplyTurnWithPresentation rejected. Phase={result.Phase}, " +
-                    $"EndReason={result.EndReason}");
-                RefreshStatusText();
+                _applyTurnButton.interactable = interactable;
+            }
+        }
+
+        private void UpdateApplyTurnButtonState()
+        {
+            if (_applyTurnButton == null)
+            {
                 return;
             }
 
-            _eventLogger.LogEventsSince(_battle, eventCursor, request);
-            RefreshStatusText();
+            bool canApply = _battle.CurrentPhase != BattlePhase.NotInBattle
+                && _battle.CanApplyPlayerTurn
+                && !_flowController.IsBusy;
+
+            _applyTurnButton.interactable = canApply;
         }
 
         private void RefreshStatusText()
@@ -199,6 +204,7 @@ namespace SlotRogue.UI.Combat
                     $"Next request: dmg={_requestDamage}, def={_requestDefense}, " +
                     $"hits={_requestAttackCount}, heal={_requestHealAmount}, " +
                     $"crit={_requestIsCritical}, pattern={_requestPatternName}";
+                UpdateApplyTurnButtonState();
                 return;
             }
 
@@ -220,6 +226,8 @@ namespace SlotRogue.UI.Combat
                 $"Shield {_combatViewModel.MonsterShield}\n" +
                 $"Request: dmg={_requestDamage}, def={_requestDefense}, hits={_requestAttackCount}, " +
                 $"heal={_requestHealAmount}, crit={_requestIsCritical}, pattern={_requestPatternName}";
+
+            UpdateApplyTurnButtonState();
         }
 
         private string GetMonsterSourceLabel()
@@ -271,11 +279,8 @@ namespace SlotRogue.UI.Combat
             Button startButton = CreateButton(root, font, "Start Battle", 82f);
             startButton.onClick.AddListener(StartBattle);
 
-            Button applyButton = CreateButton(root, font, "Apply Turn", 82f);
-            applyButton.onClick.AddListener(ApplyTurn);
-
-            Button applyPresentationButton = CreateButton(root, font, "Apply Turn (Presentation)", 82f);
-            applyPresentationButton.onClick.AddListener(ApplyTurnWithPresentation);
+            _applyTurnButton = CreateButton(root, font, "Apply Turn", 82f);
+            _applyTurnButton.onClick.AddListener(ApplyTurn);
 
             _statusText = CreateText(root, font, "Status", 24, 760f, TextAnchor.UpperLeft);
             _statusText.horizontalOverflow = HorizontalWrapMode.Wrap;

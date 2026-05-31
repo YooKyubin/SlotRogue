@@ -88,9 +88,15 @@
 
 ### Phase 4 — Dev Harness 연동
 
-- [ ] `BattleDevHarness` — `Apply Turn` → `BattleFlowController.RunTurnAsync` (또는 parallel 경로; Console 로거 유지)
-- [ ] 연출 중 Apply 버튼 비활성 또는 무시
-- [ ] `CombatEventConsoleLogger` — 연출과 병행 로그(디버그) 유지 여부 확정
+**구현 메모 (2026-05-31):**
+
+- **Apply Turn 단일 경로:** 동기 `ApplyPlayerTurn` 제거. `ApplyTurn` → `RunTurnAsync`만 사용. 임시 `(Presentation)` 버튼 제거.
+- **Console 로거:** 연출 **완료 후** 1회 `LogEventsSince` (plan Notes 권장). cursor 패턴 동일.
+- **버튼:** `_applyTurnButton.interactable` — `CanApplyPlayerTurn && !IsBusy`. 연출 시작 시 즉시 false, `finally`에서 `RefreshStatusText`로 복구.
+
+- [x] `BattleDevHarness` — `Apply Turn` → `BattleFlowController.RunTurnAsync` (또는 parallel 경로; Console 로거 유지)
+- [x] 연출 중 Apply 버튼 비활성 또는 무시
+- [x] `CombatEventConsoleLogger` — 연출과 병행 로그(디버그) 유지 여부 확정
 
 **🔍 Review:** Start Battle → Apply Turn 여러 번 → Phase·Ended·중복 입력 없음.
 
@@ -160,7 +166,7 @@ sequenceDiagram
 
 - 외부 검토 2건 합의: MVP Replay + event snapshot + ViewModel (2026-05-31).
 - Phase 2·3 **구현 메모**는 구현 시작 전 확정안; 구현 중 바뀌면 해당 Phase 메모·체크를 **같은 커밋**에 갱신 (GOVERNANCE C).
-- Console 로거(`CombatEventConsoleLogger`)는 연출 MVP와 **공존** 가능 — cursor 패턴 동일. Phase 4에서 `ApplyPlayerTurn` **후** 동기 로그 유지 vs 연출 **후** 로그 — **연출 후 1회 로그** 권장(스냅샷·최종 HP 일치).
+- Console 로거(`CombatEventConsoleLogger`)는 연출 MVP와 **공존** — cursor 패턴 동일. **Phase 4 확정:** 연출 **완료 후** 1회 배치 로그 (`ApplyTurn` → `RunTurnAsync` 성공 시 `LogEventsSince`).
 
 ## Completion
 

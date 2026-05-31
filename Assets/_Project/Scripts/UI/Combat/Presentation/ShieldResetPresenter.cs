@@ -33,7 +33,7 @@ namespace SlotRogue.UI.Combat.Presentation
                 viewModel.SetMonsterShield(0);
             }
 
-            RefreshHud();
+            RefreshHUD();
             await CombatPresentationTweens.DelayAsync(BlinkDuration, Host.LinkTarget, cancellationToken);
         }
     }

@@ -41,7 +41,7 @@ namespace SlotRogue.UI.Combat.Presentation
             await UniTask.WhenAll(hudTween, vfxStub, sfxStub, floatingStub);
 
             viewModel.ApplyParticipantSnapshot(combatEvent.IsPlayerParticipant, combatEvent.TargetAfter);
-            RefreshHud();
+            RefreshHUD();
         }
 
         private async UniTask ShowFloatingDamageAsync(

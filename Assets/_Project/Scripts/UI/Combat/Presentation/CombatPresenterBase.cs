@@ -20,7 +20,7 @@ namespace SlotRogue.UI.Combat.Presentation
             PresentationContext context,
             CancellationToken cancellationToken);
 
-        protected void RefreshHud() => Host.RefreshStatusText();
+        protected void RefreshHUD() => Host.RefreshStatusText();
 
         protected UniTask TweenTargetHpAsync(
             CombatEvent combatEvent,
@@ -41,7 +41,7 @@ namespace SlotRogue.UI.Combat.Presentation
                 viewModel.SetMonsterHp(before.Hp);
             }
 
-            RefreshHud();
+            RefreshHUD();
 
             return CombatPresentationTweens.TweenIntAsync(
                 before.Hp,
@@ -58,7 +58,7 @@ namespace SlotRogue.UI.Combat.Presentation
                         viewModel.SetMonsterHp(value);
                     }
 
-                    RefreshHud();
+                    RefreshHUD();
                 },
                 Host.LinkTarget,
                 cancellationToken);
@@ -83,7 +83,7 @@ namespace SlotRogue.UI.Combat.Presentation
                 viewModel.SetMonsterShield(before.Shield);
             }
 
-            RefreshHud();
+            RefreshHUD();
 
             return CombatPresentationTweens.TweenIntAsync(
                 before.Shield,
@@ -100,7 +100,7 @@ namespace SlotRogue.UI.Combat.Presentation
                         viewModel.SetMonsterShield(value);
                     }
 
-                    RefreshHud();
+                    RefreshHUD();
                 },
                 Host.LinkTarget,
                 cancellationToken);

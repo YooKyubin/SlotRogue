@@ -6,7 +6,8 @@
         "SlotRogue.Data",
         "SlotRogue.Slot",
         "UniTask",
-        "UnityEngine.UI"
+        "UnityEngine.UI",
+        "DOTween.Modules"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
