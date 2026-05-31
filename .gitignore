@@ -88,6 +88,9 @@ ehthumbs.db
 Thumbs.db
 desktop.ini
 
+# Personal scratch notes (not team docs)
+docs/_scratch/
+
 # =============================================================================
 # IDE / Editor files
 # =============================================================================

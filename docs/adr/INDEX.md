@@ -10,7 +10,7 @@
 
 | # | 제목 | Status | Date | Supersedes |
 |---|------|--------|------|------------|
-| [0001](./0001-combat-turn-event-log.md) | 전투 턴 결과는 이벤트 로그(`TurnResult`)로 UI에 전달 | accepted | 2026-05-27 | — |
+| [0001](./0001-combat-turn-effect-pipeline.md) | 전투 턴은 Effect 목록 파이프라인으로 처리한다 | proposed | 2026-05-30 | — |
 
 ---
 

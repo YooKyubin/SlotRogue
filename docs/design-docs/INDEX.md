@@ -10,8 +10,8 @@
 
 | 파일 | Status | 범위 |
 |------|--------|------|
-| [`combat-core.md`](./combat-core.md) | draft | 1스핀=1턴, 당턴 방어, 슬롯 DTO 스케치, 턴 흐름 |
 | [`slot-core.md`](./slot-core.md) | draft | 5 x 3 슬롯 MVP, lightweight MVVM, 패턴 판정, 전투 요청 DTO |
+| [`combat-core.md`](./combat-core.md) | draft | 1스핀=1턴, Effect, Participant, shield, Q1·Q2(+ SO 패턴) 닫음 |
 
 ---
 
@@ -22,7 +22,6 @@
 | 파일 | 범위 |
 |------|------|
 | `architecture-overview.md` | 씬/시스템 의존성, asmdef 경계, 이벤트 흐름 |
-| `slot-core.md` | 릴/심볼/페이라인/RTP, 결과 결정 시점, 애니메이션과 로직 분리 |
 | `roguelike-meta.md` | 런 구조, 노드 맵, 보상 풀, 시드 전략 |
 | `economy.md` | 통화, 상점, 드롭율, 인플레이션 곡선 |
 | `save-system.md` | 저장 키, 마이그레이션, 클라우드 세이브 여부 |
@@ -31,7 +30,7 @@
 | `build-and-release.md` | Android/iOS 빌드 설정, 키스토어, 버전 코드 정책 |
 | `testing-policy.md` | EditMode/PlayMode 테스트 범위, 플레이테스트 로그 양식 |
 
-`combat-core.md`는 전투 담당 합의에 따라 draft로 먼저 추가됨. 슬롯 연동 시 `slot-core.md`와 Q6(전달 방식)을 맞춘다.
+슬롯 연동 시 `slot-core.md` Q3과 `combat-core.md` ~~Q1~~(닫음, [`feature-combat-dev-scene`](../exec-plans/completed/feature-combat-dev-scene.md))을 맞춘다.
 
 ---
 

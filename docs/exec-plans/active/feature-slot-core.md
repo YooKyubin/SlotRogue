@@ -22,9 +22,8 @@
 
 ## Notes
 
-- Battle 파일, Battle 씬, Battle 프리팹은 수정하지 않는다.
-- 현재 전투 계약은 `CombatSpinOutcome.Attack` / `Defense`만 받는다.
-- `AttackCount`, `HealAmount`, `IsCritical`은 `SlotCombatRequest`에 보존하고 추후 Battle 계약 확장 시 사용한다.
+- Battle/전투 코드는 2026-05-30 재설계로 제거됨. `SlotCombatRequest`는 슬롯 MVP용 DTO로 유지.
+- `AttackCount`, `HealAmount`, `IsCritical`은 `SlotCombatRequest`에 보존; 전투 반영은 새 Battle 계약 확정 후.
 - 2026-05-28: Unity Editor/MCP 인스턴스가 없어 Unity refresh와 Test Runner 실행은 보류. `dotnet build .\SlotRogue.slnx`는 경고/오류 없이 통과.
 
 ## Completion

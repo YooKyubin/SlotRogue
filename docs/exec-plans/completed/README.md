@@ -10,8 +10,10 @@
 
 | Plan | Finished | Outcome (한 줄) |
 |------|----------|-----------------|
-| [`feature-combat-turn-events.md`](./feature-combat-turn-events.md) | 2026-05-27 | `TurnResult` return + `BattlePresenter.Consume` 이벤트 스트림 |
-| [`feature-combat-core.md`](./feature-combat-core.md) | 2026-05-27 | BattleResolver + BattleTest Mock 스핀, `ISpinCombatConsumer` |
+| [`feature-monster-pattern-so.md`](./feature-monster-pattern-so.md) | 2026-05-31 | 몬스터 패턴·정의 SO + Factory + Goblin asset, Harness SO-only |
+| [`feature-monster-turn-schedule.md`](./feature-monster-turn-schedule.md) | 2026-05-31 | `MonsterTurnSchedule` 턴 순환 + Dev_Battle 3턴 Inspector |
+| [`feature-combat-dev-scene.md`](./feature-combat-dev-scene.md) | 2026-05-31 | `Dev_Battle` Harness + Request 변환 + Console 이벤트 로거 |
+| [`feature-combat-core.md`](./feature-combat-core.md) | 2026-05-31 | `BattleSystem` 턴 파이프라인 + EditMode 테스트 20개 |
 
 가장 최근 5~10개는 [`../../STATUS.md`](../../STATUS.md)의 "Recently completed" 표에도 등록된다.
 

@@ -1,57 +1,76 @@
 # 전투 코어 (Combat Core)
 
 **Status**: completed  
-**Started**: 2026-05-26  
-**Finished**: 2026-05-27  
-**Owner**: _(전투 담당 — GitHub id 기입)_  
-**Contributors**: _(슬롯 담당 — Phase B `ISpinCombatConsumer` 연동은 follow-up)_  
-**Related design-docs**: [`combat-core.md`](../../design-docs/combat-core.md) (C1–C10)
+**Started**: 2026-05-30  
+**Owner**: _(전투 담당)_  
+**Contributors**: _(없음)_  
+**Related design-docs**: [`combat-core.md`](../../design-docs/combat-core.md)  
+**Related ADR**: [ADR-0001](../../adr/0001-combat-turn-effect-pipeline.md)
 
 ## Goal
 
-[`combat-core.md`](../../design-docs/combat-core.md)에 합의된 전투 규칙을 **슬롯·UI 없이** 먼저 검증 가능한 코드로 만든 뒤, `BattleTest`에서 Mock 스핀으로 한 턴이 돌아가게 한다. Phase A는 EditMode 테스트 녹색이 완료 기준, Phase B는 씬에서 HP·턴 변화 확인이 완료 기준이다.
+ADR-0001·`combat-core.md` 기준으로 **슬롯/UI 없이** 전투 턴 파이프라인을 EditMode 테스트로 검증한다. `StartBattle` → `ApplyPlayerTurn(Effect[])` → 적 턴 → shield 초기화·승패·CombatEvent 로그가 한 판 돌아가면 완료다. 슬롯 연동·`SlotCombatRequest` 변환·전투 UI는 이 plan 범위 밖이다.
 
-## Phase A — 로직만 (슬롯·UI 없음)
+## Phases
 
-**완료 기준**: EditMode 테스트 전부 통과. Unity 씬·연출 없이도 `dotnet test` / Test Runner로 검증 가능.
+별도 plan 파일로 분리하지 않는다. 아래 Phase마다 **🔍 Review**에서 확인 후 다음 Phase로 진행.
 
-- [x] `Assets/_Project/Scripts/` 폴더 및 asmdef 생성 (`SlotRogue.Core`, `SlotRogue.Data`, `SlotRogue.Core.Tests` EditMode)
-- [x] `CombatSpinOutcome`, `ISpinCombatConsumer` (`SlotRogue.Core.Combat`)
-- [x] `BattleState` (HP, `PatternIndex`, `PendingMonsterDefense`, 승패 플래그)
-- [x] `BattleResolver` — C1 턴 순서, C2 피해식, C3 Player→Monster, C5 패턴 인덱스·루프
-- [x] `BattleResolver` — C7 Defend pending, C8 HP≤0 승패(동시 사망=패배), C9 attack 0 턴 진행
-- [x] `MonsterActionDefinition`, `MonsterPattern`, `PatternStep`, `MonsterDefinition` SO 스케치 (`SlotRogue.Data`)
-- [x] EditMode: C2 `max(0, atk - def)` 플레이어·몬스터 대칭
-- [x] EditMode: 패턴 0→1→…→loop 및 `OverrideRawAttack`
-- [x] EditMode: Defend → 다음 스핀 PlayerPhase 소비·미소비 시 pending 유지(C7·C9)
-- [x] EditMode: 승리/패배/동시 사망(C8)
+---
 
-## Phase B — 씬·연동 준비
+### Phase 1 — 데이터·Effect 적용 (단위)
 
-**완료 기준**: `BattleTest`에서 Mock `OnSpinResolved`로 몬스터 HP·턴 진행 확인. 슬롯 팀에 인터페이스 시그니처 공유.
+- [x] `AGENTS.md`, ADR-0001, `combat-core.md`, asmdef 경계 확인
+- [x] `CombatEffect`, `CombatEffectKind`, `CombatEffectTarget` 추가
+- [x] `CombatParticipant` — HP·maxHp·shield 상태
+- [x] Effect 적용기 — Damage / Shield / Heal (shield 소진·Heal cap 포함)
+- [x] `SlotRogue.Core.Tests` asmdef + `EffectApplicatorTests` (Phase 1 Review용 선행)
 
-**검증 (2026-05-27)**: EditMode 테스트 통과 + Play Mode 수동 확인(HP·패턴·승패 Console 로그, Mock 버튼 동작).
+**🔍 Review:** EditMode 테스트로 Kind별 적용만 검증 (턴 루프 없이). 방어도 차감·회복 상한이 `combat-core.md`와 일치하는지 확인.
 
-- [x] `BattleResolver`가 `ISpinCombatConsumer` 구현(C10)
-- [x] `BattleTest` 씬 — Mock 스핀 버튼(고정 `CombatSpinOutcome`) → Resolver 주입 (`Assets/_Project/Scenes/BattleTest.unity`)
-- [x] 샘플 SO 인스턴스 1세트 (`GoblinPattern`, `Slash`/`Guard` 액션) — `Assets/_Project/Data/Combat/`
-- [x] `BattlePresenter` 스텁 — 전투→UI 이벤트 발행만(HP 변경·`MonsterActionExecuted`·`BattleEnded`, 로그 OK)
+---
+
+### Phase 2 — 턴 파이프라인
+
+- [x] `BattlePhase`, `BattleEndReason`, `CombatEvent` / `CombatEventKind` 추가
+- [x] `BattleResolver` / `BattleSystem` — StartBattle, ApplyPlayerTurn, UpcomingEnemyActions, CurrentPhase
+- [x] 플레이어 턴 종료 → 몬스터 shield 초기화 → 적 턴
+- [x] 적 턴 종료 → 플레이어 shield 초기화 → PlayerTurn
+- [x] 사망 시 적 턴 스킵, Victory/Defeat, 잘못된 Phase에서 ApplyPlayerTurn 거부
+
+**🔍 Review:** 테스트 또는 간단 harness로 2~3턴 수동 시나리오 (피해→방어→적 공격→승리). CombatEvent 순서·Phase 전환이 design-doc과 맞는지 확인.
+
+---
+
+### Phase 3 — 테스트·마무리
+
+- [x] `SlotRogue.Core.Tests` asmdef 복구 (Phase 1에서 선행)
+- [x] EditMode 테스트 — `BattleSystemTests` 추가 (shield 초기화, 턴 순환, 승패, 이벤트)
+- [x] Unity Test Runner — `SlotRogue.Core.Tests` 20개 (에디터 Test Runner에서 확인; CLI batch는 프로젝트 오픈 중 실행 불가)
+- [x] 체크리스트·Notes 갱신, ADR-0001 Status `accepted` 검토 (팀 합의 후 — Status는 `proposed` 유지)
+
+**🔍 Review:** 테스트 전부 green → plan 완료·`completed/` 이동 후보.
+
+---
 
 ## Notes
 
-- EditMode 테스트 기본값: `playerMaxHp = 30`, `monsterMaxHp = 50` (`BattleResolverTests`).
-- Unity Test Runner: `Window > General > Test Runner > EditMode`, assembly `SlotRogue.Core.Tests`.
-- 구현 순서: **Phase A 전부 → Phase B**. Phase B 중 UI 연출·DOTWEEN은 MVP 스텁 이후.
-- `BattleResolver`는 스핀당 `OnSpinResolved` 1회만 처리(C1·C10). global `SpinResolved` 이벤트 사용 안 함.
-- `BattleTest` EventSystem: `InputSystemUIInputModule` GUID는 패키지 버전별로 다름. 씬에 Missing Script가 보이면 `GameObject > UI > Event System`으로 재생성.
-- 구현 커밋: Phase A `c262d7e`, Phase B `77d494c`.
+- 코드 위치: `Assets/_Project/Scripts/Core/Combat/` (네임스페이스 `SlotRogue.Core.Combat`).
+- 턴 오케스트레이터는 design-doc의 `BattleResolver` 대신 **`BattleSystem`** 으로 구현 (`EffectApplicator` 주입).
+- MVP 몬스터 행동: **고정 `CombatEffect[]` 1세트** 주입 (SO·순환은 Later).
+- `StartBattle(player, monster, monsterTurnActions)` — Participant 참조 + 적 턴 Effect 목록을 파라미터로 전달 (`combat-core.md` Q3).
+- CombatEvent MVP: `PhaseChanged`, `EffectApplied`, `ShieldReset`, `BattleEnded` (`EffectApplyResult`에 Damage/Shield/Heal 수치 포함).
+- `AssemblyInfo.cs` — `InternalsVisibleTo("SlotRogue.Core.Tests")`로 Participant 상태 검증.
+- 슬롯 asmdef는 Core Combat 타입 참조 금지. 연동은 후속 plan.
+
+## Out of scope (follow-up plan)
+
+- `SlotCombatRequest` → `CombatEffect[]` 변환
+- `Dev_Battle` 씬, CombatTimeline UI
+- 몬스터 ScriptableObject, 행동 배열·순환
+- 속성·DoT·Gold/SP Effect Kind
 
 ## Completion
 
-- **Finished**: 2026-05-27
-- **Outcome**: `BattleResolver`(C1–C10) + EditMode 테스트, `ISpinCombatConsumer`/`BattlePresenter`, Goblin 샘플 SO, `BattleTest` Mock 스핀 씬(Play Mode 검증). 슬롯·실 UI 없이 전투 코어 MVP 달성.
-- **Follow-ups**:
-  - **턴 이벤트 로그**: [`feature-combat-turn-events`](./feature-combat-turn-events.md) — Presenter diff 스텁 → `TurnResult` / `CombatEvent` (ADR [`0001`](../../adr/0001-combat-turn-event-log.md)).
-  - 슬롯 팀: `slot-core.md` 작성 후 `OnSpinResolved` 호출 타이밍 확정 및 `ISpinCombatConsumer` 연동 (`feature-slot-core` 등 별도 plan).
-  - UI: HP 바·순차 연출 (`SlotRogue.UI` asmdef) — turn-events plan 이후.
-  - Buff/Special 몬스터 액션 구현(C4 범위 밖이면 design-doc 갱신 후).
+- **Finished**: 2026-05-31
+- **Outcome**: `BattleSystem` + `EffectApplicator` + Participant/Effect 타입. EditMode 테스트 `EffectApplicatorTests`(7), `BattleSystemTests`(13). shield 초기화·턴 순환·승패·CombatEvent 순서·멀티턴 시나리오 검증.
+- **Follow-ups**: 슬롯→전투 `CombatEffect[]` 변환 plan, 전투 UI(CombatEvent 소비), 몬스터 패턴 SO, ADR-0001 `accepted` 팀 합의.

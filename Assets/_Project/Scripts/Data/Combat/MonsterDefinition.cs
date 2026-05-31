@@ -2,11 +2,11 @@ using UnityEngine;
 
 namespace SlotRogue.Data.Combat
 {
-    [CreateAssetMenu(menuName = "SlotRogue/Combat/Monster Definition", fileName = "NewMonster")]
+    [CreateAssetMenu(menuName = "SlotRogue/Combat/Monster Definition")]
     public sealed class MonsterDefinition : ScriptableObject
     {
-        public int MaxHp = 50;
+        public int maxHp = 10;
 
-        public MonsterPattern Pattern;
+        public MonsterTurnPatternDefinition turnPattern = null!;
     }
 }

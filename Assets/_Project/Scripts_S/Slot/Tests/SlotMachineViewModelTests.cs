@@ -2,6 +2,7 @@ using System;
 
 using NUnit.Framework;
 using SlotRogue.Slot.Core;
+using SlotRogue.Slot.Data;
 using SlotRogue.Slot.ViewModels;
 
 namespace SlotRogue.Slot.Tests
@@ -15,7 +16,7 @@ namespace SlotRogue.Slot.Tests
                 new SlotMachineService(new Random(42)),
                 new SlotPatternResolver(),
                 new SlotResultCalculator(),
-                new SlotCombatRequestConverter());
+                new SlotCombatRequestBuilder());
             bool wasRaised = false;
             viewModel.StateChanged += () => wasRaised = true;
 
