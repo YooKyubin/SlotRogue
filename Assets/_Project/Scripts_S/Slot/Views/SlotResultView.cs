@@ -9,6 +9,9 @@ namespace SlotRogue.Slot.Views
 {
     public sealed class SlotResultView : MonoBehaviour
     {
+        private static readonly Color PatternHitColor = new Color(1f, 0.82f, 0.23f, 1f);
+        private static readonly Color BaseAttackColor = new Color(0.66f, 0.82f, 1f, 1f);
+
         public void Bind(
             Text symbolsText,
             Text patternText,
@@ -39,7 +42,8 @@ namespace SlotRogue.Slot.Views
             }
 
             SetText(_symbolsText, spinResult.ToBoardString());
-            SetText(_patternText, $"Pattern: {patternResult.PatternName}");
+            SetText(_patternText, FormatPatternText(patternResult, combatRequest));
+            SetTextColor(_patternText, patternResult.HasMatch ? PatternHitColor : BaseAttackColor);
             SetText(_damageText, $"Damage: {calculationResult.Damage}");
             SetText(_attackCountText, $"Attack Count: {calculationResult.AttackCount}");
             SetText(_healText, $"Heal: {calculationResult.HealAmount}");
@@ -57,6 +61,24 @@ namespace SlotRogue.Slot.Views
             }
         }
 
+        private static void SetTextColor(Text text, Color color)
+        {
+            if (text != null)
+            {
+                text.color = color;
+            }
+        }
+
+        private static string FormatPatternText(SlotPatternResult patternResult, SlotCombatRequest combatRequest)
+        {
+            if (patternResult.HasMatch)
+            {
+                return $"PATTERN HIT: {patternResult.PatternName}";
+            }
+
+            return $"NO PATTERN - {combatRequest.PatternName}";
+        }
+
         private static string BuildCombatRequestText(SlotCombatRequest combatRequest)
         {
             return $"Combat Request: attack={combatRequest.Damage}, defense={combatRequest.Defense}";
@@ -72,6 +94,8 @@ namespace SlotRogue.Slot.Views
             builder.Append(spinResult.ToFlatString());
             builder.Append("], Pattern=");
             builder.Append(patternResult.PatternName);
+            builder.Append(", PatternHit=");
+            builder.Append(patternResult.HasMatch);
             builder.Append(", Damage=");
             builder.Append(calculationResult.Damage);
             builder.Append(", AttackCount=");

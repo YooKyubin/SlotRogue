@@ -8,7 +8,12 @@ namespace SlotRogue.Slot.Core
         {
             if (patternResult == null || !patternResult.HasMatch)
             {
-                return SlotCalculationResult.Empty;
+                return new SlotCalculationResult(
+                    SlotCombatRequest.BaseAttackDamage,
+                    0,
+                    SlotCombatRequest.BaseAttackCount,
+                    0,
+                    false);
             }
 
             int matchLength = patternResult.MatchLength;

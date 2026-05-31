@@ -6,12 +6,12 @@
 **Owner**: _(전투·UI 담당)_  
 **Contributors**: _(없음)_  
 **Related design-docs**: [`combat-core.md`](../../design-docs/combat-core.md)  
-**Related ADR**: [ADR-0001](../../adr/0001-combat-turn-effect-pipeline.md), [ADR-0002](../../adr/0002-combat-presentation-replay.md)  
+**Related ADR**: [ADR-0001](../../adr/0001-combat-turn-effect-pipeline.md), [ADR-0003](../../adr/0003-combat-presentation-replay.md)  
 **Depends on**: [`feature-combat-core`](../../exec-plans/completed/feature-combat-core.md), [`feature-combat-dev-scene`](../../exec-plans/completed/feature-combat-dev-scene.md) (완료)
 
 ## Goal
 
-`CombatEffect` 1건(및 `ShieldReset` / `PhaseChanged` / `BattleEnded`)마다 이펙트·UI·연출이 **끝날 때까지 await** 한 뒤 다음 이벤트로 진행한다. Core `ApplyPlayerTurn`은 **동기 유지**(ADR-0002 Replay). Dev_Battle에서 버튼 1회 → 턴 이벤트가 **순차 연출**되는 것을 Play Mode로 확인한다.
+`CombatEffect` 1건(및 `ShieldReset` / `PhaseChanged` / `BattleEnded`)마다 이펙트·UI·연출이 **끝날 때까지 await** 한 뒤 다음 이벤트로 진행한다. Core `ApplyPlayerTurn`은 **동기 유지**(ADR-0003 Replay). Dev_Battle에서 버튼 1회 → 턴 이벤트가 **순차 연출**되는 것을 Play Mode로 확인한다.
 
 **범위 밖 (Later):** `Dev_Slot`↔전투 통합, Addressables VFX, 연출 스킵/2x, `BattleTurnSession`(Step API), 본편 전투 씬 UI 풀셋.
 
@@ -21,7 +21,7 @@
 
 ### Phase 1 — Core 이벤트 스냅샷
 
-- [x] ADR-0002, `combat-core.md` Presentation 섹션 재확인
+- [x] ADR-0003, `combat-core.md` Presentation 섹션 재확인
 - [x] `EffectApplied`용 대상 Participant **Before/After** (`Hp`, `Shield`) — `CombatParticipantSnapshot` + `CombatEvent.TargetBefore`/`TargetAfter`
 - [x] `BattleSystem.ApplyEffects` 적용 전·후 스냅샷 기록 (`EffectApplicator` 변경 없음)
 - [x] EditMode: 기존 `BattleSystemTests` green + 스냅샷 assert 2건 (`Damage` shield 소진, `Heal` 상한)
@@ -41,7 +41,7 @@
 - **`RunTurnAsync`:** `(BattleSystem battle, IReadOnlyList<CombatEffect> effects, PresentationContext ctx, CancellationToken ct) → UniTask<BattleApplyResult>`. `_isBusy` 가드 → `startIndex = battle.Events.Count` → `ApplyPlayerTurn` → `for (i = startIndex; i < Events.Count; i++)` 순차 `await pipeline.PresentAsync` → `viewModel.SyncFrom(battle)` → `_isBusy = false`. 거부 시 즉시 return.
 - **이벤트 slice:** 별도 List 복사 없음. 인덱스 루프만 (`CombatEventSlice` static helper는 선택).
 - **`CombatViewModel`:** `PlayerHp`, `PlayerShield`, `MonsterHp`, `MonsterShield` (표시용 int). `SyncFrom(BattleSystem)`, `ApplySnapshot(CombatEvent)` — `EffectApplied` 시 스냅샷으로 표시값 갱신(애니는 Phase 3).
-- **`PresentationContext`:** `bool IsCritical`, `string PatternName` (Harness·Converter에서 채움). Core·`CombatEffect` 비확장 (ADR-0002).
+- **`PresentationContext`:** `bool IsCritical`, `string PatternName` (Harness·Converter에서 채움). Core·`CombatEffect` 비확장 (ADR-0003).
 - **`ICombatEventPresenter`:** 단일 인터페이스 `UniTask PresentAsync(CombatEvent, CombatViewModel, PresentationContext, CancellationToken)`. **`CombatPresentationPipeline`:** `CombatEventKind` + (`EffectApplied`일 때 `CombatEffectKind`) 라우팅. Phase 2 Review용 **`CombatDummyPresenter`** 하나가 모든 Kind 처리 → `UniTask.CompletedTask`.
 - **Phase 2 Review 연동:** Harness `Apply Turn` 정식 교체는 Phase 4. Review 전까지 Harness에 **임시** `ApplyTurnWithPresentationAsync().Forget()` 호출 경로 1개(기존 동기 `ApplyTurn` 옆) 또는 동일 버튼에서 Flow 분기 — Play Mode에서 Dummy 순차·연타 거부만 확인.
 - **테스트:** Presentation 계층 PlayMode/EditMode 자동 테스트 **필수 아님** (AGENTS §5 UI). Phase 2는 Play 수동 Review.
@@ -139,7 +139,7 @@ sequenceDiagram
 | `PresentationContext` | UI.Combat | crit, patternName sidecar |
 | `BattleSystem` | Core.Combat | 동기 계산, 이벤트 append |
 
-### 연출 규칙 (ADR-0002)
+### 연출 규칙 (ADR-0003)
 
 | 범위 | 규칙 |
 |------|------|
@@ -174,5 +174,5 @@ sequenceDiagram
 ## Completion
 
 - **Finished**: 2026-05-31
-- **Outcome**: ADR-0002 Replay MVP — `CombatParticipantSnapshot`, `BattleFlowController`, Kind별 Presenter, DOTween/UniTask tween, Dev_Battle `Apply Turn` → `RunTurnAsync`, 턴 Phase 배너, 연출 중 입력 잠금. Phase 1~4 Play Review 완료.
+- **Outcome**: ADR-0003 Replay MVP — `CombatParticipantSnapshot`, `BattleFlowController`, Kind별 Presenter, DOTween/UniTask tween, Dev_Battle `Apply Turn` → `RunTurnAsync`, 턴 Phase 배너, 연출 중 입력 잠금. Phase 1~4 Play Review 완료.
 - **Follow-ups**: `Dev_Slot` SPIN → `RunTurnAsync` (별도 plan), 본편 전투 UI, Addressables VFX, `BattleTurnSession`(Step), 연출 스킵·2x.

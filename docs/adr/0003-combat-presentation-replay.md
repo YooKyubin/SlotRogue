@@ -1,4 +1,4 @@
-# ADR-0002: 전투 연출은 CombatEvent Replay로 처리한다
+# ADR-0003: 전투 연출은 CombatEvent Replay로 처리한다
 
 **Status**: proposed  
 **Date**: 2026-05-31  
