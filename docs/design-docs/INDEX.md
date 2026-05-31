@@ -12,6 +12,7 @@
 |------|--------|------|
 | [`slot-core.md`](./slot-core.md) | draft | 5 x 3 슬롯 MVP, lightweight MVVM, 패턴 판정, 전투 요청 DTO |
 | [`combat-core.md`](./combat-core.md) | draft | 1스핀=1턴, Effect, Participant, shield, Q1·Q2(+ SO 패턴) 닫음 |
+| [`game-flow.md`](./game-flow.md) | draft | 게임 시작, 시작 유물, 맵, 전투, 보상 반복 루프 |
 
 ---
 

@@ -2,6 +2,10 @@ namespace SlotRogue.Slot.Data
 {
     public sealed class SlotCombatRequest
     {
+        public const int BaseAttackDamage = 4;
+        public const int BaseAttackCount = 1;
+        public const string BaseAttackName = "Base Attack";
+
         public static readonly SlotCombatRequest Empty = new(0, 0, 0, 0, false, "No Match");
 
         public SlotCombatRequest(

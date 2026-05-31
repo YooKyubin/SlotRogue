@@ -37,5 +37,23 @@ namespace SlotRogue.Slot.Tests
 
             Assert.That(builder.Build(null, null), Is.SameAs(SlotCombatRequest.Empty));
         }
+
+        [Test]
+        public void Build_NoMatchUsesBaseAttackName()
+        {
+            var calculationResult = new SlotCalculationResult(
+                SlotCombatRequest.BaseAttackDamage,
+                0,
+                SlotCombatRequest.BaseAttackCount,
+                0,
+                false);
+            var builder = new SlotCombatRequestBuilder();
+
+            SlotCombatRequest request = builder.Build(SlotPatternResult.NoMatch, calculationResult);
+
+            Assert.That(request.PatternName, Is.EqualTo(SlotCombatRequest.BaseAttackName));
+            Assert.That(request.Damage, Is.EqualTo(SlotCombatRequest.BaseAttackDamage));
+            Assert.That(request.AttackCount, Is.EqualTo(SlotCombatRequest.BaseAttackCount));
+        }
     }
 }

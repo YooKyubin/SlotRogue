@@ -11,13 +11,17 @@ namespace SlotRogue.Slot.Core
                 return SlotCombatRequest.Empty;
             }
 
+            string patternName = patternResult.HasMatch
+                ? patternResult.PatternName
+                : SlotCombatRequest.BaseAttackName;
+
             return new SlotCombatRequest(
                 calculationResult.Damage,
                 calculationResult.Defense,
                 calculationResult.AttackCount,
                 calculationResult.HealAmount,
                 calculationResult.IsCritical,
-                patternResult.PatternName);
+                patternName);
         }
     }
 }

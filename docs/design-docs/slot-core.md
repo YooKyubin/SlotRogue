@@ -19,6 +19,7 @@ _(ADR 없음 — MVP 초안. 슬롯 RNG / 페이아웃 모델이 확정되면 AD
 | S4 | **전투 직접 호출 금지** | Slot은 Battle/Core 전투 타입을 참조하지 않는다. `SlotCombatRequest` DTO만 준비하고, 실제 전투 연동은 전투 design-doc 확정 후 별도 plan에서 진행한다. |
 | S5 | **MVP 패턴은 간단한 가로 매칭** | 각 row에서 같은 심볼이 3개 이상 연속되면 패턴으로 판정한다. 여러 패턴 중 가장 높은 점수 패턴 하나를 대표 결과로 쓴다. |
 | S6 | **테스트 가능한 RNG** | `System.Random`을 주입 가능하게 두어 EditMode 테스트에서 seed를 고정한다. 런타임 기본 생성자는 비결정론적 seed를 사용한다. |
+| S7 | **NoMatch도 기본 공격으로 처리** | 초반 전투 템포를 위해 족보가 없어도 `Base Attack` 피해 4, 공격 횟수 1을 생성한다. |
 
 ## Flow
 
@@ -47,13 +48,15 @@ sequenceDiagram
 | `SlotCalculationResult` | 데미지, 방어, 공격 횟수, 회복량, 크리티컬 여부 |
 | `SlotCombatRequest` | 추후 전투 연동용 Slot 측 요청 DTO (MVP UI 표시·로그) |
 
+`SlotPatternResult.NoMatch`는 패턴 실패 상태를 유지하되, `SlotResultCalculator`는 기본 공격 수치를 반환한다. `SlotCombatRequestBuilder`는 이 경우 요청 이름을 `Base Attack`으로 변환한다.
+
 전투 시스템은 재설계 중이다. `AttackCount`, `HealAmount`, `IsCritical`, `PatternName`은 `SlotCombatRequest`에 보존하고, Battle 계약은 새 design-doc에서 정의한다.
 
 ## UI boundary
 
 - `SlotMachineView`: Spin 버튼 입력 전달, cell/result UI 갱신, ViewModel 이벤트 구독.
 - `SlotCellView`: 단일 슬롯 셀 표시.
-- `SlotResultView`: 결과 텍스트 표시와 개발용 Console 로그 출력.
+- `SlotResultView`: 결과 텍스트 표시와 개발용 Console 로그 출력. 패턴 성공은 `PATTERN HIT`, 실패는 `NO PATTERN - Base Attack`으로 구분한다.
 - `SlotMachineViewModel`: `Spin`, `CanSpin`, 현재 결과 상태, 변경 이벤트.
 
 View는 슬롯 계산, 데미지 계산, Battle 호출을 하지 않는다.
