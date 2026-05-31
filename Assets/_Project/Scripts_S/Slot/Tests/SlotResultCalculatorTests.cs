@@ -34,14 +34,14 @@ namespace SlotRogue.Slot.Tests
         }
 
         [Test]
-        public void Calculate_NoMatch_CreatesEmptyResult()
+        public void Calculate_NoMatch_CreatesBaseAttack()
         {
             var calculator = new SlotResultCalculator();
 
             SlotCalculationResult result = calculator.Calculate(SlotPatternResult.NoMatch);
 
-            Assert.That(result.Damage, Is.EqualTo(0));
-            Assert.That(result.AttackCount, Is.EqualTo(0));
+            Assert.That(result.Damage, Is.EqualTo(SlotCombatRequest.BaseAttackDamage));
+            Assert.That(result.AttackCount, Is.EqualTo(SlotCombatRequest.BaseAttackCount));
             Assert.That(result.IsCritical, Is.False);
         }
     }
