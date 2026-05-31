@@ -11,7 +11,7 @@
 | 파일 | Status | 범위 |
 |------|--------|------|
 | [`slot-core.md`](./slot-core.md) | draft | 5 x 3 슬롯 MVP, lightweight MVVM, 패턴 판정, 전투 요청 DTO |
-| [`combat-core.md`](./combat-core.md) | draft | 1스핀=1턴, Effect, Participant, shield; 연출 Replay (ADR-0002, [`feature-combat-presentation`](../exec-plans/active/feature-combat-presentation.md)) |
+| [`combat-core.md`](./combat-core.md) | draft | 1스핀=1턴, Effect, Participant, shield; 연출 Replay (ADR-0002, [`feature-combat-presentation`](../exec-plans/completed/feature-combat-presentation.md) 완료) |
 
 ---
 

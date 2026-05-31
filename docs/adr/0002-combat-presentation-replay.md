@@ -38,7 +38,7 @@
 
 ## Consequences
 
-- `docs/exec-plans/active/feature-combat-presentation.md`에서 구현 체크리스트를 따른다.
+- `docs/exec-plans/completed/feature-combat-presentation.md` — 구현 완료 (2026-05-31).
 - Core: `CombatEvent` / `EffectApplied` 스냅샷 필드 추가 + 기존 `BattleSystemTests` 보강(값 assert 유지).
 - UI: `BattleFlowController`, `CombatPresentationPipeline`, Kind/Kind별 Presenter, `CombatViewModel`, `SlotRogue.UI` asmdef에 UniTask 참조.
 - `BattleDevHarness`는 동기 `ApplyTurn` 경로를 유지하거나, Play 검증용 `ApplyTurnAsync` 경로를 추가한다( plan에서 확정).
@@ -48,5 +48,5 @@
 ## Notes
 
 - 설계 브레인스토밍·외부 AI 검토 합의: 2026-05-31.
-- 구현 plan: [`docs/exec-plans/active/feature-combat-presentation.md`](../exec-plans/active/feature-combat-presentation.md).
+- 구현 plan (완료): [`docs/exec-plans/completed/feature-combat-presentation.md`](../exec-plans/completed/feature-combat-presentation.md).
 - 선행: [ADR-0001](./0001-combat-turn-effect-pipeline.md), [`feature-combat-core`](../exec-plans/completed/feature-combat-core.md), [`feature-combat-dev-scene`](../exec-plans/completed/feature-combat-dev-scene.md).

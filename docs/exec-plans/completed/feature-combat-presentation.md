@@ -1,7 +1,8 @@
 # 전투 연출 (Combat Presentation — Replay)
 
-**Status**: active  
+**Status**: completed  
 **Started**: 2026-05-31  
+**Finished**: 2026-05-31  
 **Owner**: _(전투·UI 담당)_  
 **Contributors**: _(없음)_  
 **Related design-docs**: [`combat-core.md`](../../design-docs/combat-core.md)  
@@ -74,6 +75,8 @@
 - **인과 연출:** MVP는 투사체 체인 **없음** — 전부 WhenAll. Later에 Damage만 순차 서브시퀀스 추가.
 - **Review 시나리오:** `AttackCount=3`, `Damage>0` Request → Console/화면에서 3회 순차 간격·최종 HP = Core `Participant`와 `SyncFrom` 후 일치.
 - **DOTween 설치 (2026-05-31):** Asset Store 무료 DOTween 임포트 + Utility Panel Setup + Create ASMDEF 후 `SlotRogue.UI.asmdef`에 `DOTween` 참조. 미설치 시 `CombatPresentationTweens`는 `#if DOTWEEN` 없이 UniTask 보간 fallback으로 Play 가능.
+
+- **`PhaseChangedPresenter`:** Phase 4 이후 — `Resolving`/`EnemyTurn`/`PlayerTurn` 1초 턴 배너 (Dev HUD 텍스트).
 
 - [x] `DamagePresenter` — `_statusText` HP 줄 tween + floating damage stub (별도 HP bar 없음)
 - [x] Effect **내부** `UniTask.WhenAll`(VFX stub, SFX stub, HUD tween)
@@ -170,8 +173,6 @@ sequenceDiagram
 
 ## Completion
 
-_(completed/로 옮길 때 채움.)_
-
-- **Finished**:
-- **Outcome**:
-- **Follow-ups**:
+- **Finished**: 2026-05-31
+- **Outcome**: ADR-0002 Replay MVP — `CombatParticipantSnapshot`, `BattleFlowController`, Kind별 Presenter, DOTween/UniTask tween, Dev_Battle `Apply Turn` → `RunTurnAsync`, 턴 Phase 배너, 연출 중 입력 잠금. Phase 1~4 Play Review 완료.
+- **Follow-ups**: `Dev_Slot` SPIN → `RunTurnAsync` (별도 plan), 본편 전투 UI, Addressables VFX, `BattleTurnSession`(Step), 연출 스킵·2x.
