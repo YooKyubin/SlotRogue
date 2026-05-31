@@ -7,6 +7,9 @@ using SlotRogue.Data.Combat;
 using SlotRogue.Slot.Data;
 using SlotRogue.UI.Combat.Presentation;
 using UnityEngine;
+#if DOTWEEN
+using DG.Tweening;
+#endif
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
@@ -38,7 +41,9 @@ namespace SlotRogue.UI.Combat
         private readonly CombatEventConsoleLogger _eventLogger = new();
         private readonly CombatViewModel _combatViewModel = new();
         private BattleFlowController _flowController = null!;
+        private CombatPresentationHost _presentationHost = null!;
         private CancellationTokenSource _presentationCts = null!;
+        private Transform _floatingTextRoot = null!;
         private Text _statusText = null!;
 
         public BattleSystem Battle => _battle;
@@ -46,11 +51,24 @@ namespace SlotRogue.UI.Combat
         private void Awake()
         {
             _presentationCts = new CancellationTokenSource();
-            var pipeline = new CombatPresentationPipeline(new CombatDummyPresenter());
-            _flowController = new BattleFlowController(pipeline, _combatViewModel);
             CreateEventSystemIfNeeded();
             CreateUi();
+            _presentationHost = new CombatPresentationHost(
+                gameObject,
+                _statusText,
+                _floatingTextRoot,
+                GetDefaultFont(),
+                RefreshStatusText);
+            CombatPresentationPipeline pipeline = CombatPresentationPipeline.CreateDefault(_presentationHost);
+            _flowController = new BattleFlowController(pipeline, _combatViewModel);
             RefreshStatusText();
+        }
+
+        private void OnDisable()
+        {
+#if DOTWEEN
+            gameObject.DOKill(true);
+#endif
         }
 
         private void OnDestroy()
@@ -83,6 +101,7 @@ namespace SlotRogue.UI.Combat
                 MonsterTurnScheduleFactory.FromPattern(_monsterDefinition.turnPattern);
 
             _battle.StartBattle(player, monster, schedule);
+            _combatViewModel.SyncFrom(_battle);
             _eventLogger.LogEventsSince(_battle, eventCursor: 0);
             RefreshStatusText();
         }
@@ -195,8 +214,10 @@ namespace SlotRogue.UI.Combat
                 $"EndReason: {_battle.EndReason}\n" +
                 $"Monster: {GetMonsterSourceLabel()}\n" +
                 $"Upcoming monster turn #{_battle.UpcomingMonsterTurnIndex}: {upcomingSummary}\n" +
-                $"Player: HP {player.CurrentHp}/{player.MaxHp}, Shield {player.Shield}\n" +
-                $"Monster: HP {monster.CurrentHp}/{monster.MaxHp}, Shield {monster.Shield}\n" +
+                $"Player: HP {_combatViewModel.PlayerHp}/{player.MaxHp}, " +
+                $"Shield {_combatViewModel.PlayerShield}\n" +
+                $"Monster: HP {_combatViewModel.MonsterHp}/{monster.MaxHp}, " +
+                $"Shield {_combatViewModel.MonsterShield}\n" +
                 $"Request: dmg={_requestDamage}, def={_requestDefense}, hits={_requestAttackCount}, " +
                 $"heal={_requestHealAmount}, crit={_requestIsCritical}, pattern={_requestPatternName}";
         }
@@ -259,6 +280,7 @@ namespace SlotRogue.UI.Combat
             _statusText = CreateText(root, font, "Status", 24, 760f, TextAnchor.UpperLeft);
             _statusText.horizontalOverflow = HorizontalWrapMode.Wrap;
             _statusText.verticalOverflow = VerticalWrapMode.Overflow;
+            _floatingTextRoot = root;
         }
 
         private static void CreateEventSystemIfNeeded()

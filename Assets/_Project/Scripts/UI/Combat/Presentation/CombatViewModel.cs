@@ -29,18 +29,29 @@ namespace SlotRogue.UI.Combat.Presentation
                 return;
             }
 
-            CombatParticipantSnapshot after = combatEvent.TargetAfter;
+            ApplyParticipantSnapshot(combatEvent.IsPlayerParticipant, combatEvent.TargetAfter);
+        }
 
-            if (combatEvent.IsPlayerParticipant)
+        public void ApplyParticipantSnapshot(bool isPlayerParticipant, CombatParticipantSnapshot snapshot)
+        {
+            if (isPlayerParticipant)
             {
-                PlayerHp = after.Hp;
-                PlayerShield = after.Shield;
+                PlayerHp = snapshot.Hp;
+                PlayerShield = snapshot.Shield;
             }
             else
             {
-                MonsterHp = after.Hp;
-                MonsterShield = after.Shield;
+                MonsterHp = snapshot.Hp;
+                MonsterShield = snapshot.Shield;
             }
         }
+
+        public void SetPlayerHp(int hp) => PlayerHp = hp;
+
+        public void SetPlayerShield(int shield) => PlayerShield = shield;
+
+        public void SetMonsterHp(int hp) => MonsterHp = hp;
+
+        public void SetMonsterShield(int shield) => MonsterShield = shield;
     }
 }

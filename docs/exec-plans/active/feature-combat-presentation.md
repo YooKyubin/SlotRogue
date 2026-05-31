@@ -73,13 +73,14 @@
 - **공통:** `CombatPresenterBase` 또는 static helper — tween `SetLink(harnessGameObject)`, Harness `OnDestroy`/`OnDisable`에서 해당 GO `DOKill(true)`. `OperationCanceledException` 삼킴 금지 — `ct` throw 전파.
 - **인과 연출:** MVP는 투사체 체인 **없음** — 전부 WhenAll. Later에 Damage만 순차 서브시퀀스 추가.
 - **Review 시나리오:** `AttackCount=3`, `Damage>0` Request → Console/화면에서 3회 순차 간격·최종 HP = Core `Participant`와 `SyncFrom` 후 일치.
+- **DOTween 설치 (2026-05-31):** Asset Store 무료 DOTween 임포트 + Utility Panel Setup + Create ASMDEF 후 `SlotRogue.UI.asmdef`에 `DOTween` 참조. 미설치 시 `CombatPresentationTweens`는 `#if DOTWEEN` 없이 UniTask 보간 fallback으로 Play 가능.
 
-- [ ] `DamagePresenter` — `_statusText` HP 줄 tween + floating damage stub (별도 HP bar 없음)
-- [ ] Effect **내부** `UniTask.WhenAll`(VFX stub, SFX stub, HUD tween)
-- [ ] `ShieldPresenter` / `HealPresenter` — 최소 stub (즉시 완료 또는 짧은 tween)
-- [ ] `ShieldResetPresenter`, `BattleEndedPresenter` — 최소 연출
-- [ ] 사망: 마지막 Damage `await` 후 `BattleEnded` 재생 순서 확인
-- [ ] DOTween `SetLink` / `DOKill` 패턴 — Presenter base 또는 공통 helper
+- [x] `DamagePresenter` — `_statusText` HP 줄 tween + floating damage stub (별도 HP bar 없음)
+- [x] Effect **내부** `UniTask.WhenAll`(VFX stub, SFX stub, HUD tween)
+- [x] `ShieldPresenter` / `HealPresenter` — 최소 stub (즉시 완료 또는 짧은 tween)
+- [x] `ShieldResetPresenter`, `BattleEndedPresenter` — 최소 연출
+- [x] 사망: 마지막 Damage `await` 후 `BattleEnded` 재생 순서 확인
+- [x] DOTween `SetLink` / `DOKill` 패턴 — Presenter base 또는 공통 helper
 
 **🔍 Review:** Play Mode — Request multi-hit → 타격이 순차로 보이고 최종 HP는 턴 끝 sync와 일치.
 
