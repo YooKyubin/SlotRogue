@@ -118,15 +118,20 @@ namespace SlotRogue.Core.Combat
             for (int index = 0; index < effects.Count; index++)
             {
                 CombatEffect effect = effects[index];
+                CombatParticipant target = ResolveTargetParticipant(effect.Target, source, opponent);
+                CombatParticipantSnapshot targetBefore = CaptureSnapshot(target);
                 EffectApplyResult applyResult = _effectApplicator.Apply(effect, source, opponent);
-                bool isPlayerTarget = ResolveTargetParticipant(effect.Target, source, opponent) == _player;
+                CombatParticipantSnapshot targetAfter = CaptureSnapshot(target);
+                bool isPlayerTarget = target == _player;
 
                 _events.Add(new CombatEvent(
                     CombatEventKind.EffectApplied,
                     CurrentPhase,
                     effect,
                     applyResult,
-                    isPlayerParticipant: isPlayerTarget));
+                    isPlayerParticipant: isPlayerTarget,
+                    targetBefore: targetBefore,
+                    targetAfter: targetAfter));
 
                 if (TryEndBattle())
                 {
@@ -204,5 +209,8 @@ namespace SlotRogue.Core.Combat
         {
             return target == CombatEffectTarget.Self ? source : opponent;
         }
+
+        private static CombatParticipantSnapshot CaptureSnapshot(CombatParticipant participant) =>
+            new(participant.CurrentHp, participant.Shield);
     }
 }

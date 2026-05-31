@@ -280,6 +280,53 @@ namespace SlotRogue.Core.Tests.Combat
         }
 
         [Test]
+        public void ApplyPlayerTurn_EffectApplied_DamageSnapshot_ReflectsShieldAndHp()
+        {
+            var player = new CombatParticipant(maxHp: 30);
+            var monster = new CombatParticipant(maxHp: 20, shield: 3);
+            _battle.StartBattle(player, monster, System.Array.Empty<CombatEffect>());
+
+            _battle.ApplyPlayerTurn(new[]
+            {
+                new CombatEffect(CombatEffectKind.Damage, 5, CombatEffectTarget.Enemy),
+            });
+
+            CombatEvent damageEvent = _battle.Events.First(e =>
+                e.Kind == CombatEventKind.EffectApplied &&
+                e.Effect.Kind == CombatEffectKind.Damage);
+
+            Assert.That(damageEvent.HasTargetSnapshot, Is.True);
+            Assert.That(damageEvent.IsPlayerParticipant, Is.False);
+            Assert.That(damageEvent.TargetBefore.Hp, Is.EqualTo(20));
+            Assert.That(damageEvent.TargetBefore.Shield, Is.EqualTo(3));
+            Assert.That(damageEvent.TargetAfter.Hp, Is.EqualTo(18));
+            Assert.That(damageEvent.TargetAfter.Shield, Is.Zero);
+            Assert.That(damageEvent.ApplyResult.DamageDealt, Is.EqualTo(2));
+            Assert.That(damageEvent.ApplyResult.ShieldConsumed, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void ApplyPlayerTurn_EffectApplied_HealSnapshot_ReflectsCappedHeal()
+        {
+            var player = new CombatParticipant(maxHp: 30, currentHp: 25);
+            var monster = new CombatParticipant(maxHp: 20);
+            _battle.StartBattle(player, monster, System.Array.Empty<CombatEffect>());
+
+            _battle.ApplyPlayerTurn(new[]
+            {
+                new CombatEffect(CombatEffectKind.Heal, 10, CombatEffectTarget.Self),
+            });
+
+            CombatEvent healEvent = _battle.Events.First(e =>
+                e.Kind == CombatEventKind.EffectApplied &&
+                e.Effect.Kind == CombatEffectKind.Heal);
+
+            Assert.That(healEvent.TargetBefore.Hp, Is.EqualTo(25));
+            Assert.That(healEvent.TargetAfter.Hp, Is.EqualTo(30));
+            Assert.That(healEvent.ApplyResult.HealApplied, Is.EqualTo(5));
+        }
+
+        [Test]
         public void ApplyPlayerTurn_CyclesMonsterTurnSchedule()
         {
             var player = new CombatParticipant(maxHp: 30);
