@@ -11,7 +11,7 @@
 | 파일 | Status | 범위 |
 |------|--------|------|
 | [`slot-core.md`](./slot-core.md) | draft | 5 x 3 슬롯 MVP, lightweight MVVM, 패턴 판정, 전투 요청 DTO |
-| [`combat-core.md`](./combat-core.md) | draft | 1스핀=1턴, Effect, Participant, shield, Q1·Q2 닫음 |
+| [`combat-core.md`](./combat-core.md) | draft | 1스핀=1턴, Effect, Participant, shield, Q1·Q2(+ SO 패턴) 닫음 |
 
 ---
 

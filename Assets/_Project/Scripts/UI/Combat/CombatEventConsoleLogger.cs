@@ -8,7 +8,7 @@ namespace SlotRogue.UI.Combat
     {
         public int CaptureEventCursor(BattleSystem battle) => battle.Events.Count;
 
-        public void LogEventsSince(BattleSystem battle, int eventCursor, SlotCombatRequest? request = null)
+        public void LogEventsSince(BattleSystem battle, int eventCursor, SlotCombatRequest request = null)
         {
             if (request != null)
             {

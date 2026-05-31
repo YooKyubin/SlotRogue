@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using SlotRogue.Core.Combat;
+using SlotRogue.Data.Combat;
 using SlotRogue.Slot.Data;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -18,11 +19,8 @@ namespace SlotRogue.UI.Combat
         [SerializeField] private int _playerCurrentHp = -1;
 
         [Header("Monster")]
-        [SerializeField] private int _monsterMaxHp = 10;
+        [SerializeField] private MonsterDefinition _monsterDefinition;
         [SerializeField] private int _monsterCurrentHp = -1;
-
-        [Header("Monster Turn Schedule")]
-        [SerializeField] private MonsterTurnDefinition[] _monsterTurnSchedule = Array.Empty<MonsterTurnDefinition>();
 
         [Header("SlotCombatRequest (test)")]
         [SerializeField] private int _requestDamage = 5;
@@ -46,54 +44,27 @@ namespace SlotRogue.UI.Combat
             RefreshStatusText();
         }
 
-        private void Reset()
-        {
-            _monsterTurnSchedule = new[]
-            {
-                new MonsterTurnDefinition
-                {
-                    actions = new[]
-                    {
-                        new CombatEffectDefinition
-                        {
-                            kind = CombatEffectKind.Damage,
-                            amount = 2,
-                            target = CombatEffectTarget.Enemy,
-                        },
-                    },
-                },
-                new MonsterTurnDefinition
-                {
-                    actions = new[]
-                    {
-                        new CombatEffectDefinition
-                        {
-                            kind = CombatEffectKind.Damage,
-                            amount = 4,
-                            target = CombatEffectTarget.Enemy,
-                        },
-                    },
-                },
-                new MonsterTurnDefinition
-                {
-                    actions = new[]
-                    {
-                        new CombatEffectDefinition
-                        {
-                            kind = CombatEffectKind.Damage,
-                            amount = 6,
-                            target = CombatEffectTarget.Enemy,
-                        },
-                    },
-                },
-            };
-        }
-
         public void StartBattle()
         {
+            if (_monsterDefinition == null)
+            {
+                Debug.LogError("[BattleDevHarness] MonsterDefinition SO is not assigned.");
+                RefreshStatusText();
+                return;
+            }
+
+            if (_monsterDefinition.turnPattern == null)
+            {
+                Debug.LogError(
+                    $"[BattleDevHarness] MonsterDefinition '{_monsterDefinition.name}' has no turnPattern assigned.");
+                RefreshStatusText();
+                return;
+            }
+
             var player = new CombatParticipant(_playerMaxHp, _playerCurrentHp);
-            var monster = new CombatParticipant(_monsterMaxHp, _monsterCurrentHp);
-            MonsterTurnSchedule schedule = BuildMonsterTurnSchedule();
+            var monster = new CombatParticipant(_monsterDefinition.maxHp, _monsterCurrentHp);
+            MonsterTurnSchedule schedule =
+                MonsterTurnScheduleFactory.FromPattern(_monsterDefinition.turnPattern);
 
             _battle.StartBattle(player, monster, schedule);
             _eventLogger.LogEventsSince(_battle, eventCursor: 0);
@@ -126,39 +97,6 @@ namespace SlotRogue.UI.Combat
             RefreshStatusText();
         }
 
-        private MonsterTurnSchedule BuildMonsterTurnSchedule()
-        {
-            if (_monsterTurnSchedule == null || _monsterTurnSchedule.Length == 0)
-            {
-                return new MonsterTurnSchedule(
-                    new[] { new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy) });
-            }
-
-            var turnSets = new CombatEffect[_monsterTurnSchedule.Length][];
-            for (int turnIndex = 0; turnIndex < _monsterTurnSchedule.Length; turnIndex++)
-            {
-                turnSets[turnIndex] = BuildTurnActions(_monsterTurnSchedule[turnIndex].actions);
-            }
-
-            return new MonsterTurnSchedule(turnSets);
-        }
-
-        private static CombatEffect[] BuildTurnActions(CombatEffectDefinition[] actions)
-        {
-            if (actions == null || actions.Length == 0)
-            {
-                return Array.Empty<CombatEffect>();
-            }
-
-            var effects = new CombatEffect[actions.Length];
-            for (int index = 0; index < actions.Length; index++)
-            {
-                effects[index] = actions[index].ToCombatEffect();
-            }
-
-            return effects;
-        }
-
         private void RefreshStatusText()
         {
             if (_statusText == null)
@@ -170,6 +108,7 @@ namespace SlotRogue.UI.Combat
             {
                 _statusText.text =
                     "Phase: NotInBattle\n" +
+                    $"Monster: {GetMonsterSourceLabel()}\n" +
                     "Press Start Battle to begin.\n" +
                     $"Next request: dmg={_requestDamage}, def={_requestDefense}, " +
                     $"hits={_requestAttackCount}, heal={_requestHealAmount}, " +
@@ -187,11 +126,27 @@ namespace SlotRogue.UI.Combat
             _statusText.text =
                 $"Phase: {_battle.CurrentPhase}\n" +
                 $"EndReason: {_battle.EndReason}\n" +
+                $"Monster: {GetMonsterSourceLabel()}\n" +
                 $"Upcoming monster turn #{_battle.UpcomingMonsterTurnIndex}: {upcomingSummary}\n" +
                 $"Player: HP {player.CurrentHp}/{player.MaxHp}, Shield {player.Shield}\n" +
                 $"Monster: HP {monster.CurrentHp}/{monster.MaxHp}, Shield {monster.Shield}\n" +
                 $"Request: dmg={_requestDamage}, def={_requestDefense}, hits={_requestAttackCount}, " +
                 $"heal={_requestHealAmount}, crit={_requestIsCritical}, pattern={_requestPatternName}";
+        }
+
+        private string GetMonsterSourceLabel()
+        {
+            if (_monsterDefinition == null)
+            {
+                return "(not assigned — assign MonsterDefinition SO)";
+            }
+
+            if (_monsterDefinition.turnPattern == null)
+            {
+                return $"{_monsterDefinition.name} (turnPattern missing)";
+            }
+
+            return _monsterDefinition.name;
         }
 
         private void CreateUi()

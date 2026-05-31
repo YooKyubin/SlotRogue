@@ -3,6 +3,7 @@
     "rootNamespace": "SlotRogue.UI",
     "references": [
         "SlotRogue.Core",
+        "SlotRogue.Data",
         "SlotRogue.Slot",
         "UnityEngine.UI"
     ],

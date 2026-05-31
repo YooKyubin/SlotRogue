@@ -1,7 +1,9 @@
 {
     "name": "SlotRogue.Data",
     "rootNamespace": "SlotRogue.Data",
-    "references": [],
+    "references": [
+        "SlotRogue.Core"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

@@ -1,10 +1,10 @@
 using System;
 using SlotRogue.Core.Combat;
 
-namespace SlotRogue.UI.Combat
+namespace SlotRogue.Data.Combat
 {
     [Serializable]
-    public struct CombatEffectDefinition
+    public struct CombatEffectStep
     {
         public CombatEffectKind kind;
 

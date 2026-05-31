@@ -242,21 +242,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _playerMaxHp: 30
   _playerCurrentHp: -1
-  _monsterMaxHp: 20
+  _monsterDefinition: {fileID: 11400000, guid: 39f1e9007498dc74f81595179ab43744, type: 2}
   _monsterCurrentHp: -1
-  _monsterTurnSchedule:
-  - actions:
-    - kind: 0
-      amount: 2
-      target: 1
-  - actions:
-    - kind: 2
-      amount: 4
-      target: 0
-  - actions:
-    - kind: 0
-      amount: 6
-      target: 1
   _requestDamage: 5
   _requestDefense: 0
   _requestAttackCount: 1
