@@ -1,10 +1,17 @@
 using System.Text;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
 using SlotRogue.Slot.Data;
 using SlotRogue.Slot.ViewModels;
 using SlotRogue.UI.Combat;
+using SlotRogue.UI.Combat.Presentation;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+#if DOTWEEN
+using DG.Tweening;
+#endif
 
 namespace SlotRogue.UI.GameFlow
 {
@@ -15,6 +22,11 @@ namespace SlotRogue.UI.GameFlow
         private readonly SlotCombatRequestToCombatEffectsConverter _converter = new();
         private readonly CombatEventConsoleLogger _eventLogger = new();
         private readonly RunCombatRequestResolver _requestResolver = new();
+        private readonly CombatViewModel _combatViewModel = new();
+
+        private BattleFlowController _flowController = null!;
+        private CombatPresentationHost _presentationHost = null!;
+        private CancellationTokenSource _presentationCts = null!;
 
         [SerializeField] private RunBattleView _view;
 
@@ -41,6 +53,8 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
+            InitializePresentationStack();
+
             _view.SpinButton.onClick.RemoveAllListeners();
             _view.ContinueButton.onClick.RemoveAllListeners();
             _view.RestartButton.onClick.RemoveAllListeners();
@@ -54,6 +68,20 @@ namespace SlotRogue.UI.GameFlow
             RefreshSlotResultText();
         }
 
+        private void OnDisable()
+        {
+#if DOTWEEN
+            transform.DOKill(true);
+#endif
+        }
+
+        private void OnDestroy()
+        {
+            _presentationCts?.Cancel();
+            _presentationCts?.Dispose();
+            _presentationCts = null!;
+        }
+
         private void StartBattle()
         {
             RunMapNodeDefinition encounterNode = GetEncounterNode();
@@ -63,7 +91,63 @@ namespace SlotRogue.UI.GameFlow
             MonsterTurnSchedule schedule = CreateMonsterTurnSchedule(encounterNode, floor);
 
             _battle.StartBattle(player, monster, schedule);
+            _combatViewModel.SyncFrom(_battle);
             _eventLogger.LogEventsSince(_battle, eventCursor: 0);
+        }
+
+        private void InitializePresentationStack()
+        {
+            _presentationCts = new CancellationTokenSource();
+            _presentationHost = new CombatPresentationHost(
+                gameObject,
+                _view.StatusText,
+                ResolveFloatingTextRoot(),
+                GetDefaultFont(),
+                RefreshStatusText);
+            CombatPresentationPipeline pipeline = CombatPresentationPipeline.CreateDefault(_presentationHost);
+            _flowController = new BattleFlowController(pipeline, _combatViewModel);
+        }
+
+        private Transform ResolveFloatingTextRoot()
+        {
+            if (_view.FloatingTextRoot != null)
+            {
+                return _view.FloatingTextRoot;
+            }
+
+            Canvas canvas = _view.GetComponent<Canvas>();
+
+            if (canvas == null)
+            {
+                return _view.transform;
+            }
+
+            var overlayObject = new GameObject("Presentation Overlay", typeof(RectTransform), typeof(CanvasGroup));
+            RectTransform overlay = overlayObject.GetComponent<RectTransform>();
+            overlay.SetParent(canvas.transform, false);
+            overlay.SetAsLastSibling();
+            overlay.anchorMin = Vector2.zero;
+            overlay.anchorMax = Vector2.one;
+            overlay.offsetMin = Vector2.zero;
+            overlay.offsetMax = Vector2.zero;
+
+            CanvasGroup canvasGroup = overlayObject.GetComponent<CanvasGroup>();
+            canvasGroup.blocksRaycasts = false;
+            canvasGroup.interactable = false;
+
+            return overlay;
+        }
+
+        private static Font GetDefaultFont()
+        {
+            Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+
+            if (font != null)
+            {
+                return font;
+            }
+
+            return Resources.GetBuiltinResource<Font>("Arial.ttf");
         }
 
         private static int GetMonsterMaxHp(RunMapNodeDefinition encounterNode)
@@ -109,9 +193,19 @@ namespace SlotRogue.UI.GameFlow
 
         private void HandleSpinClicked()
         {
+            HandleSpinClickedAsync().Forget();
+        }
+
+        private async UniTaskVoid HandleSpinClickedAsync()
+        {
             if (_battleCompleted || !_battle.CanApplyPlayerTurn)
             {
                 RefreshStatusText();
+                return;
+            }
+
+            if (_flowController.IsBusy)
+            {
                 return;
             }
 
@@ -124,19 +218,56 @@ namespace SlotRogue.UI.GameFlow
                 GameFlowSession.DamageBonus,
                 GameFlowSession.DefenseBonus);
 
-            CombatEffect[] playerEffects = _converter.Convert(_lastRequestResult.FinalRequest);
-            int eventCursor = _eventLogger.CaptureEventCursor(_battle);
-            BattleApplyResult result = _battle.ApplyPlayerTurn(playerEffects);
-
-            if (result.Accepted)
-            {
-                _eventLogger.LogEventsSince(_battle, eventCursor, _lastRequestResult.FinalRequest);
-            }
-
             RefreshSlotCells(_slotViewModel.CurrentSpinResult);
             RefreshSlotResultText();
-            RefreshStatusText();
-            HandleBattleEndIfNeeded();
+
+            SlotCombatRequest request = _lastRequestResult.FinalRequest;
+            CombatEffect[] playerEffects = _converter.Convert(request);
+            var context = new PresentationContext(request.IsCritical, request.PatternName);
+            int eventCursor = _eventLogger.CaptureEventCursor(_battle);
+
+            SetSpinInteractable(false);
+
+            try
+            {
+                BattleApplyResult result = await _flowController.RunTurnAsync(
+                    _battle,
+                    playerEffects,
+                    context,
+                    _presentationCts.Token);
+
+                if (result.Accepted)
+                {
+                    _eventLogger.LogEventsSince(_battle, eventCursor, request);
+                }
+            }
+            finally
+            {
+                RefreshStatusText();
+                HandleBattleEndIfNeeded();
+            }
+        }
+
+        private void SetSpinInteractable(bool interactable)
+        {
+            if (_view.SpinButton != null)
+            {
+                _view.SpinButton.interactable = interactable;
+            }
+        }
+
+        private void UpdateSpinButtonState()
+        {
+            if (_view.SpinButton == null || _battleCompleted)
+            {
+                return;
+            }
+
+            bool canSpin = _battle.CurrentPhase != BattlePhase.NotInBattle
+                && _battle.CanApplyPlayerTurn
+                && !_flowController.IsBusy;
+
+            _view.SpinButton.interactable = canSpin;
         }
 
         private void HandleBattleEndIfNeeded()
@@ -235,20 +366,22 @@ namespace SlotRogue.UI.GameFlow
             CombatParticipant player = _battle.Player;
             CombatParticipant monster = _battle.Monster;
 
-            _view.SetPlayerHpFill(player.CurrentHp, player.MaxHp);
-            _view.SetPlayerShieldFill(player.Shield, Mathf.Max(1, player.MaxHp));
-            _view.SetMonsterHpFill(monster.CurrentHp, monster.MaxHp);
+            _view.SetPlayerHpFill(_combatViewModel.PlayerHp, player.MaxHp);
+            _view.SetPlayerShieldFill(_combatViewModel.PlayerShield, Mathf.Max(1, player.MaxHp));
+            _view.SetMonsterHpFill(_combatViewModel.MonsterHp, monster.MaxHp);
             _view.SetPlayerHud(
-                $"{player.CurrentHp}/{player.MaxHp}\n" +
-                $"{player.Shield}");
+                $"{_combatViewModel.PlayerHp}/{player.MaxHp}\n" +
+                $"{_combatViewModel.PlayerShield}");
             _view.SetMonsterHud(
                 $"{GetEncounterNode().DisplayName}\n" +
-                $"{monster.CurrentHp}/{monster.MaxHp}  SH {monster.Shield}");
+                $"{_combatViewModel.MonsterHp}/{monster.MaxHp}  SH {_combatViewModel.MonsterShield}");
             _view.SetEnemyIntent($"ENEMY INTENT: {FormatUpcomingEnemyAction()}");
             _view.SetStatus(
                 $"{_battle.CurrentPhase}\n" +
                 $"Turn {_battle.UpcomingMonsterTurnIndex}\n" +
                 $"Bonus D+{GameFlowSession.DamageBonus} / S+{GameFlowSession.DefenseBonus}");
+
+            UpdateSpinButtonState();
         }
 
         private string FormatUpcomingEnemyAction()

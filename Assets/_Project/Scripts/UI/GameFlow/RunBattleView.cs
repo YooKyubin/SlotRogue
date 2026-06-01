@@ -22,6 +22,7 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private Button _spinButton;
         [SerializeField] private Button _continueButton;
         [SerializeField] private Button _restartButton;
+        [SerializeField] private RectTransform _floatingTextRoot;
 
         public Text[] SlotCells => _slotCells;
 
@@ -30,6 +31,10 @@ namespace SlotRogue.UI.GameFlow
         public Button ContinueButton => _continueButton;
 
         public Button RestartButton => _restartButton;
+
+        public Text StatusText => _statusText;
+
+        public Transform FloatingTextRoot => _floatingTextRoot;
 
         public void Bind(
             Text[] slotCells,
@@ -44,7 +49,8 @@ namespace SlotRogue.UI.GameFlow
             Image monsterHpFill,
             Button spinButton,
             Button continueButton,
-            Button restartButton)
+            Button restartButton,
+            RectTransform floatingTextRoot)
         {
             _slotCells = slotCells;
             _statusText = statusText;
@@ -59,6 +65,7 @@ namespace SlotRogue.UI.GameFlow
             _spinButton = spinButton;
             _continueButton = continueButton;
             _restartButton = restartButton;
+            _floatingTextRoot = floatingTextRoot;
         }
 
         public void SetAttackResult(string value)

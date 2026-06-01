@@ -251,7 +251,7 @@ sequenceDiagram
 
 **연출 규칙:** 이벤트·Effect **간** 순차; Effect **내** VFX/SFX/HUD 기본 `WhenAll`. Later Step API(`BattleTurnSession`) 도입 시 Presenter 계층 유지.
 
-구현 plan (완료): [`feature-combat-presentation`](../exec-plans/completed/feature-combat-presentation.md).
+구현 plan (완료): [`feature-combat-presentation`](../exec-plans/completed/feature-combat-presentation.md) (Dev_Battle), [`feature-run-battle-presentation`](../exec-plans/completed/feature-run-battle-presentation.md) (`RunBattleController` + `battle/presentation-overlay`).
 
 ## Open questions
 
