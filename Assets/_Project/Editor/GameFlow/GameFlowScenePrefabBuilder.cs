@@ -172,6 +172,8 @@ namespace SlotRogue.Editor.GameFlow
             CreateSlotMachine(root, slotCells);
             CreateBattleActionRow(root, out Text resultValue, out Button spinButton, out Button continueButton, out Button restartButton, out Text slotResult);
             CreateBattleBottomRow(root, out Text statusText);
+            RectTransform presentationOverlay = CreatePresentationOverlay(canvas.transform);
+            presentationOverlay.SetAsLastSibling();
 
             view.Bind(
                 slotCells,
@@ -186,9 +188,32 @@ namespace SlotRogue.Editor.GameFlow
                 monsterHp,
                 spinButton,
                 continueButton,
-                restartButton);
+                restartButton,
+                presentationOverlay);
 
             SavePrefabAndScene(canvas, "RunBattleView", "RunBattle");
+        }
+
+        private static RectTransform CreatePresentationOverlay(Transform canvasTransform)
+        {
+            RectTransform overlay = CreateRect("Presentation Overlay", canvasTransform, Vector2.zero, Vector2.zero);
+            overlay.anchorMin = Vector2.zero;
+            overlay.anchorMax = Vector2.one;
+            overlay.offsetMin = Vector2.zero;
+            overlay.offsetMax = Vector2.zero;
+
+            var canvasGroup = overlay.gameObject.AddComponent<CanvasGroup>();
+            canvasGroup.blocksRaycasts = false;
+            canvasGroup.interactable = false;
+
+            Image image = overlay.gameObject.AddComponent<Image>();
+            image.color = new Color32(0, 0, 0, 0);
+            image.raycastTarget = false;
+
+            var imageSlot = overlay.gameObject.AddComponent<GameFlowImageSlot>();
+            imageSlot.Bind("battle/presentation-overlay", image);
+
+            return overlay;
         }
 
         private static void CreateBattleTopHud(RectTransform root, out Text playerHud, out Image playerHp, out Image playerShield)

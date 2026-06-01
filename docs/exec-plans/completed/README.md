@@ -10,6 +10,8 @@
 
 | Plan | Finished | Outcome (한 줄) |
 |------|----------|-----------------|
+| [`feature-run-battle-presentation.md`](./feature-run-battle-presentation.md) | 2026-06-01 | RunBattle Replay — RunTurnAsync, ViewModel HUD, presentation overlay |
+| [`feature-combat-presentation.md`](./feature-combat-presentation.md) | 2026-05-31 | Replay MVP — Flow/Presenter/ViewModel, Dev_Battle RunTurnAsync |
 | [`feature-monster-pattern-so.md`](./feature-monster-pattern-so.md) | 2026-05-31 | 몬스터 패턴·정의 SO + Factory + Goblin asset, Harness SO-only |
 | [`feature-monster-turn-schedule.md`](./feature-monster-turn-schedule.md) | 2026-05-31 | `MonsterTurnSchedule` 턴 순환 + Dev_Battle 3턴 Inspector |
 | [`feature-combat-dev-scene.md`](./feature-combat-dev-scene.md) | 2026-05-31 | `Dev_Battle` Harness + Request 변환 + Console 이벤트 로거 |

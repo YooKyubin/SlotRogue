@@ -29,7 +29,7 @@
 
 ## Notes
 
-- 전투 관련 기존 파일은 수정하지 않는다.
+- 전투 **Core**·`BattleSystem`·asmdef는 수정하지 않는다. RunBattle **UI Replay 연출**은 [`feature-run-battle-presentation`](../completed/feature-run-battle-presentation.md) (2026-06-01 완료).
 - MVP 맵은 전체 그래프를 보여주며, 현재 위치에서 연결된 다음 노드만 클릭해야 전투에 진입한다.
 - MVP 전투 씬은 참고 이미지처럼 상단 HUD, 몬스터 전투 영역, 5 x 3 슬롯 보드, 하단 결과/스핀/자원 패널을 한 화면에 고정 배치한다.
 - 각 플로우 씬은 `Assets/_Project/Prefabs/UI/GameFlow/`의 View 프리팹을 인스턴스로 들고, Controller는 배치된 참조만 갱신한다. 필요 시 Unity 메뉴 `SlotRogue > Game Flow > Rebuild Scene UI Prefabs`로 재생성한다.

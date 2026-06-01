@@ -293,7 +293,7 @@ MonoBehaviour:
   _requestDefense: 0
   _requestAttackCount: 1
   _requestHealAmount: 0
-  _requestIsCritical: 0
+  _requestIsCritical: 1
   _requestPatternName: Dev Attack
 --- !u!4 &3000000002
 Transform:
