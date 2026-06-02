@@ -76,12 +76,12 @@
 
 ### Phase 3 — Dev_Battle + RunBattle anchor/binding
 
-- [ ] Dev_Battle prefab/scene — `FloatingTextRoot` 아래 player/monster damage anchor `RectTransform` 추가
-- [ ] `BattleDevHarness` — Host에 floating damage prefab과 anchor 바인딩
-- [ ] `RunBattleView.prefab` — `battle/presentation-overlay` 하위 player/monster damage anchor 추가
-- [ ] `RunBattleController` — Host에 동일 prefab과 RunBattle anchor 바인딩
-- [ ] `GameFlowScenePrefabBuilder` — Rebuild 메뉴가 overlay/anchor/prefab 참조를 재생성하도록 갱신
-- [ ] Rebuild 후 diff 확인 — prefab/scene YAML과 `.meta`만 의도대로 변경됐는지 검토
+- [x] Dev_Battle runtime UI — `FloatingTextRoot` 아래 player/monster damage anchor `RectTransform` 추가 (`BattleDevHarness.CreateUi`)
+- [x] `BattleDevHarness` — Host에 floating damage prefab과 anchor 바인딩
+- [x] `RunBattleView.prefab` — `battle/presentation-overlay` 하위 player/monster damage anchor 추가
+- [x] `RunBattleController` — Host에 동일 prefab과 RunBattle anchor 바인딩 (view anchor 우선 + fallback 생성)
+- [x] `GameFlowScenePrefabBuilder` — Rebuild 메뉴가 overlay/anchor/prefab 참조를 재생성하도록 갱신
+- [x] Rebuild 후 diff 확인 — prefab/scene YAML과 `.meta`만 의도대로 변경됐는지 검토
 
 **🔍 Review:** Dev_Battle Apply Turn과 RunBattle Spin 양쪽에서 플레이어 피격/몬스터 피격 숫자가 각 anchor 근처에 뜨는지 Play Mode로 확인.
 

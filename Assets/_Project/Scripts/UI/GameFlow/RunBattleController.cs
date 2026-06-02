@@ -102,14 +102,12 @@ namespace SlotRogue.UI.GameFlow
         {
             _presentationCts = new CancellationTokenSource();
             Transform floatingTextRoot = ResolveFloatingTextRoot();
-            _playerDamageAnchor = ResolveDamageAnchor(
-                floatingTextRoot,
-                "player-damage-anchor",
-                new Vector2(0f, -120f));
-            _monsterDamageAnchor = ResolveDamageAnchor(
-                floatingTextRoot,
-                "monster-damage-anchor",
-                new Vector2(0f, 40f));
+            _playerDamageAnchor = _view.PlayerDamageAnchor != null
+                ? _view.PlayerDamageAnchor
+                : ResolveDamageAnchor(floatingTextRoot, "player-damage-anchor", new Vector2(0f, -120f));
+            _monsterDamageAnchor = _view.MonsterDamageAnchor != null
+                ? _view.MonsterDamageAnchor
+                : ResolveDamageAnchor(floatingTextRoot, "monster-damage-anchor", new Vector2(0f, 40f));
 
             _presentationHost = new CombatPresentationHost(
                 gameObject,

@@ -173,6 +173,14 @@ namespace SlotRogue.Editor.GameFlow
             CreateBattleActionRow(root, out Text resultValue, out Button spinButton, out Button continueButton, out Button restartButton, out Text slotResult);
             CreateBattleBottomRow(root, out Text statusText);
             RectTransform presentationOverlay = CreatePresentationOverlay(canvas.transform);
+            RectTransform playerDamageAnchor = CreateDamageAnchor(
+                presentationOverlay,
+                "player-damage-anchor",
+                new Vector2(0f, -120f));
+            RectTransform monsterDamageAnchor = CreateDamageAnchor(
+                presentationOverlay,
+                "monster-damage-anchor",
+                new Vector2(0f, 40f));
             presentationOverlay.SetAsLastSibling();
 
             view.Bind(
@@ -189,7 +197,9 @@ namespace SlotRogue.Editor.GameFlow
                 spinButton,
                 continueButton,
                 restartButton,
-                presentationOverlay);
+                presentationOverlay,
+                playerDamageAnchor,
+                monsterDamageAnchor);
 
             SavePrefabAndScene(canvas, "RunBattleView", "RunBattle");
         }
@@ -214,6 +224,19 @@ namespace SlotRogue.Editor.GameFlow
             imageSlot.Bind("battle/presentation-overlay", image);
 
             return overlay;
+        }
+
+        private static RectTransform CreateDamageAnchor(
+            Transform parent,
+            string anchorName,
+            Vector2 anchoredPosition)
+        {
+            RectTransform anchor = CreateRect(anchorName, parent, anchoredPosition, Vector2.zero);
+            anchor.anchorMin = new Vector2(0.5f, 0.5f);
+            anchor.anchorMax = new Vector2(0.5f, 0.5f);
+            anchor.pivot = new Vector2(0.5f, 0.5f);
+            anchor.sizeDelta = Vector2.zero;
+            return anchor;
         }
 
         private static void CreateBattleTopHud(RectTransform root, out Text playerHud, out Image playerHp, out Image playerShield)
