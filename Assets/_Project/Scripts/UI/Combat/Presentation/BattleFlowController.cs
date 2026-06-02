@@ -24,6 +24,7 @@ namespace SlotRogue.UI.Combat.Presentation
         public async UniTask<BattleApplyResult> RunTurnAsync(
             BattleSystem battle,
             IReadOnlyList<CombatEffect> effects,
+            CombatParticipantId selectedTargetId,
             PresentationContext context,
             CancellationToken cancellationToken)
         {
@@ -36,7 +37,7 @@ namespace SlotRogue.UI.Combat.Presentation
             try
             {
                 int startIndex = battle.Events.Count;
-                BattleApplyResult result = battle.ApplyPlayerTurn(effects);
+                BattleApplyResult result = battle.ApplyPlayerTurn(effects, selectedTargetId);
 
                 if (!result.Accepted)
                 {

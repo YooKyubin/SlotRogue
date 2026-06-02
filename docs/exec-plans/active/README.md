@@ -10,6 +10,7 @@
 
 | Plan | Started |
 |------|---------|
+| [`feature-multi-participant-combat.md`](./feature-multi-participant-combat.md) | 2026-06-02 |
 | [`feature-game-flow-loop.md`](./feature-game-flow-loop.md) | 2026-05-31 |
 | [`feature-slot-core.md`](./feature-slot-core.md) | 2026-05-28 |
 
@@ -32,7 +33,7 @@ phase 분할이 필요하면 `feature-<name>-phase-1.md`, `-phase-2.md`.
 
 ---
 
-## 템플릿 (요약)
+## 템플릿 (phase 권장)
 
 ```markdown
 # <Plan 제목>
@@ -46,9 +47,33 @@ phase 분할이 필요하면 `feature-<name>-phase-1.md`, `-phase-2.md`.
 ## Goal
 한 문단: "완료"가 어떤 모습인가.
 
-## Checklist
-- [ ] Step 1 — @<assignee>
-- [ ] Step 2 — @<assignee>
+## Phases
+
+---
+
+### Phase 1 — <기능 단위 묶음 1>
+- [ ] Task A — @<assignee>
+- [ ] Task B — @<assignee>
+
+**🔍 Review:** 이 phase에서 확인할 Play Mode / 코드 리뷰 포인트 한 줄.
+
+---
+
+### Phase 2 — <기능 단위 묶음 2>
+- [ ] Task C — @<assignee>
+- [ ] Task D — @<assignee>
+
+**🔍 Review:** 다음 phase로 넘어가기 전 확인할 기준 한 줄.
+
+---
+
+### Phase N — 문서 정리와 완료 처리
+- [ ] 본 plan 체크리스트/Notes/Completion 갱신
+- [ ] `git mv`로 `docs/exec-plans/completed/` 이동
+- [ ] [`../../STATUS.md`](../../STATUS.md) Active/Recently completed 반영 + `_Last updated` 갱신
+- [ ] 관련 design-doc/ADR/plan cross-ref 링크 정합성 확인
+
+**🔍 Review:** `docs/STATUS.md`, active/completed 링크, plan 상태가 서로 일치하는지 확인.
 
 ## Notes
 자유 서식: 마주친 블로커, 도중 바뀐 결정, 미룬 것.

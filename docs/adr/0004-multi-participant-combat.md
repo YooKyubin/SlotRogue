@@ -24,15 +24,13 @@
 - UI 연출은 ADR-0003의 **Effect 종류별 Presenter + Replay 파이프라인**을 유지한다. Player/Monster별 Presenter를 복제하지 않고, `DamagePresenter`, `ShieldPresenter`, `HealPresenter`가 `TargetParticipantId`로 HUD binding을 찾아 갱신한다.
 - HUD 표시 상태는 `CombatViewModel`의 player/monster 고정 필드에서 **participant id 기반 상태 맵**으로 확장한다. View는 참가자 수에 맞춰 HUD widget을 바인딩하거나 생성한다.
 - Victory/Defeat는 단일 몬스터 HP가 아니라 팀 생존 상태로 판단한다. 기본 규칙은 Enemy team 전멸 시 Victory, Player team 전멸 시 Defeat다.
-
-## Open questions
-
-- 플레이어 공격의 기본 타겟은 자동 선택인가, 플레이어가 몬스터를 직접 선택하는가?
-- `CombatEffectTarget.Enemy`는 `TargetMode` / slot index / explicit participant id 중 어떤 모델로 확장하는가?
-- 멀티히트는 한 대상 반복, 적 분산, 랜덤, 또는 슬롯 결과에 따른 별도 규칙 중 무엇을 사용하는가?
-- 적 턴은 몬스터별로 왼쪽에서 오른쪽 순차 적용하는가, speed/initiative를 도입하는가, 또는 intent를 모아 동시 적용하는가?
-- 몬스터 사망 시 남은 몬스터의 intent와 schedule index는 유지, 당김, 재계산 중 무엇을 선택하는가?
-- 플레이어 파티가 생길 가능성을 지금 모델에 포함할지, 이번 범위에서는 player team 1명만 지원할지 결정해야 한다.
+- 플레이어 공격 기본 타겟은 자동 선택이 아니라 **직접 선택(SelectedEnemy)** 이다.
+- 타겟 모델은 `TargetMode` + `TargetParticipantId` 조합을 사용한다. MVP `TargetMode`는 `Self`, `SelectedEnemy`, `AllEnemies`, `RandomEnemy`다.
+- `SelectedEnemy`는 UI가 선택한 대상의 `TargetParticipantId`를 Effect에 명시한다. Core는 object handle 참조가 아니라 id 기반으로 대상 해석을 수행한다.
+- 멀티히트 기본 규칙은 **한 대상 반복 타격**이다. 단, 연속 타격 중 대상이 사망하면 남은 타수는 다른 생존 Enemy로 자동 전환한다.
+- 적 턴 적용 순서는 speed/initiative 없이 **왼쪽→오른쪽 고정 순차**로 처리한다.
+- 몬스터 사망 시 남은 몬스터의 schedule index는 **유지**하고, 사망한 몬스터만 스킵한다.
+- 이번 범위의 player team은 **1명만 지원**한다. 플레이어 파티(2인 이상)는 후속 ADR/plan에서 다룬다.
 
 ## Alternatives considered
 
@@ -46,7 +44,10 @@
 - `CombatParticipant`, `BattleSystem`, `CombatEvent`, `CombatEffectTarget` 또는 동등한 타겟 모델에 breaking change가 필요하다.
 - 기존 1:1 테스트는 roster 기반 전투의 특수 케이스로 유지하고, 다수 몬스터, 사망한 몬스터 스킵, 팀 단위 승패, 팀 단위 shield reset 테스트를 추가해야 한다.
 - `MonsterTurnSchedule`은 단일 몬스터 전역 schedule에서 participant별 schedule 또는 enemy action provider 구조로 확장해야 한다.
-- `SlotCombatRequestToCombatEffectsConverter`는 "항상 단일 Enemy" 전제를 제거하고, 타겟 선택/분산 규칙을 받거나 별도 resolver와 협력해야 한다.
+- `SlotCombatRequestToCombatEffectsConverter`는 "항상 단일 Enemy" 전제를 제거하고, `TargetMode`/`TargetParticipantId`를 포함한 타겟 정보를 생산하거나 별도 resolver와 협력해야 한다.
+- `TargetMode.SelectedEnemy` 경로에는 UI 선택 상태와 `TargetParticipantId` 유효성 검증(생존 여부, Enemy team 여부)이 필요하다.
+- 멀티히트 처리 시 "중간 사망 -> 남은 타수 재타겟" 규칙과 "대체 대상 없음 -> 잔여타 소멸" 규칙을 테스트로 고정해야 한다.
+- 적 턴은 왼쪽→오른쪽 순차 적용과 "사망 participant schedule skip, 생존 participant index 유지" 동작을 테스트로 고정해야 한다.
 - `CombatViewModel`, `RunBattleView`, `BattleDevHarness`, `RunBattleController`, `CombatEventConsoleLogger`는 `IsPlayerParticipant` bool과 player/monster 고정 HUD 필드에 의존하지 않도록 바뀐다.
 - 구현은 별도 exec-plan에서 진행한다. 이 ADR은 `feature-multi-participant-combat` 또는 동등한 plan의 선행 결정으로 사용한다.
 

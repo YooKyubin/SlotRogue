@@ -144,6 +144,7 @@ namespace SlotRogue.UI.Combat
                 BattleApplyResult result = await _flowController.RunTurnAsync(
                     _battle,
                     playerEffects,
+                    ResolveSelectedEnemyId(),
                     context,
                     _presentationCts.Token);
 
@@ -249,6 +250,20 @@ namespace SlotRogue.UI.Combat
             }
 
             return _monsterDefinition.name;
+        }
+
+        private CombatParticipantId ResolveSelectedEnemyId()
+        {
+            for (int index = 0; index < _battle.Enemies.Count; index++)
+            {
+                CombatParticipant enemy = _battle.Enemies[index];
+                if (!enemy.IsDead)
+                {
+                    return enemy.Id;
+                }
+            }
+
+            return default;
         }
 
         private void CreateUi()

@@ -37,6 +37,7 @@ namespace SlotRogue.UI.GameFlow
 
         private RunCombatRequestResult _lastRequestResult;
         private bool _battleCompleted;
+        private CombatParticipantId _selectedEnemyId;
 
         private void Awake()
         {
@@ -96,6 +97,7 @@ namespace SlotRogue.UI.GameFlow
             MonsterTurnSchedule schedule = ResolveMonsterTurnSchedule(encounterNode, floor);
 
             _battle.StartBattle(player, monster, schedule);
+            _selectedEnemyId = ResolveSelectedEnemyId();
             _combatViewModel.SyncFrom(_battle);
             _eventLogger.LogEventsSince(_battle, eventCursor: 0);
         }
@@ -298,6 +300,7 @@ namespace SlotRogue.UI.GameFlow
                 BattleApplyResult result = await _flowController.RunTurnAsync(
                     _battle,
                     playerEffects,
+                    ResolveSelectedEnemyId(),
                     context,
                     _presentationCts.Token);
 
@@ -458,6 +461,34 @@ namespace SlotRogue.UI.GameFlow
 
             CombatEffect effect = _battle.UpcomingEnemyActions[0];
             return $"{effect.Kind} {effect.Amount}";
+        }
+
+        private CombatParticipantId ResolveSelectedEnemyId()
+        {
+            if (_selectedEnemyId.IsValid)
+            {
+                for (int index = 0; index < _battle.Enemies.Count; index++)
+                {
+                    CombatParticipant enemy = _battle.Enemies[index];
+                    if (enemy.Id.Value == _selectedEnemyId.Value && !enemy.IsDead)
+                    {
+                        return _selectedEnemyId;
+                    }
+                }
+            }
+
+            for (int index = 0; index < _battle.Enemies.Count; index++)
+            {
+                CombatParticipant enemy = _battle.Enemies[index];
+                if (!enemy.IsDead)
+                {
+                    _selectedEnemyId = enemy.Id;
+                    return _selectedEnemyId;
+                }
+            }
+
+            _selectedEnemyId = default;
+            return default;
         }
 
         private static string FormatRequest(SlotCombatRequest request)

@@ -24,14 +24,10 @@ namespace SlotRogue.UI.Combat.Presentation
                 return;
             }
 
-            if (combatEvent.IsPlayerParticipant)
-            {
-                viewModel.SetPlayerShield(0);
-            }
-            else
-            {
-                viewModel.SetMonsterShield(0);
-            }
+            viewModel.SetParticipantShield(
+                combatEvent.TargetParticipantId,
+                0,
+                combatEvent.IsPlayerParticipant);
 
             RefreshHUD();
             await CombatPresentationTweens.DelayAsync(BlinkDuration, Host.LinkTarget, cancellationToken);

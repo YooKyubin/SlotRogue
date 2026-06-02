@@ -37,7 +37,7 @@ namespace SlotRogue.UI.Combat
 
                 case CombatEventKind.ShieldReset:
                     Debug.Log(
-                        $"[Combat] Shield reset ({ParticipantLabel(combatEvent.IsPlayerParticipant)}) " +
+                        $"[Combat] Shield reset ({ParticipantLabel(combatEvent.IsPlayerParticipant)}#{combatEvent.TargetParticipantId.Value}) " +
                         $"phase={combatEvent.Phase}");
                     break;
 
@@ -57,7 +57,7 @@ namespace SlotRogue.UI.Combat
 
             return
                 $"[Combat] Effect {effect.Kind} amount={effect.Amount} target={effect.Target} " +
-                $"on={ParticipantLabel(combatEvent.IsPlayerParticipant)} phase={combatEvent.Phase} " +
+                $"on={ParticipantLabel(combatEvent.IsPlayerParticipant)}#{combatEvent.TargetParticipantId.Value} phase={combatEvent.Phase} " +
                 $"hp {before.Hp}->{after.Hp} shield {before.Shield}->{after.Shield} " +
                 $"dmg={result.DamageDealt} shieldConsumed={result.ShieldConsumed} " +
                 $"shieldGained={result.ShieldGained} heal={result.HealApplied}";
@@ -78,7 +78,8 @@ namespace SlotRogue.UI.Combat
             Debug.Log(
                 $"[Combat] Snapshot | Phase={battle.CurrentPhase} EndReason={battle.EndReason} | " +
                 $"Player HP {player.CurrentHp}/{player.MaxHp} Shield {player.Shield} | " +
-                $"Monster HP {monster.CurrentHp}/{monster.MaxHp} Shield {monster.Shield}");
+                $"Monster HP {monster?.CurrentHp ?? 0}/{monster?.MaxHp ?? 0} Shield {monster?.Shield ?? 0} | " +
+                $"Enemies Alive {battle.Enemies.Count}");
         }
 
         private static string ParticipantLabel(bool isPlayerParticipant) =>
