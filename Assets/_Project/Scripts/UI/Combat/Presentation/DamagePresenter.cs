@@ -2,7 +2,6 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace SlotRogue.UI.Combat.Presentation
 {
@@ -54,48 +53,41 @@ namespace SlotRogue.UI.Combat.Presentation
             string targetLabel = isPlayerTarget ? "Player" : "Monster";
             Debug.Log($"[Presentation] {prefix}Floating damage {amount} -> {targetLabel}");
 
-            if (Host.FloatingTextRoot == null || amount <= 0)
+            if (amount <= 0)
             {
                 return;
             }
 
-            var textObject = new GameObject("Floating Damage", typeof(RectTransform));
-            RectTransform rectTransform = textObject.GetComponent<RectTransform>();
-            rectTransform.SetParent(Host.FloatingTextRoot, false);
-            rectTransform.anchoredPosition = new Vector2(0f, isPlayerTarget ? -120f : 40f);
-            rectTransform.sizeDelta = new Vector2(420f, 60f);
-
-            var text = textObject.AddComponent<Text>();
-            text.font = Host.DefaultFont;
-            text.fontSize = isCritical ? 34 : 28;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.color = isCritical ? new Color32(255, 210, 64, 255) : new Color32(255, 120, 120, 255);
-            text.text = $"{prefix}-{amount}";
-
-            float elapsed = 0f;
-            const float duration = 0.55f;
-            Color startColor = text.color;
-
-            while (elapsed < duration)
+            if (Host.FloatingDamageTextPrefab == null)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                if (text == null)
-                {
-                    return;
-                }
-
-                elapsed += Time.deltaTime;
-                float alpha = 1f - Mathf.Clamp01(elapsed / duration);
-                text.color = new Color(startColor.r, startColor.g, startColor.b, alpha);
-                rectTransform.anchoredPosition += new Vector2(0f, 40f * Time.deltaTime);
-                await UniTask.Yield(PlayerLoopTiming.Update, cancellationToken);
+                Debug.LogWarning("[Presentation] FloatingDamageText prefab is not assigned.");
+                return;
             }
 
-            if (textObject != null)
+            if (Host.FloatingTextRoot == null)
             {
-                UnityEngine.Object.Destroy(textObject);
+                Debug.LogWarning("[Presentation] FloatingTextRoot is not assigned.");
+                return;
             }
+
+            RectTransform anchor = isPlayerTarget ? Host.PlayerDamageAnchor : Host.MonsterDamageAnchor;
+            if (anchor == null)
+            {
+                Debug.LogWarning($"[Presentation] Missing {(isPlayerTarget ? "player" : "monster")} damage anchor.");
+                return;
+            }
+
+            FloatingDamageTextView damageText = Object.Instantiate(
+                Host.FloatingDamageTextPrefab,
+                Host.FloatingTextRoot);
+            RectTransform textTransform = damageText.transform as RectTransform;
+            if (textTransform != null)
+            {
+                textTransform.anchoredPosition = anchor.anchoredPosition;
+            }
+
+            CombatAnchorKind anchorKind = isPlayerTarget ? CombatAnchorKind.Player : CombatAnchorKind.Monster;
+            await damageText.Play(amount, isCritical, anchorKind, cancellationToken);
         }
     }
 }

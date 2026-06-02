@@ -19,12 +19,15 @@ MonoBehaviour:
       target: 1
   - actions:
     - kind: 0
-      amount: 4
+      amount: 2
+      target: 1
+    - kind: 0
+      amount: 2
       target: 1
   - actions:
     - kind: 0
       amount: 4
       target: 1
-    - kind: 0
-      amount: 4
-      target: 1
+    - kind: 1
+      amount: 2
+      target: 0

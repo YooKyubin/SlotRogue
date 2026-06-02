@@ -10,12 +10,18 @@ namespace SlotRogue.UI.Combat.Presentation
             GameObject linkTarget,
             Text statusText,
             Transform floatingTextRoot,
+            FloatingDamageTextView floatingDamageTextPrefab,
+            RectTransform playerDamageAnchor,
+            RectTransform monsterDamageAnchor,
             Font defaultFont,
             Action refreshStatusText)
         {
             LinkTarget = linkTarget;
             StatusText = statusText;
             FloatingTextRoot = floatingTextRoot;
+            FloatingDamageTextPrefab = floatingDamageTextPrefab;
+            PlayerDamageAnchor = playerDamageAnchor;
+            MonsterDamageAnchor = monsterDamageAnchor;
             DefaultFont = defaultFont;
             RefreshStatusText = refreshStatusText;
         }
@@ -25,6 +31,12 @@ namespace SlotRogue.UI.Combat.Presentation
         public Text StatusText { get; }
 
         public Transform FloatingTextRoot { get; }
+
+        public FloatingDamageTextView FloatingDamageTextPrefab { get; }
+
+        public RectTransform PlayerDamageAnchor { get; }
+
+        public RectTransform MonsterDamageAnchor { get; }
 
         public Font DefaultFont { get; }
 

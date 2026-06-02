@@ -35,6 +35,7 @@ namespace SlotRogue.UI.Combat
         [SerializeField] private int _requestHealAmount;
         [SerializeField] private bool _requestIsCritical;
         [SerializeField] private string _requestPatternName = "Dev Attack";
+        [SerializeField] private FloatingDamageTextView _floatingDamageTextPrefab;
 
         private readonly BattleSystem _battle = new();
         private readonly SlotCombatRequestToCombatEffectsConverter _converter = new();
@@ -45,6 +46,8 @@ namespace SlotRogue.UI.Combat
         private CancellationTokenSource _presentationCts = null!;
         private Button _applyTurnButton = null!;
         private Transform _floatingTextRoot = null!;
+        private RectTransform _playerDamageAnchor = null!;
+        private RectTransform _monsterDamageAnchor = null!;
         private Text _statusText = null!;
 
         public BattleSystem Battle => _battle;
@@ -58,6 +61,9 @@ namespace SlotRogue.UI.Combat
                 gameObject,
                 _statusText,
                 _floatingTextRoot,
+                _floatingDamageTextPrefab,
+                _playerDamageAnchor,
+                _monsterDamageAnchor,
                 GetDefaultFont(),
                 RefreshStatusText);
             CombatPresentationPipeline pipeline = CombatPresentationPipeline.CreateDefault(_presentationHost);
@@ -286,6 +292,19 @@ namespace SlotRogue.UI.Combat
             _statusText.horizontalOverflow = HorizontalWrapMode.Wrap;
             _statusText.verticalOverflow = VerticalWrapMode.Overflow;
             _floatingTextRoot = root;
+            _playerDamageAnchor = CreateRectTransform("player-damage-anchor", root);
+            _playerDamageAnchor.anchorMin = new Vector2(0.5f, 0.5f);
+            _playerDamageAnchor.anchorMax = new Vector2(0.5f, 0.5f);
+            _playerDamageAnchor.pivot = new Vector2(0.5f, 0.5f);
+            _playerDamageAnchor.anchoredPosition = new Vector2(0f, -120f);
+            _playerDamageAnchor.sizeDelta = Vector2.zero;
+
+            _monsterDamageAnchor = CreateRectTransform("monster-damage-anchor", root);
+            _monsterDamageAnchor.anchorMin = new Vector2(0.5f, 0.5f);
+            _monsterDamageAnchor.anchorMax = new Vector2(0.5f, 0.5f);
+            _monsterDamageAnchor.pivot = new Vector2(0.5f, 0.5f);
+            _monsterDamageAnchor.anchoredPosition = new Vector2(0f, 40f);
+            _monsterDamageAnchor.sizeDelta = Vector2.zero;
         }
 
         private static void CreateEventSystemIfNeeded()

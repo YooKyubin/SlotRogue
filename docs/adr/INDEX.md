@@ -13,6 +13,7 @@
 | [0001](./0001-combat-turn-effect-pipeline.md) | 전투 턴은 Effect 목록 파이프라인으로 처리한다 | proposed | 2026-05-30 | — |
 | [0002](./0002-game-flow-is-scene-driven-ui-integration.md) | 게임 플로우는 씬 기반 UI 연동 계층에서 조립한다 | proposed | 2026-05-31 | — |
 | [0003](./0003-combat-presentation-replay.md) | 전투 연출은 CombatEvent Replay로 처리한다 | proposed | 2026-05-31 | — |
+| [0004](./0004-multi-participant-combat.md) | 전투는 ParticipantId 기반 다인전 구조로 확장한다 | proposed | 2026-06-02 | — |
 
 ---
 

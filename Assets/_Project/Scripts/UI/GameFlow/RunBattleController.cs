@@ -2,6 +2,7 @@ using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
+using SlotRogue.Data.Combat;
 using SlotRogue.Slot.Data;
 using SlotRogue.Slot.ViewModels;
 using SlotRogue.UI.Combat;
@@ -27,8 +28,12 @@ namespace SlotRogue.UI.GameFlow
         private BattleFlowController _flowController = null!;
         private CombatPresentationHost _presentationHost = null!;
         private CancellationTokenSource _presentationCts = null!;
+        private RectTransform _playerDamageAnchor = null!;
+        private RectTransform _monsterDamageAnchor = null!;
 
         [SerializeField] private RunBattleView _view;
+        [SerializeField] private FloatingDamageTextView _floatingDamageTextPrefab;
+        [SerializeField] private MonsterDefinition _monsterDefinition;
 
         private RunCombatRequestResult _lastRequestResult;
         private bool _battleCompleted;
@@ -87,8 +92,8 @@ namespace SlotRogue.UI.GameFlow
             RunMapNodeDefinition encounterNode = GetEncounterNode();
             int floor = Mathf.Max(1, encounterNode.Floor);
             var player = new CombatParticipant(GameFlowSession.PlayerMaxHp, GameFlowSession.PlayerCurrentHp);
-            var monster = new CombatParticipant(GetMonsterMaxHp(encounterNode));
-            MonsterTurnSchedule schedule = CreateMonsterTurnSchedule(encounterNode, floor);
+            var monster = new CombatParticipant(ResolveMonsterMaxHp(encounterNode));
+            MonsterTurnSchedule schedule = ResolveMonsterTurnSchedule(encounterNode, floor);
 
             _battle.StartBattle(player, monster, schedule);
             _combatViewModel.SyncFrom(_battle);
@@ -98,14 +103,52 @@ namespace SlotRogue.UI.GameFlow
         private void InitializePresentationStack()
         {
             _presentationCts = new CancellationTokenSource();
+            Transform floatingTextRoot = ResolveFloatingTextRoot();
+            _playerDamageAnchor = _view.PlayerDamageAnchor != null
+                ? _view.PlayerDamageAnchor
+                : ResolveDamageAnchor(floatingTextRoot, "player-damage-anchor", new Vector2(0f, -120f));
+            _monsterDamageAnchor = _view.MonsterDamageAnchor != null
+                ? _view.MonsterDamageAnchor
+                : ResolveDamageAnchor(floatingTextRoot, "monster-damage-anchor", new Vector2(0f, 40f));
+
             _presentationHost = new CombatPresentationHost(
                 gameObject,
                 _view.StatusText,
-                ResolveFloatingTextRoot(),
+                floatingTextRoot,
+                _floatingDamageTextPrefab,
+                _playerDamageAnchor,
+                _monsterDamageAnchor,
                 GetDefaultFont(),
                 RefreshStatusText);
             CombatPresentationPipeline pipeline = CombatPresentationPipeline.CreateDefault(_presentationHost);
             _flowController = new BattleFlowController(pipeline, _combatViewModel);
+        }
+
+        private static RectTransform ResolveDamageAnchor(
+            Transform overlayRoot,
+            string anchorName,
+            Vector2 defaultPosition)
+        {
+            if (overlayRoot == null)
+            {
+                return null;
+            }
+
+            Transform existing = overlayRoot.Find(anchorName);
+            if (existing is RectTransform existingRect)
+            {
+                return existingRect;
+            }
+
+            var anchorObject = new GameObject(anchorName, typeof(RectTransform));
+            RectTransform anchor = anchorObject.GetComponent<RectTransform>();
+            anchor.SetParent(overlayRoot, false);
+            anchor.anchorMin = new Vector2(0.5f, 0.5f);
+            anchor.anchorMax = new Vector2(0.5f, 0.5f);
+            anchor.pivot = new Vector2(0.5f, 0.5f);
+            anchor.anchoredPosition = defaultPosition;
+            anchor.sizeDelta = Vector2.zero;
+            return anchor;
         }
 
         private Transform ResolveFloatingTextRoot()
@@ -165,6 +208,16 @@ namespace SlotRogue.UI.GameFlow
             }
         }
 
+        private int ResolveMonsterMaxHp(RunMapNodeDefinition encounterNode)
+        {
+            if (_monsterDefinition != null)
+            {
+                return Mathf.Max(1, _monsterDefinition.maxHp);
+            }
+
+            return GetMonsterMaxHp(encounterNode);
+        }
+
         private static MonsterTurnSchedule CreateMonsterTurnSchedule(
             RunMapNodeDefinition encounterNode,
             int floor)
@@ -189,6 +242,18 @@ namespace SlotRogue.UI.GameFlow
                 new[] { new CombatEffect(CombatEffectKind.Damage, 3 + floor, CombatEffectTarget.Enemy) },
                 new[] { new CombatEffect(CombatEffectKind.Shield, 2 + floor, CombatEffectTarget.Self) },
                 new[] { new CombatEffect(CombatEffectKind.Damage, 5 + floor, CombatEffectTarget.Enemy) });
+        }
+
+        private MonsterTurnSchedule ResolveMonsterTurnSchedule(
+            RunMapNodeDefinition encounterNode,
+            int floor)
+        {
+            if (_monsterDefinition != null && _monsterDefinition.turnPattern != null)
+            {
+                return MonsterTurnScheduleFactory.FromPattern(_monsterDefinition.turnPattern);
+            }
+
+            return CreateMonsterTurnSchedule(encounterNode, floor);
         }
 
         private void HandleSpinClicked()
