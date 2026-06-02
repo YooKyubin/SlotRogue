@@ -16,18 +16,23 @@ MonoBehaviour:
   - actions:
     - kind: 0
       amount: 2
-      target: 1
+      targetMode: 1
+      targetParticipantId: 0
   - actions:
     - kind: 0
       amount: 2
-      target: 1
+      targetMode: 1
+      targetParticipantId: 0
     - kind: 0
       amount: 2
-      target: 1
+      targetMode: 1
+      targetParticipantId: 0
   - actions:
     - kind: 0
       amount: 4
-      target: 1
+      targetMode: 1
+      targetParticipantId: 0
     - kind: 1
       amount: 2
-      target: 0
+      targetMode: 0
+      targetParticipantId: 0

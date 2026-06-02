@@ -10,8 +10,30 @@ namespace SlotRogue.Data.Combat
 
         public int amount;
 
-        public CombatEffectTarget target;
+        public CombatTargetMode targetMode;
 
-        public CombatEffect ToCombatEffect() => new(kind, amount, target);
+        public int targetParticipantId;
+
+        public CombatEffect ToCombatEffect() => new(kind, amount, BuildTarget());
+
+        private CombatEffectTarget BuildTarget()
+        {
+            if (targetMode == CombatTargetMode.Self)
+            {
+                return CombatEffectTarget.Self;
+            }
+
+            if (targetParticipantId > 0)
+            {
+                return CombatEffectTarget.SelectedEnemy(new CombatParticipantId(targetParticipantId));
+            }
+
+            return targetMode switch
+            {
+                CombatTargetMode.AllEnemies => new CombatEffectTarget(CombatTargetMode.AllEnemies),
+                CombatTargetMode.RandomEnemy => new CombatEffectTarget(CombatTargetMode.RandomEnemy),
+                _ => CombatEffectTarget.Enemy,
+            };
+        }
     }
 }
