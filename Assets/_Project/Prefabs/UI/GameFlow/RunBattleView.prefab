@@ -1481,6 +1481,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RunBattleController
   _view: {fileID: 0}
+  _floatingDamageTextPrefab: {fileID: 1000000000000000401, guid: b4c7d9e1f2a3456789abcdef01234567, type: 3}
 --- !u!1 &708777345178124721
 GameObject:
   m_ObjectHideFlags: 0

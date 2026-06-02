@@ -27,8 +27,11 @@ namespace SlotRogue.UI.GameFlow
         private BattleFlowController _flowController = null!;
         private CombatPresentationHost _presentationHost = null!;
         private CancellationTokenSource _presentationCts = null!;
+        private RectTransform _playerDamageAnchor = null!;
+        private RectTransform _monsterDamageAnchor = null!;
 
         [SerializeField] private RunBattleView _view;
+        [SerializeField] private FloatingDamageTextView _floatingDamageTextPrefab;
 
         private RunCombatRequestResult _lastRequestResult;
         private bool _battleCompleted;
@@ -98,14 +101,54 @@ namespace SlotRogue.UI.GameFlow
         private void InitializePresentationStack()
         {
             _presentationCts = new CancellationTokenSource();
+            Transform floatingTextRoot = ResolveFloatingTextRoot();
+            _playerDamageAnchor = ResolveDamageAnchor(
+                floatingTextRoot,
+                "player-damage-anchor",
+                new Vector2(0f, -120f));
+            _monsterDamageAnchor = ResolveDamageAnchor(
+                floatingTextRoot,
+                "monster-damage-anchor",
+                new Vector2(0f, 40f));
+
             _presentationHost = new CombatPresentationHost(
                 gameObject,
                 _view.StatusText,
-                ResolveFloatingTextRoot(),
+                floatingTextRoot,
+                _floatingDamageTextPrefab,
+                _playerDamageAnchor,
+                _monsterDamageAnchor,
                 GetDefaultFont(),
                 RefreshStatusText);
             CombatPresentationPipeline pipeline = CombatPresentationPipeline.CreateDefault(_presentationHost);
             _flowController = new BattleFlowController(pipeline, _combatViewModel);
+        }
+
+        private static RectTransform ResolveDamageAnchor(
+            Transform overlayRoot,
+            string anchorName,
+            Vector2 defaultPosition)
+        {
+            if (overlayRoot == null)
+            {
+                return null;
+            }
+
+            Transform existing = overlayRoot.Find(anchorName);
+            if (existing is RectTransform existingRect)
+            {
+                return existingRect;
+            }
+
+            var anchorObject = new GameObject(anchorName, typeof(RectTransform));
+            RectTransform anchor = anchorObject.GetComponent<RectTransform>();
+            anchor.SetParent(overlayRoot, false);
+            anchor.anchorMin = new Vector2(0.5f, 0.5f);
+            anchor.anchorMax = new Vector2(0.5f, 0.5f);
+            anchor.pivot = new Vector2(0.5f, 0.5f);
+            anchor.anchoredPosition = defaultPosition;
+            anchor.sizeDelta = Vector2.zero;
+            return anchor;
         }
 
         private Transform ResolveFloatingTextRoot()

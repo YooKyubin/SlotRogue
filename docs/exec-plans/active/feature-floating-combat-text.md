@@ -64,11 +64,11 @@
 
 ### Phase 2 — DamagePresenter 리팩터 + Host 참조
 
-- [ ] `CombatPresentationHost` — floating damage prefab 참조와 player/monster anchor 참조 추가
-- [ ] `DamagePresenter` — `ShowFloatingDamageAsync`의 runtime Text spawn 제거
-- [ ] `DamagePresenter` — target participant/anchorKind 결정 후 prefab instantiate + `FloatingDamageTextView.Play`
-- [ ] `DamagePresenter` — 기존 HP/Shield tween과 floating text await 순서 유지 (`Effect` 내부 병렬 규칙 유지)
-- [ ] `CombatPresentationPipeline.CreateDefault` 호출부 — Host 필드 미할당 시 명확한 fallback 또는 에러 로그 정책 확정
+- [x] `CombatPresentationHost` — floating damage prefab 참조와 player/monster anchor 참조 추가
+- [x] `DamagePresenter` — `ShowFloatingDamageAsync`의 runtime Text spawn 제거
+- [x] `DamagePresenter` — target participant/anchorKind 결정 후 prefab instantiate + `FloatingDamageTextView.Play`
+- [x] `DamagePresenter` — 기존 HP/Shield tween과 floating text await 순서 유지 (`Effect` 내부 병렬 규칙 유지)
+- [x] `CombatPresentationPipeline.CreateDefault` 호출부 — Host 필드 미할당 시 명확한 fallback 또는 에러 로그 정책 확정 (warning log + early return)
 
 **🔍 Review:** Dev_Battle Apply Turn에서 기존 데미지 연출 순서, HP tween, BattleEnded 순서가 깨지지 않는지 Play Mode로 확인.
 

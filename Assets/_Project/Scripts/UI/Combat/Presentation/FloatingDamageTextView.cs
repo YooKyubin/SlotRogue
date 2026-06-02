@@ -32,10 +32,6 @@ namespace SlotRogue.UI.Combat.Presentation
         [SerializeField] private Ease _fadeEase = Ease.Linear;
 #endif
 
-        [Header("Anchor Offsets")]
-        [SerializeField] private Vector2 _playerLocalOffset;
-        [SerializeField] private Vector2 _monsterLocalOffset;
-
         private void Reset()
         {
             _text = GetComponent<Text>();
@@ -77,18 +73,10 @@ namespace SlotRogue.UI.Combat.Presentation
 
         private void ApplyPresentation(int amount, bool isCritical, CombatAnchorKind anchorKind)
         {
+            _ = anchorKind;
             _text.fontSize = isCritical ? _criticalFontSize : _normalFontSize;
             _text.color = isCritical ? _criticalColor : _normalColor;
             _text.text = isCritical ? $"{_criticalPrefix}-{amount}" : $"-{amount}";
-
-            Vector2 localOffset = anchorKind switch
-            {
-                CombatAnchorKind.Player => _playerLocalOffset,
-                CombatAnchorKind.Monster => _monsterLocalOffset,
-                _ => Vector2.zero,
-            };
-
-            _rectTransform.anchoredPosition = localOffset;
             _rectTransform.localScale = Vector3.one;
         }
 
