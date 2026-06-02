@@ -91,11 +91,11 @@
 
 **담당:** Unity **Play Mode 수동 테스트**. 자동 테스트는 UI 연출 특성상 필수 아님. 코드 리뷰와 컴파일 green은 Phase 4 전제 조건.
 
-- [ ] Dev_Battle Apply Turn — 일반 damage, crit, player hit, monster hit, multi-hit 시나리오 확인
-- [ ] RunBattle Spin — 일반 damage, crit, player hit, monster hit, multi-hit 시나리오 확인
-- [ ] 연출 중 scene disable/destroy 또는 전투 종료 시 DOTween callback/null reference 오류 없음
-- [ ] 최종 HUD HP/Shield는 턴 종료 `SyncFrom` 후 Core state와 일치
-- [ ] 팀 Playtest 1회 — 위치·크기·색·속도가 모바일 세로 화면에서 읽히는지 확인
+- [x] Dev_Battle Apply Turn — 일반 damage, crit, player hit, monster hit, multi-hit 시나리오 확인
+- [x] RunBattle Spin — 일반 damage, crit, player hit, monster hit, multi-hit 시나리오 확인
+- [x] 연출 중 scene disable/destroy 또는 전투 종료 시 DOTween callback/null reference 오류 없음
+- [x] 최종 HUD HP/Shield는 턴 종료 `SyncFrom` 후 Core state와 일치
+- [x] 팀 Playtest 1회 — 위치·크기·색·속도가 모바일 세로 화면에서 읽히는지 확인
 
 **🔍 Review:** 아래 표의 Dev_Battle 5개, RunBattle 5개 시나리오를 같은 빌드/에디터 세션에서 통과 처리.
 

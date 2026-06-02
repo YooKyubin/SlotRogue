@@ -2,6 +2,7 @@ using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
+using SlotRogue.Data.Combat;
 using SlotRogue.Slot.Data;
 using SlotRogue.Slot.ViewModels;
 using SlotRogue.UI.Combat;
@@ -32,6 +33,7 @@ namespace SlotRogue.UI.GameFlow
 
         [SerializeField] private RunBattleView _view;
         [SerializeField] private FloatingDamageTextView _floatingDamageTextPrefab;
+        [SerializeField] private MonsterDefinition _monsterDefinition;
 
         private RunCombatRequestResult _lastRequestResult;
         private bool _battleCompleted;
@@ -90,8 +92,8 @@ namespace SlotRogue.UI.GameFlow
             RunMapNodeDefinition encounterNode = GetEncounterNode();
             int floor = Mathf.Max(1, encounterNode.Floor);
             var player = new CombatParticipant(GameFlowSession.PlayerMaxHp, GameFlowSession.PlayerCurrentHp);
-            var monster = new CombatParticipant(GetMonsterMaxHp(encounterNode));
-            MonsterTurnSchedule schedule = CreateMonsterTurnSchedule(encounterNode, floor);
+            var monster = new CombatParticipant(ResolveMonsterMaxHp(encounterNode));
+            MonsterTurnSchedule schedule = ResolveMonsterTurnSchedule(encounterNode, floor);
 
             _battle.StartBattle(player, monster, schedule);
             _combatViewModel.SyncFrom(_battle);
@@ -206,6 +208,16 @@ namespace SlotRogue.UI.GameFlow
             }
         }
 
+        private int ResolveMonsterMaxHp(RunMapNodeDefinition encounterNode)
+        {
+            if (_monsterDefinition != null)
+            {
+                return Mathf.Max(1, _monsterDefinition.maxHp);
+            }
+
+            return GetMonsterMaxHp(encounterNode);
+        }
+
         private static MonsterTurnSchedule CreateMonsterTurnSchedule(
             RunMapNodeDefinition encounterNode,
             int floor)
@@ -230,6 +242,18 @@ namespace SlotRogue.UI.GameFlow
                 new[] { new CombatEffect(CombatEffectKind.Damage, 3 + floor, CombatEffectTarget.Enemy) },
                 new[] { new CombatEffect(CombatEffectKind.Shield, 2 + floor, CombatEffectTarget.Self) },
                 new[] { new CombatEffect(CombatEffectKind.Damage, 5 + floor, CombatEffectTarget.Enemy) });
+        }
+
+        private MonsterTurnSchedule ResolveMonsterTurnSchedule(
+            RunMapNodeDefinition encounterNode,
+            int floor)
+        {
+            if (_monsterDefinition != null && _monsterDefinition.turnPattern != null)
+            {
+                return MonsterTurnScheduleFactory.FromPattern(_monsterDefinition.turnPattern);
+            }
+
+            return CreateMonsterTurnSchedule(encounterNode, floor);
         }
 
         private void HandleSpinClicked()
