@@ -183,4 +183,4 @@ Phase 4 전체 통과 후 체크리스트 `[x]` + Phase 5 문서 정리.
 
 - **Finished**: 2026-06-01
 - **Outcome**: `RunBattleController`에 Replay 스택 composition (`BattleFlowController`, `CombatViewModel`, Host/Pipeline). Spin → `RunTurnAsync`, ViewModel HUD·`presentation-overlay`, 턴 배너·플로팅 데미지·Spin 잠금. Core/asmdef 무변경. GameStart → RunBattle Playtest 통과.
-- **Follow-ups**: 플로팅 데미지 prefab/SO 튜닝(별도 plan), RunBattle `MonsterDefinition` SO 연동, Addressables VFX, 연출 스킵·2x, `Dev_Slot` → `RunTurnAsync`
+- **Follow-ups**: ~~플로팅 데미지 prefab/SO 튜닝~~ ([`feature-floating-combat-text`](./feature-floating-combat-text.md), 2026-06-02 완료), ~~RunBattle `MonsterDefinition` SO 연동~~ (2026-06-02 반영), Addressables VFX, 연출 스킵·2x, `Dev_Slot` → `RunTurnAsync`

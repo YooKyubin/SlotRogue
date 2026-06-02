@@ -1,7 +1,8 @@
 # 플로팅 전투 텍스트 프리팹화
 
-**Status**: active  
+**Status**: completed  
 **Started**: 2026-06-02  
+**Finished**: 2026-06-02  
 **Owner**: Yookyubin  
 **Contributors**: _(없음)_  
 **Related design-docs**: [`combat-core.md`](../../design-docs/combat-core.md), [`game-flow.md`](../../design-docs/game-flow.md)  
@@ -118,12 +119,12 @@
 
 ### Phase 5 — 문서 정리와 완료 처리
 
-- [ ] 본 plan 체크리스트·Notes·Completion 갱신 후 `git mv`로 `docs/exec-plans/completed/` 이동
-- [ ] [`docs/STATUS.md`](../../STATUS.md) — Active 제거, Recently completed 추가, `_Last updated` 갱신
-- [ ] [`feature-combat-presentation`](../completed/feature-combat-presentation.md) — Follow-ups의 prefab/SO 튜닝 항목 완료 cross-ref
-- [ ] [`feature-run-battle-presentation`](../completed/feature-run-battle-presentation.md) — Follow-ups의 플로팅 데미지 prefab/SO 튜닝 항목 완료 cross-ref
-- [ ] [`combat-core.md`](../../design-docs/combat-core.md), [`game-flow.md`](../../design-docs/game-flow.md) — Presentation/overlay 섹션 cross-ref 한 줄 필요 여부 확인
-- [ ] inbound 참조 grep — active/completed 경로와 plan 링크 깨짐 없음
+- [x] 본 plan 체크리스트·Notes·Completion 갱신 후 `git mv`로 `docs/exec-plans/completed/` 이동
+- [x] [`docs/STATUS.md`](../../STATUS.md) — Active 제거, Recently completed 추가, `_Last updated` 갱신
+- [x] [`feature-combat-presentation`](../completed/feature-combat-presentation.md) — Follow-ups의 prefab/SO 튜닝 항목 완료 cross-ref
+- [x] [`feature-run-battle-presentation`](../completed/feature-run-battle-presentation.md) — Follow-ups의 플로팅 데미지 prefab/SO 튜닝 항목 완료 cross-ref
+- [x] [`combat-core.md`](../../design-docs/combat-core.md), [`game-flow.md`](../../design-docs/game-flow.md) — Presentation/overlay 섹션 cross-ref 한 줄 필요 여부 확인
+- [x] inbound 참조 grep — active/completed 경로와 plan 링크 깨짐 없음
 
 **🔍 Review:** `docs/INDEX.md`, `docs/STATUS.md`, active/completed README와 plan 링크가 서로 일치하는지 확인.
 
@@ -181,8 +182,6 @@
 
 ## Completion
 
-_(completed/로 옮길 때 채움.)_
-
-- **Finished**:
-- **Outcome**:
-- **Follow-ups**:
+- **Finished**: 2026-06-02
+- **Outcome**: `FloatingDamageText` prefab + `FloatingDamageTextView` 기반으로 데미지 숫자 연출을 프리팹/Inspector 튜닝 방식으로 전환했다. `DamagePresenter`는 runtime Text spawn을 제거하고 Host의 prefab/anchor를 사용해 instantiate·play 하며, Dev_Battle과 RunBattle이 동일 자산 계약을 공유한다.
+- **Follow-ups**: 턴 배너 prefab화(Phase B)는 별도 plan(`feature-turn-banner-prefab`)로 분리 검토. RunBattle 몬스터 다양화(노드별 MonsterDefinition 매핑)는 후속 작업에서 확장.

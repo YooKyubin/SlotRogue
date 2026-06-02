@@ -151,6 +151,7 @@ Start
 ### 기존 `BattleDevHarness` 재사용
 
 Dev 하네스는 인스펙터 테스트에는 좋지만, 슬롯 스핀과 씬 플로우를 직접 연결하기 어렵다. 전투 코드를 수정하지 않는 조건도 있으므로 본편 플로우용 별도 presenter를 둔다.
+RunBattle overlay의 전투 텍스트 anchor/prefab 계약은 [`feature-floating-combat-text`](../exec-plans/completed/feature-floating-combat-text.md)에서 정리했다.
 
 ### 슬롯 View 재사용
 

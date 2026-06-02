@@ -175,4 +175,4 @@ sequenceDiagram
 
 - **Finished**: 2026-05-31
 - **Outcome**: ADR-0003 Replay MVP — `CombatParticipantSnapshot`, `BattleFlowController`, Kind별 Presenter, DOTween/UniTask tween, Dev_Battle `Apply Turn` → `RunTurnAsync`, 턴 Phase 배너, 연출 중 입력 잠금. Phase 1~4 Play Review 완료.
-- **Follow-ups**: `Dev_Slot` SPIN → `RunTurnAsync` (별도 plan), ~~본편 RunBattle UI~~ → [`feature-run-battle-presentation`](./feature-run-battle-presentation.md) (2026-06-01 완료), Addressables VFX, `BattleTurnSession`(Step), 연출 스킵·2x.
+- **Follow-ups**: `Dev_Slot` SPIN → `RunTurnAsync` (별도 plan), ~~본편 RunBattle UI~~ → [`feature-run-battle-presentation`](./feature-run-battle-presentation.md) (2026-06-01 완료), ~~플로팅 데미지 prefab/SO 튜닝~~ → [`feature-floating-combat-text`](./feature-floating-combat-text.md) (2026-06-02 완료), Addressables VFX, `BattleTurnSession`(Step), 연출 스킵·2x.
