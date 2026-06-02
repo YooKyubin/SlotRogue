@@ -9,6 +9,7 @@ namespace SlotRogue.Core.Combat
             EffectApplyResult applyResult = default,
             BattleEndReason endReason = BattleEndReason.None,
             bool isPlayerParticipant = false,
+            CombatParticipantId targetParticipantId = default,
             CombatParticipantSnapshot targetBefore = default,
             CombatParticipantSnapshot targetAfter = default)
         {
@@ -18,6 +19,7 @@ namespace SlotRogue.Core.Combat
             ApplyResult = applyResult;
             EndReason = endReason;
             IsPlayerParticipant = isPlayerParticipant;
+            TargetParticipantId = targetParticipantId;
             TargetBefore = targetBefore;
             TargetAfter = targetAfter;
         }
@@ -33,6 +35,8 @@ namespace SlotRogue.Core.Combat
         public BattleEndReason EndReason { get; }
 
         public bool IsPlayerParticipant { get; }
+
+        public CombatParticipantId TargetParticipantId { get; }
 
         public CombatParticipantSnapshot TargetBefore { get; }
 
