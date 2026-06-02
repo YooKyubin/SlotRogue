@@ -52,11 +52,11 @@
 
 ### Phase 1 — FloatingDamageText prefab + View
 
-- [ ] `FloatingDamageText.prefab` — `UnityEngine.UI.Text` 기반 MVP 자산 생성, `.meta` 동반
-- [ ] `FloatingDamageTextView` — amount/crit/anchorKind 입력, text formatting, color/scale 선택
-- [ ] `FloatingDamageTextView.Play` — DOTween Sequence 또는 tween handle을 UniTask로 await
-- [ ] tween lifecycle — `SetLink(gameObject)` 또는 명시적 `DOKill`로 destroy/disable 안전성 확보
-- [ ] crit 처리 방식 확정 — prefab variant vs 단일 prefab + SerializeField 파라미터
+- [x] `FloatingDamageText.prefab` — `UnityEngine.UI.Text` 기반 MVP 자산 생성, `.meta` 동반
+- [x] `FloatingDamageTextView` — amount/crit/anchorKind 입력, text formatting, color/scale 선택
+- [x] `FloatingDamageTextView.Play` — DOTween Sequence 또는 tween handle을 UniTask로 await
+- [x] tween lifecycle — `SetLink(gameObject)` 또는 명시적 `DOKill`로 destroy/disable 안전성 확보
+- [x] crit 처리 방식 확정 — **단일 prefab + SerializeField 파라미터** (`_criticalFontSize`, `_criticalColor`, `_criticalPrefix`, scale punch)
 
 **🔍 Review:** Dev_Battle overlay 아래에 prefab을 수동 배치하거나 임시 instantiate해 일반/crit 숫자가 Play Mode에서 이동·fade 후 정리되는지 확인.
 
