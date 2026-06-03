@@ -10,7 +10,6 @@
 
 | Plan | Started |
 |------|---------|
-| [`feature-multi-participant-combat.md`](./feature-multi-participant-combat.md) | 2026-06-02 |
 | [`feature-game-flow-loop.md`](./feature-game-flow-loop.md) | 2026-05-31 |
 | [`feature-slot-core.md`](./feature-slot-core.md) | 2026-05-28 |
 

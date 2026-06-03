@@ -27,6 +27,7 @@ namespace SlotRogue.UI.Combat
         [Header("Monster")]
         [SerializeField] private MonsterDefinition _monsterDefinition;
         [SerializeField] private int _monsterCurrentHp = -1;
+        [SerializeField] private bool _startWithTwoEnemies;
 
         [Header("SlotCombatRequest (test)")]
         [SerializeField] private int _requestDamage = 5;
@@ -103,11 +104,31 @@ namespace SlotRogue.UI.Combat
             }
 
             var player = new CombatParticipant(_playerMaxHp, _playerCurrentHp);
-            var monster = new CombatParticipant(_monsterDefinition.maxHp, _monsterCurrentHp);
             MonsterTurnSchedule schedule =
                 MonsterTurnScheduleFactory.FromPattern(_monsterDefinition.turnPattern);
 
-            _battle.StartBattle(player, monster, schedule);
+            if (_startWithTwoEnemies)
+            {
+                var enemy0 = new CombatParticipant(
+                    _monsterDefinition.maxHp,
+                    _monsterCurrentHp,
+                    id: new CombatParticipantId(100),
+                    team: CombatTeam.Enemy);
+                var enemy1 = new CombatParticipant(
+                    _monsterDefinition.maxHp,
+                    _monsterCurrentHp,
+                    id: new CombatParticipantId(101),
+                    team: CombatTeam.Enemy);
+                _battle.StartBattle(
+                    player,
+                    new[] { enemy0, enemy1 },
+                    new[] { schedule, schedule });
+            }
+            else
+            {
+                var monster = new CombatParticipant(_monsterDefinition.maxHp, _monsterCurrentHp);
+                _battle.StartBattle(player, monster, schedule);
+            }
             _combatViewModel.SyncFrom(_battle);
             _eventLogger.LogEventsSince(_battle, eventCursor: 0);
             RefreshStatusText();

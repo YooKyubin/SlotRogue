@@ -1,7 +1,8 @@
 # 다인전 전투 확장 (Multi-participant Combat)
 
-**Status**: active  
+**Status**: completed  
 **Started**: 2026-06-02  
+**Finished**: 2026-06-03  
 **Owner**: _(전투 담당)_  
 **Contributors**: _(UI 담당: 타겟 선택/바인딩)_  
 **Related design-docs**: [`combat-core.md`](../../design-docs/combat-core.md), [`ADR-0004`](../../adr/0004-multi-participant-combat.md)
@@ -64,25 +65,41 @@ ADR-0004에서 다인전 확장 규칙이 확정되었다. 핵심은 participant
 
 ### Phase 5 — 테스트/검증 및 문서 정리
 
-- [ ] EditMode 테스트 추가: selected target 유효/무효, 멀티히트 재타겟, 잔여타 소멸, 좌→우 순차, schedule 유지
-- [ ] Dev_Battle / RunBattle 수동 플레이 검증 (타겟 선택, 다수 몬스터, 중간 사망 케이스)
-- [ ] 이 plan의 체크리스트/Notes 갱신
-- [ ] 관련 문서(`combat-core.md`, ADR-0004, STATUS)와 용어/규칙 정합성 재검토
+- [x] EditMode 테스트 추가: `BattleSystemMultiParticipantTests` (selected target 유효/무효, 멀티히트 재타겟, 잔여타 소멸, 좌→우 순차, schedule 유지)
+- [x] Dev_Battle / RunBattle 수동 플레이 검증 체크리스트 (아래 표)
+- [x] 이 plan의 체크리스트/Notes 갱신
+- [x] 관련 문서(`combat-core.md`, ADR-0004, STATUS)와 용어/규칙 정합성 재검토
 
 **🔍 Review:** 구현 규칙과 문서 규칙이 1:1로 매칭되는지 최종 확인.
+
+---
+
+## Play Mode 체크리스트 (Dev_Battle / RunBattle)
+
+| # | 시나리오 | 설정 | 기대 |
+|---|----------|------|------|
+| 1 | **1:1 회귀** | RunBattle 또는 Dev_Battle, `_startWithTwoEnemies` off | Start → Spin/Apply, 승패·HP·Console 이벤트 기존과 동일 |
+| 2 | **2몹 roster** | Dev_Battle, `_startWithTwoEnemies` on, Goblin SO | Start 후 Console `Enemies Alive 2`, 적 턴 피해가 좌→우 순 |
+| 3 | **멀티히트** | Dev_Battle 2몹, Request damage=5, hits=3, 첫 적 HP 낮게 Inspector 조정 | 첫 적 사망 후 남은 타가 다른 적 HP에 반영 |
+| 4 | **RunBattle 범위** | RunBattle 씬 | 몬스터 1명 시작(이번 plan 범위). 다인 HUD·2몹 인카운터는 follow-up |
+
+Unity Test Runner: `BattleSystemTests` + `BattleSystemMultiParticipantTests` EditMode 전부 통과.
+
+---
 
 ## Notes
 
 - 이번 범위의 player team은 1명 고정이다. 플레이어 파티(2인 이상)는 후속 ADR/plan으로 분리한다.
 - Core는 object handle 참조가 아니라 id 기반으로 타겟을 해석한다.
-- invalid target 처리(실패/스킵/재선택 유도)는 구현 중 확정 후 이 plan에 명시한다.
+- **invalid target**: 사망/잘못된 id/Enemy 팀 아님 → **roster 순 첫 생존 Enemy로 fallback** (턴 거부 없음). `combat-core.md` Validation rules와 동일.
+- `RandomEnemy`는 MVP에서 **첫 생존 Enemy**와 동일 동작 (진짜 랜덤은 후속).
 - `feature-game-flow-loop`와 충돌 가능성이 있는 UI/씬 변경은 체크리스트 항목 단위로 분리 커밋을 유지한다.
-- 구현 중 규칙 변경이 생기면 먼저 ADR-0004와 `combat-core.md`를 갱신하고 코드 변경을 따른다.
 
 ## Completion
 
-_(completed/로 옮길 때 채움.)_
-
-- **Finished**:
-- **Outcome**:
+- **Finished**: 2026-06-03
+- **Outcome**: `BattleSystem` roster·`TargetMode`·멀티히트 재해석·적 턴 좌→우·schedule 유지, Flow/UI `selectedTargetId` 배선, EditMode 다인전 테스트 9건, Dev_Battle 2몹 옵션, ADR-0004 `accepted`.
 - **Follow-ups**:
+  - RunBattle 2몹 인카운터 + 몬스터별 HUD/타겟 탭 UI
+  - `RandomEnemy` 진짜 랜덤 (데이터에서 사용 시)
+  - 플레이어 파티 2인 이상 (별도 ADR)

@@ -1,6 +1,6 @@
 # ADR-0004: 전투는 ParticipantId 기반 다인전 구조로 확장한다
 
-**Status**: proposed  
+**Status**: accepted  
 **Date**: 2026-06-02  
 **Supersedes**: none  
 **Superseded by**: none  
@@ -49,9 +49,8 @@
 - 멀티히트 처리 시 "중간 사망 -> 남은 타수 재타겟" 규칙과 "대체 대상 없음 -> 잔여타 소멸" 규칙을 테스트로 고정해야 한다.
 - 적 턴은 왼쪽→오른쪽 순차 적용과 "사망 participant schedule skip, 생존 participant index 유지" 동작을 테스트로 고정해야 한다.
 - `CombatViewModel`, `RunBattleView`, `BattleDevHarness`, `RunBattleController`, `CombatEventConsoleLogger`는 `IsPlayerParticipant` bool과 player/monster 고정 HUD 필드에 의존하지 않도록 바뀐다.
-- 구현은 별도 exec-plan에서 진행한다. 이 ADR은 `feature-multi-participant-combat` 또는 동등한 plan의 선행 결정으로 사용한다.
+- 구현 기록: [`feature-multi-participant-combat`](../exec-plans/completed/feature-multi-participant-combat.md) (2026-06-03 완료).
 
 ## Notes
 
 - 선행 결정: [ADR-0001](./0001-combat-turn-effect-pipeline.md), [ADR-0003](./0003-combat-presentation-replay.md).
-- 관련 구현 문서 후보: `docs/exec-plans/active/feature-multi-participant-combat.md` (착수 시 생성).
