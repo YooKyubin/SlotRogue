@@ -1,20 +1,96 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
-namespace SlotRogue.UI.GameFlow
+namespace SlotRogue.Data.GameFlow
 {
-    public sealed class RunMapGraphDefinition
+    [CreateAssetMenu(menuName = "SlotRogue/Game Flow/Run Map Graph")]
+    public sealed class RunMapGraphDefinition : ScriptableObject
     {
-        private readonly Dictionary<string, RunMapNodeDefinition> nodeById;
-        private readonly Dictionary<string, RunMapNodeDefinition[]> outgoingByNodeId;
+        public RunMapNodeDefinition[] nodes = Array.Empty<RunMapNodeDefinition>();
 
-        public RunMapGraphDefinition(
-            RunMapNodeDefinition[] nodes,
-            RunMapEdgeDefinition[] edges)
+        public RunMapGraphEdge[] edges = Array.Empty<RunMapGraphEdge>();
+
+        private Dictionary<string, RunMapNodeDefinition> nodeById = null!;
+
+        private int maxFloor = -1;
+
+        public RunMapNodeDefinition[] Nodes => nodes ?? Array.Empty<RunMapNodeDefinition>();
+
+        public RunMapGraphEdge[] Edges => edges ?? Array.Empty<RunMapGraphEdge>();
+
+        public int MaxFloor
         {
-            Nodes = nodes ?? Array.Empty<RunMapNodeDefinition>();
-            Edges = edges ?? Array.Empty<RunMapEdgeDefinition>();
+            get
+            {
+                EnsureCache();
+                return maxFloor;
+            }
+        }
+
+        public RunMapNodeDefinition GetNode(string nodeId)
+        {
+            if (string.IsNullOrEmpty(nodeId))
+            {
+                return null!;
+            }
+
+            EnsureCache();
+            return nodeById.TryGetValue(nodeId, out RunMapNodeDefinition node) ? node : null!;
+        }
+
+        public RunMapNodeDefinition[] GetOutgoingNodes(string nodeId)
+        {
+            if (string.IsNullOrEmpty(nodeId))
+            {
+                return Array.Empty<RunMapNodeDefinition>();
+            }
+
+            var outgoingNodes = new List<RunMapNodeDefinition>();
+
+            for (int index = 0; index < Edges.Length; index++)
+            {
+                RunMapGraphEdge edge = Edges[index];
+
+                if (edge.FromNodeId != nodeId)
+                {
+                    continue;
+                }
+
+                RunMapNodeDefinition node = GetNode(edge.ToNodeId);
+                if (node != null)
+                {
+                    outgoingNodes.Add(node);
+                }
+            }
+
+            return outgoingNodes.ToArray();
+        }
+
+        public bool HasEdge(string fromNodeId, string toNodeId)
+        {
+            for (int index = 0; index < Edges.Length; index++)
+            {
+                RunMapGraphEdge edge = Edges[index];
+
+                if (edge.FromNodeId == fromNodeId && edge.ToNodeId == toNodeId)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private void EnsureCache()
+        {
+            if (nodeById != null)
+            {
+                return;
+            }
+
             nodeById = new Dictionary<string, RunMapNodeDefinition>(Nodes.Length);
+            maxFloor = 0;
 
             for (int index = 0; index < Nodes.Length; index++)
             {
@@ -26,88 +102,8 @@ namespace SlotRogue.UI.GameFlow
                 }
 
                 nodeById[node.NodeId] = node;
-                MaxFloor = Math.Max(MaxFloor, node.Floor);
+                maxFloor = Math.Max(maxFloor, node.Floor);
             }
-
-            outgoingByNodeId = BuildOutgoingMap();
-        }
-
-        private Dictionary<string, RunMapNodeDefinition[]> BuildOutgoingMap()
-        {
-            var lists = new Dictionary<string, List<RunMapNodeDefinition>>();
-
-            for (int index = 0; index < Edges.Length; index++)
-            {
-                RunMapEdgeDefinition edge = Edges[index];
-                RunMapNodeDefinition node = GetNode(edge.ToNodeId);
-
-                if (node == null)
-                {
-                    continue;
-                }
-
-                if (!lists.TryGetValue(edge.FromNodeId, out List<RunMapNodeDefinition> list))
-                {
-                    list = new List<RunMapNodeDefinition>();
-                    lists[edge.FromNodeId] = list;
-                }
-
-                list.Add(node);
-            }
-
-            var map = new Dictionary<string, RunMapNodeDefinition[]>(lists.Count);
-
-            foreach (KeyValuePair<string, List<RunMapNodeDefinition>> entry in lists)
-            {
-                map[entry.Key] = entry.Value.ToArray();
-            }
-
-            return map;
-        }
-
-        public RunMapNodeDefinition[] Nodes { get; }
-
-        public RunMapEdgeDefinition[] Edges { get; }
-
-        public int MaxFloor { get; }
-
-        public RunMapNodeDefinition GetNode(string nodeId)
-        {
-            if (string.IsNullOrEmpty(nodeId))
-            {
-                return null;
-            }
-
-            return nodeById.TryGetValue(nodeId, out RunMapNodeDefinition node)
-                ? node
-                : null;
-        }
-
-        public RunMapNodeDefinition[] GetOutgoingNodes(string nodeId)
-        {
-            if (string.IsNullOrEmpty(nodeId))
-            {
-                return Array.Empty<RunMapNodeDefinition>();
-            }
-
-            return outgoingByNodeId.TryGetValue(nodeId, out RunMapNodeDefinition[] nodes)
-                ? nodes
-                : Array.Empty<RunMapNodeDefinition>();
-        }
-
-        public bool HasEdge(string fromNodeId, string toNodeId)
-        {
-            for (int index = 0; index < Edges.Length; index++)
-            {
-                RunMapEdgeDefinition edge = Edges[index];
-
-                if (edge.FromNodeId == fromNodeId && edge.ToNodeId == toNodeId)
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
     }
 }
