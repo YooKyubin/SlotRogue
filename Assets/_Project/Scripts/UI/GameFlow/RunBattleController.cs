@@ -405,11 +405,12 @@ namespace SlotRogue.UI.GameFlow
             }
 
             int bindCount = Mathf.Min(slotCount, _battle.Enemies.Count);
-            for (int index = 0; index < bindCount; index++)
+            var usedFormationSlots = new HashSet<int>();
+            for (int rosterIndex = 0; rosterIndex < bindCount; rosterIndex++)
             {
-                CombatParticipant enemy = _battle.Enemies[index];
+                CombatParticipant enemy = _battle.Enemies[rosterIndex];
                 CombatParticipantId enemyId = enemy.Id;
-                int slotIndex = index;
+                int slotIndex = ResolveHudSlotIndex(rosterIndex, slotCount, usedFormationSlots);
                 _view.SetEnemySlotClickHandler(slotIndex, () => HandleEnemySelected(enemyId));
                 RectTransform anchor = ResolveEnemyDamageAnchor(slotIndex, bindCount);
                 _presentationHost.SetEnemyDamageAnchor(enemyId, anchor);
@@ -425,11 +426,18 @@ namespace SlotRogue.UI.GameFlow
         private void RefreshEnemySlots()
         {
             int slotCount = _view.EnemySlotCount;
-            int visibleCount = Mathf.Min(slotCount, _battle.Enemies.Count);
+            int enemyCount = _battle.Enemies.Count;
 
-            for (int index = 0; index < visibleCount; index++)
+            for (int index = 0; index < slotCount; index++)
             {
-                CombatParticipant enemy = _battle.Enemies[index];
+                _view.SetEnemySlotActive(index, false);
+            }
+
+            var usedFormationSlots = new HashSet<int>();
+            for (int rosterIndex = 0; rosterIndex < enemyCount; rosterIndex++)
+            {
+                CombatParticipant enemy = _battle.Enemies[rosterIndex];
+                int slotIndex = ResolveHudSlotIndex(rosterIndex, slotCount, usedFormationSlots);
                 CombatParticipantSnapshot snapshot = _combatViewModel.TryGetParticipantSnapshot(
                     enemy.Id,
                     out CombatParticipantSnapshot participantSnapshot)
@@ -438,19 +446,32 @@ namespace SlotRogue.UI.GameFlow
                 bool selected = _selectedEnemyId.IsValid && _selectedEnemyId.Value == enemy.Id.Value;
                 string deadSuffix = enemy.IsDead ? " [DOWN]" : string.Empty;
                 _view.SetEnemySlot(
-                    index,
-                    $"{GetEncounterNode().DisplayName} #{index + 1}{deadSuffix}\n" +
+                    slotIndex,
+                    $"{GetEncounterNode().DisplayName} #{rosterIndex + 1}{deadSuffix}\n" +
                     $"{snapshot.Hp}/{enemy.MaxHp}  SH {snapshot.Shield}",
                     snapshot.Hp,
                     enemy.MaxHp,
                     selected,
                     !enemy.IsDead && !_flowController.IsBusy);
             }
+        }
 
-            for (int index = visibleCount; index < slotCount; index++)
+        private int ResolveHudSlotIndex(int rosterIndex, int slotCount, HashSet<int> usedFormationSlots)
+        {
+            int slotIndex = RunEncounterRosterBuilder.ResolveFormationSlot(
+                _encounterRoster,
+                rosterIndex,
+                slotCount);
+
+            if (!usedFormationSlots.Add(slotIndex))
             {
-                _view.SetEnemySlotActive(index, false);
+                Debug.LogWarning(
+                    $"[RunBattleController] Duplicate formation slot {slotIndex} for roster index {rosterIndex}; using roster index.");
+                slotIndex = Mathf.Clamp(rosterIndex, 0, slotCount - 1);
+                usedFormationSlots.Add(slotIndex);
             }
+
+            return slotIndex;
         }
 
         private RectTransform ResolveEnemyDamageAnchor(int slotIndex, int enemyCount)

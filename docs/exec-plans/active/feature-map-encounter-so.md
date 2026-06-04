@@ -91,10 +91,10 @@
 
 ### Phase 3 — Formation slot → UI 배치
 
-- [ ] roster 빌드 결과에 **formation slot per enemy** 노출 (예: `EncounterRoster`에 `int[] FormationSlots` 또는 parallel struct)
-- [ ] `BindEnemySlots` / `RefreshEnemySlots`: `slotIndex = formationSlot` (클램프 0..`EnemySlotCount-1`); roster index ≠ slot index일 때 participant id는 roster 기준, HUD·anchor·클릭은 formation slot 기준
-- [ ] 중복 formation slot / 범위 밖 slot: `Debug.LogWarning` + roster index 폴백 (크래시 금지)
-- [ ] 1몹: formation 1(중앙) 또는 0 — 기존 단일 anchor 레이아웃 회귀
+- [x] roster 빌드 결과에 **formation slot per enemy** 노출 (`RunEncounterRoster.FormationSlots`)
+- [x] `BindEnemySlots` / `RefreshEnemySlots`: formation slot → HUD index; participant id는 roster 기준 유지
+- [x] 중복 formation slot / 범위 밖 slot: `Debug.LogWarning` + roster index 폴백
+- [x] 1몹: `ResolveDefaultFormationSlot` 중앙(slot 1) 폴백
 
 **🔍 Review:** 2몹 Duo에서 좌/우(또는 지정) 슬롯에 HP HUD가 맞고, 타겟 클릭 id는 `100+i`와 일치.
 
