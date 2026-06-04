@@ -412,7 +412,7 @@ namespace SlotRogue.UI.GameFlow
                 CombatParticipantId enemyId = enemy.Id;
                 int slotIndex = ResolveHudSlotIndex(rosterIndex, slotCount, usedFormationSlots);
                 _view.SetEnemySlotClickHandler(slotIndex, () => HandleEnemySelected(enemyId));
-                RectTransform anchor = ResolveEnemyDamageAnchor(slotIndex, bindCount);
+                RectTransform anchor = ResolveEnemyDamageAnchor(slotIndex);
                 _presentationHost.SetEnemyDamageAnchor(enemyId, anchor);
             }
 
@@ -474,10 +474,10 @@ namespace SlotRogue.UI.GameFlow
             return slotIndex;
         }
 
-        private RectTransform ResolveEnemyDamageAnchor(int slotIndex, int enemyCount)
+        private RectTransform ResolveEnemyDamageAnchor(int slotIndex)
         {
             RectTransform anchor = _view.GetEnemyDamageAnchor(slotIndex);
-            if (anchor != null && (enemyCount <= 1 || anchor != _monsterDamageAnchor))
+            if (anchor != null)
             {
                 return anchor;
             }
@@ -485,18 +485,13 @@ namespace SlotRogue.UI.GameFlow
             return ResolveDamageAnchor(
                 _floatingTextRoot,
                 $"runtime-monster-{slotIndex}-damage-anchor",
-                ResolveEnemyDamageAnchorPosition(slotIndex, enemyCount));
+                ResolveEnemyDamageAnchorPosition(slotIndex));
         }
 
-        private static Vector2 ResolveEnemyDamageAnchorPosition(int slotIndex, int enemyCount)
+        private static Vector2 ResolveEnemyDamageAnchorPosition(int slotIndex)
         {
-            if (enemyCount <= 1)
-            {
-                return new Vector2(0f, 40f);
-            }
-
-            float spacing = enemyCount <= 2 ? 300f : 270f;
-            float startX = -(enemyCount - 1) * spacing * 0.5f;
+            float spacing = 300f;
+            float startX = -(RunBattleView.FormationHudSlotCount - 1) * spacing * 0.5f;
             return new Vector2(startX + (slotIndex * spacing), 40f);
         }
 
