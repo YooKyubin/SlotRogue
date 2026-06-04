@@ -77,13 +77,13 @@
 
 ### Phase 2 — Roster 빌더 + 맵 노드 참조
 
-- [ ] `RunEncounterRosterBuilder` (`SlotRogue.UI.GameFlow`, static) — 입력: `RunEncounterDefinition? encounter`, `RunMapNodeDefinition node`, `int floor`, optional legacy `MonsterDefinition? inspectorFallback` → `EncounterRoster` (enemies[], schedules[])
-  - encounter 있음: `entries.Length`만큼 roster; per-entry HP (`hpOverride` → `monster.maxHp` → `GetMonsterMaxHp(node)`); schedule (`turnPatternOverride` → `monster.turnPattern` → `CreateMonsterTurnSchedule(node, floor)`)
+- [x] `RunEncounterRosterBuilder` (`SlotRogue.UI.GameFlow`, static) — `RunMapNodeDefinition` + floor + Inspector fallback → `RunEncounterRoster`
+  - encounter 있음: `entries.Length`만큼 roster; per-entry HP/schedule override 체인
   - encounter 없음: **현행** `EnemyCount` 루프 + 노드/floor/Inspector 폴백 (회귀)
-  - participant id: **`100 + rosterIndex`** (Core·기존 테스트와 동일; roster 순서는 entries 배열 순)
-- [ ] `RunMapNodeDefinition`: optional `RunEncounterDefinition Encounter` (생성자 오버로드 또는 nullable 프로퍼티); `EnemyCount`는 encounter 없을 때만 사용, encounter 있으면 `entries.Length` 우선 (Obsolete 주석 가능)
-- [ ] `RunBattleController`: `BuildEncounterRoster` → 빌더 위임; `_monsterDefinition`은 encounter·entry 모두 없을 때만 단일 몬스터 폴백으로 유지
-- [ ] `RunMapNodeCatalog`: `monster-2-0`, `elite-2-1`에 샘플 encounter SO 연결 (asset 참조 — GUID는 `.meta` 동커밋)
+  - participant id: **`100 + rosterIndex`**
+- [x] `RunMapNodeDefinition`: `Encounter` 참조; `EnemyCount`는 encounter 없을 때 폴백
+- [x] `RunBattleController`: 빌더 위임; HP/schedule 헬퍼 제거
+- [x] `RunMapNodeCatalog`: `monster-2-0`, `elite-2-1` + `Resources/RunEncounterAssetCatalog` 연결
 
 **🔍 Review:** encounter 없는 1몹 노드 diff 없음; Duo/Elite Trio는 SO roster 길이 2/3.
 

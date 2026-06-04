@@ -1,7 +1,31 @@
+using SlotRogue.Data.GameFlow;
+using UnityEngine;
+
 namespace SlotRogue.UI.GameFlow
 {
     public static class RunMapNodeCatalog
     {
+        private static RunEncounterAssetCatalog s_encounterCatalog;
+
+        public static void ConfigureEncounters(RunEncounterAssetCatalog catalog)
+        {
+            s_encounterCatalog = catalog;
+        }
+
+        private static RunEncounterAssetCatalog EncounterCatalog
+        {
+            get
+            {
+                if (s_encounterCatalog != null)
+                {
+                    return s_encounterCatalog;
+                }
+
+                s_encounterCatalog = Resources.Load<RunEncounterAssetCatalog>("RunEncounterAssetCatalog");
+                return s_encounterCatalog;
+            }
+        }
+
         public static RunMapNodeDefinition StartNode { get; } = new(
             "start-0",
             "Start",
@@ -10,8 +34,13 @@ namespace SlotRogue.UI.GameFlow
             floor: 0,
             lane: 1);
 
-        private static readonly RunMapNodeDefinition[] DefaultNodes =
+        private static RunMapNodeDefinition[] CreateDefaultNodes()
         {
+            RunEncounterDefinition duo2A = Duo2AEncounter;
+            RunEncounterDefinition eliteTrio2B = EliteTrio2BEncounter;
+
+            return new[]
+            {
             StartNode,
             new(
                 "monster-1-0",
@@ -41,7 +70,8 @@ namespace SlotRogue.UI.GameFlow
                 RunMapNodeType.Monster,
                 floor: 2,
                 lane: 0,
-                enemyCount: 2),
+                enemyCount: 2,
+                encounter: duo2A),
             new(
                 "elite-2-1",
                 "Elite Trio 2-B",
@@ -49,7 +79,8 @@ namespace SlotRogue.UI.GameFlow
                 RunMapNodeType.Elite,
                 floor: 2,
                 lane: 1,
-                enemyCount: 3),
+                enemyCount: 3,
+                encounter: eliteTrio2B),
             new(
                 "monster-2-2",
                 "Monster 2-C",
@@ -127,7 +158,14 @@ namespace SlotRogue.UI.GameFlow
                 RunMapNodeType.Boss,
                 floor: 6,
                 lane: 1),
-        };
+            };
+        }
+
+        private static RunEncounterDefinition Duo2AEncounter =>
+            EncounterCatalog != null ? EncounterCatalog.encounterDuo2A : null;
+
+        private static RunEncounterDefinition EliteTrio2BEncounter =>
+            EncounterCatalog != null ? EncounterCatalog.encounterEliteTrio2B : null;
 
         private static readonly RunMapEdgeDefinition[] DefaultEdges =
         {
@@ -169,7 +207,7 @@ namespace SlotRogue.UI.GameFlow
 
         public static RunMapGraphDefinition BuildDefaultGraph()
         {
-            return new RunMapGraphDefinition(DefaultNodes, DefaultEdges);
+            return new RunMapGraphDefinition(CreateDefaultNodes(), DefaultEdges);
         }
 
         public static RunMapNodeDefinition[] BuildNextChoices(RunMapNodeDefinition currentNode)

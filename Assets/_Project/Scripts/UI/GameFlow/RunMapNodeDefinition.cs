@@ -1,3 +1,5 @@
+using SlotRogue.Data.GameFlow;
+
 namespace SlotRogue.UI.GameFlow
 {
     public sealed class RunMapNodeDefinition
@@ -9,7 +11,8 @@ namespace SlotRogue.UI.GameFlow
             RunMapNodeType nodeType,
             int floor,
             int lane,
-            int enemyCount = 1)
+            int enemyCount = 1,
+            RunEncounterDefinition encounter = null)
         {
             NodeId = nodeId;
             DisplayName = displayName;
@@ -17,7 +20,8 @@ namespace SlotRogue.UI.GameFlow
             NodeType = nodeType;
             Floor = floor;
             Lane = lane;
-            EnemyCount = enemyCount < 1 ? 1 : enemyCount;
+            Encounter = encounter;
+            EnemyCount = ResolveEnemyCount(enemyCount, encounter);
         }
 
         public string NodeId { get; }
@@ -32,6 +36,19 @@ namespace SlotRogue.UI.GameFlow
 
         public int Lane { get; }
 
+        /// <summary>Used when <see cref="Encounter"/> is null or has no entries.</summary>
         public int EnemyCount { get; }
+
+        public RunEncounterDefinition Encounter { get; }
+
+        private static int ResolveEnemyCount(int enemyCount, RunEncounterDefinition encounter)
+        {
+            if (encounter != null && encounter.HasEntries)
+            {
+                return encounter.EntryCount;
+            }
+
+            return enemyCount < 1 ? 1 : enemyCount;
+        }
     }
 }

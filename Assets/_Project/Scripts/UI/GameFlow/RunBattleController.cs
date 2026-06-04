@@ -40,6 +40,7 @@ namespace SlotRogue.UI.GameFlow
         private RunCombatRequestResult _lastRequestResult;
         private bool _battleCompleted;
         private CombatParticipantId _selectedEnemyId;
+        private RunEncounterRoster _encounterRoster = null!;
 
         private void Awake()
         {
@@ -95,32 +96,14 @@ namespace SlotRogue.UI.GameFlow
             RunMapNodeDefinition encounterNode = GetEncounterNode();
             int floor = Mathf.Max(1, encounterNode.Floor);
             var player = new CombatParticipant(GameFlowSession.PlayerMaxHp, GameFlowSession.PlayerCurrentHp);
-            EncounterRoster roster = BuildEncounterRoster(encounterNode, floor);
+            _encounterRoster = RunEncounterRosterBuilder.Build(encounterNode, floor, _monsterDefinition);
 
-            _battle.StartBattle(player, roster.Enemies, roster.Schedules);
+            _battle.StartBattle(player, _encounterRoster.Enemies, _encounterRoster.Schedules);
             _selectedEnemyId = ResolveSelectedEnemyId();
             _combatViewModel.SyncFrom(_battle);
             _view.EnsureEnemySlotCapacity(_battle.Enemies.Count);
             BindEnemySlots();
             _eventLogger.LogEventsSince(_battle, eventCursor: 0);
-        }
-
-        private EncounterRoster BuildEncounterRoster(RunMapNodeDefinition encounterNode, int floor)
-        {
-            int enemyCount = Mathf.Max(1, encounterNode.EnemyCount);
-            var enemies = new CombatParticipant[enemyCount];
-            var schedules = new MonsterTurnSchedule[enemyCount];
-
-            for (int index = 0; index < enemyCount; index++)
-            {
-                enemies[index] = new CombatParticipant(
-                    ResolveMonsterMaxHp(encounterNode),
-                    id: new CombatParticipantId(100 + index),
-                    team: CombatTeam.Enemy);
-                schedules[index] = ResolveMonsterTurnSchedule(encounterNode, floor);
-            }
-
-            return new EncounterRoster(enemies, schedules);
         }
 
         private void InitializePresentationStack()
@@ -215,69 +198,6 @@ namespace SlotRogue.UI.GameFlow
             }
 
             return Resources.GetBuiltinResource<Font>("Arial.ttf");
-        }
-
-        private static int GetMonsterMaxHp(RunMapNodeDefinition encounterNode)
-        {
-            int floor = Mathf.Max(1, encounterNode.Floor);
-
-            switch (encounterNode.NodeType)
-            {
-                case RunMapNodeType.Elite:
-                    return 32 + (floor * 8);
-                case RunMapNodeType.Boss:
-                    return 46 + (floor * 10);
-                default:
-                    return 22 + (floor * 6);
-            }
-        }
-
-        private int ResolveMonsterMaxHp(RunMapNodeDefinition encounterNode)
-        {
-            if (_monsterDefinition != null)
-            {
-                return Mathf.Max(1, _monsterDefinition.maxHp);
-            }
-
-            return GetMonsterMaxHp(encounterNode);
-        }
-
-        private static MonsterTurnSchedule CreateMonsterTurnSchedule(
-            RunMapNodeDefinition encounterNode,
-            int floor)
-        {
-            if (encounterNode.NodeType == RunMapNodeType.Boss)
-            {
-                return new MonsterTurnSchedule(
-                    new[] { new CombatEffect(CombatEffectKind.Damage, 6 + floor, CombatEffectTarget.Enemy) },
-                    new[] { new CombatEffect(CombatEffectKind.Shield, 5 + floor, CombatEffectTarget.Self) },
-                    new[] { new CombatEffect(CombatEffectKind.Damage, 9 + floor, CombatEffectTarget.Enemy) });
-            }
-
-            if (encounterNode.NodeType == RunMapNodeType.Elite)
-            {
-                return new MonsterTurnSchedule(
-                    new[] { new CombatEffect(CombatEffectKind.Damage, 5 + floor, CombatEffectTarget.Enemy) },
-                    new[] { new CombatEffect(CombatEffectKind.Shield, 4 + floor, CombatEffectTarget.Self) },
-                    new[] { new CombatEffect(CombatEffectKind.Damage, 7 + floor, CombatEffectTarget.Enemy) });
-            }
-
-            return new MonsterTurnSchedule(
-                new[] { new CombatEffect(CombatEffectKind.Damage, 3 + floor, CombatEffectTarget.Enemy) },
-                new[] { new CombatEffect(CombatEffectKind.Shield, 2 + floor, CombatEffectTarget.Self) },
-                new[] { new CombatEffect(CombatEffectKind.Damage, 5 + floor, CombatEffectTarget.Enemy) });
-        }
-
-        private MonsterTurnSchedule ResolveMonsterTurnSchedule(
-            RunMapNodeDefinition encounterNode,
-            int floor)
-        {
-            if (_monsterDefinition != null && _monsterDefinition.turnPattern != null)
-            {
-                return MonsterTurnScheduleFactory.FromPattern(_monsterDefinition.turnPattern);
-            }
-
-            return CreateMonsterTurnSchedule(encounterNode, floor);
         }
 
         private void HandleSpinClicked()
@@ -660,19 +580,5 @@ namespace SlotRogue.UI.GameFlow
             SceneManager.LoadScene(GameFlowSceneNames.GameStart);
         }
 
-        private sealed class EncounterRoster
-        {
-            public EncounterRoster(
-                IReadOnlyList<CombatParticipant> enemies,
-                IReadOnlyList<MonsterTurnSchedule> schedules)
-            {
-                Enemies = enemies;
-                Schedules = schedules;
-            }
-
-            public IReadOnlyList<CombatParticipant> Enemies { get; }
-
-            public IReadOnlyList<MonsterTurnSchedule> Schedules { get; }
-        }
     }
 }
