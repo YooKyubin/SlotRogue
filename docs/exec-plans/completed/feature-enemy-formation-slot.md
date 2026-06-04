@@ -1,7 +1,8 @@
 # RunBattle 적 포메이션 슬롯 프리팹
 
-**Status**: active  
+**Status**: completed  
 **Started**: 2026-06-04  
+**Finished**: 2026-06-04  
 **Owner**: _(미정)_  
 **Contributors**: _(없음)_  
 **Related design-docs**: [`game-flow.md`](../../design-docs/game-flow.md), [`combat-core.md`](../../design-docs/combat-core.md)  
@@ -104,10 +105,10 @@ flowchart TB
 
 ### Phase 1 — Data + EnemyFormationSlotView
 
-- [ ] `MonsterDefinition` — `Sprite` portrait (또는 `battlePortrait`) 필드 + 기존 몬스터 SO 샘플 1~2개 할당
-- [ ] `EnemyFormationSlotView.cs` — SerializeField: Root, Button, Portrait(`GameFlowImageSlot` 또는 Image), Hud Text, Hp Fill, DamageAnchor, optional placeholder Text
-- [ ] `SetPortrait(Sprite)` — null 시 clear + placeholder on; non-null 시 `SetSprite` + placeholder off
-- [ ] HUD/선택/클릭 API — 기존 `EnemyHudSlot` 동작 이전 (`SetSelected` 색상 등)
+- [x] `MonsterDefinition` — `Sprite` portrait (또는 `battlePortrait`) 필드 + 기존 몬스터 SO 샘플 1~2개 할당
+- [x] `EnemyFormationSlotView.cs` — SerializeField: Root, Button, Portrait(`GameFlowImageSlot` 또는 Image), Hud Text, Hp Fill, DamageAnchor, optional placeholder Text
+- [x] `SetPortrait(Sprite)` — null 시 clear + placeholder on; non-null 시 `SetSprite` + placeholder off
+- [x] HUD/선택/클릭 API — 기존 `EnemyHudSlot` 동작 이전 (`SetSelected` 색상 등)
 
 **🔍 Review:** 임시 씬에서 View만 붙여 Play 없이 Inspector 참조 누락 없는지 확인.
 
@@ -115,11 +116,11 @@ flowchart TB
 
 ### Phase 2 — EnemyFormationSlot prefab + Builder
 
-- [ ] `Assets/_Project/Prefabs/UI/GameFlow/EnemyFormationSlot.prefab` 생성 (`.meta` 동반)
-- [ ] 프리팹 hierarchy: Root(Button) → Portrait, StatusPanel(HUD+HP), DamageAnchor
-- [ ] `GameFlowScenePrefabBuilder.BuildRunBattle` — Formation Slots Root + 슬롯 프리팹 3개 배치; `CreateBattleArena` 분리 생성 제거
-- [ ] overlay `monster-N-damage-anchor` 루프 제거
-- [ ] `RunBattleView.Bind` — `EnemyFormationSlotView[]` 전달
+- [x] `Assets/_Project/Prefabs/UI/GameFlow/EnemyFormationSlot.prefab` 생성 (`.meta` 동반)
+- [x] 프리팹 hierarchy: Root(Button) → Portrait, StatusPanel(HUD+HP), DamageAnchor
+- [x] `GameFlowScenePrefabBuilder.BuildRunBattle` — Formation Slots Root + 슬롯 프리팹 3개 배치; `CreateBattleArena` 분리 생성 제거
+- [x] overlay `monster-N-damage-anchor` 루프 제거
+- [x] `RunBattleView.Bind` — `EnemyFormationSlotView[]` 전달
 
 **🔍 Review:** Rebuild 후 `RunBattleView.prefab`에 `_formationSlots` 길이 3, 참조 연결 확인.
 
@@ -127,11 +128,11 @@ flowchart TB
 
 ### Phase 3 — RunBattleView 리팩터 (fallback 제거)
 
-- [ ] `EnemyHudSlot` 중첩 클래스 제거 (또는 View로 완전 대체)
-- [ ] 제거: `TryCollectFormationSlotsFromHierarchy`, `ParseMonsterStatusHudIndex`, `FindSeedEnemyHudSlot`, `BuildFormationSlotsFromSeed`, `ResolveHpFill` 이름 검색
-- [ ] `LayoutFormationHudSlots` — Formation Slots Root 기준 가로 배치만 (spacing은 SerializeField 또는 상수 1곳)
-- [ ] `GetEnemyDamageAnchor` → `_formationSlots[i].DamageAnchor`
-- [ ] 슬롯 배열 비었거나 길이 < 3 시 **에러 로그 + Rebuild 안내** (자동 복구 없음)
+- [x] `EnemyHudSlot` 중첩 클래스 제거 (또는 View로 완전 대체)
+- [x] 제거: `TryCollectFormationSlotsFromHierarchy`, `ParseMonsterStatusHudIndex`, `FindSeedEnemyHudSlot`, `BuildFormationSlotsFromSeed`, `ResolveHpFill` 이름 검색
+- [x] `LayoutFormationHudSlots` — Formation Slots Root 기준 가로 배치만 (spacing은 SerializeField 또는 상수 1곳)
+- [x] `GetEnemyDamageAnchor` → `_formationSlots[i].DamageAnchor`
+- [x] 슬롯 배열 비었거나 길이 < 3 시 **에러 로그 + Rebuild 안내** (자동 복구 없음)
 
 **🔍 Review:** 구 `RunBattleView.prefab`을 Rebuild 없이 열면 에러가 나는지 확인(의도된 마이그레이션).
 
@@ -139,10 +140,10 @@ flowchart TB
 
 ### Phase 4 — RunBattleController portrait + Host anchor
 
-- [ ] `BindEnemySlots` / `RefreshEnemySlots` — roster entry → `SetPortrait(entry.monster?.portrait)` + 기존 HUD 텍스트/HP
-- [ ] `ResolveEnemyDamageAnchor` — 슬롯 `DamageAnchor` only; `runtime-monster-N-damage-anchor` fallback **삭제**
-- [ ] `InitializePresentationStack` — default `monster-damage-anchor` overlay fallback 정책 정리 (per-enemy 맵만 사용)
-- [ ] `entry.monster == null` — portrait clear/placeholder (확정 정책)
+- [x] `BindEnemySlots` / `RefreshEnemySlots` — roster entry → `SetPortrait(entry.monster?.portrait)` + 기존 HUD 텍스트/HP
+- [x] `ResolveEnemyDamageAnchor` — 슬롯 `DamageAnchor` only; `runtime-monster-N-damage-anchor` fallback **삭제**
+- [x] `InitializePresentationStack` — default `monster-damage-anchor` overlay fallback 정책 정리 (per-enemy 맵만 사용)
+- [x] `entry.monster == null` — portrait clear/placeholder (확정 정책)
 
 **🔍 Review:** 1마리/2마리/3마리 Encounter에서 슬롯 on/off, 클릭 타겟, HUD formation 인덱스가 [`feature-map-encounter-so`](../completed/feature-map-encounter-so.md)와 일치하는지 확인.
 
@@ -168,10 +169,10 @@ flowchart TB
 
 ### Phase 6 — 문서 정리와 완료 처리
 
-- [ ] [`game-flow.md`](../../design-docs/game-flow.md) — Battle MVP / image slots: formation slot prefab + `MonsterDefinition.portrait` 한 줄
-- [ ] 본 plan 체크리스트·Notes·Completion 갱신 후 `git mv` → `docs/exec-plans/completed/`
-- [ ] [`docs/STATUS.md`](../../STATUS.md) Active 제거, Recently completed 추가
-- [ ] [`exec-plans/active/README.md`](./README.md) 표 갱신
+- [x] [`game-flow.md`](../../design-docs/game-flow.md) — Battle MVP / image slots: formation slot prefab + `MonsterDefinition.portrait` 한 줄
+- [x] 본 plan 체크리스트·Notes·Completion 갱신 후 `git mv` → `docs/exec-plans/completed/`
+- [x] [`docs/STATUS.md`](../../STATUS.md) Active 제거, Recently completed 추가
+- [x] [`exec-plans/active/README.md`](../active/README.md) 표 갱신
 
 **🔍 Review:** design-doc SlotId 설명과 “런타임 portrait는 SO+배열 참조”가 모순 없는지 확인.
 
@@ -200,14 +201,12 @@ flowchart TB
 ## Notes
 
 - Core, `BattleSystem`, `CombatEvent`, asmdef 변경 없음.
-- `FloatingDamageText.prefab` / `DamagePresenter` / HP tween 구조 변경 없음.
+- `FloatingDamageText.prefab` / HP tween 구조 변경 없음. Play 검증 중 슬롯 자식 anchor로 옮긴 뒤 `DamagePresenter`가 `anchor.anchoredPosition`을 overlay에 그대로 복사해 플로팅 위치가 어긋났음 → `AlignFloatingTextToAnchor`(world → `FloatingTextRoot` local)로 수정.
 - 팀은 Rebuild 후 `RunBattleView` **수동 hierarchy 편집 금지** (SerializeField 깨짐). 튜닝은 `EnemyFormationSlot.prefab` 또는 Rebuild.
-- 기존 `battle/monster-N-portrait` SlotId는 프리팹 인스턴스별로 Rebuild가 부여해도 되고, 통일 id도 가능 — **코드는 검색하지 않음**.
+- 기존 `battle/monster-N-portrait` SlotId는 프리팹 인스턴스별로 Rebuild가 부여 — **코드는 검색하지 않음**.
 
 ## Completion
 
-_(completed/로 옮길 때 채움.)_
-
-- **Finished**:
-- **Outcome**:
-- **Follow-ups**:
+- **Finished**: 2026-06-04
+- **Outcome**: `EnemyFormationSlot` 프리팹·`EnemyFormationSlotView`, `MonsterDefinition.portrait`, `RunBattleView`/`RunBattleController`/`GameFlowScenePrefabBuilder` 마이그레이션(Rebuild 필수). 플로팅 데미지는 슬롯 `DamageAnchor` 월드 좌표를 overlay에 맞춤.
+- **Follow-ups**: 보스/엘리트 Prefab Variant, Dev_Battle 슬롯 통일, 몬스터 SO portrait 아트 할당.
