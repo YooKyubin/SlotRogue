@@ -64,7 +64,7 @@ namespace SlotRogue.Data.Tests.Combat
                         {
                             kind = CombatEffectKind.Shield,
                             amount = 3,
-                            target = CombatEffectTarget.Self,
+                            targetMode = CombatTargetMode.Self,
                         },
                         Step(2),
                     },
@@ -96,7 +96,7 @@ namespace SlotRogue.Data.Tests.Combat
             {
                 kind = CombatEffectKind.Damage,
                 amount = amount,
-                target = CombatEffectTarget.Enemy,
+                targetMode = CombatTargetMode.SelectedEnemy,
             };
         }
     }

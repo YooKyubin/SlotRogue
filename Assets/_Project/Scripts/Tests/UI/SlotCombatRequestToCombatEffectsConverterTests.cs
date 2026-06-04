@@ -93,6 +93,19 @@ namespace SlotRogue.UI.Tests.Combat
         }
 
         [Test]
+        public void Convert_SelectedTargetId_AssignsDamageTargets()
+        {
+            var request = new SlotCombatRequest(3, 0, 2, 0, false, "Multi");
+            var selectedTargetId = new CombatParticipantId(101);
+
+            CombatEffect[] effects = _converter.Convert(request, selectedTargetId);
+
+            Assert.That(effects, Has.Length.EqualTo(2));
+            Assert.That(effects[0].Target, Is.EqualTo(CombatEffectTarget.SelectedEnemy(selectedTargetId)));
+            Assert.That(effects[1].Target, Is.EqualTo(CombatEffectTarget.SelectedEnemy(selectedTargetId)));
+        }
+
+        [Test]
         public void Convert_DamageZeroWithAttackCount_SkipsDamage()
         {
             var request = new SlotCombatRequest(0, 1, 2, 2, false, "Support");

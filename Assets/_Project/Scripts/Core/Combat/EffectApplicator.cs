@@ -44,7 +44,7 @@ namespace SlotRogue.Core.Combat
             CombatParticipant source,
             CombatParticipant opponent)
         {
-            return target == CombatEffectTarget.Self ? source : opponent;
+            return target.Mode == CombatTargetMode.Self ? source : opponent;
         }
 
         private static EffectApplyResult ApplyDamage(CombatParticipant target, int amount)

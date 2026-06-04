@@ -8,6 +8,13 @@ namespace SlotRogue.UI.Combat
     {
         public CombatEffect[] Convert(SlotCombatRequest request)
         {
+            return Convert(request, default);
+        }
+
+        public CombatEffect[] Convert(
+            SlotCombatRequest request,
+            CombatParticipantId selectedTargetId)
+        {
             if (request == null)
             {
                 return System.Array.Empty<CombatEffect>();
@@ -30,7 +37,10 @@ namespace SlotRogue.UI.Combat
                 int hitCount = request.AttackCount >= 1 ? request.AttackCount : 1;
                 for (int i = 0; i < hitCount; i++)
                 {
-                    effects.Add(new CombatEffect(CombatEffectKind.Damage, request.Damage, CombatEffectTarget.Enemy));
+                    CombatEffectTarget target = selectedTargetId.IsValid
+                        ? CombatEffectTarget.SelectedEnemy(selectedTargetId)
+                        : CombatEffectTarget.Enemy;
+                    effects.Add(new CombatEffect(CombatEffectKind.Damage, request.Damage, target));
                 }
             }
 

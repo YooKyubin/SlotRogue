@@ -26,7 +26,10 @@ namespace SlotRogue.UI.Combat.Presentation
             }
 
             await TweenTargetHpAsync(combatEvent, viewModel, TweenDuration, cancellationToken);
-            viewModel.ApplyParticipantSnapshot(combatEvent.IsPlayerParticipant, combatEvent.TargetAfter);
+            viewModel.ApplyParticipantSnapshot(
+                combatEvent.TargetParticipantId,
+                combatEvent.TargetAfter,
+                combatEvent.IsPlayerParticipant);
             RefreshHUD();
         }
     }

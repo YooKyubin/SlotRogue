@@ -38,7 +38,7 @@ namespace SlotRogue.UI.Combat.Presentation
             }
             else
             {
-                viewModel.SetMonsterHp(before.Hp);
+                viewModel.SetParticipantHp(combatEvent.TargetParticipantId, before.Hp);
             }
 
             RefreshHUD();
@@ -55,7 +55,7 @@ namespace SlotRogue.UI.Combat.Presentation
                     }
                     else
                     {
-                        viewModel.SetMonsterHp(value);
+                        viewModel.SetParticipantHp(combatEvent.TargetParticipantId, value);
                     }
 
                     RefreshHUD();
@@ -80,7 +80,7 @@ namespace SlotRogue.UI.Combat.Presentation
             }
             else
             {
-                viewModel.SetMonsterShield(before.Shield);
+                viewModel.SetParticipantShield(combatEvent.TargetParticipantId, before.Shield);
             }
 
             RefreshHUD();
@@ -97,7 +97,7 @@ namespace SlotRogue.UI.Combat.Presentation
                     }
                     else
                     {
-                        viewModel.SetMonsterShield(value);
+                        viewModel.SetParticipantShield(combatEvent.TargetParticipantId, value);
                     }
 
                     RefreshHUD();

@@ -8,7 +8,8 @@ namespace SlotRogue.UI.GameFlow
             string description,
             RunMapNodeType nodeType,
             int floor,
-            int lane)
+            int lane,
+            int enemyCount = 1)
         {
             NodeId = nodeId;
             DisplayName = displayName;
@@ -16,6 +17,7 @@ namespace SlotRogue.UI.GameFlow
             NodeType = nodeType;
             Floor = floor;
             Lane = lane;
+            EnemyCount = enemyCount < 1 ? 1 : enemyCount;
         }
 
         public string NodeId { get; }
@@ -29,5 +31,7 @@ namespace SlotRogue.UI.GameFlow
         public int Floor { get; }
 
         public int Lane { get; }
+
+        public int EnemyCount { get; }
     }
 }
