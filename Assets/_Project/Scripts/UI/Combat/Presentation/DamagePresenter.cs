@@ -34,6 +34,7 @@ namespace SlotRogue.UI.Combat.Presentation
             UniTask floatingStub = ShowFloatingDamageAsync(
                 damageDealt,
                 context.IsCritical,
+                combatEvent.TargetParticipantId,
                 combatEvent.IsPlayerParticipant,
                 cancellationToken);
 
@@ -49,11 +50,12 @@ namespace SlotRogue.UI.Combat.Presentation
         private async UniTask ShowFloatingDamageAsync(
             int amount,
             bool isCritical,
+            CombatParticipantId targetParticipantId,
             bool isPlayerTarget,
             CancellationToken cancellationToken)
         {
             string prefix = isCritical ? "[CRIT] " : string.Empty;
-            string targetLabel = isPlayerTarget ? "Player" : "Monster";
+            string targetLabel = isPlayerTarget ? "Player" : $"Monster#{targetParticipantId.Value}";
             Debug.Log($"[Presentation] {prefix}Floating damage {amount} -> {targetLabel}");
 
             if (amount <= 0)
@@ -73,7 +75,7 @@ namespace SlotRogue.UI.Combat.Presentation
                 return;
             }
 
-            RectTransform anchor = isPlayerTarget ? Host.PlayerDamageAnchor : Host.MonsterDamageAnchor;
+            RectTransform anchor = Host.ResolveDamageAnchor(targetParticipantId, isPlayerTarget);
             if (anchor == null)
             {
                 Debug.LogWarning($"[Presentation] Missing {(isPlayerTarget ? "player" : "monster")} damage anchor.");

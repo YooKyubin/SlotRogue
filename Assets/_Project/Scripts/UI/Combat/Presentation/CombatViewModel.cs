@@ -15,6 +15,20 @@ namespace SlotRogue.UI.Combat.Presentation
 
         public int MonsterShield { get; private set; }
 
+        public bool TryGetParticipantSnapshot(
+            CombatParticipantId participantId,
+            out CombatParticipantSnapshot snapshot)
+        {
+            if (participantId.IsValid &&
+                _participants.TryGetValue(participantId.Value, out snapshot))
+            {
+                return true;
+            }
+
+            snapshot = default;
+            return false;
+        }
+
         public void SyncFrom(BattleSystem battle)
         {
             CombatParticipant player = battle.Player;
@@ -86,6 +100,30 @@ namespace SlotRogue.UI.Combat.Presentation
         public void SetMonsterHp(int hp) => MonsterHp = hp;
 
         public void SetMonsterShield(int shield) => MonsterShield = shield;
+
+        public void SetParticipantHp(
+            CombatParticipantId participantId,
+            int hp,
+            bool isPlayerParticipantHint = false)
+        {
+            bool isPlayer = isPlayerParticipantHint || participantId.Value == 1;
+            if (isPlayer)
+            {
+                PlayerHp = hp;
+                if (_participants.TryGetValue(1, out CombatParticipantSnapshot playerSnapshot))
+                {
+                    _participants[1] = new CombatParticipantSnapshot(hp, playerSnapshot.Shield);
+                }
+
+                return;
+            }
+
+            MonsterHp = hp;
+            if (participantId.IsValid && _participants.TryGetValue(participantId.Value, out CombatParticipantSnapshot snapshot))
+            {
+                _participants[participantId.Value] = new CombatParticipantSnapshot(hp, snapshot.Shield);
+            }
+        }
 
         public void SetParticipantShield(
             CombatParticipantId participantId,

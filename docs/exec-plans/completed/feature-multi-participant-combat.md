@@ -100,6 +100,6 @@ Unity Test Runner: `BattleSystemTests` + `BattleSystemMultiParticipantTests` Edi
 - **Finished**: 2026-06-03
 - **Outcome**: `BattleSystem` roster·`TargetMode`·멀티히트 재해석·적 턴 좌→우·schedule 유지, Flow/UI `selectedTargetId` 배선, EditMode 다인전 테스트 9건, Dev_Battle 2몹 옵션, ADR-0004 `accepted`.
 - **Follow-ups**:
-  - RunBattle 2몹 인카운터 + 몬스터별 HUD/타겟 탭 UI
+  - [`feature-multi-participant-play-ui`](../active/feature-multi-participant-play-ui.md) — RunBattle 2몹 인카운터 + 몬스터별 HUD/타겟 탭 UI + 연출 anchor
   - `RandomEnemy` 진짜 랜덤 (데이터에서 사용 시)
   - 플레이어 파티 2인 이상 (별도 ADR)

@@ -168,7 +168,7 @@ namespace SlotRogue.Editor.GameFlow
 
             Text[] slotCells = new Text[SlotSpinResult.CellCount];
             CreateBattleTopHud(root, out Text playerHud, out Image playerHp, out Image playerShield);
-            CreateBattleArena(root, out Text monsterHud, out Text enemyIntent, out Image monsterHp);
+            CreateBattleArena(root, out RunBattleView.EnemyHudSlot[] enemySlots, out Text enemyIntent);
             CreateSlotMachine(root, slotCells);
             CreateBattleActionRow(root, out Text resultValue, out Button spinButton, out Button continueButton, out Button restartButton, out Text slotResult);
             CreateBattleBottomRow(root, out Text statusText);
@@ -177,10 +177,19 @@ namespace SlotRogue.Editor.GameFlow
                 presentationOverlay,
                 "player-damage-anchor",
                 new Vector2(0f, -120f));
-            RectTransform monsterDamageAnchor = CreateDamageAnchor(
-                presentationOverlay,
-                "monster-damage-anchor",
-                new Vector2(0f, 40f));
+            for (int index = 0; index < enemySlots.Length; index++)
+            {
+                RectTransform anchor = CreateDamageAnchor(
+                    presentationOverlay,
+                    $"monster-{index}-damage-anchor",
+                    ResolveEnemyDamageAnchorPosition(index, enemySlots.Length));
+                enemySlots[index] = new RunBattleView.EnemyHudSlot(
+                    enemySlots[index].Root,
+                    enemySlots[index].HudText,
+                    enemySlots[index].HpFill,
+                    enemySlots[index].Button,
+                    anchor);
+            }
             presentationOverlay.SetAsLastSibling();
 
             view.Bind(
@@ -189,17 +198,15 @@ namespace SlotRogue.Editor.GameFlow
                 slotResult,
                 resultValue,
                 playerHud,
-                monsterHud,
                 enemyIntent,
                 playerHp,
                 playerShield,
-                monsterHp,
                 spinButton,
                 continueButton,
                 restartButton,
                 presentationOverlay,
                 playerDamageAnchor,
-                monsterDamageAnchor);
+                enemySlots);
 
             SavePrefabAndScene(canvas, "RunBattleView", "RunBattle");
         }
@@ -254,16 +261,81 @@ namespace SlotRogue.Editor.GameFlow
             CreateOverlayText(settings, "Settings Text", "SET", 25, TextAnchor.MiddleCenter, new RectOffset(8, 8, 8, 8));
         }
 
-        private static void CreateBattleArena(RectTransform root, out Text monsterHud, out Text enemyIntent, out Image monsterHp)
+        private static void CreateBattleArena(
+            RectTransform root,
+            out RunBattleView.EnemyHudSlot[] enemySlots,
+            out Text enemyIntent)
         {
+            const int DefaultEnemySlotCount = 3;
             RectTransform arena = CreatePanel(root, "Battle Arena Image", "battle/arena", ArenaColor, new Vector2(0f, 380f), new Vector2(860f, 650f));
             CreateOverlayText(arena, "Arena Background Label", "ALIEN FRONTIER", 23, TextAnchor.UpperCenter, new RectOffset(22, 22, 20, 560));
-            RectTransform monsterStatus = CreatePanel(arena, "Monster Status HUD", "battle/monster-status-panel", PanelColor, new Vector2(0f, 248f), new Vector2(570f, 92f));
-            monsterHud = CreateOverlayText(monsterStatus, "Monster HUD Text", "MONSTER", 28, TextAnchor.UpperCenter, new RectOffset(12, 12, 8, 44));
-            monsterHp = CreateFillBar(monsterStatus, "Monster HP Bar", "battle/monster-hp-bar", "battle/monster-hp-fill", new Vector2(0f, -22f), new Vector2(460f, 24f), HpColor);
-            RectTransform portrait = CreatePanel(arena, "Monster Portrait Image", "battle/monster-portrait", MonsterColor, new Vector2(0f, 50f), new Vector2(470f, 330f));
-            CreateOverlayText(portrait, "Monster Placeholder Text", "MONSTER\nSPRITE SLOT", 30, TextAnchor.MiddleCenter, new RectOffset(18, 18, 18, 18));
+
+            enemySlots = new RunBattleView.EnemyHudSlot[DefaultEnemySlotCount];
+            for (int index = 0; index < enemySlots.Length; index++)
+            {
+                Vector2 slotPosition = ResolveEnemySlotPosition(index, enemySlots.Length);
+                RectTransform monsterStatus = CreatePanel(
+                    arena,
+                    $"Monster {index + 1} Status HUD",
+                    $"battle/monster-{index + 1}-status-panel",
+                    PanelColor,
+                    new Vector2(slotPosition.x, 248f),
+                    new Vector2(255f, 92f));
+                Text monsterHud = CreateOverlayText(
+                    monsterStatus,
+                    $"Monster {index + 1} HUD Text",
+                    $"MONSTER {index + 1}",
+                    20,
+                    TextAnchor.UpperCenter,
+                    new RectOffset(8, 8, 8, 44));
+                Image monsterHp = CreateFillBar(
+                    monsterStatus,
+                    $"Monster {index + 1} HP Bar",
+                    $"battle/monster-{index + 1}-hp-bar",
+                    $"battle/monster-{index + 1}-hp-fill",
+                    new Vector2(0f, -22f),
+                    new Vector2(205f, 22f),
+                    HpColor);
+
+                RectTransform portrait = CreatePanel(
+                    arena,
+                    $"Monster {index + 1} Portrait Image",
+                    $"battle/monster-{index + 1}-portrait",
+                    MonsterColor,
+                    new Vector2(slotPosition.x, 50f),
+                    new Vector2(240f, 330f));
+                Button button = portrait.gameObject.AddComponent<Button>();
+                button.targetGraphic = portrait.GetComponent<Image>();
+                CreateOverlayText(
+                    portrait,
+                    $"Monster {index + 1} Placeholder Text",
+                    $"MONSTER {index + 1}\nSPRITE SLOT",
+                    24,
+                    TextAnchor.MiddleCenter,
+                    new RectOffset(14, 14, 18, 18));
+
+                enemySlots[index] = new RunBattleView.EnemyHudSlot(monsterStatus, monsterHud, monsterHp, button, null);
+            }
+
             enemyIntent = CreateOverlayText(arena, "Enemy Intent Text", "ENEMY INTENT: -", 24, TextAnchor.LowerCenter, new RectOffset(36, 36, 560, 22));
+        }
+
+        private static Vector2 ResolveEnemySlotPosition(int index, int slotCount)
+        {
+            if (slotCount <= 1)
+            {
+                return Vector2.zero;
+            }
+
+            float spacing = slotCount <= 2 ? 300f : 270f;
+            float startX = -(slotCount - 1) * spacing * 0.5f;
+            return new Vector2(startX + (index * spacing), 0f);
+        }
+
+        private static Vector2 ResolveEnemyDamageAnchorPosition(int index, int slotCount)
+        {
+            Vector2 slotPosition = ResolveEnemySlotPosition(index, slotCount);
+            return new Vector2(slotPosition.x, 40f);
         }
 
         private static void CreateSlotMachine(RectTransform root, Text[] slotCells)

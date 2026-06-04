@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -28,6 +29,7 @@ namespace SlotRogue.UI.GameFlow
         private BattleFlowController _flowController = null!;
         private CombatPresentationHost _presentationHost = null!;
         private CancellationTokenSource _presentationCts = null!;
+        private Transform _floatingTextRoot = null!;
         private RectTransform _playerDamageAnchor = null!;
         private RectTransform _monsterDamageAnchor = null!;
 
@@ -93,19 +95,39 @@ namespace SlotRogue.UI.GameFlow
             RunMapNodeDefinition encounterNode = GetEncounterNode();
             int floor = Mathf.Max(1, encounterNode.Floor);
             var player = new CombatParticipant(GameFlowSession.PlayerMaxHp, GameFlowSession.PlayerCurrentHp);
-            var monster = new CombatParticipant(ResolveMonsterMaxHp(encounterNode));
-            MonsterTurnSchedule schedule = ResolveMonsterTurnSchedule(encounterNode, floor);
+            EncounterRoster roster = BuildEncounterRoster(encounterNode, floor);
 
-            _battle.StartBattle(player, monster, schedule);
+            _battle.StartBattle(player, roster.Enemies, roster.Schedules);
             _selectedEnemyId = ResolveSelectedEnemyId();
             _combatViewModel.SyncFrom(_battle);
+            _view.EnsureEnemySlotCapacity(_battle.Enemies.Count);
+            BindEnemySlots();
             _eventLogger.LogEventsSince(_battle, eventCursor: 0);
+        }
+
+        private EncounterRoster BuildEncounterRoster(RunMapNodeDefinition encounterNode, int floor)
+        {
+            int enemyCount = Mathf.Max(1, encounterNode.EnemyCount);
+            var enemies = new CombatParticipant[enemyCount];
+            var schedules = new MonsterTurnSchedule[enemyCount];
+
+            for (int index = 0; index < enemyCount; index++)
+            {
+                enemies[index] = new CombatParticipant(
+                    ResolveMonsterMaxHp(encounterNode),
+                    id: new CombatParticipantId(100 + index),
+                    team: CombatTeam.Enemy);
+                schedules[index] = ResolveMonsterTurnSchedule(encounterNode, floor);
+            }
+
+            return new EncounterRoster(enemies, schedules);
         }
 
         private void InitializePresentationStack()
         {
             _presentationCts = new CancellationTokenSource();
             Transform floatingTextRoot = ResolveFloatingTextRoot();
+            _floatingTextRoot = floatingTextRoot;
             _playerDamageAnchor = _view.PlayerDamageAnchor != null
                 ? _view.PlayerDamageAnchor
                 : ResolveDamageAnchor(floatingTextRoot, "player-damage-anchor", new Vector2(0f, -120f));
@@ -289,7 +311,8 @@ namespace SlotRogue.UI.GameFlow
             RefreshSlotResultText();
 
             SlotCombatRequest request = _lastRequestResult.FinalRequest;
-            CombatEffect[] playerEffects = _converter.Convert(request);
+            CombatParticipantId selectedTargetId = ResolveSelectedEnemyId();
+            CombatEffect[] playerEffects = _converter.Convert(request, selectedTargetId);
             var context = new PresentationContext(request.IsCritical, request.PatternName);
             int eventCursor = _eventLogger.CaptureEventCursor(_battle);
 
@@ -300,7 +323,7 @@ namespace SlotRogue.UI.GameFlow
                 BattleApplyResult result = await _flowController.RunTurnAsync(
                     _battle,
                     playerEffects,
-                    ResolveSelectedEnemyId(),
+                    selectedTargetId,
                     context,
                     _presentationCts.Token);
 
@@ -432,24 +455,127 @@ namespace SlotRogue.UI.GameFlow
             }
 
             CombatParticipant player = _battle.Player;
-            CombatParticipant monster = _battle.Monster;
 
             _view.SetPlayerHpFill(_combatViewModel.PlayerHp, player.MaxHp);
             _view.SetPlayerShieldFill(_combatViewModel.PlayerShield, Mathf.Max(1, player.MaxHp));
-            _view.SetMonsterHpFill(_combatViewModel.MonsterHp, monster.MaxHp);
             _view.SetPlayerHud(
                 $"{_combatViewModel.PlayerHp}/{player.MaxHp}\n" +
                 $"{_combatViewModel.PlayerShield}");
-            _view.SetMonsterHud(
-                $"{GetEncounterNode().DisplayName}\n" +
-                $"{_combatViewModel.MonsterHp}/{monster.MaxHp}  SH {_combatViewModel.MonsterShield}");
-            _view.SetEnemyIntent($"ENEMY INTENT: {FormatUpcomingEnemyAction()}");
+            CombatParticipantId selectedTargetId = ResolveSelectedEnemyId();
+            RefreshEnemySlots();
+            _view.SetEnemyIntent(
+                $"ENEMY INTENT: {FormatUpcomingEnemyAction()}\n" +
+                $"TARGET: {selectedTargetId}");
             _view.SetStatus(
                 $"{_battle.CurrentPhase}\n" +
                 $"Turn {_battle.UpcomingMonsterTurnIndex}\n" +
+                $"Enemies {_battle.Enemies.Count}\n" +
                 $"Bonus D+{GameFlowSession.DamageBonus} / S+{GameFlowSession.DefenseBonus}");
 
             UpdateSpinButtonState();
+        }
+
+        private void BindEnemySlots()
+        {
+            int slotCount = _view.EnemySlotCount;
+            for (int index = 0; index < slotCount; index++)
+            {
+                _view.SetEnemySlotClickHandler(index, null);
+                _view.SetEnemySlotActive(index, false);
+            }
+
+            int bindCount = Mathf.Min(slotCount, _battle.Enemies.Count);
+            for (int index = 0; index < bindCount; index++)
+            {
+                CombatParticipant enemy = _battle.Enemies[index];
+                CombatParticipantId enemyId = enemy.Id;
+                int slotIndex = index;
+                _view.SetEnemySlotClickHandler(slotIndex, () => HandleEnemySelected(enemyId));
+                RectTransform anchor = ResolveEnemyDamageAnchor(slotIndex, bindCount);
+                _presentationHost.SetEnemyDamageAnchor(enemyId, anchor);
+            }
+
+            if (_battle.Enemies.Count > slotCount)
+            {
+                Debug.LogWarning(
+                    $"[RunBattleController] Enemy count {_battle.Enemies.Count} exceeds configured HUD slots {slotCount}.");
+            }
+        }
+
+        private void RefreshEnemySlots()
+        {
+            int slotCount = _view.EnemySlotCount;
+            int visibleCount = Mathf.Min(slotCount, _battle.Enemies.Count);
+
+            for (int index = 0; index < visibleCount; index++)
+            {
+                CombatParticipant enemy = _battle.Enemies[index];
+                CombatParticipantSnapshot snapshot = _combatViewModel.TryGetParticipantSnapshot(
+                    enemy.Id,
+                    out CombatParticipantSnapshot participantSnapshot)
+                    ? participantSnapshot
+                    : new CombatParticipantSnapshot(enemy.CurrentHp, enemy.Shield);
+                bool selected = _selectedEnemyId.IsValid && _selectedEnemyId.Value == enemy.Id.Value;
+                string deadSuffix = enemy.IsDead ? " [DOWN]" : string.Empty;
+                _view.SetEnemySlot(
+                    index,
+                    $"{GetEncounterNode().DisplayName} #{index + 1}{deadSuffix}\n" +
+                    $"{snapshot.Hp}/{enemy.MaxHp}  SH {snapshot.Shield}",
+                    snapshot.Hp,
+                    enemy.MaxHp,
+                    selected,
+                    !enemy.IsDead && !_flowController.IsBusy);
+            }
+
+            for (int index = visibleCount; index < slotCount; index++)
+            {
+                _view.SetEnemySlotActive(index, false);
+            }
+        }
+
+        private RectTransform ResolveEnemyDamageAnchor(int slotIndex, int enemyCount)
+        {
+            RectTransform anchor = _view.GetEnemyDamageAnchor(slotIndex);
+            if (anchor != null && (enemyCount <= 1 || anchor != _monsterDamageAnchor))
+            {
+                return anchor;
+            }
+
+            return ResolveDamageAnchor(
+                _floatingTextRoot,
+                $"runtime-monster-{slotIndex}-damage-anchor",
+                ResolveEnemyDamageAnchorPosition(slotIndex, enemyCount));
+        }
+
+        private static Vector2 ResolveEnemyDamageAnchorPosition(int slotIndex, int enemyCount)
+        {
+            if (enemyCount <= 1)
+            {
+                return new Vector2(0f, 40f);
+            }
+
+            float spacing = enemyCount <= 2 ? 300f : 270f;
+            float startX = -(enemyCount - 1) * spacing * 0.5f;
+            return new Vector2(startX + (slotIndex * spacing), 40f);
+        }
+
+        private void HandleEnemySelected(CombatParticipantId enemyId)
+        {
+            if (_flowController.IsBusy)
+            {
+                return;
+            }
+
+            for (int index = 0; index < _battle.Enemies.Count; index++)
+            {
+                CombatParticipant enemy = _battle.Enemies[index];
+                if (enemy.Id.Value == enemyId.Value && !enemy.IsDead)
+                {
+                    _selectedEnemyId = enemyId;
+                    RefreshStatusText();
+                    return;
+                }
+            }
         }
 
         private string FormatUpcomingEnemyAction()
@@ -532,6 +658,21 @@ namespace SlotRogue.UI.GameFlow
         private static void ReturnToStart()
         {
             SceneManager.LoadScene(GameFlowSceneNames.GameStart);
+        }
+
+        private sealed class EncounterRoster
+        {
+            public EncounterRoster(
+                IReadOnlyList<CombatParticipant> enemies,
+                IReadOnlyList<MonsterTurnSchedule> schedules)
+            {
+                Enemies = enemies;
+                Schedules = schedules;
+            }
+
+            public IReadOnlyList<CombatParticipant> Enemies { get; }
+
+            public IReadOnlyList<MonsterTurnSchedule> Schedules { get; }
         }
     }
 }
