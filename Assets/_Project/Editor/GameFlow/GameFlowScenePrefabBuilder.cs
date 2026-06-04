@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
+using SlotRogue.Data.GameFlow;
 using SlotRogue.Slot.Data;
 using SlotRogue.UI.GameFlow;
-using SlotRogue.UI.SlotPresentation;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -15,20 +15,9 @@ namespace SlotRogue.Editor.GameFlow
     public static class GameFlowScenePrefabBuilder
     {
         private const string PrefabFolder = "Assets/_Project/Prefabs/UI/GameFlow";
+        private const string EnemyFormationSlotPrefabName = "EnemyFormationSlot";
+        private const int FormationSlotCount = 3;
         private const string SceneFolder = "Assets/_Project/Scenes";
-        private const string BackgroundOutsideTexturePath = "Assets/Resources/Textures/Background_Outside.png";
-        private const string BackgroundInsideTexturePath = "Assets/Resources/Textures/Background_Inside.png";
-        private const string SlotIconTexturePath = "Assets/Resources/Textures/Icon_Slot.png";
-        private const string SlotIconAnimatedTexturePath = "Assets/Resources/Textures/icon_slot_ani.png";
-        private const string InGameSlotTexturePath = "Assets/Resources/Textures/Ingame_Slot.png";
-        private const string InGameHpTexturePath = "Assets/Resources/Textures/Ingame_hp.png";
-        private const string InGameSpinButtonTexturePath = "Assets/Resources/Textures/Ingame_bt_spin.png";
-        private const string InGameLeverTexturePath = "Assets/Resources/Textures/Ingame_lever.png";
-        private const string InGamePauseButtonTexturePath = "Assets/Resources/Textures/ingame_bt_pause.png";
-        private const string InGameSpecButtonTexturePath = "Assets/Resources/Textures/ingame_bt_spec.png";
-        private const string InGameCoinPanelTexturePath = "Assets/Resources/Textures/ingame_panel_coin.png";
-        private const string InGamePotionSlot1TexturePath = "Assets/Resources/Textures/ingame_slot_potion1.png";
-        private const string InGamePotionSlot2TexturePath = "Assets/Resources/Textures/ingame_slot_potion2.png";
         private const float MapWidth = 760f;
         private const float MapHeight = 950f;
         private const float NodeWidth = 138f;
@@ -53,17 +42,6 @@ namespace SlotRogue.Editor.GameFlow
         [MenuItem("SlotRogue/Game Flow/Rebuild Scene UI Prefabs")]
         public static void BuildAll()
         {
-            bool confirmed = UnityEditor.EditorUtility.DisplayDialog(
-                "Rebuild Scene UI Prefabs",
-                "씬·프리팹 전체를 재생성합니다.\n수동으로 배치한 UI 변경사항이 모두 초기화됩니다.\n\n계속하겠습니까?",
-                "Rebuild",
-                "Cancel");
-
-            if (!confirmed)
-            {
-                return;
-            }
-
             EnsureFolder(PrefabFolder);
 
             BuildGameStart();
@@ -78,160 +56,7 @@ namespace SlotRogue.Editor.GameFlow
 
         public static void BuildAllFromCommandLine()
         {
-            EnsureFolder(PrefabFolder);
-
-            BuildGameStart();
-            BuildArtifactSelection();
-            BuildRunMap();
-            BuildRunBattle();
-            BuildRunReward();
-
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
-        }
-
-        [MenuItem("SlotRogue/Game Flow/Rebuild Run Battle Scene UI")]
-        public static void BuildRunBattleOnly()
-        {
-            bool confirmed = UnityEditor.EditorUtility.DisplayDialog(
-                "Rebuild Run Battle Scene UI",
-                "RunBattle 씬·프리팹을 재생성합니다.\n수동으로 배치한 UI 변경사항이 초기화됩니다.\n\n계속하겠습니까?",
-                "Rebuild",
-                "Cancel");
-
-            if (!confirmed)
-            {
-                return;
-            }
-
-            EnsureFolder(PrefabFolder);
-            EnsureFolder(SceneFolder);
-
-            BuildRunBattle();
-
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
-        }
-
-        [MenuItem("SlotRogue/Game Flow/Patch Run Battle Lever (Keep UI)")]
-        public static void PatchRunBattleLeverOnly()
-        {
-            string prefabPath = $"{PrefabFolder}/RunBattleView.prefab";
-            GameObject root = PrefabUtility.LoadPrefabContents(prefabPath);
-
-            if (root == null)
-            {
-                UnityEngine.Debug.LogError(
-                    $"[SlotRogue] Prefab not found: {prefabPath}");
-                return;
-            }
-
-            try
-            {
-                SlotLeverView leverView = PatchRunBattleLever(root);
-
-                if (leverView == null)
-                {
-                    return;
-                }
-
-                PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
-                AssetDatabase.SaveAssets();
-                AssetDatabase.ImportAsset(prefabPath, ImportAssetOptions.ForceUpdate);
-                int sceneInstanceCount = PatchLoadedRunBattleSceneInstances(out GameObject selectedLever);
-
-                if (selectedLever != null)
-                {
-                    Selection.activeGameObject = selectedLever;
-                    EditorGUIUtility.PingObject(selectedLever);
-                }
-
-                UnityEngine.Debug.Log(
-                    "[SlotRogue] RunBattle Spin Lever patched. UI layout was kept intact. " +
-                    $"Loaded scene instances: {sceneInstanceCount}.");
-            }
-            finally
-            {
-                PrefabUtility.UnloadPrefabContents(root);
-            }
-        }
-
-        [MenuItem("SlotRogue/Slot Presentation/Patch Bindings Only (Keep UI)")]
-        public static void PatchSlotPresentationBindings()
-        {
-            string prefabPath = $"{PrefabFolder}/DevSlotPresentationView.prefab";
-            GameObject root = PrefabUtility.LoadPrefabContents(prefabPath);
-
-            if (root == null)
-            {
-                UnityEngine.Debug.LogError(
-                    $"[SlotRogue] Prefab not found: {prefabPath}\n" +
-                    "Run 'Rebuild Demo Scene' once before patching bindings.");
-                return;
-            }
-
-            try
-            {
-                PatchSpinViewBindings(root);
-                PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
-                AssetDatabase.SaveAssets();
-                UnityEngine.Debug.Log(
-                    "[SlotRogue] SpinView bindings patched. UI layout was kept intact.");
-            }
-            finally
-            {
-                PrefabUtility.UnloadPrefabContents(root);
-            }
-        }
-
-        [MenuItem("SlotRogue/Slot Presentation/Rebuild Demo Scene (Reset UI)")]
-        public static void BuildSlotPresentationDemo()
-        {
-            bool confirmed = UnityEditor.EditorUtility.DisplayDialog(
-                "Reset Demo UI Layout",
-                "This will rebuild DevSlotPresentationView from scratch.\n" +
-                "Manual UI layout edits on the prefab will be reset.\n\n" +
-                "Use 'Patch Bindings Only (Keep UI)' if you only need component references updated.",
-                "Rebuild",
-                "Cancel");
-
-            if (!confirmed) return;
-
-            EnsureFolder(PrefabFolder);
-            EnsureFolder(SceneFolder);
-
-            GameObject canvas = CreateCanvasRoot("Slot Presentation Demo UI");
-            var controller = canvas.AddComponent<SlotPresentationDemoController>();
-            RectTransform root = CreateRootPanel(canvas.transform, "Slot Presentation Demo Root");
-            CreateInsideTextureBackdrop(root);
-
-            CreateText(root, "Title", "Perfect Board Presentation Demo", 42, TextAnchor.MiddleCenter, new Vector2(0f, 790f), new Vector2(820f, 80f));
-            Text status = CreateTextPanel(
-                root,
-                "Demo Status Panel",
-                "slot-presentation-demo/status-panel",
-                "Perfect board pattern ladder plays on start.",
-                new Vector2(0f, 560f),
-                new Vector2(820f, 145f),
-                21);
-
-            Text[] slotCells = new Text[SlotSpinResult.CellCount];
-            Image[] slotCellIcons = new Image[SlotSpinResult.CellCount];
-            Sprite[] slotIconSprites = LoadSprites(SlotIconTexturePath);
-            Sprite[] slotSpinIconSprites = LoadSprites(SlotIconAnimatedTexturePath);
-            CreateSlotMachine(root, slotCells, slotCellIcons);
-            SlotPresentationManager manager = CreateSlotPresentationLayer(root, slotCells, slotCellIcons, slotIconSprites, slotSpinIconSprites);
-
-            Button fullDemoButton = CreateButton(root, "Pattern Ladder Button", "slot-presentation-demo/full-button", "PATTERN\nLADDER", new Vector2(-315f, -635f), new Vector2(190f, 125f), 24);
-            Button multiDemoButton = CreateButton(root, "Relic Chain Button", "slot-presentation-demo/multi-button", "RELIC\nCHAIN", new Vector2(-105f, -635f), new Vector2(190f, 125f), 27);
-            Button replayBestButton = CreateButton(root, "Replay Best Button", "slot-presentation-demo/replay-best-button", "REPLAY\nLADDER", new Vector2(105f, -635f), new Vector2(190f, 125f), 22);
-            Button skipButton = CreateButton(root, "Skip Demo Button", "slot-presentation-demo/skip-button", "SKIP", new Vector2(315f, -635f), new Vector2(190f, 125f), 30);
-
-            controller.Bind(manager, status, fullDemoButton, multiDemoButton, replayBestButton, skipButton, GetSpriteOrNull(slotIconSprites, 0));
-
-            SavePrefabAndScene(canvas, "DevSlotPresentationView", "Dev_SlotPresentation");
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
+            BuildAll();
         }
 
         private static void BuildGameStart()
@@ -342,29 +167,21 @@ namespace SlotRogue.Editor.GameFlow
             GameObject canvas = CreateCanvasRoot("Run Battle UI");
             var view = canvas.AddComponent<RunBattleView>();
             canvas.AddComponent<RunBattleController>();
-            RectTransform root = CreateRunBattleRoot(canvas.transform);
-            CreateInsideTextureBackdrop(root);
+            RectTransform root = CreateRootPanel(canvas.transform, "Run Battle Root");
 
             Text[] slotCells = new Text[SlotSpinResult.CellCount];
-            Image[] slotCellIcons = new Image[SlotSpinResult.CellCount];
-            Sprite[] slotIconSprites = LoadSprites(SlotIconTexturePath);
-            Sprite[] slotSpinIconSprites = LoadSprites(SlotIconAnimatedTexturePath);
-
-            CreateTopCurrencyHud(root);
-            CreatePauseButton(root);
-            CreateInGameSlotMachine(root, slotCells, slotCellIcons);
-            CreatePlayerHpGauge(root, out Image playerHp);
-            Text resultValue = CreateAttackPowerReadout(root);
-            CreateSpinControls(root, out Button spinButton, out Button continueButton, out Button restartButton);
-            CreatePotionInventory(root);
-            Text statusText = null;
-            Text slotResult = null;
-            Text playerHud = null;
-            Text monsterHud = null;
-            Text enemyIntent = null;
-            Image playerShield = null;
-            Image monsterHp = null;
-            CreateSlotPresentationLayer(root, slotCells, slotCellIcons, slotIconSprites, slotSpinIconSprites);
+            CreateBattleTopHud(root, out Text playerHud, out Image playerHp, out Image playerShield);
+            EnsureEnemyFormationSlotPrefab();
+            CreateBattleArena(root, out EnemyFormationSlotView[] formationSlots, out Text enemyIntent);
+            CreateSlotMachine(root, slotCells);
+            CreateBattleActionRow(root, out Text resultValue, out Button spinButton, out Button continueButton, out Button restartButton, out Text slotResult);
+            CreateBattleBottomRow(root, out Text statusText);
+            RectTransform presentationOverlay = CreatePresentationOverlay(canvas.transform);
+            RectTransform playerDamageAnchor = CreateDamageAnchor(
+                presentationOverlay,
+                "player-damage-anchor",
+                new Vector2(0f, -120f));
+            presentationOverlay.SetAsLastSibling();
 
             view.Bind(
                 slotCells,
@@ -372,149 +189,52 @@ namespace SlotRogue.Editor.GameFlow
                 slotResult,
                 resultValue,
                 playerHud,
-                monsterHud,
                 enemyIntent,
                 playerHp,
                 playerShield,
-                monsterHp,
                 spinButton,
                 continueButton,
-                restartButton);
+                restartButton,
+                presentationOverlay,
+                playerDamageAnchor,
+                formationSlots);
 
             SavePrefabAndScene(canvas, "RunBattleView", "RunBattle");
         }
 
-        private static RectTransform CreateRunBattleRoot(Transform parent)
+        private static RectTransform CreatePresentationOverlay(Transform canvasTransform)
         {
-            RectTransform root = CreateRect("Run Battle Root", parent, Vector2.zero, new Vector2(1080f, 1920f));
-            root.anchorMin = Vector2.zero;
-            root.anchorMax = Vector2.one;
-            root.offsetMin = Vector2.zero;
-            root.offsetMax = Vector2.zero;
-            return root;
+            RectTransform overlay = CreateRect("Presentation Overlay", canvasTransform, Vector2.zero, Vector2.zero);
+            overlay.anchorMin = Vector2.zero;
+            overlay.anchorMax = Vector2.one;
+            overlay.offsetMin = Vector2.zero;
+            overlay.offsetMax = Vector2.zero;
+
+            var canvasGroup = overlay.gameObject.AddComponent<CanvasGroup>();
+            canvasGroup.blocksRaycasts = false;
+            canvasGroup.interactable = false;
+
+            Image image = overlay.gameObject.AddComponent<Image>();
+            image.color = new Color32(0, 0, 0, 0);
+            image.raycastTarget = false;
+
+            var imageSlot = overlay.gameObject.AddComponent<GameFlowImageSlot>();
+            imageSlot.Bind("battle/presentation-overlay", image);
+
+            return overlay;
         }
 
-        private static void CreateTopCurrencyHud(RectTransform root)
+        private static RectTransform CreateDamageAnchor(
+            Transform parent,
+            string anchorName,
+            Vector2 anchoredPosition)
         {
-            RectTransform panel = CreateSpriteImage(
-                root,
-                "Currency HUD",
-                "battle/currency-panel",
-                InGameCoinPanelTexturePath,
-                new Vector2(-372f, 868f),
-                new Vector2(280f, 104f),
-                true);
-            Text value = CreateOverlayText(panel, "Currency Text", "0", 26, TextAnchor.MiddleLeft, new RectOffset(24, 12, 8, 8));
-            value.fontStyle = FontStyle.Bold;
-            value.color = new Color32(230, 238, 246, 255);
-        }
-
-        private static Button CreatePauseButton(RectTransform root)
-        {
-            return CreateSpriteButton(
-                root,
-                "Pause Button",
-                "battle/pause-button",
-                InGamePauseButtonTexturePath,
-                new Vector2(440f, 868f),
-                new Vector2(104f, 104f));
-        }
-
-        private static void CreateInGameSlotMachine(RectTransform root, Text[] slotCells, Image[] slotCellIcons)
-        {
-            RectTransform slotMachine = CreateSpriteImage(
-                root,
-                "Slot Machine Panel",
-                "battle/slot-machine-panel",
-                InGameSlotTexturePath,
-                new Vector2(0f, -462f),
-                new Vector2(1072f, 580f),
-                true);
-            const float cellWidth = 153f;
-            const float cellHeight = 143f;
-            float startX = -cellWidth * 2f;
-            float startY = cellHeight - 50f;
-
-            for (int row = 0; row < SlotSpinResult.Rows; row++)
-            {
-                for (int column = 0; column < SlotSpinResult.Columns; column++)
-                {
-                    int index = SlotSpinResult.ToIndex(column, row);
-                    RectTransform cell = CreateRect(
-                        $"Slot Cell {index:00}",
-                        slotMachine,
-                        new Vector2(startX + (column * cellWidth), startY - (row * cellHeight)),
-                        new Vector2(cellWidth, cellHeight));
-
-                    if (slotCellIcons != null && index < slotCellIcons.Length)
-                    {
-                        slotCellIcons[index] = CreateSlotCellIcon(cell, index);
-                    }
-
-                    Text symbolText = CreateOverlayText(cell, $"Slot Cell Text {index:00}", "-", 22, TextAnchor.MiddleCenter, new RectOffset(6, 6, 6, 6));
-                    symbolText.fontStyle = FontStyle.Bold;
-                    symbolText.color = new Color(1f, 1f, 1f, 0.08f);
-                    slotCells[index] = symbolText;
-                }
-            }
-        }
-
-        private static void CreatePlayerHpGauge(RectTransform root, out Image playerHp)
-        {
-            playerHp = CreateVerticalFillBar(
-                root,
-                "Player HP Gauge",
-                "battle/player-hp-gauge",
-                "battle/player-hp-fill",
-                new Vector2(-470f, -505f),
-                new Vector2(72f, 364f),
-                new Color32(255, 255, 255, 255),
-                LoadFirstSprite(InGameHpTexturePath));
-        }
-
-        private static Text CreateAttackPowerReadout(RectTransform root)
-        {
-            RectTransform panel = CreateRect("Attack Power HUD", root, new Vector2(0f, -242f), new Vector2(340f, 72f));
-            Text text = CreateOverlayText(panel, "Attack Power Text", "ATK 0", 35, TextAnchor.MiddleCenter, new RectOffset(8, 8, 8, 8));
-            text.fontStyle = FontStyle.Bold;
-            text.color = new Color32(255, 224, 93, 255);
-            return text;
-        }
-
-        private static void CreateSpinControls(
-            RectTransform root,
-            out Button spinButton,
-            out Button continueButton,
-            out Button restartButton)
-        {
-            Vector2 position = new Vector2(0f, -800f);
-            Vector2 size = new Vector2(384f, 184f);
-            spinButton = CreateSpriteButton(root, "Spin Button", "battle/spin-button", InGameSpinButtonTexturePath, position, size);
-            Text spinText = CreateText(spinButton.transform, "Spin Button Text", "SPIN", 56, TextAnchor.MiddleCenter, new Vector2(0f, -4f), new Vector2(310f, 100f));
-            spinText.fontStyle = FontStyle.Bold;
-            spinText.color = new Color32(238, 248, 255, 255);
-            CreateSpinLever(root, spinButton.transform as RectTransform);
-            continueButton = CreateButton(root, "Claim Reward Button", "battle/claim-reward-button", "CLAIM", position, size, 36);
-            restartButton = CreateButton(root, "Return To Start Button", "battle/restart-button", "RETURN", position, size, 36);
-            continueButton.gameObject.SetActive(false);
-            restartButton.gameObject.SetActive(false);
-        }
-
-        private static void CreatePotionInventory(RectTransform root)
-        {
-            CreateSpriteImage(root, "Potion Slot 1", "battle/potion-slot-1", InGamePotionSlot1TexturePath, new Vector2(340f, -800f), new Vector2(152f, 160f), true);
-            CreateSpriteImage(root, "Potion Slot 2", "battle/potion-slot-2", InGamePotionSlot2TexturePath, new Vector2(490f, -800f), new Vector2(148f, 160f), true);
-        }
-
-        private static SlotLeverView CreateSpinLever(RectTransform parent, RectTransform spinButton)
-        {
-            RectTransform lever = CreateSpriteImage(parent, "Spin Lever", "battle/spin-lever", InGameLeverTexturePath, Vector2.zero, new Vector2(96f, 170f), true);
-            ConfigureSpinLeverTransform(lever, spinButton);
-
-            Image leverImage = lever.GetComponent<Image>();
-            SlotLeverView leverView = lever.gameObject.AddComponent<SlotLeverView>();
-            leverView.Bind(leverImage, LoadSprites(InGameLeverTexturePath));
-            return leverView;
+            RectTransform anchor = CreateRect(anchorName, parent, anchoredPosition, Vector2.zero);
+            anchor.anchorMin = new Vector2(0.5f, 0.5f);
+            anchor.anchorMax = new Vector2(0.5f, 0.5f);
+            anchor.pivot = new Vector2(0.5f, 0.5f);
+            anchor.sizeDelta = Vector2.zero;
+            return anchor;
         }
 
         private static void CreateBattleTopHud(RectTransform root, out Text playerHud, out Image playerHp, out Image playerShield)
@@ -532,19 +252,150 @@ namespace SlotRogue.Editor.GameFlow
             CreateOverlayText(settings, "Settings Text", "SET", 25, TextAnchor.MiddleCenter, new RectOffset(8, 8, 8, 8));
         }
 
-        private static void CreateBattleArena(RectTransform root, out Text monsterHud, out Text enemyIntent, out Image monsterHp)
+        private static void EnsureEnemyFormationSlotPrefab()
+        {
+            string prefabPath = $"{PrefabFolder}/{EnemyFormationSlotPrefabName}.prefab";
+            var canvasObject = new GameObject("Enemy Formation Slot Builder", typeof(RectTransform));
+            try
+            {
+                RectTransform tempRoot = canvasObject.GetComponent<RectTransform>();
+                EnemyFormationSlotView slot = CreateEnemyFormationSlot(tempRoot, 0, Vector2.zero);
+                PrefabUtility.SaveAsPrefabAsset(slot.gameObject, prefabPath);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(canvasObject);
+            }
+        }
+
+        private static void CreateBattleArena(
+            RectTransform root,
+            out EnemyFormationSlotView[] formationSlots,
+            out Text enemyIntent)
         {
             RectTransform arena = CreatePanel(root, "Battle Arena Image", "battle/arena", ArenaColor, new Vector2(0f, 380f), new Vector2(860f, 650f));
             CreateOverlayText(arena, "Arena Background Label", "ALIEN FRONTIER", 23, TextAnchor.UpperCenter, new RectOffset(22, 22, 20, 560));
-            RectTransform monsterStatus = CreatePanel(arena, "Monster Status HUD", "battle/monster-status-panel", PanelColor, new Vector2(0f, 248f), new Vector2(570f, 92f));
-            monsterHud = CreateOverlayText(monsterStatus, "Monster HUD Text", "MONSTER", 28, TextAnchor.UpperCenter, new RectOffset(12, 12, 8, 44));
-            monsterHp = CreateFillBar(monsterStatus, "Monster HP Bar", "battle/monster-hp-bar", "battle/monster-hp-fill", new Vector2(0f, -22f), new Vector2(460f, 24f), HpColor);
-            RectTransform portrait = CreatePanel(arena, "Monster Portrait Image", "battle/monster-portrait", MonsterColor, new Vector2(0f, 50f), new Vector2(470f, 330f));
-            CreateOverlayText(portrait, "Monster Placeholder Text", "MONSTER\nSPRITE SLOT", 30, TextAnchor.MiddleCenter, new RectOffset(18, 18, 18, 18));
+
+            RectTransform formationRoot = CreateRect("Formation Slots Root", arena, Vector2.zero, Vector2.zero);
+            formationRoot.sizeDelta = Vector2.zero;
+
+            string slotPrefabPath = $"{PrefabFolder}/{EnemyFormationSlotPrefabName}.prefab";
+            GameObject slotPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(slotPrefabPath);
+            formationSlots = new EnemyFormationSlotView[FormationSlotCount];
+
+            for (int index = 0; index < FormationSlotCount; index++)
+            {
+                Vector2 slotPosition = ResolveEnemySlotPosition(index, FormationSlotCount);
+                GameObject slotObject = slotPrefab != null
+                    ? (GameObject)PrefabUtility.InstantiatePrefab(slotPrefab, formationRoot)
+                    : CreateEnemyFormationSlot(formationRoot, index, slotPosition).gameObject;
+
+                slotObject.name = $"Formation Slot {index + 1}";
+                if (slotObject.transform is RectTransform slotTransform)
+                {
+                    slotTransform.anchoredPosition = slotPosition;
+                }
+
+                formationSlots[index] = slotObject.GetComponent<EnemyFormationSlotView>();
+                if (formationSlots[index] == null)
+                {
+                    formationSlots[index] = slotObject.AddComponent<EnemyFormationSlotView>();
+                }
+            }
+
             enemyIntent = CreateOverlayText(arena, "Enemy Intent Text", "ENEMY INTENT: -", 24, TextAnchor.LowerCenter, new RectOffset(36, 36, 560, 22));
         }
 
-        private static void CreateSlotMachine(RectTransform root, Text[] slotCells, Image[] slotCellIcons = null)
+        private static EnemyFormationSlotView CreateEnemyFormationSlot(
+            Transform parent,
+            int index,
+            Vector2 position)
+        {
+            RectTransform root = CreatePanel(
+                parent,
+                $"Formation Slot {index + 1}",
+                $"battle/formation-slot-{index + 1}",
+                new Color32(0, 0, 0, 0),
+                position,
+                new Vector2(255f, 420f));
+            Button button = root.gameObject.AddComponent<Button>();
+            button.targetGraphic = root.GetComponent<Image>();
+            if (button.targetGraphic != null)
+            {
+                button.targetGraphic.raycastTarget = true;
+            }
+
+            RectTransform portrait = CreatePanel(
+                root,
+                "Portrait",
+                $"battle/monster-{index + 1}-portrait",
+                MonsterColor,
+                new Vector2(0f, 70f),
+                new Vector2(240f, 280f));
+            GameFlowImageSlot portraitSlot = portrait.GetComponent<GameFlowImageSlot>();
+            Text placeholder = CreateOverlayText(
+                portrait,
+                "Portrait Placeholder Text",
+                "MONSTER\nSPRITE SLOT",
+                24,
+                TextAnchor.MiddleCenter,
+                new RectOffset(14, 14, 18, 18));
+
+            RectTransform statusPanel = CreatePanel(
+                root,
+                "Status Panel",
+                $"battle/monster-{index + 1}-status-panel",
+                PanelColor,
+                new Vector2(0f, -155f),
+                new Vector2(255f, 92f));
+            Image statusBackground = statusPanel.GetComponent<Image>();
+            Text hudText = CreateOverlayText(
+                statusPanel,
+                "HUD Text",
+                $"MONSTER {index + 1}",
+                20,
+                TextAnchor.UpperCenter,
+                new RectOffset(8, 8, 8, 44));
+            Image hpFill = CreateFillBar(
+                statusPanel,
+                "HP Bar",
+                $"battle/monster-{index + 1}-hp-bar",
+                $"battle/monster-{index + 1}-hp-fill",
+                new Vector2(0f, -22f),
+                new Vector2(205f, 22f),
+                HpColor);
+            RectTransform damageAnchor = CreateDamageAnchor(root, "Damage Anchor", new Vector2(0f, 130f));
+
+            ConfigureFormationSlotRaycasts(root);
+
+            var slotView = root.gameObject.AddComponent<EnemyFormationSlotView>();
+            slotView.Bind(root, button, portraitSlot, hudText, hpFill, statusBackground, damageAnchor, placeholder);
+            return slotView;
+        }
+
+        private static void ConfigureFormationSlotRaycasts(RectTransform root)
+        {
+            Graphic[] graphics = root.GetComponentsInChildren<Graphic>(true);
+            for (int index = 0; index < graphics.Length; index++)
+            {
+                Graphic graphic = graphics[index];
+                graphic.raycastTarget = graphic.transform == root;
+            }
+        }
+
+        private static Vector2 ResolveEnemySlotPosition(int index, int slotCount)
+        {
+            if (slotCount <= 1)
+            {
+                return Vector2.zero;
+            }
+
+            float spacing = slotCount <= 2 ? 300f : 270f;
+            float startX = -(slotCount - 1) * spacing * 0.5f;
+            return new Vector2(startX + (index * spacing), 0f);
+        }
+
+        private static void CreateSlotMachine(RectTransform root, Text[] slotCells)
         {
             RectTransform slotMachine = CreatePanel(root, "Slot Machine Panel", "battle/slot-machine-panel", SlotBoardColor, new Vector2(0f, -205f), new Vector2(860f, 430f));
             const float cellWidth = 154f;
@@ -567,26 +418,10 @@ namespace SlotRogue.Editor.GameFlow
                         SlotCellColor,
                         new Vector2(startX + (column * (cellWidth + spacing)), startY - (row * (cellHeight + spacing))),
                         new Vector2(cellWidth, cellHeight));
-                    if (slotCellIcons != null && index < slotCellIcons.Length)
-                    {
-                        slotCellIcons[index] = CreateSlotCellIcon(cell, index);
-                    }
-
                     slotCells[index] = CreateOverlayText(cell, $"Slot Cell Text {index:00}", "-", 22, TextAnchor.MiddleCenter, new RectOffset(8, 8, 8, 8));
                     slotCells[index].fontStyle = FontStyle.Bold;
                 }
             }
-        }
-
-        private static Image CreateSlotCellIcon(Transform parent, int index)
-        {
-            RectTransform icon = CreateRect($"Slot Cell Icon {index:00}", parent, Vector2.zero, new Vector2(32f, 32f));
-            Image image = icon.gameObject.AddComponent<Image>();
-            image.color = Color.white;
-            image.preserveAspect = true;
-            image.raycastTarget = false;
-            image.enabled = false;
-            return image;
         }
 
         private static void CreateBattleActionRow(
@@ -623,410 +458,6 @@ namespace SlotRogue.Editor.GameFlow
             CreateOverlayText(credits, "Credits Text", "CREDITS\n0", 27, TextAnchor.MiddleCenter, new RectOffset(8, 8, 8, 8));
         }
 
-        private static void CreateInsideTextureBackdrop(RectTransform root)
-        {
-            Texture2D texture = LoadTexture(BackgroundInsideTexturePath);
-
-            if (texture == null)
-            {
-                return;
-            }
-
-            RectTransform backdrop = CreateRect("Inside Texture Backdrop", root, Vector2.zero, Vector2.zero);
-            backdrop.anchorMin = Vector2.zero;
-            backdrop.anchorMax = Vector2.one;
-            backdrop.offsetMin = Vector2.zero;
-            backdrop.offsetMax = Vector2.zero;
-            backdrop.SetAsFirstSibling();
-
-            RawImage image = backdrop.gameObject.AddComponent<RawImage>();
-            image.texture = texture;
-            image.color = Color.white;
-            image.raycastTarget = false;
-        }
-
-        private static SlotPresentationManager CreateSlotPresentationLayer(
-            RectTransform root,
-            Text[] slotCells,
-            Image[] slotCellIcons = null,
-            Sprite[] slotIconSprites = null,
-            Sprite[] slotSpinIconSprites = null)
-        {
-            RectTransform layer = CreateRect("Slot Presentation Layer", root, Vector2.zero, Vector2.zero);
-            layer.anchorMin = Vector2.zero;
-            layer.anchorMax = Vector2.one;
-            layer.offsetMin = Vector2.zero;
-            layer.offsetMax = Vector2.zero;
-            Image tapSkipGraphic = layer.gameObject.AddComponent<Image>();
-            tapSkipGraphic.color = new Color(0f, 0f, 0f, 0f);
-            tapSkipGraphic.raycastTarget = false;
-
-            var manager = layer.gameObject.AddComponent<SlotPresentationManager>();
-            AudioSource audioSource = layer.gameObject.AddComponent<AudioSource>();
-            audioSource.playOnAwake = false;
-            RectTransform relicOrigin = CreateRelicInventoryOrigin(layer, slotCellIcons != null, GetSpriteOrNull(slotIconSprites, 0));
-            PatternPresentationView patternView = CreatePatternPresentationView(layer, slotCells, slotCellIcons);
-            RelicPresentationView relicView = CreateRelicPresentationView(layer, relicOrigin);
-            FinalResultView finalResultView = CreateFinalResultView(layer);
-            AudioClip[] patternScaleClips = LoadPatternScaleClips();
-            AudioClip relicClip = patternScaleClips.Length > 5 ? patternScaleClips[5] : null;
-            AudioClip finalClip = patternScaleClips.Length > 7 ? patternScaleClips[7] : null;
-
-            SlotCellSpinView spinView = null;
-            if (slotCellIcons != null)
-            {
-                spinView = layer.gameObject.AddComponent<SlotCellSpinView>();
-                spinView.Bind(slotCellIcons, slotIconSprites, slotSpinIconSprites);
-            }
-
-            manager.Bind(patternView, relicView, finalResultView, audioSource,
-                patternScaleClips, relicClip, finalClip, tapSkipGraphic, spinView);
-
-            patternView.HideImmediate();
-            relicView.gameObject.SetActive(false);
-            finalResultView.HideImmediate();
-
-            return manager;
-        }
-
-        private static RectTransform CreateRelicInventoryOrigin(Transform parent, bool visible, Sprite iconSprite)
-        {
-            const string name = "Relic Inventory Origin";
-            var position = new Vector2(-416f, -798f);
-            var size = new Vector2(104f, 104f);
-
-            if (!visible)
-            {
-                return CreateRect(name, parent, position, size);
-            }
-
-            RectTransform origin = CreatePanel(
-                parent,
-                name,
-                "battle/presentation/relic-inventory-origin",
-                new Color32(25, 31, 43, 245),
-                position,
-                size);
-            Image originImage = origin.GetComponent<Image>();
-            if (originImage != null)
-            {
-                originImage.raycastTarget = false;
-            }
-
-            RectTransform icon = CreateRect("Relic Inventory Icon", origin, new Vector2(0f, 12f), new Vector2(72f, 72f));
-            Image iconImage = icon.gameObject.AddComponent<Image>();
-            iconImage.color = Color.white;
-            iconImage.preserveAspect = true;
-            iconImage.raycastTarget = false;
-            ApplySprite(iconImage, iconSprite, true);
-            iconImage.enabled = iconSprite != null;
-
-            Text label = CreateText(origin, "Relic Inventory Label", "RELIC", 14, TextAnchor.MiddleCenter, new Vector2(0f, -39f), new Vector2(92f, 22f));
-            label.color = new Color32(255, 207, 59, 255);
-            label.raycastTarget = false;
-            return origin;
-        }
-
-        private static PatternPresentationView CreatePatternPresentationView(Transform parent, Text[] slotCells, Image[] slotCellIcons = null)
-        {
-            RectTransform panel = CreatePanel(
-                parent,
-                "Pattern Presentation Panel",
-                "battle/presentation/pattern-panel",
-                new Color32(30, 41, 62, 245),
-                new Vector2(0f, 100f),
-                new Vector2(620f, 135f));
-            Text title = CreateText(panel, "Pattern Presentation Title", "PATTERN HIT!", 31, TextAnchor.MiddleCenter, new Vector2(0f, 42f), new Vector2(610f, 42f));
-            title.fontStyle = FontStyle.Bold;
-            Text description = CreateText(panel, "Pattern Presentation Description", "Matched symbols", 22, TextAnchor.MiddleCenter, new Vector2(0f, 4f), new Vector2(610f, 34f));
-            Text bonus = CreateText(panel, "Pattern Presentation Bonus", "+0", 27, TextAnchor.MiddleCenter, new Vector2(0f, -42f), new Vector2(610f, 42f));
-            bonus.color = new Color32(255, 207, 59, 255);
-            bonus.fontStyle = FontStyle.Bold;
-            var view = panel.gameObject.AddComponent<PatternPresentationView>();
-            view.Bind(slotCells, panel, panel.GetComponent<Image>(), title, description, bonus, slotCellIcons);
-            return view;
-        }
-
-        private static RelicPresentationView CreateRelicPresentationView(Transform parent, RectTransform originAnchor)
-        {
-            RectTransform panel = CreatePanel(
-                parent,
-                "Relic Presentation Panel",
-                "battle/presentation/relic-panel",
-                new Color32(26, 34, 52, 250),
-                new Vector2(-245f, -390f),
-                new Vector2(430f, 205f));
-            RectTransform icon = CreatePanel(panel, "Relic Presentation Icon", "battle/presentation/relic-icon", new Color32(63, 72, 96, 255), new Vector2(-160f, 37f), new Vector2(92f, 92f));
-            Text name = CreateText(panel, "Relic Presentation Name", "Relic", 26, TextAnchor.MiddleLeft, new Vector2(62f, 68f), new Vector2(250f, 38f));
-            name.fontStyle = FontStyle.Bold;
-            Text description = CreateText(panel, "Relic Presentation Description", "Effect description", 18, TextAnchor.MiddleLeft, new Vector2(62f, 18f), new Vector2(250f, 62f));
-            Text value = CreateText(panel, "Relic Presentation Value", "+0", 24, TextAnchor.MiddleLeft, new Vector2(62f, -58f), new Vector2(250f, 40f));
-            value.fontStyle = FontStyle.Bold;
-            value.color = new Color32(255, 207, 59, 255);
-            var view = panel.gameObject.AddComponent<RelicPresentationView>();
-            view.Bind(panel, panel.GetComponent<Image>(), icon.GetComponent<Image>(), name, description, value, originAnchor);
-            return view;
-        }
-
-        private static FinalResultView CreateFinalResultView(Transform parent)
-        {
-            RectTransform panel = CreatePanel(
-                parent,
-                "Final Result Presentation Panel",
-                "battle/presentation/final-panel",
-                new Color32(18, 29, 40, 250),
-                new Vector2(0f, 100f),
-                new Vector2(620f, 170f));
-            Text title = CreateText(panel, "Final Result Title", "FINAL RESULT", 29, TextAnchor.MiddleCenter, new Vector2(0f, 48f), new Vector2(580f, 40f));
-            title.fontStyle = FontStyle.Bold;
-            Text summary = CreateText(panel, "Final Result Summary", "DMG 0 / DEF 0", 25, TextAnchor.MiddleCenter, new Vector2(0f, -22f), new Vector2(580f, 92f));
-            summary.color = new Color32(255, 207, 59, 255);
-            var view = panel.gameObject.AddComponent<FinalResultView>();
-            view.Bind(panel, panel.GetComponent<Image>(), title, summary);
-            return view;
-        }
-
-        private static AudioClip[] LoadPatternScaleClips()
-        {
-            return new[]
-            {
-                LoadAudioClip("Assets/Resources/Sounds/SFX_C_Low.wav"),
-                LoadAudioClip("Assets/Resources/Sounds/SFX_D.wav"),
-                LoadAudioClip("Assets/Resources/Sounds/SFX_E.wav"),
-                LoadAudioClip("Assets/Resources/Sounds/SFX_F.wav"),
-                LoadAudioClip("Assets/Resources/Sounds/SFX_G.wav"),
-                LoadAudioClip("Assets/Resources/Sounds/SFX_A.wav"),
-                LoadAudioClip("Assets/Resources/Sounds/SFX_B.wav"),
-                LoadAudioClip("Assets/Resources/Sounds/SFX_C_High.wav")
-            };
-        }
-
-        private static AudioClip LoadAudioClip(string path)
-        {
-            return AssetDatabase.LoadAssetAtPath<AudioClip>(path);
-        }
-
-        private static Texture2D LoadTexture(string path)
-        {
-            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
-        }
-
-        private static Sprite LoadFirstSprite(string path)
-        {
-            Sprite[] sprites = LoadSprites(path);
-            return GetSpriteOrNull(sprites, 0);
-        }
-
-        private static Sprite[] LoadSprites(string path)
-        {
-            UnityEngine.Object[] assets = AssetDatabase.LoadAllAssetRepresentationsAtPath(path);
-            var loadedSprites = new List<Sprite>();
-
-            if (assets != null)
-            {
-                for (int index = 0; index < assets.Length; index++)
-                {
-                    if (assets[index] is Sprite sprite)
-                    {
-                        loadedSprites.Add(sprite);
-                    }
-                }
-            }
-
-            Sprite[] sprites = loadedSprites.ToArray();
-
-            if (sprites == null || sprites.Length == 0)
-            {
-                Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
-                return sprite != null ? new[] { sprite } : Array.Empty<Sprite>();
-            }
-
-            Array.Sort(
-                sprites,
-                (left, right) =>
-                {
-                    int yCompare = right.rect.y.CompareTo(left.rect.y);
-                    return yCompare != 0 ? yCompare : left.rect.x.CompareTo(right.rect.x);
-                });
-
-            return sprites;
-        }
-
-        private static Sprite GetSpriteOrNull(Sprite[] sprites, int index)
-        {
-            if (sprites == null || index < 0 || index >= sprites.Length)
-            {
-                return null;
-            }
-
-            return sprites[index];
-        }
-
-        private static void ApplySprite(Image image, Sprite sprite, bool preserveAspect)
-        {
-            if (image == null || sprite == null)
-            {
-                return;
-            }
-
-            image.sprite = sprite;
-            image.color = Color.white;
-            image.preserveAspect = preserveAspect;
-        }
-
-        private static SlotLeverView PatchRunBattleLever(GameObject prefabRoot)
-        {
-            RectTransform layoutRoot = FindRectTransform(prefabRoot, "Run Battle Root");
-
-            if (layoutRoot == null)
-            {
-                UnityEngine.Debug.LogError(
-                    "[SlotRogue] Run Battle Root was not found.");
-                return null;
-            }
-
-            RectTransform spinButton = FindRectTransform(prefabRoot, "Spin Button");
-            RectTransform lever = FindRectTransform(prefabRoot, "Spin Lever");
-
-            if (lever == null)
-            {
-                var leverObject = new GameObject("Spin Lever", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-                lever = leverObject.GetComponent<RectTransform>();
-                lever.SetParent(layoutRoot, false);
-            }
-            else if (lever.parent != layoutRoot)
-            {
-                lever.SetParent(layoutRoot, false);
-            }
-
-            ConfigureSpinLeverTransform(lever, spinButton);
-
-            if (spinButton != null && spinButton.parent == lever.parent)
-            {
-                lever.SetSiblingIndex(spinButton.GetSiblingIndex() + 1);
-            }
-
-            Image leverImage = lever.GetComponent<Image>();
-            if (leverImage == null)
-            {
-                leverImage = lever.gameObject.AddComponent<Image>();
-            }
-
-            leverImage.raycastTarget = false;
-            leverImage.enabled = true;
-            ApplySprite(leverImage, LoadFirstSprite(InGameLeverTexturePath), true);
-
-            GameFlowImageSlot imageSlot = lever.GetComponent<GameFlowImageSlot>();
-            if (imageSlot == null)
-            {
-                imageSlot = lever.gameObject.AddComponent<GameFlowImageSlot>();
-            }
-
-            imageSlot.Bind("battle/spin-lever", leverImage);
-
-            SlotLeverView leverView = lever.GetComponent<SlotLeverView>();
-            if (leverView == null)
-            {
-                leverView = lever.gameObject.AddComponent<SlotLeverView>();
-            }
-
-            leverView.Bind(leverImage, LoadSprites(InGameLeverTexturePath));
-
-            RunBattleController controller = prefabRoot.GetComponentInChildren<RunBattleController>(true);
-            if (controller != null)
-            {
-                var controllerSO = new UnityEditor.SerializedObject(controller);
-                SerializedProperty leverProperty = controllerSO.FindProperty("_spinLeverView");
-
-                if (leverProperty != null)
-                {
-                    leverProperty.objectReferenceValue = leverView;
-                    controllerSO.ApplyModifiedPropertiesWithoutUndo();
-                }
-            }
-
-            EditorUtility.SetDirty(prefabRoot);
-            EditorUtility.SetDirty(lever.gameObject);
-            return leverView;
-        }
-
-        private static int PatchLoadedRunBattleSceneInstances(out GameObject selectedLever)
-        {
-            selectedLever = null;
-            int count = 0;
-            RunBattleController[] controllers = UnityEngine.Object.FindObjectsByType<RunBattleController>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None);
-
-            for (int index = 0; index < controllers.Length; index++)
-            {
-                RunBattleController controller = controllers[index];
-
-                if (controller == null || EditorUtility.IsPersistent(controller))
-                {
-                    continue;
-                }
-
-                Scene scene = controller.gameObject.scene;
-
-                if (!scene.IsValid() || !scene.isLoaded)
-                {
-                    continue;
-                }
-
-                SlotLeverView leverView = PatchRunBattleLever(controller.gameObject);
-
-                if (leverView == null)
-                {
-                    continue;
-                }
-
-                selectedLever = leverView.gameObject;
-                EditorSceneManager.MarkSceneDirty(scene);
-                count++;
-            }
-
-            return count;
-        }
-
-        private static void ConfigureSpinLeverTransform(RectTransform lever, RectTransform spinButton)
-        {
-            if (lever == null)
-            {
-                return;
-            }
-
-            lever.anchorMin = spinButton != null ? spinButton.anchorMin : new Vector2(0.5f, 0.5f);
-            lever.anchorMax = spinButton != null ? spinButton.anchorMax : new Vector2(0.5f, 0.5f);
-            lever.pivot = new Vector2(0.5f, 0.5f);
-            lever.sizeDelta = new Vector2(96f, 170f);
-            lever.localScale = Vector3.one;
-            lever.localRotation = Quaternion.identity;
-            lever.anchoredPosition = spinButton != null
-                ? spinButton.anchoredPosition + new Vector2((spinButton.sizeDelta.x * 0.5f) + 58f, 18f)
-                : new Vector2(193f, -542f);
-        }
-
-        private static RectTransform FindRectTransform(GameObject root, string objectName)
-        {
-            if (root == null)
-            {
-                return null;
-            }
-
-            RectTransform[] transforms = root.GetComponentsInChildren<RectTransform>(true);
-
-            for (int index = 0; index < transforms.Length; index++)
-            {
-                if (transforms[index].gameObject.name == objectName)
-                {
-                    return transforms[index];
-                }
-            }
-
-            return null;
-        }
-
         private static GameFlowOptionView CreateOptionCard(
             Transform parent,
             string name,
@@ -1049,7 +480,7 @@ namespace SlotRogue.Editor.GameFlow
         private static RunMapEdgeView CreateMapEdge(
             Transform parent,
             RunMapGraphDefinition graph,
-            RunMapEdgeDefinition edge)
+            RunMapGraphEdge edge)
         {
             RunMapNodeDefinition fromNode = graph.GetNode(edge.FromNodeId);
             RunMapNodeDefinition toNode = graph.GetNode(edge.ToNodeId);
@@ -1100,8 +531,7 @@ namespace SlotRogue.Editor.GameFlow
             background.anchorMax = Vector2.one;
             background.offsetMin = Vector2.zero;
             background.offsetMax = Vector2.zero;
-            Image backgroundImage = AddImageSlot(background.gameObject, "scene-background", BackgroundColor);
-            ApplySprite(backgroundImage, LoadFirstSprite(BackgroundOutsideTexturePath), false);
+            AddImageSlot(background.gameObject, "scene-background", BackgroundColor);
             CreateEventSystem(canvasObject.transform);
             return canvasObject;
         }
@@ -1156,39 +586,6 @@ namespace SlotRogue.Editor.GameFlow
             return button;
         }
 
-        private static RectTransform CreateSpriteImage(
-            Transform parent,
-            string name,
-            string slotId,
-            string spritePath,
-            Vector2 position,
-            Vector2 size,
-            bool preserveAspect)
-        {
-            RectTransform transform = CreateRect(name, parent, position, size);
-            Image image = AddImageSlot(transform.gameObject, slotId, Color.white);
-            image.raycastTarget = false;
-            ApplySprite(image, LoadFirstSprite(spritePath), preserveAspect);
-            return transform;
-        }
-
-        private static Button CreateSpriteButton(
-            Transform parent,
-            string name,
-            string slotId,
-            string spritePath,
-            Vector2 position,
-            Vector2 size)
-        {
-            RectTransform transform = CreateRect(name, parent, position, size);
-            Image image = AddImageSlot(transform.gameObject, slotId, Color.white);
-            ApplySprite(image, LoadFirstSprite(spritePath), true);
-            image.raycastTarget = true;
-            Button button = transform.gameObject.AddComponent<Button>();
-            button.targetGraphic = image;
-            return button;
-        }
-
         private static Image CreateFillBar(
             Transform parent,
             string name,
@@ -1204,30 +601,6 @@ namespace SlotRogue.Editor.GameFlow
             fill.anchorMax = new Vector2(0f, 0.5f);
             fill.pivot = new Vector2(0f, 0.5f);
             return AddImageSlot(fill.gameObject, fillSlotId, color);
-        }
-
-        private static Image CreateVerticalFillBar(
-            Transform parent,
-            string name,
-            string baseSlotId,
-            string fillSlotId,
-            Vector2 position,
-            Vector2 size,
-            Color32 color,
-            Sprite sprite = null)
-        {
-            RectTransform bar = CreateRect(name, parent, position, size);
-            bar.gameObject.AddComponent<CanvasGroup>().blocksRaycasts = false;
-
-            RectTransform fill = CreateRect($"{name} Fill", bar, Vector2.zero, new Vector2(size.x, size.y));
-            fill.anchorMin = new Vector2(0.5f, 0f);
-            fill.anchorMax = new Vector2(0.5f, 0f);
-            fill.pivot = new Vector2(0.5f, 0f);
-            fill.anchoredPosition = Vector2.zero;
-            Image image = AddImageSlot(fill.gameObject, fillSlotId, color);
-            ApplySprite(image, sprite, true);
-            image.raycastTarget = false;
-            return image;
         }
 
         private static Text CreateText(
@@ -1383,60 +756,6 @@ namespace SlotRogue.Editor.GameFlow
         {
             Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             return font != null ? font : Resources.GetBuiltinResource<Font>("Arial.ttf");
-        }
-
-        private static void PatchSpinViewBindings(GameObject prefabRoot)
-        {
-            var manager = prefabRoot.GetComponentInChildren<SlotPresentationManager>(true);
-            if (manager == null)
-            {
-                UnityEngine.Debug.LogError(
-                    "[SlotRogue] SlotPresentationManager was not found.");
-                return;
-            }
-
-            var spinView = manager.gameObject.GetComponent<SlotCellSpinView>();
-            if (spinView == null)
-            {
-                spinView = manager.gameObject.AddComponent<SlotCellSpinView>();
-            }
-
-            Image[] cellIcons = new Image[SlotSpinResult.CellCount];
-            Image[] allImages = prefabRoot.GetComponentsInChildren<Image>(true);
-
-            foreach (Image img in allImages)
-            {
-                for (int i = 0; i < SlotSpinResult.CellCount; i++)
-                {
-                    if (img.gameObject.name == $"Slot Cell Icon {i:00}")
-                    {
-                        cellIcons[i] = img;
-                        break;
-                    }
-                }
-            }
-
-            int found = 0;
-            foreach (var icon in cellIcons) if (icon != null) found++;
-            if (found == 0)
-            {
-                UnityEngine.Debug.LogWarning(
-                    "[SlotRogue] Could not find any 'Slot Cell Icon XX' objects. " +
-                    "Check that slot cell icon names use 'Slot Cell Icon 00' through 'Slot Cell Icon 14'.");
-            }
-
-            Sprite[] sprites = LoadSprites(SlotIconTexturePath);
-            Sprite[] spinSprites = LoadSprites(SlotIconAnimatedTexturePath);
-
-            spinView.Bind(cellIcons, sprites, spinSprites);
-
-            var managerSO = new UnityEditor.SerializedObject(manager);
-            managerSO.FindProperty("_slotCellSpinView").objectReferenceValue = spinView;
-            managerSO.ApplyModifiedPropertiesWithoutUndo();
-
-            UnityEngine.Debug.Log(
-                $"[SlotRogue] SlotCellSpinView patched. Cell icons: {found}/{SlotSpinResult.CellCount}, " +
-                $"symbol sprites: {sprites.Length}, spin sprites: {spinSprites.Length}.");
         }
     }
 }
