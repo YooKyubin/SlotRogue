@@ -224,7 +224,7 @@ namespace SlotRogue.UI.GameFlow
             }
 
             _slotViewModel.Spin();
-            StarterArtifactDefinition artifact = StarterArtifactCatalog.Get(GameFlowSession.SelectedStarterArtifactId);
+            ArtifactDefinitionSO artifact = StarterArtifactCatalog.GetById(GameFlowSession.SelectedArtifactId);
             _lastRequestResult = _requestResolver.Resolve(
                 _slotViewModel.CurrentPatternResult,
                 _slotViewModel.CurrentCombatRequest,
@@ -577,18 +577,18 @@ namespace SlotRogue.UI.GameFlow
         {
             switch (symbol)
             {
-                case SlotSymbolType.Sword:
-                    return "SWORD";
-                case SlotSymbolType.Shield:
-                    return "SHIELD";
-                case SlotSymbolType.Heart:
-                    return "HEART";
-                case SlotSymbolType.Coin:
-                    return "COIN";
-                case SlotSymbolType.Gem:
-                    return "GEM";
-                case SlotSymbolType.Skull:
-                    return "SKULL";
+                case SlotSymbolType.Cherry:
+                    return "CHERRY";
+                case SlotSymbolType.Seven:
+                    return "SEVEN";
+                case SlotSymbolType.Grape:
+                    return "GRAPE";
+                case SlotSymbolType.Bell:
+                    return "BELL";
+                case SlotSymbolType.Clover:
+                    return "CLOVER";
+                case SlotSymbolType.Lemon:
+                    return "LEMON";
                 default:
                     return symbol.ToString().ToUpperInvariant();
             }
