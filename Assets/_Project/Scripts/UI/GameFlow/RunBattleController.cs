@@ -8,7 +8,9 @@ using SlotRogue.Data.GameFlow;
 using SlotRogue.Slot.Data;
 using SlotRogue.Slot.ViewModels;
 using SlotRogue.UI.Combat;
+using SlotRogue.Slot.Core;
 using SlotRogue.UI.Combat.Presentation;
+using SlotRogue.UI.SlotPresentation;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -22,6 +24,7 @@ namespace SlotRogue.UI.GameFlow
     {
         private readonly BattleSystem _battle = new();
         private readonly SlotMachineViewModel _slotViewModel = new();
+        private readonly SlotPatternResolver _presentationPatternResolver = new();
         private readonly SlotCombatRequestToCombatEffectsConverter _converter = new();
         private readonly CombatEventConsoleLogger _eventLogger = new();
         private readonly RunCombatRequestResolver _requestResolver = new();
@@ -37,6 +40,8 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private RunBattleView _view;
         [SerializeField] private FloatingDamageTextView _floatingDamageTextPrefab;
         [SerializeField] private MonsterDefinition _monsterDefinition;
+        [SerializeField] private SlotLeverView _spinLeverView;
+        [SerializeField] private SlotPresentationManager _slotPresentationManager;
 
         private RunCombatRequestResult _lastRequestResult;
         private bool _battleCompleted;
@@ -62,6 +67,18 @@ namespace SlotRogue.UI.GameFlow
             {
                 return;
             }
+
+            if (_spinLeverView == null)
+            {
+                _spinLeverView = GetComponentInChildren<SlotLeverView>(true);
+            }
+
+            if (_slotPresentationManager == null)
+            {
+                _slotPresentationManager = GetComponentInChildren<SlotPresentationManager>(true);
+            }
+
+            _spinLeverView?.SetUpImmediate();
 
             InitializePresentationStack();
 
@@ -223,6 +240,7 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
+            _spinLeverView?.PlayDown();
             _slotViewModel.Spin();
             ArtifactDefinitionSO artifact = StarterArtifactCatalog.GetById(GameFlowSession.SelectedArtifactId);
             _lastRequestResult = _requestResolver.Resolve(
@@ -242,6 +260,16 @@ namespace SlotRogue.UI.GameFlow
             int eventCursor = _eventLogger.CaptureEventCursor(_battle);
 
             SetSpinInteractable(false);
+
+            if (_slotPresentationManager != null)
+            {
+                SlotPresentationResult presentationResult = BuildSlotPresentationResult();
+                bool presentationDone = false;
+                _slotPresentationManager.Play(presentationResult, _ => presentationDone = true);
+                await UniTask.WaitUntil(() => presentationDone, cancellationToken: _presentationCts.Token);
+            }
+
+            _spinLeverView?.PlayUp();
 
             try
             {
@@ -607,6 +635,51 @@ namespace SlotRogue.UI.GameFlow
         private static void ReturnToStart()
         {
             SceneManager.LoadScene(GameFlowSceneNames.GameStart);
+        }
+
+        private SlotPresentationResult BuildSlotPresentationResult()
+        {
+            SlotSpinResult spinResult = _slotViewModel.CurrentSpinResult;
+            SlotCombatRequest request = _lastRequestResult?.FinalRequest ?? SlotCombatRequest.Empty;
+
+            IReadOnlyList<SlotPatternMatch> matches =
+                _presentationPatternResolver.ResolveAll(spinResult);
+
+            var patternPresentations = new SlotPatternPresentationResult[matches.Count];
+
+            for (int index = 0; index < matches.Count; index++)
+            {
+                SlotPatternMatch match = matches[index];
+                var cellIndices = new int[match.MatchedCells.Count];
+
+                for (int cellIndex = 0; cellIndex < match.MatchedCells.Count; cellIndex++)
+                {
+                    SlotCell cell = match.MatchedCells[cellIndex];
+                    cellIndices[cellIndex] = SlotSpinResult.ToIndex(cell.Col, cell.Row);
+                }
+
+                patternPresentations[index] = new SlotPatternPresentationResult(
+                    match.PresentationTitle,
+                    match.Symbol,
+                    match.MatchedCells.Count > 0 ? match.MatchedCells[0].Row : -1,
+                    match.MatchedCells.Count > 0 ? match.MatchedCells[0].Col : -1,
+                    match.MatchedCells.Count,
+                    cellIndices,
+                    $"{match.Symbol} x{match.MatchedCells.Count} / x{match.Multiplier:0.0}",
+                    $"+{match.CalculatedValue} pts",
+                    match.Definition.IsJackpot,
+                    index,
+                    match.CalculatedValue);
+            }
+
+            var finalResult = new SlotFinalPresentationResult(
+                request.Damage,
+                request.Defense,
+                request.AttackCount,
+                request.HealAmount,
+                $"DMG {request.Damage} / DEF {request.Defense}");
+
+            return new SlotPresentationResult(spinResult, patternPresentations, null, finalResult);
         }
 
     }
