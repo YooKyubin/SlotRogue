@@ -62,13 +62,13 @@
 
 ### Phase 1 — `RunEncounterDefinition` SO (Data)
 
-- [ ] `SlotRogue.Data.Combat`에 타입 추가:
+- [x] `SlotRogue.Data.GameFlow`에 타입 추가:
   - `RunEncounterDefinition` : `ScriptableObject`
   - `RunEncounterEntry` : `[Serializable]` — `MonsterDefinition monster`, `int formationSlot` (0=좌, 1=중, 2=우; prefab 최대 3 slot과 정합), `int hpOverride` (0=미사용), `MonsterTurnPatternDefinition turnPatternOverride` (null=미사용)
   - `RunEncounterEntry[] entries` (길이 1~3, 빈 배열은 에디터/런타임 guard)
-- [ ] `[CreateAssetMenu(menuName = "SlotRogue/Game Flow/Run Encounter Definition")]`
-- [ ] 샘플 asset 2개 (에디터/Resources 또는 `Assets/_Project/Data/GameFlow/` 등 기존 Data 폴더 관례 따름):
-  - `Encounter_Duo2A` — 2 entry, formation 0/2 (또는 0/1) 등 Duo 검증용
+- [x] `[CreateAssetMenu(menuName = "SlotRogue/Game Flow/Run Encounter Definition")]`
+- [x] 샘플 asset 2개 (`Assets/_Project/Data/GameFlow/Encounters/`):
+  - `Encounter_Duo2A` — 2 entry, formation 0/2
   - `Encounter_EliteTrio2B` — 3 entry, formation 0/1/2
 
 **🔍 Review:** Unity에서 Create 메뉴로 asset 생성 가능; entry가 `MonsterDefinition`·optional override만 참조 (Core 역참조 없음).
