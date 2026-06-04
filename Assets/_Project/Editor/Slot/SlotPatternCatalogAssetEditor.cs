@@ -9,8 +9,8 @@ namespace SlotRogue.Editor.Slot
     [CustomEditor(typeof(SlotPatternCatalogAsset))]
     public sealed class SlotPatternCatalogAssetEditor : UnityEditor.Editor
     {
-        private const string CatalogFolder = "Assets/Resources";
-        private const string CatalogPath = "Assets/Resources/SlotPatternCatalog.asset";
+        private const string CatalogFolder = "Assets/_Project/Resources";
+        private const string CatalogPath = "Assets/_Project/Resources/SlotPatternCatalog.asset";
         private const float CellSize = 30f;
         private const float CellGap = 4f;
         private const float BoardPadding = 8f;

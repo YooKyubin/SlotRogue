@@ -7,7 +7,7 @@ namespace SlotRogue.Editor.GameFlow
 {
     public static class ArtifactCatalogBuilder
     {
-        private const string ArtifactFolder = "Assets/Resources";
+        private const string ArtifactFolder = "Assets/_Project/Resources";
         private const string ArtifactDefFolder = "Assets/_Project/Data/Artifacts";
 
         [MenuItem("SlotRogue/Artifact/Build Catalog (Reset All)")]
@@ -15,7 +15,7 @@ namespace SlotRogue.Editor.GameFlow
         {
             bool confirmed = EditorUtility.DisplayDialog(
                 "Build Artifact Catalog",
-                "Assets/Resources/ArtifactCatalog.asset과\n" +
+                "Assets/_Project/Resources/ArtifactCatalog.asset과\n" +
                 "Assets/_Project/Data/Artifacts/ 내의 유물 에셋을\n" +
                 "전부 재생성합니다.\n\n계속하겠습니까?",
                 "Build",

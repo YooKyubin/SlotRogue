@@ -39,7 +39,7 @@ namespace SlotRogue.Editor.GameFlow
         private static readonly Color32 ShieldColor = new(39, 144, 235, 255);
         private static readonly Color32 EnergyColor = new(39, 203, 235, 255);
 
-        private const string InGameLeverTexturePath = "Assets/Resources/Textures/Ingame_lever.png";
+        private const string InGameLeverTexturePath = "Assets/_Project/Resources/Textures/Ingame_lever.png";
 
         [MenuItem("SlotRogue/Game Flow/Patch Run Battle Lever (Keep UI)")]
         public static void PatchRunBattleLeverOnly()

@@ -40,9 +40,16 @@ namespace SlotRogue.Slot.Core
                 return asset;
             }
 
-            Debug.LogError("[SlotRogue] SlotPatternCatalog asset not found or empty. " +
-                "Place SlotPatternCatalog.asset in Assets/Resources/.");
-            return null;
+            if (!_loggedDefaultCatalogFallback)
+            {
+                Debug.LogWarning("[SlotRogue] SlotPatternCatalog asset not found or empty. " +
+                    "Using the in-memory default catalog. Create SlotPatternCatalog.asset under a Resources folder " +
+                    "when pattern tuning needs to be edited in the Inspector.");
+                _loggedDefaultCatalogFallback = true;
+            }
+
+            _runtimeDefaultCatalog ??= SlotPatternCatalogAsset.CreateDefaultCatalog();
+            return _runtimeDefaultCatalog.HasEntries ? _runtimeDefaultCatalog : null;
         }
 
         private static SlotPatternCatalogAsset LoadCatalogAsset()
@@ -56,6 +63,8 @@ namespace SlotRogue.Slot.Core
         }
 
         private static SlotPatternCatalogAsset _runtimeCatalogOverride;
+        private static SlotPatternCatalogAsset _runtimeDefaultCatalog;
+        private static bool _loggedDefaultCatalogFallback;
     }
 
     public sealed class PatternCandidate

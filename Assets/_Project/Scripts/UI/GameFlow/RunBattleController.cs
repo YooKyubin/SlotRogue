@@ -45,6 +45,7 @@ namespace SlotRogue.UI.GameFlow
 
         private RunCombatRequestResult _lastRequestResult;
         private bool _battleCompleted;
+        private bool _spinRoutineRunning;
         private CombatParticipantId _selectedEnemyId;
         private RunEncounterRoster _encounterRoster = null!;
 
@@ -245,7 +246,7 @@ namespace SlotRogue.UI.GameFlow
 
         private async UniTaskVoid HandleSpinClickedAsync()
         {
-            if (_battleCompleted || !_battle.CanApplyPlayerTurn)
+            if (_battleCompleted || _spinRoutineRunning || !_battle.CanApplyPlayerTurn)
             {
                 RefreshStatusText();
                 return;
@@ -256,43 +257,51 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
-            _spinLeverView?.PlayDown();
-            _slotViewModel.Spin();
-            ArtifactDefinitionSO artifact = StarterArtifactCatalog.GetById(GameFlowSession.SelectedArtifactId);
-            _lastRequestResult = _requestResolver.Resolve(
-                _slotViewModel.CurrentPatternResult,
-                _slotViewModel.CurrentCombatRequest,
-                artifact,
-                GameFlowSession.DamageBonus,
-                GameFlowSession.DefenseBonus);
-
-            RefreshSlotCells(_slotViewModel.CurrentSpinResult);
-            RefreshSlotResultText();
-
-            SlotCombatRequest request = _lastRequestResult.FinalRequest;
-            CombatParticipantId selectedTargetId = ResolveSelectedEnemyId();
-            CombatEffect[] playerEffects = _converter.Convert(request, selectedTargetId);
-            var context = new PresentationContext(request.IsCritical, request.PatternName);
-            int eventCursor = _eventLogger.CaptureEventCursor(_battle);
-
             SetSpinInteractable(false);
-
-            if (_slotPresentationManager != null)
-            {
-                SlotPresentationResult presentationResult = BuildSlotPresentationResult();
-                bool presentationDone = false;
-                _slotPresentationManager.Play(presentationResult, _ => presentationDone = true);
-                await UniTask.WaitUntil(() => presentationDone, cancellationToken: _presentationCts.Token);
-            }
+            _spinRoutineRunning = true;
+            bool leverRaised = false;
 
             try
             {
+                if (_spinLeverView != null)
+                {
+                    await _spinLeverView.PlayDownAsync(_presentationCts.Token);
+                }
+
+                _slotViewModel.Spin();
+                ArtifactDefinitionSO artifact = StarterArtifactCatalog.GetById(GameFlowSession.SelectedArtifactId);
+                _lastRequestResult = _requestResolver.Resolve(
+                    _slotViewModel.CurrentPatternResult,
+                    _slotViewModel.CurrentCombatRequest,
+                    artifact,
+                    GameFlowSession.DamageBonus,
+                    GameFlowSession.DefenseBonus);
+
+                RefreshSlotCells(_slotViewModel.CurrentSpinResult);
+                RefreshSlotResultText();
+
+                SlotCombatRequest request = _lastRequestResult.FinalRequest;
+                CombatParticipantId selectedTargetId = ResolveSelectedEnemyId();
+                CombatEffect[] playerEffects = _converter.Convert(request, selectedTargetId);
+                var context = new PresentationContext(request.IsCritical, request.PatternName);
+                int eventCursor = _eventLogger.CaptureEventCursor(_battle);
+
+                if (_slotPresentationManager != null)
+                {
+                    SlotPresentationResult presentationResult = BuildSlotPresentationResult();
+                    bool presentationDone = false;
+                    _slotPresentationManager.Play(presentationResult, _ => presentationDone = true);
+                    await UniTask.WaitUntil(() => presentationDone, cancellationToken: _presentationCts.Token);
+                }
+
                 BattleApplyResult result = await _flowController.RunTurnAsync(
                     _battle,
                     playerEffects,
                     selectedTargetId,
                     context,
-                    _presentationCts.Token);
+                    _presentationCts.Token,
+                    RaiseLeverBeforeTurnTransitionAsync,
+                    RaiseLeverAfterPlayerAttackAsync);
 
                 if (result.Accepted)
                 {
@@ -301,11 +310,95 @@ namespace SlotRogue.UI.GameFlow
             }
             finally
             {
-                _spinLeverView?.PlayUp();
+                if (!leverRaised)
+                {
+                    _spinLeverView?.SetUpImmediate();
+                }
+
+                _spinRoutineRunning = false;
                 RefreshStatusText();
                 HandleBattleEndIfNeeded();
                 UpdateSpinButtonState();
             }
+
+            async UniTask RaiseLeverBeforeTurnTransitionAsync(
+                CombatEvent combatEvent,
+                int eventIndex,
+                IReadOnlyList<CombatEvent> events)
+            {
+                if (ShouldRaiseLeverBeforeEvent(combatEvent))
+                {
+                    await RaiseLeverIfNeededAsync();
+                }
+            }
+
+            async UniTask RaiseLeverAfterPlayerAttackAsync(
+                CombatEvent combatEvent,
+                int eventIndex,
+                IReadOnlyList<CombatEvent> events)
+            {
+                if (IsLastPlayerAttackPresentation(combatEvent, eventIndex, events))
+                {
+                    await RaiseLeverIfNeededAsync();
+                }
+            }
+
+            async UniTask RaiseLeverIfNeededAsync()
+            {
+                if (leverRaised || _spinLeverView == null)
+                {
+                    return;
+                }
+
+                leverRaised = true;
+                await _spinLeverView.PlayUpAsync();
+            }
+        }
+
+        private static bool ShouldRaiseLeverBeforeEvent(CombatEvent combatEvent)
+        {
+            if (combatEvent.Kind == CombatEventKind.BattleEnded)
+            {
+                return true;
+            }
+
+            return combatEvent.Kind == CombatEventKind.PhaseChanged &&
+                combatEvent.Phase != BattlePhase.Resolving;
+        }
+
+        private static bool IsLastPlayerAttackPresentation(
+            CombatEvent combatEvent,
+            int eventIndex,
+            IReadOnlyList<CombatEvent> events)
+        {
+            if (!IsPlayerAttackPresentation(combatEvent))
+            {
+                return false;
+            }
+
+            for (int index = eventIndex + 1; index < events.Count; index++)
+            {
+                CombatEvent nextEvent = events[index];
+                if (IsPlayerAttackPresentation(nextEvent))
+                {
+                    return false;
+                }
+
+                if (nextEvent.Kind == CombatEventKind.PhaseChanged &&
+                    nextEvent.Phase != BattlePhase.Resolving)
+                {
+                    break;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool IsPlayerAttackPresentation(CombatEvent combatEvent)
+        {
+            return combatEvent.Kind == CombatEventKind.EffectApplied &&
+                combatEvent.Phase == BattlePhase.Resolving &&
+                !combatEvent.IsPlayerParticipant;
         }
 
         private void SetSpinInteractable(bool interactable)
@@ -325,7 +418,8 @@ namespace SlotRogue.UI.GameFlow
 
             bool canSpin = _battle.CurrentPhase != BattlePhase.NotInBattle
                 && _battle.CanApplyPlayerTurn
-                && !_flowController.IsBusy;
+                && !_flowController.IsBusy
+                && !_spinRoutineRunning;
 
             _view.SpinButton.interactable = canSpin;
         }
@@ -506,7 +600,7 @@ namespace SlotRogue.UI.GameFlow
                     snapshot.Hp,
                     enemy.MaxHp,
                     selected,
-                    !enemy.IsDead && !_flowController.IsBusy);
+                    !enemy.IsDead && !_flowController.IsBusy && !_spinRoutineRunning);
                 _view.SetEnemyPortrait(slotIndex, ResolveEncounterMonster(rosterIndex)?.portrait);
             }
         }
@@ -558,7 +652,7 @@ namespace SlotRogue.UI.GameFlow
 
         private void HandleEnemySelected(CombatParticipantId enemyId)
         {
-            if (_flowController.IsBusy)
+            if (_flowController.IsBusy || _spinRoutineRunning)
             {
                 return;
             }
