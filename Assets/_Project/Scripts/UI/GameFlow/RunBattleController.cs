@@ -4,6 +4,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
 using SlotRogue.Data.Combat;
+using SlotRogue.Data.GameFlow;
 using SlotRogue.Slot.Data;
 using SlotRogue.Slot.ViewModels;
 using SlotRogue.UI.Combat;
@@ -40,6 +41,7 @@ namespace SlotRogue.UI.GameFlow
         private RunCombatRequestResult _lastRequestResult;
         private bool _battleCompleted;
         private CombatParticipantId _selectedEnemyId;
+        private RunEncounterRoster _encounterRoster = null!;
 
         private void Awake()
         {
@@ -95,32 +97,14 @@ namespace SlotRogue.UI.GameFlow
             RunMapNodeDefinition encounterNode = GetEncounterNode();
             int floor = Mathf.Max(1, encounterNode.Floor);
             var player = new CombatParticipant(GameFlowSession.PlayerMaxHp, GameFlowSession.PlayerCurrentHp);
-            EncounterRoster roster = BuildEncounterRoster(encounterNode, floor);
+            _encounterRoster = RunEncounterRosterBuilder.Build(encounterNode, floor, _monsterDefinition);
 
-            _battle.StartBattle(player, roster.Enemies, roster.Schedules);
+            _battle.StartBattle(player, _encounterRoster.Enemies, _encounterRoster.Schedules);
             _selectedEnemyId = ResolveSelectedEnemyId();
             _combatViewModel.SyncFrom(_battle);
             _view.EnsureEnemySlotCapacity(_battle.Enemies.Count);
             BindEnemySlots();
             _eventLogger.LogEventsSince(_battle, eventCursor: 0);
-        }
-
-        private EncounterRoster BuildEncounterRoster(RunMapNodeDefinition encounterNode, int floor)
-        {
-            int enemyCount = Mathf.Max(1, encounterNode.EnemyCount);
-            var enemies = new CombatParticipant[enemyCount];
-            var schedules = new MonsterTurnSchedule[enemyCount];
-
-            for (int index = 0; index < enemyCount; index++)
-            {
-                enemies[index] = new CombatParticipant(
-                    ResolveMonsterMaxHp(encounterNode),
-                    id: new CombatParticipantId(100 + index),
-                    team: CombatTeam.Enemy);
-                schedules[index] = ResolveMonsterTurnSchedule(encounterNode, floor);
-            }
-
-            return new EncounterRoster(enemies, schedules);
         }
 
         private void InitializePresentationStack()
@@ -215,69 +199,6 @@ namespace SlotRogue.UI.GameFlow
             }
 
             return Resources.GetBuiltinResource<Font>("Arial.ttf");
-        }
-
-        private static int GetMonsterMaxHp(RunMapNodeDefinition encounterNode)
-        {
-            int floor = Mathf.Max(1, encounterNode.Floor);
-
-            switch (encounterNode.NodeType)
-            {
-                case RunMapNodeType.Elite:
-                    return 32 + (floor * 8);
-                case RunMapNodeType.Boss:
-                    return 46 + (floor * 10);
-                default:
-                    return 22 + (floor * 6);
-            }
-        }
-
-        private int ResolveMonsterMaxHp(RunMapNodeDefinition encounterNode)
-        {
-            if (_monsterDefinition != null)
-            {
-                return Mathf.Max(1, _monsterDefinition.maxHp);
-            }
-
-            return GetMonsterMaxHp(encounterNode);
-        }
-
-        private static MonsterTurnSchedule CreateMonsterTurnSchedule(
-            RunMapNodeDefinition encounterNode,
-            int floor)
-        {
-            if (encounterNode.NodeType == RunMapNodeType.Boss)
-            {
-                return new MonsterTurnSchedule(
-                    new[] { new CombatEffect(CombatEffectKind.Damage, 6 + floor, CombatEffectTarget.Enemy) },
-                    new[] { new CombatEffect(CombatEffectKind.Shield, 5 + floor, CombatEffectTarget.Self) },
-                    new[] { new CombatEffect(CombatEffectKind.Damage, 9 + floor, CombatEffectTarget.Enemy) });
-            }
-
-            if (encounterNode.NodeType == RunMapNodeType.Elite)
-            {
-                return new MonsterTurnSchedule(
-                    new[] { new CombatEffect(CombatEffectKind.Damage, 5 + floor, CombatEffectTarget.Enemy) },
-                    new[] { new CombatEffect(CombatEffectKind.Shield, 4 + floor, CombatEffectTarget.Self) },
-                    new[] { new CombatEffect(CombatEffectKind.Damage, 7 + floor, CombatEffectTarget.Enemy) });
-            }
-
-            return new MonsterTurnSchedule(
-                new[] { new CombatEffect(CombatEffectKind.Damage, 3 + floor, CombatEffectTarget.Enemy) },
-                new[] { new CombatEffect(CombatEffectKind.Shield, 2 + floor, CombatEffectTarget.Self) },
-                new[] { new CombatEffect(CombatEffectKind.Damage, 5 + floor, CombatEffectTarget.Enemy) });
-        }
-
-        private MonsterTurnSchedule ResolveMonsterTurnSchedule(
-            RunMapNodeDefinition encounterNode,
-            int floor)
-        {
-            if (_monsterDefinition != null && _monsterDefinition.turnPattern != null)
-            {
-                return MonsterTurnScheduleFactory.FromPattern(_monsterDefinition.turnPattern);
-            }
-
-            return CreateMonsterTurnSchedule(encounterNode, floor);
         }
 
         private void HandleSpinClicked()
@@ -485,13 +406,14 @@ namespace SlotRogue.UI.GameFlow
             }
 
             int bindCount = Mathf.Min(slotCount, _battle.Enemies.Count);
-            for (int index = 0; index < bindCount; index++)
+            var usedFormationSlots = new HashSet<int>();
+            for (int rosterIndex = 0; rosterIndex < bindCount; rosterIndex++)
             {
-                CombatParticipant enemy = _battle.Enemies[index];
+                CombatParticipant enemy = _battle.Enemies[rosterIndex];
                 CombatParticipantId enemyId = enemy.Id;
-                int slotIndex = index;
+                int slotIndex = ResolveHudSlotIndex(rosterIndex, slotCount, usedFormationSlots);
                 _view.SetEnemySlotClickHandler(slotIndex, () => HandleEnemySelected(enemyId));
-                RectTransform anchor = ResolveEnemyDamageAnchor(slotIndex, bindCount);
+                RectTransform anchor = ResolveEnemyDamageAnchor(slotIndex);
                 _presentationHost.SetEnemyDamageAnchor(enemyId, anchor);
             }
 
@@ -505,11 +427,18 @@ namespace SlotRogue.UI.GameFlow
         private void RefreshEnemySlots()
         {
             int slotCount = _view.EnemySlotCount;
-            int visibleCount = Mathf.Min(slotCount, _battle.Enemies.Count);
+            int enemyCount = _battle.Enemies.Count;
 
-            for (int index = 0; index < visibleCount; index++)
+            for (int index = 0; index < slotCount; index++)
             {
-                CombatParticipant enemy = _battle.Enemies[index];
+                _view.SetEnemySlotActive(index, false);
+            }
+
+            var usedFormationSlots = new HashSet<int>();
+            for (int rosterIndex = 0; rosterIndex < enemyCount; rosterIndex++)
+            {
+                CombatParticipant enemy = _battle.Enemies[rosterIndex];
+                int slotIndex = ResolveHudSlotIndex(rosterIndex, slotCount, usedFormationSlots);
                 CombatParticipantSnapshot snapshot = _combatViewModel.TryGetParticipantSnapshot(
                     enemy.Id,
                     out CombatParticipantSnapshot participantSnapshot)
@@ -518,25 +447,38 @@ namespace SlotRogue.UI.GameFlow
                 bool selected = _selectedEnemyId.IsValid && _selectedEnemyId.Value == enemy.Id.Value;
                 string deadSuffix = enemy.IsDead ? " [DOWN]" : string.Empty;
                 _view.SetEnemySlot(
-                    index,
-                    $"{GetEncounterNode().DisplayName} #{index + 1}{deadSuffix}\n" +
+                    slotIndex,
+                    $"{GetEncounterNode().DisplayName} #{rosterIndex + 1}{deadSuffix}\n" +
                     $"{snapshot.Hp}/{enemy.MaxHp}  SH {snapshot.Shield}",
                     snapshot.Hp,
                     enemy.MaxHp,
                     selected,
                     !enemy.IsDead && !_flowController.IsBusy);
             }
-
-            for (int index = visibleCount; index < slotCount; index++)
-            {
-                _view.SetEnemySlotActive(index, false);
-            }
         }
 
-        private RectTransform ResolveEnemyDamageAnchor(int slotIndex, int enemyCount)
+        private int ResolveHudSlotIndex(int rosterIndex, int slotCount, HashSet<int> usedFormationSlots)
+        {
+            int slotIndex = RunEncounterRosterBuilder.ResolveFormationSlot(
+                _encounterRoster,
+                rosterIndex,
+                slotCount);
+
+            if (!usedFormationSlots.Add(slotIndex))
+            {
+                Debug.LogWarning(
+                    $"[RunBattleController] Duplicate formation slot {slotIndex} for roster index {rosterIndex}; using roster index.");
+                slotIndex = Mathf.Clamp(rosterIndex, 0, slotCount - 1);
+                usedFormationSlots.Add(slotIndex);
+            }
+
+            return slotIndex;
+        }
+
+        private RectTransform ResolveEnemyDamageAnchor(int slotIndex)
         {
             RectTransform anchor = _view.GetEnemyDamageAnchor(slotIndex);
-            if (anchor != null && (enemyCount <= 1 || anchor != _monsterDamageAnchor))
+            if (anchor != null)
             {
                 return anchor;
             }
@@ -544,18 +486,13 @@ namespace SlotRogue.UI.GameFlow
             return ResolveDamageAnchor(
                 _floatingTextRoot,
                 $"runtime-monster-{slotIndex}-damage-anchor",
-                ResolveEnemyDamageAnchorPosition(slotIndex, enemyCount));
+                ResolveEnemyDamageAnchorPosition(slotIndex));
         }
 
-        private static Vector2 ResolveEnemyDamageAnchorPosition(int slotIndex, int enemyCount)
+        private static Vector2 ResolveEnemyDamageAnchorPosition(int slotIndex)
         {
-            if (enemyCount <= 1)
-            {
-                return new Vector2(0f, 40f);
-            }
-
-            float spacing = enemyCount <= 2 ? 300f : 270f;
-            float startX = -(enemyCount - 1) * spacing * 0.5f;
+            float spacing = 300f;
+            float startX = -(RunBattleView.FormationHudSlotCount - 1) * spacing * 0.5f;
             return new Vector2(startX + (slotIndex * spacing), 40f);
         }
 
@@ -660,19 +597,5 @@ namespace SlotRogue.UI.GameFlow
             SceneManager.LoadScene(GameFlowSceneNames.GameStart);
         }
 
-        private sealed class EncounterRoster
-        {
-            public EncounterRoster(
-                IReadOnlyList<CombatParticipant> enemies,
-                IReadOnlyList<MonsterTurnSchedule> schedules)
-            {
-                Enemies = enemies;
-                Schedules = schedules;
-            }
-
-            public IReadOnlyList<CombatParticipant> Enemies { get; }
-
-            public IReadOnlyList<MonsterTurnSchedule> Schedules { get; }
-        }
     }
 }

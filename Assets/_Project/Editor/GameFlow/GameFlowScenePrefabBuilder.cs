@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using SlotRogue.Data.GameFlow;
 using SlotRogue.Slot.Data;
 using SlotRogue.UI.GameFlow;
 using UnityEditor;
@@ -423,7 +424,7 @@ namespace SlotRogue.Editor.GameFlow
         private static RunMapEdgeView CreateMapEdge(
             Transform parent,
             RunMapGraphDefinition graph,
-            RunMapEdgeDefinition edge)
+            RunMapGraphEdge edge)
         {
             RunMapNodeDefinition fromNode = graph.GetNode(edge.FromNodeId);
             RunMapNodeDefinition toNode = graph.GetNode(edge.ToNodeId);

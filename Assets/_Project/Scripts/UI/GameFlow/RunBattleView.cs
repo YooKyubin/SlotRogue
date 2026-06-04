@@ -1,3 +1,4 @@
+using System;
 using SlotRogue.Slot.Data;
 using UnityEngine;
 using UnityEngine.Events;
@@ -5,8 +6,11 @@ using UnityEngine.UI;
 
 namespace SlotRogue.UI.GameFlow
 {
+    [DefaultExecutionOrder(-50)]
     public sealed class RunBattleView : MonoBehaviour
     {
+        public const int FormationHudSlotCount = 3;
+
         private static readonly Color PatternHitColor = new Color(1f, 0.82f, 0.23f, 1f);
         private static readonly Color BaseAttackColor = new Color(0.66f, 0.82f, 1f, 1f);
         private static readonly Color EnemySlotColor = new Color(0.11f, 0.14f, 0.2f, 0.96f);
@@ -17,18 +21,15 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private Text _slotResultText;
         [SerializeField] private Text _resultValueText;
         [SerializeField] private Text _playerHudText;
-        [SerializeField] private Text _monsterHudText;
         [SerializeField] private Text _enemyIntentText;
         [SerializeField] private Image _playerHpFill;
         [SerializeField] private Image _playerShieldFill;
-        [SerializeField] private Image _monsterHpFill;
-        [SerializeField] private EnemyHudSlot[] _enemySlots;
+        [SerializeField] private EnemyHudSlot[] _enemySlots = Array.Empty<EnemyHudSlot>();
         [SerializeField] private Button _spinButton;
         [SerializeField] private Button _continueButton;
         [SerializeField] private Button _restartButton;
         [SerializeField] private RectTransform _floatingTextRoot;
         [SerializeField] private RectTransform _playerDamageAnchor;
-        [SerializeField] private RectTransform _monsterDamageAnchor;
 
         public Text[] SlotCells => _slotCells;
 
@@ -44,130 +45,28 @@ namespace SlotRogue.UI.GameFlow
 
         public RectTransform PlayerDamageAnchor => _playerDamageAnchor;
 
-        public RectTransform MonsterDamageAnchor => _monsterDamageAnchor;
+        public RectTransform MonsterDamageAnchor => GetEnemyDamageAnchor(1);
 
-        public int EnemySlotCount => ResolveEnemySlots().Length;
+        public int EnemySlotCount => _enemySlots != null ? _enemySlots.Length : 0;
 
-        public void EnsureEnemySlotCapacity(int count)
+        private void Awake()
         {
-            EnemyHudSlot[] slots = ResolveEnemySlots();
-            if (count <= slots.Length)
-            {
-                LayoutEnemySlots(slots, count);
-                return;
-            }
-
-            if (slots.Length == 0)
-            {
-                return;
-            }
-
-            var expanded = new EnemyHudSlot[count];
-            int existingCount = slots.Length;
-            for (int index = 0; index < slots.Length; index++)
-            {
-                expanded[index] = slots[index];
-            }
-
-            RectTransform templateRoot = slots[0].Root ??
-                (_monsterHudText != null ? _monsterHudText.rectTransform.parent as RectTransform : null);
-            if (templateRoot == null)
-            {
-                return;
-            }
-
-            if (slots[0].Root == null)
-            {
-                Button templateButton = templateRoot.GetComponent<Button>();
-                if (templateButton == null)
-                {
-                    templateButton = templateRoot.gameObject.AddComponent<Button>();
-                }
-
-                templateButton.targetGraphic = templateRoot.GetComponent<Image>();
-                expanded[0] = new EnemyHudSlot(
-                    templateRoot,
-                    slots[0].HudText,
-                    slots[0].HpFill,
-                    templateButton,
-                    slots[0].DamageAnchor);
-            }
-
-            Transform parent = templateRoot.parent;
-            float spacing = count <= 2 ? 300f : 270f;
-            float startX = -(count - 1) * spacing * 0.5f;
-
-            for (int index = 0; index < count; index++)
-            {
-                if (index < existingCount && expanded[index] != null && expanded[index].Root != null)
-                {
-                    expanded[index].Root.anchoredPosition = new Vector2(
-                        startX + (index * spacing),
-                        expanded[index].Root.anchoredPosition.y);
-                }
-            }
-
-            for (int index = existingCount; index < count; index++)
-            {
-                RectTransform clone = Object.Instantiate(templateRoot, parent);
-                clone.name = $"Runtime Monster {index + 1} Status HUD";
-                clone.anchoredPosition = new Vector2(
-                    startX + (index * spacing),
-                    templateRoot.anchoredPosition.y);
-                Text hud = clone.GetComponentInChildren<Text>(true);
-                Image hpFill = ResolveHpFill(clone);
-                Button button = clone.GetComponent<Button>();
-                if (button == null)
-                {
-                    button = clone.gameObject.AddComponent<Button>();
-                }
-
-                button.targetGraphic = clone.GetComponent<Image>();
-                expanded[index] = new EnemyHudSlot(clone, hud, hpFill, button, null);
-            }
-
-            _enemySlots = expanded;
-            LayoutEnemySlots(_enemySlots, count);
+            TryEnsureFormationHudSlots();
         }
 
-        public void Bind(
-            Text[] slotCells,
-            Text statusText,
-            Text slotResultText,
-            Text resultValueText,
-            Text playerHudText,
-            Text monsterHudText,
-            Text enemyIntentText,
-            Image playerHpFill,
-            Image playerShieldFill,
-            Image monsterHpFill,
-            Button spinButton,
-            Button continueButton,
-            Button restartButton,
-            RectTransform floatingTextRoot,
-            RectTransform playerDamageAnchor,
-            RectTransform monsterDamageAnchor)
+        public void EnsureEnemySlotCapacity(int enemyCount)
         {
-            _slotCells = slotCells;
-            _statusText = statusText;
-            _slotResultText = slotResultText;
-            _resultValueText = resultValueText;
-            _playerHudText = playerHudText;
-            _monsterHudText = monsterHudText;
-            _enemyIntentText = enemyIntentText;
-            _playerHpFill = playerHpFill;
-            _playerShieldFill = playerShieldFill;
-            _monsterHpFill = monsterHpFill;
-            _spinButton = spinButton;
-            _continueButton = continueButton;
-            _restartButton = restartButton;
-            _floatingTextRoot = floatingTextRoot;
-            _playerDamageAnchor = playerDamageAnchor;
-            _monsterDamageAnchor = monsterDamageAnchor;
-            _enemySlots = new[]
+            TryEnsureFormationHudSlots();
+
+            if (_enemySlots == null || _enemySlots.Length < FormationHudSlotCount)
             {
-                new EnemyHudSlot(null, monsterHudText, monsterHpFill, null, monsterDamageAnchor),
-            };
+                Debug.LogError(
+                    "[RunBattleView] Enemy HUD requires 3 formation slots. " +
+                    "Run menu: SlotRogue > Game Flow > Rebuild Scene UI Prefabs.");
+                return;
+            }
+
+            LayoutFormationHudSlots(_enemySlots);
         }
 
         public void Bind(
@@ -199,14 +98,8 @@ namespace SlotRogue.UI.GameFlow
             _restartButton = restartButton;
             _floatingTextRoot = floatingTextRoot;
             _playerDamageAnchor = playerDamageAnchor;
-            _enemySlots = enemySlots ?? new EnemyHudSlot[0];
-
-            if (_enemySlots.Length > 0)
-            {
-                _monsterHudText = _enemySlots[0].HudText;
-                _monsterHpFill = _enemySlots[0].HpFill;
-                _monsterDamageAnchor = _enemySlots[0].DamageAnchor;
-            }
+            _enemySlots = enemySlots ?? Array.Empty<EnemyHudSlot>();
+            TryEnsureFormationHudSlots();
         }
 
         public void SetAttackResult(string value)
@@ -273,11 +166,6 @@ namespace SlotRogue.UI.GameFlow
             SetText(_playerHudText, value);
         }
 
-        public void SetMonsterHud(string value)
-        {
-            SetText(_monsterHudText, value);
-        }
-
         public void SetEnemyIntent(string value)
         {
             SetText(_enemyIntentText, value);
@@ -293,11 +181,6 @@ namespace SlotRogue.UI.GameFlow
             SetBarFill(_playerShieldFill, current, max);
         }
 
-        public void SetMonsterHpFill(int current, int max)
-        {
-            SetBarFill(_monsterHpFill, current, max);
-        }
-
         public void SetEnemySlot(
             int slotIndex,
             string value,
@@ -306,13 +189,11 @@ namespace SlotRogue.UI.GameFlow
             bool selected,
             bool interactable)
         {
-            EnemyHudSlot[] slots = ResolveEnemySlots();
-            if (slotIndex < 0 || slotIndex >= slots.Length)
+            if (!TryGetEnemySlot(slotIndex, out EnemyHudSlot slot))
             {
                 return;
             }
 
-            EnemyHudSlot slot = slots[slotIndex];
             slot.SetActive(true);
             slot.SetHud(selected ? $"> {value}" : value);
             slot.SetHpFill(currentHp, maxHp);
@@ -322,37 +203,33 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetEnemySlotActive(int slotIndex, bool active)
         {
-            EnemyHudSlot[] slots = ResolveEnemySlots();
-            if (slotIndex < 0 || slotIndex >= slots.Length)
+            if (TryGetEnemySlot(slotIndex, out EnemyHudSlot slot))
             {
-                return;
+                slot.SetActive(active);
             }
-
-            slots[slotIndex].SetActive(active);
         }
 
         public void SetEnemySlotClickHandler(int slotIndex, UnityAction action)
         {
-            EnemyHudSlot[] slots = ResolveEnemySlots();
-            if (slotIndex < 0 || slotIndex >= slots.Length)
+            if (TryGetEnemySlot(slotIndex, out EnemyHudSlot slot))
             {
-                return;
+                slot.SetClickHandler(action);
             }
-
-            slots[slotIndex].SetClickHandler(action);
         }
 
         public RectTransform GetEnemyDamageAnchor(int slotIndex)
         {
-            EnemyHudSlot[] slots = ResolveEnemySlots();
-            if (slotIndex >= 0 &&
-                slotIndex < slots.Length &&
-                slots[slotIndex].DamageAnchor != null)
+            if (TryGetEnemySlot(slotIndex, out EnemyHudSlot slot) && slot.DamageAnchor != null)
             {
-                return slots[slotIndex].DamageAnchor;
+                return slot.DamageAnchor;
             }
 
-            return _monsterDamageAnchor;
+            if (TryGetEnemySlot(slotIndex, out EnemyHudSlot fallbackSlot) && fallbackSlot.Root != null)
+            {
+                return fallbackSlot.Root;
+            }
+
+            return null;
         }
 
         public void ShowSpinButton()
@@ -374,6 +251,272 @@ namespace SlotRogue.UI.GameFlow
             SetActive(_spinButton, false);
             SetActive(_continueButton, false);
             SetActive(_restartButton, true);
+        }
+
+        private void TryEnsureFormationHudSlots()
+        {
+            if (HasValidFormationSlots())
+            {
+                LayoutFormationHudSlots(_enemySlots);
+                return;
+            }
+
+            if (TryCollectFormationSlotsFromHierarchy(out EnemyHudSlot[] hierarchySlots))
+            {
+                _enemySlots = hierarchySlots;
+                LayoutFormationHudSlots(_enemySlots);
+                return;
+            }
+
+            EnemyHudSlot seed = FindSeedEnemyHudSlot();
+            if (seed.Root == null && seed.HudText == null)
+            {
+                Debug.LogError(
+                    "[RunBattleView] No enemy HUD slots found. " +
+                    "Run menu: SlotRogue > Game Flow > Rebuild Scene UI Prefabs.");
+                _enemySlots = Array.Empty<EnemyHudSlot>();
+                return;
+            }
+
+            _enemySlots = BuildFormationSlotsFromSeed(seed);
+            LayoutFormationHudSlots(_enemySlots);
+        }
+
+        private bool HasValidFormationSlots()
+        {
+            if (_enemySlots == null || _enemySlots.Length < FormationHudSlotCount)
+            {
+                return false;
+            }
+
+            for (int index = 0; index < FormationHudSlotCount; index++)
+            {
+                if (_enemySlots[index] == null || _enemySlots[index].Root == null)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private bool TryCollectFormationSlotsFromHierarchy(out EnemyHudSlot[] slots)
+        {
+            var discovered = new EnemyHudSlot[FormationHudSlotCount];
+            int foundCount = 0;
+            Transform[] candidates = GetComponentsInChildren<Transform>(true);
+
+            for (int index = 0; index < candidates.Length; index++)
+            {
+                Transform candidate = candidates[index];
+                if (!candidate.name.Contains("Monster", StringComparison.Ordinal) ||
+                    !candidate.name.Contains("Status HUD", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                int slotIndex = ParseMonsterStatusHudIndex(candidate.name);
+                if (slotIndex < 0 || slotIndex >= FormationHudSlotCount)
+                {
+                    continue;
+                }
+
+                if (candidate is not RectTransform root)
+                {
+                    continue;
+                }
+
+                if (discovered[slotIndex] != null)
+                {
+                    continue;
+                }
+
+                Text hud = root.GetComponentInChildren<Text>(true);
+                Image hpFill = ResolveHpFill(root);
+                Button button = root.GetComponent<Button>();
+                if (button == null)
+                {
+                    button = root.gameObject.AddComponent<Button>();
+                    button.targetGraphic = root.GetComponent<Image>();
+                }
+
+                discovered[slotIndex] = new EnemyHudSlot(root, hud, hpFill, button, null);
+                foundCount++;
+            }
+
+            if (foundCount < FormationHudSlotCount)
+            {
+                slots = Array.Empty<EnemyHudSlot>();
+                return false;
+            }
+
+            slots = discovered;
+            return true;
+        }
+
+        private static int ParseMonsterStatusHudIndex(string objectName)
+        {
+            if (objectName.Contains("Monster 1", StringComparison.Ordinal))
+            {
+                return 0;
+            }
+
+            if (objectName.Contains("Monster 2", StringComparison.Ordinal))
+            {
+                return 1;
+            }
+
+            if (objectName.Contains("Monster 3", StringComparison.Ordinal))
+            {
+                return 2;
+            }
+
+            if (objectName.Equals("Monster Status HUD", StringComparison.Ordinal))
+            {
+                return 0;
+            }
+
+            return -1;
+        }
+
+        private EnemyHudSlot FindSeedEnemyHudSlot()
+        {
+            if (_enemySlots != null)
+            {
+                for (int index = 0; index < _enemySlots.Length; index++)
+                {
+                    if (_enemySlots[index] != null &&
+                        (_enemySlots[index].Root != null || _enemySlots[index].HudText != null))
+                    {
+                        return NormalizeSeedSlot(_enemySlots[index]);
+                    }
+                }
+            }
+
+            Transform[] candidates = GetComponentsInChildren<Transform>(true);
+            for (int index = 0; index < candidates.Length; index++)
+            {
+                Transform candidate = candidates[index];
+                if (!candidate.name.Contains("Monster", StringComparison.Ordinal) ||
+                    !candidate.name.Contains("Status HUD", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (candidate is not RectTransform root)
+                {
+                    continue;
+                }
+
+                Text hud = root.GetComponentInChildren<Text>(true);
+                Image hpFill = ResolveHpFill(root);
+                Button button = root.GetComponent<Button>() ?? root.gameObject.AddComponent<Button>();
+                button.targetGraphic = root.GetComponent<Image>();
+                return new EnemyHudSlot(root, hud, hpFill, button, null);
+            }
+
+            return new EnemyHudSlot(null, null, null, null, null);
+        }
+
+        private static EnemyHudSlot NormalizeSeedSlot(EnemyHudSlot seed)
+        {
+            if (seed.Root != null)
+            {
+                return seed;
+            }
+
+            if (seed.HudText == null)
+            {
+                return seed;
+            }
+
+            RectTransform root = seed.HudText.transform.parent as RectTransform;
+            Button button = root != null ? root.GetComponent<Button>() : null;
+            if (root != null && button == null)
+            {
+                button = root.gameObject.AddComponent<Button>();
+                button.targetGraphic = root.GetComponent<Image>();
+            }
+
+            return new EnemyHudSlot(root, seed.HudText, seed.HpFill, button, seed.DamageAnchor);
+        }
+
+        private static EnemyHudSlot[] BuildFormationSlotsFromSeed(EnemyHudSlot seed)
+        {
+            var slots = new EnemyHudSlot[FormationHudSlotCount];
+            RectTransform templateRoot = seed.Root ?? seed.HudText.rectTransform.parent as RectTransform;
+            Transform parent = templateRoot.parent;
+
+            for (int index = 0; index < FormationHudSlotCount; index++)
+            {
+                if (index == 0)
+                {
+                    templateRoot.name = "Monster 1 Status HUD";
+                    slots[index] = new EnemyHudSlot(
+                        templateRoot,
+                        seed.HudText,
+                        seed.HpFill,
+                        seed.Button,
+                        seed.DamageAnchor);
+                    continue;
+                }
+
+                RectTransform clone = Instantiate(templateRoot, parent);
+                clone.name = $"Monster {index + 1} Status HUD";
+                Text hud = clone.GetComponentInChildren<Text>(true);
+                Image hpFill = ResolveHpFill(clone);
+                Button button = clone.GetComponent<Button>();
+                if (button == null)
+                {
+                    button = clone.gameObject.AddComponent<Button>();
+                }
+
+                button.targetGraphic = clone.GetComponent<Image>();
+                slots[index] = new EnemyHudSlot(clone, hud, hpFill, button, null);
+            }
+
+            return slots;
+        }
+
+        private static void LayoutFormationHudSlots(EnemyHudSlot[] slots)
+        {
+            if (slots == null)
+            {
+                return;
+            }
+
+            float spacing = 300f;
+            float startX = -(FormationHudSlotCount - 1) * spacing * 0.5f;
+
+            for (int index = 0; index < FormationHudSlotCount && index < slots.Length; index++)
+            {
+                if (slots[index] == null || slots[index].Root == null)
+                {
+                    continue;
+                }
+
+                Vector2 position = new Vector2(startX + (index * spacing), slots[index].Root.anchoredPosition.y);
+                slots[index].Root.anchoredPosition = position;
+
+                if (slots[index].Button != null &&
+                    slots[index].Button.transform is RectTransform buttonTransform &&
+                    buttonTransform != slots[index].Root)
+                {
+                    buttonTransform.anchoredPosition = position;
+                }
+            }
+        }
+
+        private bool TryGetEnemySlot(int slotIndex, out EnemyHudSlot slot)
+        {
+            slot = null!;
+            if (_enemySlots == null || slotIndex < 0 || slotIndex >= _enemySlots.Length)
+            {
+                return false;
+            }
+
+            slot = _enemySlots[slotIndex];
+            return slot != null;
         }
 
         private static void SetText(Text text, string value)
@@ -413,25 +556,6 @@ namespace SlotRogue.UI.GameFlow
             fill.rectTransform.sizeDelta = new Vector2(maxWidth * ratio, fill.rectTransform.sizeDelta.y);
         }
 
-        private EnemyHudSlot[] ResolveEnemySlots()
-        {
-            if (_enemySlots != null && _enemySlots.Length > 0)
-            {
-                return _enemySlots;
-            }
-
-            if (_monsterHudText == null && _monsterHpFill == null && _monsterDamageAnchor == null)
-            {
-                return new EnemyHudSlot[0];
-            }
-
-            _enemySlots = new[]
-            {
-                new EnemyHudSlot(null, _monsterHudText, _monsterHpFill, null, _monsterDamageAnchor),
-            };
-            return _enemySlots;
-        }
-
         private static Image ResolveHpFill(RectTransform root)
         {
             Image[] images = root.GetComponentsInChildren<Image>(true);
@@ -444,39 +568,6 @@ namespace SlotRogue.UI.GameFlow
             }
 
             return images.Length > 0 ? images[images.Length - 1] : null;
-        }
-
-        private static void LayoutEnemySlots(EnemyHudSlot[] slots, int visibleCount)
-        {
-            if (slots == null || visibleCount <= 0)
-            {
-                return;
-            }
-
-            float spacing = visibleCount <= 2 ? 300f : 270f;
-            float startX = -(visibleCount - 1) * spacing * 0.5f;
-            int layoutCount = Mathf.Min(visibleCount, slots.Length);
-
-            for (int index = 0; index < layoutCount; index++)
-            {
-                if (slots[index] == null || slots[index].Root == null)
-                {
-                    continue;
-                }
-
-                slots[index].Root.anchoredPosition = new Vector2(
-                    startX + (index * spacing),
-                    slots[index].Root.anchoredPosition.y);
-
-                if (slots[index].Button != null &&
-                    slots[index].Button.transform is RectTransform buttonTransform &&
-                    buttonTransform != slots[index].Root)
-                {
-                    buttonTransform.anchoredPosition = new Vector2(
-                        startX + (index * spacing),
-                        buttonTransform.anchoredPosition.y);
-                }
-            }
         }
 
         private void CacheOutcomeColorsIfNeeded()
@@ -534,7 +625,7 @@ namespace SlotRogue.UI.GameFlow
         private Color _resultValueDefaultColor = Color.white;
         private bool _hasCachedOutcomeColors;
 
-        [System.Serializable]
+        [Serializable]
         public sealed class EnemyHudSlot
         {
             [SerializeField] private RectTransform _root;

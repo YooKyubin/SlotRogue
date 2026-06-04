@@ -5,18 +5,18 @@ namespace SlotRogue.UI.GameFlow
 {
     public sealed class RunMapNodeView : MonoBehaviour
     {
-        [SerializeField] private string _nodeId;
+        [SerializeField] private string _nodeID;
         [SerializeField] private Button _button;
         [SerializeField] private Image _image;
         [SerializeField] private Text _labelText;
 
-        public string NodeId => _nodeId;
+        public string NodeId => _nodeID;
 
         public Button Button => _button;
 
         public void Bind(string nodeId, Button button, Image image, Text labelText)
         {
-            _nodeId = nodeId;
+            _nodeID = nodeId;
             _button = button;
             _image = image;
             _labelText = labelText;

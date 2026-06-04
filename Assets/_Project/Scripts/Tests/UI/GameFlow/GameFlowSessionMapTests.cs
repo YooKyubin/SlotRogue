@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using SlotRogue.Data.GameFlow;
 using SlotRogue.UI.GameFlow;
 
 namespace SlotRogue.UI.Tests.GameFlow
@@ -8,8 +9,15 @@ namespace SlotRogue.UI.Tests.GameFlow
         [SetUp]
         public void SetUp()
         {
+            RunMapNodeCatalog.ConfigureGraph(null);
             GameFlowSession.StartNewRun();
             GameFlowSession.SelectStarterArtifact(StarterArtifactId.BeginnerBlade);
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            RunMapNodeCatalog.ConfigureGraph(null);
         }
 
         [Test]

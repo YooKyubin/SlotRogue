@@ -1,3 +1,4 @@
+using SlotRogue.Data.GameFlow;
 using System;
 using System.Collections.Generic;
 
@@ -49,7 +50,7 @@ namespace SlotRogue.UI.GameFlow
             SelectedStarterArtifactId = StarterArtifactId.None;
             CurrentMapGraph = RunMapNodeCatalog.BuildDefaultGraph();
             CurrentMapNode =
-                CurrentMapGraph.GetNode(RunMapNodeCatalog.StartNode.NodeId) ??
+                CurrentMapGraph.GetNode("start-0") ??
                 RunMapNodeCatalog.StartNode;
             CurrentEncounterNode = null;
             visitedMapNodeIds.Clear();

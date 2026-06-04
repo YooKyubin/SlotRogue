@@ -1,4 +1,4 @@
-namespace SlotRogue.UI.GameFlow
+namespace SlotRogue.Data.GameFlow
 {
     public enum RunMapNodeType
     {
