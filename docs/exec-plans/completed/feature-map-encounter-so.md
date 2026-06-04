@@ -1,6 +1,6 @@
 # 맵 노드 Encounter SO (RunEncounterDefinition)
 
-**Status**: active  
+**Status**: completed  
 **Started**: 2026-06-04  
 **Owner**: _(게임 플로우/전투 데이터 담당)_  
 **Contributors**: _(없음)_  
@@ -90,10 +90,10 @@
 ### Phase 4 — 테스트·문서·완료 처리
 
 - [x] EditMode: `RunEncounterRosterBuilderTests` (`SlotRogue.UI.Tests`, `SlotRogue.Data` asmdef 참조)
-- [ ] Play Mode 체크리스트 (아래 표) — 수동 확인
+- [ ] Play Mode 체크리스트 (아래 표) — 수동 확인 (머지 전 권장)
 - [x] 본 plan·[`game-flow.md`](../../design-docs/game-flow.md) 갱신
-- [ ] `git mv` → `docs/exec-plans/completed/` (Play Mode 회귀 후)
-- [ ] [`STATUS.md`](../../STATUS.md) Active → Recently completed
+- [x] `git mv` → `docs/exec-plans/completed/`
+- [x] [`STATUS.md`](../../STATUS.md) Active → Recently completed
 
 ---
 
@@ -116,8 +116,8 @@
 - [x] 전투 노드 encounter SO 연결 (16노드)
 - [x] `RunMapNodeDefinition` / `RunMapGraphDefinition` SO + `DefaultRunMapGraph`
 - [x] formation slot → HUD; Core id `100+index` 불변
-- [ ] Play Mode 체크리스트 전항
-- [ ] plan `completed/` + STATUS 갱신
+- [ ] Play Mode 체크리스트 전항 (수동; 아래 Follow-ups)
+- [x] plan `completed/` + STATUS 갱신
 
 ---
 
@@ -163,8 +163,9 @@ DefaultRunMapGraph (SO)
 
 ## Completion
 
-_(Play Mode 회귀 후 `completed/`로 옮길 때 채움.)_
-
-- **Finished**:
-- **Outcome**:
+- **Finished**: 2026-06-04
+- **Outcome**: `RunEncounterDefinition`·노드/그래프 SO(`DefaultRunMapGraph`)로 맵 전투 데이터화. `RunEncounterRosterBuilder`가 encounter entries만으로 roster를 만들고 formation slot → 3슬롯 HUD에 연결. `RunEncounterAssetCatalog`·`EnemyCount` 제거. EditMode `RunEncounterRosterBuilderTests` 추가.
 - **Follow-ups**:
+  - Unity Play Mode: 아래 체크리스트(1몹·Duo 2-A·Elite Trio 2-B·Boss) 수동 검증
+  - 필요 시 `SlotRogue > Game Flow > Rebuild Scene UI Prefabs` 후 HUD 시각 확인
+  - encounter pool·층별 랜덤 테이블, `Resources.Load` → Addressables (본 plan Out of scope)
