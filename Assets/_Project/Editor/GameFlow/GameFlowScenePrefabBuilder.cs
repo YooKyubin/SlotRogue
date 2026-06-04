@@ -170,6 +170,7 @@ namespace SlotRogue.Editor.GameFlow
             var prefabRoot = new GameObject("RunBattleView");
             GameObject canvas = CreateCanvasRoot("Run Battle UI");
             canvas.transform.SetParent(prefabRoot.transform, false);
+            MoveEventSystemToRoot(canvas.transform, prefabRoot.transform);
             var view = canvas.AddComponent<RunBattleView>();
             canvas.AddComponent<RunBattleController>();
             RectTransform root = CreateRootPanel(canvas.transform, "Run Battle Root");
@@ -205,6 +206,7 @@ namespace SlotRogue.Editor.GameFlow
                 playerDamageAnchor,
                 formationSlots);
 
+            ConfigureRunBattleRaycasts(canvas.transform);
             SavePrefabAndScene(prefabRoot, "RunBattleView", "RunBattle");
         }
 
@@ -421,6 +423,25 @@ namespace SlotRogue.Editor.GameFlow
             CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
             scaler.dynamicPixelsPerUnit = 10f;
             return canvas;
+        }
+
+        private static void ConfigureRunBattleRaycasts(Transform canvasTransform)
+        {
+            Graphic[] graphics = canvasTransform.GetComponentsInChildren<Graphic>(true);
+            for (int index = 0; index < graphics.Length; index++)
+            {
+                Graphic graphic = graphics[index];
+                graphic.raycastTarget = graphic.GetComponent<Button>() != null;
+            }
+        }
+
+        private static void MoveEventSystemToRoot(Transform canvasTransform, Transform rootTransform)
+        {
+            EventSystem eventSystem = canvasTransform.GetComponentInChildren<EventSystem>(true);
+            if (eventSystem != null)
+            {
+                eventSystem.transform.SetParent(rootTransform, false);
+            }
         }
 
         private static Vector3 ResolveEnemyWorldSlotPosition(int index, int slotCount)
@@ -772,6 +793,7 @@ namespace SlotRogue.Editor.GameFlow
             camera.orthographic = true;
             camera.orthographicSize = 5f;
             camera.transform.position = new Vector3(0f, 0f, -10f);
+            cameraObject.AddComponent<Physics2DRaycaster>();
             cameraObject.AddComponent<AudioListener>();
         }
 

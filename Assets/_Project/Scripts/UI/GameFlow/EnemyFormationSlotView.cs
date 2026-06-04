@@ -1,10 +1,11 @@
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace SlotRogue.UI.GameFlow
 {
-    public sealed class EnemyFormationSlotView : MonoBehaviour
+    public sealed class EnemyFormationSlotView : MonoBehaviour, IPointerClickHandler
     {
         private static readonly Color EnemySlotColor = new Color(0.11f, 0.14f, 0.2f, 0.96f);
         private static readonly Color SelectedEnemySlotColor = new Color(0.45f, 0.26f, 0.12f, 0.96f);
@@ -19,6 +20,9 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private RectTransform _damageAnchor;
         [SerializeField] private Text _placeholderText;
         [SerializeField] private Collider2D _clickCollider;
+
+        private UnityAction _clickHandler;
+        private bool _interactable = true;
 
         public Transform Root => _root != null ? _root : transform;
 
@@ -104,6 +108,7 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetInteractable(bool interactable)
         {
+            _interactable = interactable;
             if (_clickCollider != null)
             {
                 _clickCollider.enabled = interactable;
@@ -112,8 +117,22 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetClickHandler(UnityAction action)
         {
-            _ = action;
-            // Phase 3 will route this callback through the 2D collider input path.
+            _clickHandler = action;
+        }
+
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            if (!_interactable)
+            {
+                return;
+            }
+
+            if (_clickHandler == null || _clickCollider == null || !_clickCollider.enabled)
+            {
+                return;
+            }
+
+            _clickHandler.Invoke();
         }
     }
 }

@@ -100,22 +100,24 @@ namespace SlotRogue.UI.Combat.Presentation
             RectTransform anchor,
             RectTransform floatingRoot)
         {
-            Canvas canvas = floatingRoot.GetComponentInParent<Canvas>();
-            Camera camera = null;
-            if (canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay)
+            Canvas floatingCanvas = floatingRoot.GetComponentInParent<Canvas>();
+            Camera floatingCamera = null;
+            if (floatingCanvas != null && floatingCanvas.renderMode != RenderMode.ScreenSpaceOverlay)
             {
-                camera = canvas.worldCamera;
+                floatingCamera = floatingCanvas.worldCamera;
             }
 
             Vector3[] corners = new Vector3[4];
             anchor.GetWorldCorners(corners);
             Vector3 worldCenter = (corners[0] + corners[2]) * 0.5f;
-            Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(camera, worldCenter);
+            Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(
+                ResolveAnchorCamera(anchor),
+                worldCenter);
 
             if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
                     floatingRoot,
                     screenPoint,
-                    camera,
+                    floatingCamera,
                     out Vector2 localPoint))
             {
                 return;
@@ -125,6 +127,22 @@ namespace SlotRogue.UI.Combat.Presentation
             floatingText.anchorMax = new Vector2(0.5f, 0.5f);
             floatingText.pivot = new Vector2(0.5f, 0.5f);
             floatingText.anchoredPosition = localPoint;
+        }
+
+        private static Camera ResolveAnchorCamera(RectTransform anchor)
+        {
+            Canvas anchorCanvas = anchor.GetComponentInParent<Canvas>();
+            if (anchorCanvas != null)
+            {
+                if (anchorCanvas.renderMode == RenderMode.ScreenSpaceOverlay)
+                {
+                    return null;
+                }
+
+                return anchorCanvas.worldCamera;
+            }
+
+            return Camera.main;
         }
     }
 }
