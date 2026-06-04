@@ -85,14 +85,46 @@ namespace SlotRogue.UI.Combat.Presentation
             FloatingDamageTextView damageText = Object.Instantiate(
                 Host.FloatingDamageTextPrefab,
                 Host.FloatingTextRoot);
-            RectTransform textTransform = damageText.transform as RectTransform;
-            if (textTransform != null)
+            if (damageText.transform is RectTransform textTransform &&
+                Host.FloatingTextRoot is RectTransform floatingRoot)
             {
-                textTransform.anchoredPosition = anchor.anchoredPosition;
+                AlignFloatingTextToAnchor(textTransform, anchor, floatingRoot);
             }
 
             CombatAnchorKind anchorKind = isPlayerTarget ? CombatAnchorKind.Player : CombatAnchorKind.Monster;
             await damageText.Play(amount, isCritical, anchorKind, cancellationToken);
+        }
+
+        private static void AlignFloatingTextToAnchor(
+            RectTransform floatingText,
+            RectTransform anchor,
+            RectTransform floatingRoot)
+        {
+            Canvas canvas = floatingRoot.GetComponentInParent<Canvas>();
+            Camera camera = null;
+            if (canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay)
+            {
+                camera = canvas.worldCamera;
+            }
+
+            Vector3[] corners = new Vector3[4];
+            anchor.GetWorldCorners(corners);
+            Vector3 worldCenter = (corners[0] + corners[2]) * 0.5f;
+            Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(camera, worldCenter);
+
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    floatingRoot,
+                    screenPoint,
+                    camera,
+                    out Vector2 localPoint))
+            {
+                return;
+            }
+
+            floatingText.anchorMin = new Vector2(0.5f, 0.5f);
+            floatingText.anchorMax = new Vector2(0.5f, 0.5f);
+            floatingText.pivot = new Vector2(0.5f, 0.5f);
+            floatingText.anchoredPosition = localPoint;
         }
     }
 }

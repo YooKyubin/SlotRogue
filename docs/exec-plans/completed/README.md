@@ -10,6 +10,7 @@
 
 | Plan | Finished | Outcome (한 줄) |
 |------|----------|-----------------|
+| [`feature-enemy-formation-slot.md`](./feature-enemy-formation-slot.md) | 2026-06-04 | EnemyFormationSlot 프리팹, MonsterDefinition.portrait, 슬롯 DamageAnchor·플로팅 좌표 |
 | [`feature-map-encounter-so.md`](./feature-map-encounter-so.md) | 2026-06-04 | RunEncounterDefinition·맵 그래프 SO, roster 빌더, formation 3슬롯 HUD |
 | [`feature-multi-participant-play-ui.md`](./feature-multi-participant-play-ui.md) | 2026-06-04 | RunBattle 2/3몹 roster hint, 몬스터별 HUD·타겟 선택·id anchor 연결 |
 | [`feature-floating-combat-text.md`](./feature-floating-combat-text.md) | 2026-06-02 | 데미지 텍스트 prefab/view + anchor 기반 전환, Dev/RunBattle 공용 계약 |

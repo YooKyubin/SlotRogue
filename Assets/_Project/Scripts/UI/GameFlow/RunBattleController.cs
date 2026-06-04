@@ -115,9 +115,13 @@ namespace SlotRogue.UI.GameFlow
             _playerDamageAnchor = _view.PlayerDamageAnchor != null
                 ? _view.PlayerDamageAnchor
                 : ResolveDamageAnchor(floatingTextRoot, "player-damage-anchor", new Vector2(0f, -120f));
-            _monsterDamageAnchor = _view.MonsterDamageAnchor != null
-                ? _view.MonsterDamageAnchor
-                : ResolveDamageAnchor(floatingTextRoot, "monster-damage-anchor", new Vector2(0f, 40f));
+            _monsterDamageAnchor = _view.GetEnemyDamageAnchor(1);
+            if (_monsterDamageAnchor == null)
+            {
+                Debug.LogError(
+                    "[RunBattleController] Center formation damage anchor missing. " +
+                    "Run menu: SlotRogue > Game Flow > Rebuild Scene UI Prefabs.");
+            }
 
             _presentationHost = new CombatPresentationHost(
                 gameObject,
@@ -403,6 +407,7 @@ namespace SlotRogue.UI.GameFlow
             {
                 _view.SetEnemySlotClickHandler(index, null);
                 _view.SetEnemySlotActive(index, false);
+                _view.SetEnemyPortrait(index, null);
             }
 
             int bindCount = Mathf.Min(slotCount, _battle.Enemies.Count);
@@ -454,6 +459,7 @@ namespace SlotRogue.UI.GameFlow
                     enemy.MaxHp,
                     selected,
                     !enemy.IsDead && !_flowController.IsBusy);
+                _view.SetEnemyPortrait(slotIndex, ResolveEncounterMonster(rosterIndex)?.portrait);
             }
         }
 
@@ -478,22 +484,28 @@ namespace SlotRogue.UI.GameFlow
         private RectTransform ResolveEnemyDamageAnchor(int slotIndex)
         {
             RectTransform anchor = _view.GetEnemyDamageAnchor(slotIndex);
-            if (anchor != null)
+            if (anchor == null)
             {
-                return anchor;
+                Debug.LogError(
+                    $"[RunBattleController] Damage anchor missing for formation slot {slotIndex}. " +
+                    "Run menu: SlotRogue > Game Flow > Rebuild Scene UI Prefabs.");
             }
 
-            return ResolveDamageAnchor(
-                _floatingTextRoot,
-                $"runtime-monster-{slotIndex}-damage-anchor",
-                ResolveEnemyDamageAnchorPosition(slotIndex));
+            return anchor;
         }
 
-        private static Vector2 ResolveEnemyDamageAnchorPosition(int slotIndex)
+        private MonsterDefinition ResolveEncounterMonster(int rosterIndex)
         {
-            float spacing = 300f;
-            float startX = -(RunBattleView.FormationHudSlotCount - 1) * spacing * 0.5f;
-            return new Vector2(startX + (slotIndex * spacing), 40f);
+            RunMapNodeDefinition node = GetEncounterNode();
+            RunEncounterDefinition encounter = node?.Encounter;
+            if (encounter?.entries == null ||
+                rosterIndex < 0 ||
+                rosterIndex >= encounter.entries.Length)
+            {
+                return null;
+            }
+
+            return encounter.entries[rosterIndex].monster;
         }
 
         private void HandleEnemySelected(CombatParticipantId enemyId)
