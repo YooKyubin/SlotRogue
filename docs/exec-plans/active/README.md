@@ -10,6 +10,7 @@
 
 | Plan | Started |
 |------|---------|
+| [`feature-enemy-formation-2d-world.md`](./feature-enemy-formation-2d-world.md) | 2026-06-05 |
 | [`feature-game-flow-loop.md`](./feature-game-flow-loop.md) | 2026-05-31 |
 | [`feature-slot-core.md`](./feature-slot-core.md) | 2026-05-28 |
 

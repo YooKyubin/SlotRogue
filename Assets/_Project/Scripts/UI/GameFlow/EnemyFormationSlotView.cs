@@ -9,64 +9,59 @@ namespace SlotRogue.UI.GameFlow
         private static readonly Color EnemySlotColor = new Color(0.11f, 0.14f, 0.2f, 0.96f);
         private static readonly Color SelectedEnemySlotColor = new Color(0.45f, 0.26f, 0.12f, 0.96f);
 
-        [SerializeField] private RectTransform _root;
-        [SerializeField] private Button _button;
-        [SerializeField] private GameFlowImageSlot _portrait;
+        [SerializeField] private Transform _root;
+        [SerializeField] private Transform _shakeGroup;
+        [SerializeField] private SpriteRenderer _portrait;
+        [SerializeField] private Canvas _hudRoot;
         [SerializeField] private Text _hudText;
         [SerializeField] private Image _hpFill;
         [SerializeField] private Image _statusBackground;
         [SerializeField] private RectTransform _damageAnchor;
         [SerializeField] private Text _placeholderText;
+        [SerializeField] private Collider2D _clickCollider;
 
-        public RectTransform Root => _root != null ? _root : transform as RectTransform;
+        public Transform Root => _root != null ? _root : transform;
+
+        public Transform ShakeGroup => _shakeGroup;
+
+        public Canvas HudRoot => _hudRoot;
 
         public RectTransform DamageAnchor => _damageAnchor;
 
         public void Bind(
-            RectTransform root,
-            Button button,
-            GameFlowImageSlot portrait,
+            Transform root,
+            Transform shakeGroup,
+            SpriteRenderer portrait,
+            Canvas hudRoot,
             Text hudText,
             Image hpFill,
             Image statusBackground,
             RectTransform damageAnchor,
-            Text placeholderText)
+            Text placeholderText,
+            Collider2D clickCollider)
         {
             _root = root;
-            _button = button;
+            _shakeGroup = shakeGroup;
             _portrait = portrait;
+            _hudRoot = hudRoot;
             _hudText = hudText;
             _hpFill = hpFill;
             _statusBackground = statusBackground;
             _damageAnchor = damageAnchor;
             _placeholderText = placeholderText;
+            _clickCollider = clickCollider;
         }
 
         public void SetPortrait(Sprite sprite)
         {
-            if (sprite != null)
-            {
-                if (_portrait != null)
-                {
-                    _portrait.SetSprite(sprite);
-                }
-
-                if (_placeholderText != null)
-                {
-                    _placeholderText.gameObject.SetActive(false);
-                }
-
-                return;
-            }
-
             if (_portrait != null)
             {
-                _portrait.SetSprite(null);
+                _portrait.sprite = sprite;
             }
 
             if (_placeholderText != null)
             {
-                _placeholderText.gameObject.SetActive(true);
+                _placeholderText.gameObject.SetActive(sprite == null);
             }
         }
 
@@ -109,24 +104,16 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetInteractable(bool interactable)
         {
-            if (_button != null)
+            if (_clickCollider != null)
             {
-                _button.interactable = interactable;
+                _clickCollider.enabled = interactable;
             }
         }
 
         public void SetClickHandler(UnityAction action)
         {
-            if (_button == null)
-            {
-                return;
-            }
-
-            _button.onClick.RemoveAllListeners();
-            if (action != null)
-            {
-                _button.onClick.AddListener(action);
-            }
+            _ = action;
+            // Phase 3 will route this callback through the 2D collider input path.
         }
     }
 }

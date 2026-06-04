@@ -9,7 +9,7 @@ namespace SlotRogue.UI.GameFlow
     public sealed class RunBattleView : MonoBehaviour
     {
         public const int FormationHudSlotCount = 3;
-        private const float FormationHudSpacing = 300f;
+        private const float FormationWorldSpacing = 2.7f;
 
         private static readonly Color PatternHitColor = new Color(1f, 0.82f, 0.23f, 1f);
         private static readonly Color BaseAttackColor = new Color(0.66f, 0.82f, 1f, 1f);
@@ -288,7 +288,7 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
-            float startX = -(FormationHudSlotCount - 1) * FormationHudSpacing * 0.5f;
+            float startX = -(FormationHudSlotCount - 1) * FormationWorldSpacing * 0.5f;
 
             for (int index = 0; index < FormationHudSlotCount && index < _formationSlots.Length; index++)
             {
@@ -298,9 +298,10 @@ namespace SlotRogue.UI.GameFlow
                     continue;
                 }
 
-                RectTransform root = slot.Root;
-                Vector2 position = new Vector2(startX + (index * FormationHudSpacing), root.anchoredPosition.y);
-                root.anchoredPosition = position;
+                Transform root = slot.Root;
+                Vector3 position = root.localPosition;
+                position.x = startX + (index * FormationWorldSpacing);
+                root.localPosition = position;
             }
         }
 
