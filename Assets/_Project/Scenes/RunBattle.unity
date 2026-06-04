@@ -285,10 +285,22 @@ PrefabInstance:
       propertyPath: m_Name
       value: RunBattleView
       objectReference: {fileID: 0}
+    - target: {fileID: 731105514368044707, guid: 4a1aef89b5c09464681ea1bba00aa700, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -2.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 731105514368044707, guid: 4a1aef89b5c09464681ea1bba00aa700, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1349318831042277456, guid: 4a1aef89b5c09464681ea1bba00aa700, type: 3}
       propertyPath: _floatingDamageTextPrefab
       value: 
       objectReference: {fileID: 1000000000000000401, guid: b4c7d9e1f2a3456789abcdef01234567, type: 3}
+    - target: {fileID: 3167818341553278375, guid: 4a1aef89b5c09464681ea1bba00aa700, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4110660815851366127, guid: 4a1aef89b5c09464681ea1bba00aa700, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -327,6 +339,22 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4110660815851366127, guid: 4a1aef89b5c09464681ea1bba00aa700, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4415172914528257362, guid: 4a1aef89b5c09464681ea1bba00aa700, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4493126812811296340, guid: 4a1aef89b5c09464681ea1bba00aa700, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: -1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4493126812811296340, guid: 4a1aef89b5c09464681ea1bba00aa700, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 821
+      objectReference: {fileID: 0}
+    - target: {fileID: 9154005026688940399, guid: 4a1aef89b5c09464681ea1bba00aa700, type: 3}
+      propertyPath: m_AnchoredPosition.x
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []

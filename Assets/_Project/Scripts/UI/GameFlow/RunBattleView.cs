@@ -52,16 +52,6 @@ namespace SlotRogue.UI.GameFlow
             ValidateFormationSlots();
         }
 
-        public void EnsureEnemySlotCapacity(int enemyCount)
-        {
-            if (!ValidateFormationSlots())
-            {
-                return;
-            }
-
-            LayoutFormationHudSlots();
-        }
-
         public void Bind(
             Text[] slotCells,
             Text statusText,
@@ -253,7 +243,6 @@ namespace SlotRogue.UI.GameFlow
         {
             if (HasValidFormationSlots())
             {
-                LayoutFormationHudSlots();
                 return true;
             }
 
@@ -279,30 +268,6 @@ namespace SlotRogue.UI.GameFlow
             }
 
             return true;
-        }
-
-        private void LayoutFormationHudSlots()
-        {
-            if (_formationSlots == null)
-            {
-                return;
-            }
-
-            float startX = -(FormationHudSlotCount - 1) * FormationWorldSpacing * 0.5f;
-
-            for (int index = 0; index < FormationHudSlotCount && index < _formationSlots.Length; index++)
-            {
-                EnemyFormationSlotView slot = _formationSlots[index];
-                if (slot == null || slot.Root == null)
-                {
-                    continue;
-                }
-
-                Transform root = slot.Root;
-                Vector3 position = root.localPosition;
-                position.x = startX + (index * FormationWorldSpacing);
-                root.localPosition = position;
-            }
         }
 
         private bool TryGetFormationSlot(int slotIndex, out EnemyFormationSlotView slot)

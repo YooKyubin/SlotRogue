@@ -1,4 +1,4 @@
-﻿%YAML 1.1
+%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
 --- !u!114 &11400000
 MonoBehaviour:
@@ -18,4 +18,4 @@ MonoBehaviour:
   _nodeType: 1
   _floor: 1
   _lane: 1
-  _encounter: {fileID: 11400000, guid: e1000000000000000000000000000001, type: 2}
+  _encounter: {fileID: 11400000, guid: 62955fcc897e80e40bae77b42faee9ff, type: 2}
