@@ -164,6 +164,14 @@
 - **`EnemyCount`:** encounter SO 도입 후 catalog 신규 노드는 encounter 우선; 기존 필드는 폴백·마이그레이션용으로 당분간 유지.
 - **Inspector `_monsterDefinition`:** encounter 없는 노드·entry에 monster 없을 때만 사용 (Dev/단일 몬스터 튜닝 경로 유지).
 
+## Follow-up (2026-06-04): 노드 SO 이전
+
+- [x] `RunMapNodeDefinition` / `RunMapGraphDefinition` → `SlotRogue.Data` ScriptableObject
+- [x] 노드 asset에서 `RunEncounterDefinition` 직접 참조 (`RunEncounterAssetCatalog` 제거)
+- [x] 전투 노드 16개 encounter SO 연결 (`Encounter_SingleMonster`, `SingleElite`, `Boss`, `Duo2A`, `EliteTrio2B`)
+- [x] `Resources/DefaultRunMapGraph.asset` + `RunMapGraphAssetBuilder` 에디터 메뉴
+- [x] `RunMapNodeDefinition.enemyCount` 제거 — 몬스터 수는 `encounter.entries`만 사용
+
 ## Completion
 
 _(completed/로 옮길 때 채움.)_

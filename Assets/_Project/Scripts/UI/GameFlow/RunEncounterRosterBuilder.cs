@@ -24,7 +24,8 @@ namespace SlotRogue.UI.GameFlow
                 return BuildFromEncounter(encounter, encounterNode, floor, inspectorFallback);
             }
 
-            return BuildFromEnemyCount(encounterNode, floor, inspectorFallback);
+            throw new InvalidOperationException(
+                $"Run map node '{encounterNode.NodeId}' has no encounter definition. Assign a RunEncounterDefinition with at least one entry.");
         }
 
         private static RunEncounterRoster BuildFromEncounter(
@@ -54,42 +55,11 @@ namespace SlotRogue.UI.GameFlow
             return new RunEncounterRoster(enemies, schedules, formationSlots);
         }
 
-        private static RunEncounterRoster BuildFromEnemyCount(
-            RunMapNodeDefinition encounterNode,
-            int floor,
-            MonsterDefinition inspectorFallback)
-        {
-            int enemyCount = Mathf.Max(1, encounterNode.EnemyCount);
-            var enemies = new CombatParticipant[enemyCount];
-            var schedules = new MonsterTurnSchedule[enemyCount];
-            var formationSlots = new int[enemyCount];
-
-            int maxHp = ResolveLegacyMaxHp(encounterNode, inspectorFallback);
-            MonsterTurnSchedule schedule = ResolveLegacyTurnSchedule(encounterNode, floor, inspectorFallback);
-
-            for (int index = 0; index < enemyCount; index++)
-            {
-                enemies[index] = new CombatParticipant(
-                    maxHp,
-                    id: new CombatParticipantId(100 + index),
-                    team: CombatTeam.Enemy);
-                schedules[index] = schedule;
-                formationSlots[index] = ResolveDefaultFormationSlot(index, enemyCount);
-            }
-
-            return new RunEncounterRoster(enemies, schedules, formationSlots);
-        }
-
         private static int ResolveEntryMaxHp(
             RunEncounterEntry entry,
             RunMapNodeDefinition encounterNode,
             MonsterDefinition inspectorFallback)
         {
-            if (entry.hpOverride > 0)
-            {
-                return entry.hpOverride;
-            }
-
             if (entry.monster != null)
             {
                 return Mathf.Max(1, entry.monster.maxHp);
@@ -140,21 +110,6 @@ namespace SlotRogue.UI.GameFlow
             }
 
             return CreateMonsterTurnSchedule(encounterNode, floor);
-        }
-
-        private static int ResolveDefaultFormationSlot(int rosterIndex, int enemyCount)
-        {
-            if (enemyCount <= 1)
-            {
-                return 1;
-            }
-
-            if (enemyCount == 2)
-            {
-                return rosterIndex == 0 ? 0 : 2;
-            }
-
-            return Mathf.Clamp(rosterIndex, 0, 2);
         }
 
         public static int ResolveFormationSlot(

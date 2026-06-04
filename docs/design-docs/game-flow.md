@@ -1,7 +1,7 @@
 # 게임 플로우
 
 **Status**: draft  
-**Last updated**: 2026-05-31
+**Last updated**: 2026-06-04
 
 ## Purpose
 
@@ -119,6 +119,8 @@ Start
 ```
 
 초기 MVP는 고정 그래프를 사용한다. 모든 노드와 연결선은 보이지만, `CurrentMapNode`에서 edge로 직접 연결된 다음 노드만 클릭 가능하다. 현재 노드는 노란색, 방문한 경로는 녹색, 선택 가능한 다음 경로는 금색으로 강조한다. 노드를 선택하면 `GameFlowSession.CurrentMapNode`와 `CurrentEncounterNode`가 갱신되고 `RunBattle`로 이동한다.
+
+맵 노드·그래프는 `RunMapNodeDefinition` / `RunMapGraphDefinition` ScriptableObject(`Resources/DefaultRunMapGraph`)로 관리한다. 각 노드 asset이 `RunEncounterDefinition`을 직접 참조하며, 전투 진입 시 `RunEncounterRosterBuilder`가 roster를 구성한다.
 
 ## Battle MVP
 

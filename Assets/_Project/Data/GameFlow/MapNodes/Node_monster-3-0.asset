@@ -1,0 +1,21 @@
+﻿%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a017, type: 3}
+  m_Name: Node_monster-3-0
+  m_EditorClassIdentifier: SlotRogue.Data::SlotRogue.Data.GameFlow.RunMapNodeDefinition
+  nodeId: monster-3-0
+  displayName: Monster 3-A
+  description: A steady left branch.
+  nodeType: 1
+  floor: 3
+  lane: 0
+  encounter: {fileID: 11400000, guid: e1000000000000000000000000000001, type: 2}

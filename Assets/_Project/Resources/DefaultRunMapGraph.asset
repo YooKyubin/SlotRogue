@@ -1,0 +1,101 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a01b, type: 3}
+  m_Name: DefaultRunMapGraph
+  m_EditorClassIdentifier: SlotRogue.Data::SlotRogue.Data.GameFlow.RunMapGraphDefinition
+  nodes:
+  - {fileID: 11400000, guid: f1000000000000000000000000000001, type: 2}
+  - {fileID: 11400000, guid: f1000000000000000000000000000002, type: 2}
+  - {fileID: 11400000, guid: f1000000000000000000000000000003, type: 2}
+  - {fileID: 11400000, guid: f1000000000000000000000000000004, type: 2}
+  - {fileID: 11400000, guid: f1000000000000000000000000000005, type: 2}
+  - {fileID: 11400000, guid: f1000000000000000000000000000006, type: 2}
+  - {fileID: 11400000, guid: f1000000000000000000000000000007, type: 2}
+  - {fileID: 11400000, guid: f1000000000000000000000000000008, type: 2}
+  - {fileID: 11400000, guid: f1000000000000000000000000000009, type: 2}
+  - {fileID: 11400000, guid: f100000000000000000000000000000a, type: 2}
+  - {fileID: 11400000, guid: f100000000000000000000000000000b, type: 2}
+  - {fileID: 11400000, guid: f100000000000000000000000000000c, type: 2}
+  - {fileID: 11400000, guid: f100000000000000000000000000000d, type: 2}
+  - {fileID: 11400000, guid: f100000000000000000000000000000e, type: 2}
+  - {fileID: 11400000, guid: f100000000000000000000000000000f, type: 2}
+  - {fileID: 11400000, guid: f1000000000000000000000000000010, type: 2}
+  - {fileID: 11400000, guid: f1000000000000000000000000000011, type: 2}
+  edges:
+  - fromNodeId: start-0
+    toNodeId: monster-1-0
+  - fromNodeId: start-0
+    toNodeId: monster-1-1
+  - fromNodeId: start-0
+    toNodeId: elite-1-2
+  - fromNodeId: monster-1-0
+    toNodeId: monster-2-0
+  - fromNodeId: monster-1-0
+    toNodeId: elite-2-1
+  - fromNodeId: monster-1-1
+    toNodeId: monster-2-0
+  - fromNodeId: monster-1-1
+    toNodeId: elite-2-1
+  - fromNodeId: monster-1-1
+    toNodeId: monster-2-2
+  - fromNodeId: elite-1-2
+    toNodeId: elite-2-1
+  - fromNodeId: elite-1-2
+    toNodeId: monster-2-2
+  - fromNodeId: monster-2-0
+    toNodeId: monster-3-0
+  - fromNodeId: monster-2-0
+    toNodeId: monster-3-1
+  - fromNodeId: elite-2-1
+    toNodeId: monster-3-0
+  - fromNodeId: elite-2-1
+    toNodeId: monster-3-1
+  - fromNodeId: elite-2-1
+    toNodeId: elite-3-2
+  - fromNodeId: monster-2-2
+    toNodeId: monster-3-1
+  - fromNodeId: monster-2-2
+    toNodeId: elite-3-2
+  - fromNodeId: monster-3-0
+    toNodeId: monster-4-0
+  - fromNodeId: monster-3-0
+    toNodeId: elite-4-1
+  - fromNodeId: monster-3-1
+    toNodeId: monster-4-0
+  - fromNodeId: monster-3-1
+    toNodeId: elite-4-1
+  - fromNodeId: monster-3-1
+    toNodeId: monster-4-2
+  - fromNodeId: elite-3-2
+    toNodeId: elite-4-1
+  - fromNodeId: elite-3-2
+    toNodeId: monster-4-2
+  - fromNodeId: monster-4-0
+    toNodeId: monster-5-0
+  - fromNodeId: monster-4-0
+    toNodeId: monster-5-1
+  - fromNodeId: elite-4-1
+    toNodeId: monster-5-0
+  - fromNodeId: elite-4-1
+    toNodeId: monster-5-1
+  - fromNodeId: elite-4-1
+    toNodeId: elite-5-2
+  - fromNodeId: monster-4-2
+    toNodeId: monster-5-1
+  - fromNodeId: monster-4-2
+    toNodeId: elite-5-2
+  - fromNodeId: monster-5-0
+    toNodeId: boss-6-1
+  - fromNodeId: monster-5-1
+    toNodeId: boss-6-1
+  - fromNodeId: elite-5-2
+    toNodeId: boss-6-1
