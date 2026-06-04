@@ -178,15 +178,22 @@ namespace SlotRogue.Editor.GameFlow
                 AssetDatabase.CreateAsset(node, assetPath);
             }
 
-            node.nodeId = spec.NodeId;
-            node.displayName = spec.DisplayName;
-            node.description = spec.Description;
-            node.nodeType = spec.NodeType;
-            node.floor = spec.Floor;
-            node.lane = spec.Lane;
-            node.encounter = spec.Encounter;
+            ApplyNodeSpec(node, spec);
             EditorUtility.SetDirty(node);
             return node;
+        }
+
+        private static void ApplyNodeSpec(RunMapNodeDefinition node, NodeSpec spec)
+        {
+            SerializedObject serializedObject = new(node);
+            serializedObject.FindProperty("_nodeID").stringValue = spec.NodeId;
+            serializedObject.FindProperty("_displayName").stringValue = spec.DisplayName;
+            serializedObject.FindProperty("_description").stringValue = spec.Description;
+            serializedObject.FindProperty("_nodeType").enumValueIndex = (int)spec.NodeType;
+            serializedObject.FindProperty("_floor").intValue = spec.Floor;
+            serializedObject.FindProperty("_lane").intValue = spec.Lane;
+            serializedObject.FindProperty("_encounter").objectReferenceValue = spec.Encounter;
+            serializedObject.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static NodeSpec Spec(

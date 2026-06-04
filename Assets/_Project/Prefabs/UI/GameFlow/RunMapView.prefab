@@ -1,4 +1,4 @@
-%YAML 1.1
+﻿%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
 --- !u!1 &46458933546428256
 GameObject:
@@ -952,7 +952,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a023, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RunMapNodeView
-  _nodeId: monster-4-2
+  _nodeID: monster-4-2
   _button: {fileID: 6653671775051821220}
   _image: {fileID: 3450842840280519487}
   _labelText: {fileID: 2644650841053314481}
@@ -1379,7 +1379,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a023, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RunMapNodeView
-  _nodeId: elite-5-2
+  _nodeID: elite-5-2
   _button: {fileID: 2596146885013028306}
   _image: {fileID: 5755014830454498}
   _labelText: {fileID: 4787109212776747848}
@@ -1615,7 +1615,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a023, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RunMapNodeView
-  _nodeId: elite-2-1
+  _nodeID: elite-2-1
   _button: {fileID: 5322438191017186580}
   _image: {fileID: 8743265270123736820}
   _labelText: {fileID: 2398256272841696222}
@@ -2344,7 +2344,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a023, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RunMapNodeView
-  _nodeId: elite-3-2
+  _nodeID: elite-3-2
   _button: {fileID: 6346662471287548715}
   _image: {fileID: 8681339625054760754}
   _labelText: {fileID: 7822282254135519322}
@@ -4391,7 +4391,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a023, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RunMapNodeView
-  _nodeId: monster-2-2
+  _nodeID: monster-2-2
   _button: {fileID: 3668959487877801662}
   _image: {fileID: 8757409066415853668}
   _labelText: {fileID: 2756192359455836465}
@@ -5823,7 +5823,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a023, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RunMapNodeView
-  _nodeId: monster-3-1
+  _nodeID: monster-3-1
   _button: {fileID: 3742139323031685411}
   _image: {fileID: 4256161430506231738}
   _labelText: {fileID: 6899544480137588637}
@@ -6525,7 +6525,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a023, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RunMapNodeView
-  _nodeId: start-0
+  _nodeID: start-0
   _button: {fileID: 2590208712664424590}
   _image: {fileID: 1513838355038470369}
   _labelText: {fileID: 3060549214586731568}
@@ -6772,7 +6772,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a023, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RunMapNodeView
-  _nodeId: boss-6-1
+  _nodeID: boss-6-1
   _button: {fileID: 4548686895984487898}
   _image: {fileID: 4654975014632980448}
   _labelText: {fileID: 6716476318011606088}
@@ -7035,7 +7035,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a023, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RunMapNodeView
-  _nodeId: elite-4-1
+  _nodeID: elite-4-1
   _button: {fileID: 8532184279270383456}
   _image: {fileID: 7701091681604224638}
   _labelText: {fileID: 8316090888217261489}
@@ -8817,7 +8817,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a023, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RunMapNodeView
-  _nodeId: monster-5-1
+  _nodeID: monster-5-1
   _button: {fileID: 2203567933818468332}
   _image: {fileID: 4259805927484790356}
   _labelText: {fileID: 2328066624640113196}
@@ -9350,7 +9350,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a023, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RunMapNodeView
-  _nodeId: monster-1-1
+  _nodeID: monster-1-1
   _button: {fileID: 6492152033420894160}
   _image: {fileID: 4057262595683067238}
   _labelText: {fileID: 1699538312970222542}
@@ -11339,7 +11339,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a023, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RunMapNodeView
-  _nodeId: elite-1-2
+  _nodeID: elite-1-2
   _button: {fileID: 4286193572912823298}
   _image: {fileID: 2354368593782153967}
   _labelText: {fileID: 4773995093807098445}
@@ -11586,7 +11586,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a023, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RunMapNodeView
-  _nodeId: monster-2-0
+  _nodeID: monster-2-0
   _button: {fileID: 8988819133193631603}
   _image: {fileID: 3870329253436836872}
   _labelText: {fileID: 5422035823251713278}
@@ -13115,7 +13115,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a023, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RunMapNodeView
-  _nodeId: monster-1-0
+  _nodeID: monster-1-0
   _button: {fileID: 6332995419240347333}
   _image: {fileID: 4909872761737308527}
   _labelText: {fileID: 3608347202197908388}
@@ -13378,7 +13378,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a023, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RunMapNodeView
-  _nodeId: monster-3-0
+  _nodeID: monster-3-0
   _button: {fileID: 5626045247215941481}
   _image: {fileID: 8554317864152539020}
   _labelText: {fileID: 3505894394023670133}
@@ -14965,7 +14965,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a023, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RunMapNodeView
-  _nodeId: monster-5-0
+  _nodeID: monster-5-0
   _button: {fileID: 3125888088566401703}
   _image: {fileID: 4339246900198132045}
   _labelText: {fileID: 6910145811860210713}
@@ -15122,7 +15122,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a023, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RunMapNodeView
-  _nodeId: monster-4-0
+  _nodeID: monster-4-0
   _button: {fileID: 6577634874804329103}
   _image: {fileID: 5273218102641188513}
   _labelText: {fileID: 5844292843628999308}

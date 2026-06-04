@@ -2,6 +2,7 @@ using System;
 using NUnit.Framework;
 using SlotRogue.Data.GameFlow;
 using SlotRogue.UI.GameFlow;
+using UnityEditor;
 using UnityEngine;
 
 namespace SlotRogue.UI.Tests.GameFlow
@@ -18,11 +19,11 @@ namespace SlotRogue.UI.Tests.GameFlow
                 new RunEncounterEntry { formationSlot = 2 },
             };
 
-            var node = ScriptableObject.CreateInstance<RunMapNodeDefinition>();
-            node.nodeId = "test-duo";
-            node.nodeType = RunMapNodeType.Monster;
-            node.floor = 2;
-            node.encounter = encounter;
+            RunMapNodeDefinition node = CreateNode(
+                nodeId: "test-duo",
+                nodeType: RunMapNodeType.Monster,
+                floor: 2,
+                encounter: encounter);
 
             RunEncounterRoster roster = RunEncounterRosterBuilder.Build(node, floor: 2, inspectorFallback: null);
 
@@ -34,13 +35,29 @@ namespace SlotRogue.UI.Tests.GameFlow
         [Test]
         public void Build_WithoutEncounter_ThrowsInvalidOperationException()
         {
-            var node = ScriptableObject.CreateInstance<RunMapNodeDefinition>();
-            node.nodeId = "test-single";
-            node.nodeType = RunMapNodeType.Monster;
-            node.floor = 1;
+            RunMapNodeDefinition node = CreateNode(
+                nodeId: "test-single",
+                nodeType: RunMapNodeType.Monster,
+                floor: 1);
 
             Assert.Throws<InvalidOperationException>(() =>
                 RunEncounterRosterBuilder.Build(node, floor: 1, inspectorFallback: null));
+        }
+
+        private static RunMapNodeDefinition CreateNode(
+            string nodeId,
+            RunMapNodeType nodeType,
+            int floor,
+            RunEncounterDefinition encounter = null!)
+        {
+            var node = ScriptableObject.CreateInstance<RunMapNodeDefinition>();
+            var serializedObject = new SerializedObject(node);
+            serializedObject.FindProperty("_nodeID").stringValue = nodeId;
+            serializedObject.FindProperty("_nodeType").enumValueIndex = (int)nodeType;
+            serializedObject.FindProperty("_floor").intValue = floor;
+            serializedObject.FindProperty("_encounter").objectReferenceValue = encounter;
+            serializedObject.ApplyModifiedPropertiesWithoutUndo();
+            return node;
         }
     }
 }

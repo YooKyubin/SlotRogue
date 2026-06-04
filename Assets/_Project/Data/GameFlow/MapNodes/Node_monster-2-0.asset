@@ -12,10 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a017, type: 3}
   m_Name: Node_monster-2-0
   m_EditorClassIdentifier: SlotRogue.Data::SlotRogue.Data.GameFlow.RunMapNodeDefinition
-  nodeId: monster-2-0
-  displayName: Duo 2-A
-  description: A left-side two-enemy fight.
-  nodeType: 1
-  floor: 2
-  lane: 0
-  encounter: {fileID: 11400000, guid: 3702161dd65f90249b37f5b30f7bf9cb, type: 2}
+  _nodeID: monster-2-0
+  _displayName: Duo 2-A
+  _description: A left-side two-enemy fight.
+  _nodeType: 1
+  _floor: 2
+  _lane: 0
+  _encounter: {fileID: 11400000, guid: 3702161dd65f90249b37f5b30f7bf9cb, type: 2}

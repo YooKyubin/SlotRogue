@@ -5,34 +5,34 @@ namespace SlotRogue.Data.GameFlow
     [CreateAssetMenu(menuName = "SlotRogue/Game Flow/Run Map Node")]
     public sealed class RunMapNodeDefinition : ScriptableObject
     {
-        public string nodeId = string.Empty;
+        [SerializeField] private string _nodeID = string.Empty;
 
-        public string displayName = string.Empty;
+        [SerializeField] private string _displayName = string.Empty;
 
-        public string description = string.Empty;
+        [SerializeField] private string _description = string.Empty;
 
-        public RunMapNodeType nodeType;
+        [SerializeField] private RunMapNodeType _nodeType;
 
-        public int floor;
+        [SerializeField] private int _floor;
 
-        public int lane;
+        [SerializeField] private int _lane;
 
-        public RunEncounterDefinition encounter = null!;
+        [SerializeField] private RunEncounterDefinition _encounter = null!;
 
-        public string NodeId => nodeId;
+        public string NodeId => _nodeID;
 
-        public string DisplayName => displayName;
+        public string DisplayName => _displayName;
 
-        public string Description => description;
+        public string Description => _description;
 
-        public RunMapNodeType NodeType => nodeType;
+        public RunMapNodeType NodeType => _nodeType;
 
-        public int Floor => floor;
+        public int Floor => _floor;
 
-        public int Lane => lane;
+        public int Lane => _lane;
 
-        public RunEncounterDefinition Encounter => encounter;
+        public RunEncounterDefinition Encounter => _encounter;
 
-        public bool HasEncounter => encounter != null && encounter.HasEntries;
+        public bool HasEncounter => _encounter != null && _encounter.HasEntries;
     }
 }

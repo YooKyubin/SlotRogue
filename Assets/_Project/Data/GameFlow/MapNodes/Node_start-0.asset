@@ -12,10 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a017, type: 3}
   m_Name: Node_start-0
   m_EditorClassIdentifier: SlotRogue.Data::SlotRogue.Data.GameFlow.RunMapNodeDefinition
-  nodeId: start-0
-  displayName: Start
-  description: Run starting point.
-  nodeType: 0
-  floor: 0
-  lane: 1
-  encounter: {fileID: 0}
+  _nodeID: start-0
+  _displayName: Start
+  _description: Run starting point.
+  _nodeType: 0
+  _floor: 0
+  _lane: 1
+  _encounter: {fileID: 0}

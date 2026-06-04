@@ -10,40 +10,44 @@
 
 ## Background
 
-[`feature-multi-participant-play-ui`](../completed/feature-multi-participant-play-ui.md) Phase 1 **A안**으로 `RunMapNodeDefinition.EnemyCount`만 추가해 2/3몹 roster를 검증했다. 모든 적은 동일 HP·동일 `MonsterTurnSchedule`, roster index = UI slot index = `CombatParticipantId` `100 + index`.
+[`feature-multi-participant-play-ui`](../completed/feature-multi-participant-play-ui.md) Phase 1 **A안**으로 `RunMapNodeDefinition.EnemyCount`만 추가해 2/3몹 roster를 검증했다. 이후 본 plan에서 encounter SO·노드 SO·그래프 SO까지 이전했다.
 
-| 영역 | 현재 | 이번 plan 목표 |
-|------|------|----------------|
-| 맵 노드 | `EnemyCount` int (코드 생성) | `RunEncounterDefinition` SO 참조 (선택) |
-| roster | `RunBattleController.BuildEncounterRoster` | 동일 진입점, **빌더**가 SO·폴백 읽기 |
-| 몬스터 종류 | Inspector 단일 `_monsterDefinition` 또는 floor/type 휴리스틱 | entry별 `MonsterDefinition` |
-| 배치 | roster index = slot index | entry `FormationSlot` → HUD slot layout |
-| HP / 패턴 | 노드 단위 1세트 | entry별 override (선택), 없으면 정의·노드 폴백 |
-| 전투 Core | `StartBattle(player, enemies[], schedules[])` | **변경 없음** |
-| RunBattle UI | HUD·타겟·Converter·Presenter | **대규모 재작업 없음** — `BindEnemySlots` 배치 매핑만 |
+| 영역 | 초기 (A안) | 완료 후 |
+|------|------------|---------|
+| 맵 노드 | 코드 카탈로그 + `EnemyCount` | `RunMapNodeDefinition` SO, 노드 asset마다 `encounter` 직접 참조 |
+| 맵 그래프 | `RunMapNodeCatalog` 하드코딩 | `RunMapGraphDefinition` SO (`Resources/DefaultRunMapGraph`) |
+| roster | `RunBattleController` 내부 | `RunEncounterRosterBuilder` — `encounter.entries`만 사용 |
+| 몬스터 종류 | floor/type 휴리스틱 | entry별 `MonsterDefinition` |
+| 배치 | roster index = slot | entry `formationSlot` → HUD |
+| 전투 Core | `StartBattle(...)` | **변경 없음** |
+| RunBattle UI | HUD·타겟·Converter | **대규모 재작업 없음** |
 
-**검증 노드 (회귀·다인전):**
+**검증 노드 (Play Mode):**
 
-| nodeId | 표시 이름 | 현재 EnemyCount | SO 연결 후 기대 |
-|--------|-----------|-----------------|-----------------|
-| `monster-2-0` | Duo 2-A | 2 | encounter SO 2 entry |
-| `elite-2-1` | Elite Trio 2-B | 3 | encounter SO 3 entry |
-| `monster-1-0` 등 | 1몹 | 1 (기본) | SO 없음 또는 1 entry — 기존과 동일 |
+| nodeId | 표시 이름 | encounter SO |
+|--------|-----------|----------------|
+| `monster-1-0` 등 1몹 Monster | Monster 1-A … | `Encounter_SingleMonster` |
+| `elite-1-2` 등 1몹 Elite | Elite 1-C … | `Encounter_SingleElite` |
+| `monster-2-0` | Duo 2-A | `Encounter_Duo2A` (2 entry) |
+| `elite-2-1` | Elite Trio 2-B | `Encounter_EliteTrio2B` (3 entry) |
+| `boss-6-1` | Boss Gate | `Encounter_Boss` |
+| `start-0` | Start | 없음 (전투 없음) |
 
 맵 경로 예: Start → Monster 1-A → Duo 2-A / Start → Elite 1-C → Elite Trio 2-B
 
 ## Goal
 
-맵 전투 노드가 **`RunEncounterDefinition` ScriptableObject**로 몬스터 수·종류·HUD 배치·(선택) HP/턴 패턴을 정의하고, `RunBattleController`는 **roster 빌드 입력만 SO로 교체**한 채 기존 다인전 Play 경로(HUD·타겟·Core id `100+index`)를 유지한다. **1몹 노드**와 **Duo / Elite Trio** 검증 노드는 Play Mode에서 회귀 통과한다.
+맵 전투 노드가 **`RunEncounterDefinition` ScriptableObject**로 몬스터 수·종류·HUD 배치·(선택) HP/턴 패턴을 정의하고, `RunBattleController`는 **roster 빌드 입력만 SO로 교체**한 채 기존 다인전 Play 경로(HUD·타겟·Core id `100+index`)를 유지한다.
+
+**추가 완료 (follow-up):** 맵 노드·그래프 전체 SO화, `RunEncounterAssetCatalog` 제거, `enemyCount` 제거, [`coding-style.md`](../../guides/coding-style.md)에 맞춘 `[SerializeField] private` + `_camelCase` 필드.
 
 ## Out of scope
 
-- RunBattle HUD / 타겟 / `SlotCombatRequestToCombatEffectsConverter` / Presenter **대규모** 재작업 (완료 plan 범위 유지).
+- RunBattle HUD / 타겟 / `SlotCombatRequestToCombatEffectsConverter` / Presenter **대규모** 재작업.
 - `BattleSystem` Core 규칙·invalid target fallback 변경.
 - 플레이어 파티 2인 이상.
-- [`feature-game-flow-loop`](./feature-game-flow-loop.md) 맵 그래프 UI·씬 구조 대개편.
 - encounter pool·층별 랜덤 테이블 (후속).
-- `RunMapNodeDefinition` 전체를 에디터 SO 카탈로그로 이전 (이번에는 **참조 필드 + 샘플 1~2노드**만).
+- `Resources.Load` → Addressables 전환 ([`coding-style.md`](../../guides/coding-style.md) 권장과 상충 — 후속).
 
 ## Phases
 
@@ -53,63 +57,43 @@
 
 - [x] [`ADR-0004`](../../adr/0004-multi-participant-combat.md), [`combat-core.md`](../../design-docs/combat-core.md) Multi-participant·Validation 재확인
 - [x] 완료 plan Follow-ups: [`feature-multi-participant-play-ui`](../completed/feature-multi-participant-play-ui.md) Completion
-- [x] 핵심 코드 읽기: `RunMapNodeDefinition`, `RunMapNodeCatalog`, `RunBattleController.BuildEncounterRoster` / `BindEnemySlots`, `MonsterDefinition`, `MonsterTurnScheduleFactory`, `BattleSystem.StartBattle` 다인 오버로드, `RunBattleView.LayoutEnemySlots`
-- [x] `EnemyCount` vs encounter SO **폴백 규칙** 초안 확정 (아래 Notes "폴백 규칙")
-
-**🔍 Review:** Core/UI 경계(ADR-0004) 유지한 채 roster 입력만 바꿀 수 있는지, participant id `100+rosterIndex`를 깨지 않는지.
+- [x] 핵심 코드 읽기 완료
+- [x] encounter SO 우선 규칙 확정 (아래 Notes)
 
 ---
 
 ### Phase 1 — `RunEncounterDefinition` SO (Data)
 
-- [x] `SlotRogue.Data.GameFlow`에 타입 추가:
-  - `RunEncounterDefinition` : `ScriptableObject`
-  - `RunEncounterEntry` : `[Serializable]` — `MonsterDefinition monster`, `int formationSlot` (0=좌, 1=중, 2=우; prefab 최대 3 slot과 정합), `int hpOverride` (0=미사용), `MonsterTurnPatternDefinition turnPatternOverride` (null=미사용)
-  - `RunEncounterEntry[] entries` (길이 1~3, 빈 배열은 에디터/런타임 guard)
-- [x] `[CreateAssetMenu(menuName = "SlotRogue/Game Flow/Run Encounter Definition")]`
-- [x] 샘플 asset 2개 (`Assets/_Project/Data/GameFlow/Encounters/`):
-  - `Encounter_Duo2A` — 2 entry, formation 0/2
-  - `Encounter_EliteTrio2B` — 3 entry, formation 0/1/2
-
-**🔍 Review:** Unity에서 Create 메뉴로 asset 생성 가능; entry가 `MonsterDefinition`·optional override만 참조 (Core 역참조 없음).
+- [x] `RunEncounterDefinition`, `RunEncounterEntry` (`SlotRogue.Data.GameFlow`)
+- [x] 샘플: `Encounter_Duo2A`, `Encounter_EliteTrio2B`
+- [x] 템플릿 추가: `Encounter_SingleMonster`, `Encounter_SingleElite`, `Encounter_Boss`
 
 ---
 
 ### Phase 2 — Roster 빌더 + 맵 노드 참조
 
-- [x] `RunEncounterRosterBuilder` (`SlotRogue.UI.GameFlow`, static) — `RunMapNodeDefinition` + floor + Inspector fallback → `RunEncounterRoster`
-  - encounter 있음: `entries.Length`만큼 roster; per-entry HP/schedule override 체인
-  - encounter 없음: **현행** `EnemyCount` 루프 + 노드/floor/Inspector 폴백 (회귀)
-  - participant id: **`100 + rosterIndex`**
-- [x] `RunMapNodeDefinition`: `Encounter` 참조; `EnemyCount`는 encounter 없을 때 폴백
-- [x] `RunBattleController`: 빌더 위임; HP/schedule 헬퍼 제거
-- [x] `RunMapNodeCatalog`: `monster-2-0`, `elite-2-1` + `Resources/RunEncounterAssetCatalog` 연결
-
-**🔍 Review:** encounter 없는 1몹 노드 diff 없음; Duo/Elite Trio는 SO roster 길이 2/3.
+- [x] `RunEncounterRosterBuilder` — encounter `entries` 기반 roster
+- [x] encounter 없음 → `InvalidOperationException` (Start 제외, 전투 노드는 encounter 필수)
+- [x] `RunBattleController` → 빌더 위임
+- [x] ~~`RunEncounterAssetCatalog`~~ 제거 → 노드 SO `_encounter` 직접 참조
 
 ---
 
 ### Phase 3 — Formation slot → UI 배치
 
-- [x] roster 빌드 결과에 **formation slot per enemy** 노출 (`RunEncounterRoster.FormationSlots`)
-- [x] `BindEnemySlots` / `RefreshEnemySlots`: formation slot → HUD index; participant id는 roster 기준 유지
-- [x] 중복 formation slot / 범위 밖 slot: `Debug.LogWarning` + roster index 폴백
-- [x] 1몹: `ResolveDefaultFormationSlot` 중앙(slot 1) 폴백
-
-**🔍 Review:** 2몹 Duo에서 좌/우(또는 지정) 슬롯에 HP HUD가 맞고, 타겟 클릭 id는 `100+i`와 일치.
+- [x] `RunEncounterRoster.FormationSlots`
+- [x] `BindEnemySlots` / formation slot → HUD
+- [x] 중복·범위 밖 slot: `Debug.LogWarning` + roster index 폴백
 
 ---
 
 ### Phase 4 — 테스트·문서·완료 처리
 
-- [ ] (선택) EditMode: `RunEncounterRosterBuilder` — 2 entry HP/schedule override, encounter null 시 `EnemyCount` 폴백 (`SlotRogue.UI.Tests` 또는 Data.Tests — asmdef 의존 최소 경로)
-- [ ] Play Mode 체크리스트 (아래 표) 전항
-- [ ] 본 plan 체크리스트·Notes·Completion 갱신
-- [ ] `git mv` → `docs/exec-plans/completed/feature-map-encounter-so.md`
-- [ ] [`STATUS.md`](../../STATUS.md) Active → Recently completed, `_Last updated` bump
-- [ ] (필요 시) [`game-flow.md`](../../design-docs/game-flow.md) encounter SO 한 줄 — Core 본문 변경 없음
-
-**🔍 Review:** 완료 정의 충족; STATUS·active·completed 링크 일치.
+- [x] EditMode: `RunEncounterRosterBuilderTests` (`SlotRogue.UI.Tests`, `SlotRogue.Data` asmdef 참조)
+- [ ] Play Mode 체크리스트 (아래 표) — 수동 확인
+- [x] 본 plan·[`game-flow.md`](../../design-docs/game-flow.md) 갱신
+- [ ] `git mv` → `docs/exec-plans/completed/` (Play Mode 회귀 후)
+- [ ] [`STATUS.md`](../../STATUS.md) Active → Recently completed
 
 ---
 
@@ -117,21 +101,22 @@
 
 | # | 시나리오 | 진입 | 기대 |
 |---|----------|------|------|
-| 1 | **1몹 회귀** | `monster-1-0` 등 (encounter SO 없음) | roster 1, HUD 1, 기존 HP/턴·승패 동일 |
-| 2 | **Duo 2-A** | `monster-1-0` → `monster-2-0` | SO 2몹, 2 HUD slot, 타겟·피해 id 정합 |
-| 3 | **Elite Trio 2-B** | `elite-1-2` → `elite-2-1` | SO 3몹, 3 slot layout |
-| 4 | **배치** | Duo/Trio | formation slot에 맞는 좌/중/우 HUD (시각 확인) |
-| 5 | **폴백** | encounter SO 미연결 다인 노드 (있으면) | `EnemyCount`만으로 기존 Phase 1 A안 동작 |
+| 1 | **1몹 회귀** | `monster-1-0` 등 | `Encounter_SingleMonster` 1 entry, 중앙 HUD |
+| 2 | **Duo 2-A** | → `monster-2-0` | 2몹, formation 0/2 |
+| 3 | **Elite Trio 2-B** | → `elite-2-1` | 3몹, formation 0/1/2 |
+| 4 | **배치** | Duo/Trio | 좌/중/우 HUD 시각 확인 |
+| 5 | **Boss** | → `boss-6-1` | `Encounter_Boss` 1 entry |
 
 ---
 
 ## 완료 정의 (Definition of done)
 
-- [ ] `RunEncounterDefinition` + CreateAssetMenu + 샘플 Duo/Trio asset
-- [ ] `RunEncounterRosterBuilder` 단일 전환 지점; `RunBattleController.BuildEncounterRoster` 위임
-- [ ] `RunMapNodeCatalog` 검증 노드 2곳 SO 연결
-- [ ] formation slot → HUD 매핑; Core `StartBattle` 시그니처·id 규칙 불변
-- [ ] 1몹·Duo·Elite Trio Play Mode 회귀
+- [x] `RunEncounterDefinition` + 샘플·템플릿 encounter asset
+- [x] `RunEncounterRosterBuilder` 단일 전환 지점
+- [x] 전투 노드 encounter SO 연결 (16노드)
+- [x] `RunMapNodeDefinition` / `RunMapGraphDefinition` SO + `DefaultRunMapGraph`
+- [x] formation slot → HUD; Core id `100+index` 불변
+- [ ] Play Mode 체크리스트 전항
 - [ ] plan `completed/` + STATUS 갱신
 
 ---
@@ -140,41 +125,45 @@
 
 | 작업 | 주요 파일 |
 |------|-----------|
-| Encounter SO | `Assets/_Project/Scripts/Data/GameFlow/` (신규) 또는 `Data/Combat/` — `MonsterDefinition` 참조만 |
-| Roster 빌더 | `RunEncounterRosterBuilder.cs` (신규, UI.GameFlow) |
-| 맵 노드 | `RunMapNodeDefinition.cs`, `RunMapNodeCatalog.cs` |
-| 전투 진입 | `RunBattleController.cs` (`BuildEncounterRoster`, `BindEnemySlots`) |
-| HUD layout | `RunBattleView.cs` (`LayoutEnemySlots` — 필요 시 visible slot만 재배치) |
-| Core (읽기 전용) | `BattleSystem.cs` |
-| 참고 | `BattleDevHarness.cs` (`_startWithTwoEnemies`), `feature-monster-pattern-so` SO 관례 |
+| Encounter SO | `Assets/_Project/Data/GameFlow/Encounters/` |
+| Map node SO | `Assets/_Project/Data/GameFlow/MapNodes/Node_*.asset` |
+| Map graph SO | `Assets/_Project/Resources/DefaultRunMapGraph.asset` |
+| 에디터 재생성 | `SlotRogue/Game Flow/Build Default Map Graph Assets` → `RunMapGraphAssetBuilder.cs` |
+| Roster 빌더 | `RunEncounterRosterBuilder.cs` |
+| 맵 로더 | `RunMapNodeCatalog.cs` (`Resources.Load`, `ConfigureGraph` 테스트 주입) |
+| 노드 타입 | `RunMapNodeDefinition.cs` (`SlotRogue.Data.GameFlow`) |
 
-**asmdef:** SO·entry struct → `SlotRogue.Data`; 빌더 → `SlotRogue.UI` (이미 Data·Core 참조). Data가 `RunMapNodeDefinition`을 참조하지 않도록 빌더가 노드 메타 폴백 담당.
+**데이터 흐름:**
 
-**커밋:** 구현 PR과 plan 체크 갱신 동일 단위 ([`GOVERNANCE.md`](../../GOVERNANCE.md) 규칙 C).
+```text
+DefaultRunMapGraph (SO)
+  → nodes[]: RunMapNodeDefinition (SO)
+      → _encounter: RunEncounterDefinition (SO)
+          → entries[] → RunEncounterRosterBuilder → RunBattle
+```
+
+**asmdef:** Data에 `RunMapNodeDefinition`·`RunMapGraphDefinition`; UI.Tests에 `SlotRogue.Data` 참조.
 
 ## Notes
 
-- **가장 중요한 수정 지점:** `RunBattleController.BuildEncounterRoster` — 내부만 SO 입력으로 교체하면 HUD/타겟/연출은 대부분 유지.
-- **폴백 규칙 (구현 시 확정):**
-  1. `node.Encounter != null` && `entries.Length > 0` → SO roster
-  2. else → `Mathf.Max(1, node.EnemyCount)` 루프 (현행)
-  3. HP/schedule: entry override → entry `MonsterDefinition` → Inspector `_monsterDefinition` (전원 동일, 현행) → `GetMonsterMaxHp` / `CreateMonsterTurnSchedule(node, floor)`
-- **participant id:** roster 배열 인덱스 기준 `100 + index` 유지. UI는 `formationSlot`으로 슬롯 바인딩; 타겟·Converter는 id 기준 (변경 없음).
-- **invalid target:** 구현·기획 변경 금지 — 첫 생존 Enemy fallback (`combat-core.md`).
-- **`EnemyCount`:** encounter SO 도입 후 catalog 신규 노드는 encounter 우선; 기존 필드는 폴백·마이그레이션용으로 당분간 유지.
-- **Inspector `_monsterDefinition`:** encounter 없는 노드·entry에 monster 없을 때만 사용 (Dev/단일 몬스터 튜닝 경로 유지).
+- **roster 규칙 (현행):** `node.Encounter` + `entries.Length > 0` → SO roster만. 없으면 예외.
+- **몬스터 수:** `encounter.entries.Length` 단일 소스. ~~`EnemyCount`~~ 제거됨.
+- **HP/schedule:** entry override → entry `MonsterDefinition` → Inspector `_monsterDefinition` → 노드 floor/type 휴리스틱.
+- **participant id:** `100 + rosterIndex`. UI 배치는 `formationSlot`.
+- **노드 SO 필드:** [`coding-style.md`](../../guides/coding-style.md) — `[SerializeField] private` + `_camelCase` (예: `_nodeID`, `_encounter`). public 프로퍼티 `NodeId` 등.
 
 ## Follow-up (2026-06-04): 노드 SO 이전
 
 - [x] `RunMapNodeDefinition` / `RunMapGraphDefinition` → `SlotRogue.Data` ScriptableObject
 - [x] 노드 asset에서 `RunEncounterDefinition` 직접 참조 (`RunEncounterAssetCatalog` 제거)
-- [x] 전투 노드 16개 encounter SO 연결 (`Encounter_SingleMonster`, `SingleElite`, `Boss`, `Duo2A`, `EliteTrio2B`)
-- [x] `Resources/DefaultRunMapGraph.asset` + `RunMapGraphAssetBuilder` 에디터 메뉴
-- [x] `RunMapNodeDefinition.enemyCount` 제거 — 몬스터 수는 `encounter.entries`만 사용
+- [x] 전투 노드 16개 encounter SO 연결
+- [x] `Resources/DefaultRunMapGraph.asset` + `RunMapGraphAssetBuilder`
+- [x] `enemyCount` 제거
+- [x] `[SerializeField] private` + `_camelCase` / `_nodeID` ([`coding-style.md`](../../guides/coding-style.md))
 
 ## Completion
 
-_(completed/로 옮길 때 채움.)_
+_(Play Mode 회귀 후 `completed/`로 옮길 때 채움.)_
 
 - **Finished**:
 - **Outcome**:
