@@ -68,6 +68,18 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
+            if (!_view.EnsureReferences())
+            {
+                return;
+            }
+
+            if (!_view.HasRequiredControls())
+            {
+                Debug.LogError(
+                    "[RunBattleController] RunBattleView requires Spin, Continue, and Restart buttons.");
+                return;
+            }
+
             if (_spinLeverView == null)
             {
                 _spinLeverView = GetComponentInChildren<SlotLeverView>(true);
@@ -135,9 +147,13 @@ namespace SlotRogue.UI.GameFlow
             _monsterDamageAnchor = _view.GetEnemyDamageAnchor(1);
             if (_monsterDamageAnchor == null)
             {
-                Debug.LogError(
+                _monsterDamageAnchor = ResolveDamageAnchor(
+                    floatingTextRoot,
+                    "monster-damage-anchor",
+                    new Vector2(0f, 140f));
+                Debug.LogWarning(
                     "[RunBattleController] Center formation damage anchor missing. " +
-                    "Run menu: SlotRogue > Game Flow > Rebuild Scene UI Prefabs.");
+                    "Using a temporary overlay anchor for this play session.");
             }
 
             _presentationHost = new CombatPresentationHost(
@@ -269,8 +285,6 @@ namespace SlotRogue.UI.GameFlow
                 await UniTask.WaitUntil(() => presentationDone, cancellationToken: _presentationCts.Token);
             }
 
-            _spinLeverView?.PlayUp();
-
             try
             {
                 BattleApplyResult result = await _flowController.RunTurnAsync(
@@ -287,8 +301,10 @@ namespace SlotRogue.UI.GameFlow
             }
             finally
             {
+                _spinLeverView?.PlayUp();
                 RefreshStatusText();
                 HandleBattleEndIfNeeded();
+                UpdateSpinButtonState();
             }
         }
 
@@ -339,14 +355,18 @@ namespace SlotRogue.UI.GameFlow
 
         private void RefreshSlotCells(SlotSpinResult spinResult)
         {
-            if (spinResult == null)
+            if (spinResult == null || _view.SlotCells == null)
             {
                 return;
             }
 
-            for (int index = 0; index < _view.SlotCells.Length; index++)
+            int cellCount = Mathf.Min(_view.SlotCells.Length, spinResult.Symbols.Count);
+            for (int index = 0; index < cellCount; index++)
             {
-                _view.SlotCells[index].text = FormatSlotSymbol(spinResult.Symbols[index]);
+                if (_view.SlotCells[index] != null)
+                {
+                    _view.SlotCells[index].text = FormatSlotSymbol(spinResult.Symbols[index]);
+                }
             }
         }
 
