@@ -7,9 +7,9 @@ namespace SlotRogue.Slot.Tests
     public sealed class SlotResultCalculatorTests
     {
         [Test]
-        public void Calculate_GemLineFour_CreatesCriticalDamage()
+        public void Calculate_CloverLineFour_CreatesCriticalDamage()
         {
-            var patternResult = new SlotPatternResult(true, "Gem Line x4", SlotSymbolType.Gem, 0, 0, 4, 32);
+            var patternResult = new SlotPatternResult(true, "Clover Line x4", SlotSymbolType.Clover, 0, 0, 4, 32);
             var calculator = new SlotResultCalculator();
 
             SlotCalculationResult result = calculator.Calculate(patternResult);
@@ -21,9 +21,9 @@ namespace SlotRogue.Slot.Tests
         }
 
         [Test]
-        public void Calculate_ShieldLineThree_CreatesDefense()
+        public void Calculate_SevenLineThree_CreatesDefense()
         {
-            var patternResult = new SlotPatternResult(true, "Shield Line x3", SlotSymbolType.Shield, 0, 0, 3, 15);
+            var patternResult = new SlotPatternResult(true, "Seven Line x3", SlotSymbolType.Seven, 0, 0, 3, 15);
             var calculator = new SlotResultCalculator();
 
             SlotCalculationResult result = calculator.Calculate(patternResult);

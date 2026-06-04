@@ -25,7 +25,7 @@ namespace SlotRogue.UI.GameFlow
 
         public static int DefenseBonus { get; private set; }
 
-        public static StarterArtifactId SelectedStarterArtifactId { get; private set; }
+        public static string SelectedArtifactId { get; private set; } = string.Empty;
 
         public static RunMapNodeDefinition CurrentMapNode { get; private set; }
 
@@ -35,7 +35,7 @@ namespace SlotRogue.UI.GameFlow
 
         public static IReadOnlyList<string> VisitedMapNodeIds => visitedMapNodeIds;
 
-        public static bool HasStarterArtifact => SelectedStarterArtifactId != StarterArtifactId.None;
+        public static bool HasStarterArtifact => !string.IsNullOrEmpty(SelectedArtifactId);
 
         public static void StartNewRun()
         {
@@ -47,7 +47,7 @@ namespace SlotRogue.UI.GameFlow
             RewardsClaimed = 0;
             DamageBonus = 0;
             DefenseBonus = 0;
-            SelectedStarterArtifactId = StarterArtifactId.None;
+            SelectedArtifactId = string.Empty;
             CurrentMapGraph = RunMapNodeCatalog.BuildDefaultGraph();
             CurrentMapNode =
                 CurrentMapGraph.GetNode("start-0") ??
@@ -65,10 +65,16 @@ namespace SlotRogue.UI.GameFlow
             }
         }
 
-        public static void SelectStarterArtifact(StarterArtifactId artifactId)
+        public static void SelectArtifact(string artifactId)
         {
             EnsureRunStarted();
-            SelectedStarterArtifactId = artifactId;
+            SelectedArtifactId = artifactId ?? string.Empty;
+        }
+
+        public static void SelectStarterArtifact(StarterArtifactId artifactId)
+        {
+            ArtifactDefinitionSO so = StarterArtifactCatalog.Get(artifactId);
+            SelectArtifact(so?.ArtifactId ?? string.Empty);
         }
 
         public static RunMapNodeDefinition[] GetNextMapChoices()
@@ -148,16 +154,16 @@ namespace SlotRogue.UI.GameFlow
 
         public static string BuildSummary()
         {
-            StarterArtifactDefinition artifact = StarterArtifactCatalog.Get(SelectedStarterArtifactId);
+            ArtifactDefinitionSO artifact = StarterArtifactCatalog.GetById(SelectedArtifactId);
 
             return
                 $"HP {PlayerCurrentHp}/{PlayerMaxHp}\n" +
-                $"Battles entered: {BattleIndex}\n" +
-                $"Victories: {Victories}\n" +
-                $"Rewards: {RewardsClaimed}\n" +
-                $"Current Node: {CurrentMapNode.DisplayName}\n" +
-                $"Starter Artifact: {artifact.DisplayName}\n" +
-                $"Run Bonuses: damage +{DamageBonus}, defense +{DefenseBonus}";
+                $"진입 전투: {BattleIndex}\n" +
+                $"승리: {Victories}\n" +
+                $"보상: {RewardsClaimed}\n" +
+                $"현재 노드: {CurrentMapNode.DisplayName}\n" +
+                $"시작 유물: {artifact?.DisplayName ?? "없음"}\n" +
+                $"런 보너스: 피해 +{DamageBonus}, 방어 +{DefenseBonus}";
         }
     }
 }

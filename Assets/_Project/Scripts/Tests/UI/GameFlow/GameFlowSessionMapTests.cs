@@ -11,7 +11,7 @@ namespace SlotRogue.UI.Tests.GameFlow
         {
             RunMapNodeCatalog.ConfigureGraph(null);
             GameFlowSession.StartNewRun();
-            GameFlowSession.SelectStarterArtifact(StarterArtifactId.BeginnerBlade);
+            GameFlowSession.SelectStarterArtifact(StarterArtifactId.Cherry);
         }
 
         [TearDown]

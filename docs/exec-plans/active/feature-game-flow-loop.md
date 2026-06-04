@@ -25,6 +25,13 @@
 - [x] 전투 씬 세로형 HUD 재배치, 몬스터 이미지 슬롯과 고정 5 x 3 슬롯 보드 표시
 - [x] 런타임 bootstrap 제거, View 프리팹 + Controller 방식으로 씬 갱신
 - [x] 전투 스핀 결과에서 기본 공격과 패턴 성공 강조 표시
+- [x] 슬롯 결과 연출 큐와 패턴/유물/최종 결과 뷰 추가
+- [x] 슬롯 연출 전용 `Dev_SlotPresentation` 씬 생성 메뉴 추가
+- [x] `Dev_SlotPresentation` 데모 결과를 15칸 동일 보드의 족보 누적 연출로 고정
+- [x] `Dev_SlotPresentation`에 배경/슬롯 아이콘 Texture 리소스 연결
+- [x] `Dev_SlotPresentation` 연출 레이어와 Texture 리소스를 `RunBattle` 생성기에 연결
+- [x] 인게임 캡쳐 기준으로 `RunBattle` HUD/슬롯/인벤토리 배치 정리
+- [x] 현재 `RunBattle` UI 배치를 기준으로 Safe Area/해상도 대응 보정 추가
 - [ ] Unity Editor에서 `GameStart`부터 Play 검증
 
 ## Notes
@@ -37,6 +44,19 @@
 - `GameFlowImageSlot`의 `SlotId` 기준으로 배경/카드/전투/보상 이미지를 교체한다.
 - 2026-05-31: Unity 생성 `.csproj`가 아직 새 GameFlow 파일을 포함하지 않아, 별도 `Temp/GameFlowCompileCheck`와 `Temp/GameFlowTestsCompileCheck`로 새 코드/테스트 컴파일 확인. 경고/오류 0개. Unity Editor 인스턴스가 없어 MCP refresh/Test Runner/Play 검증은 실행하지 못함.
 - 2026-05-31: RunBattle에서 패턴 성공 시 `PATTERN HIT!` 문구와 매칭 셀 색상 강조를 표시. 패턴 실패 시 `BASE ATTACK`으로 기본 공격을 명시.
+- 2026-06-02: `SlotRogue.UI.SlotPresentation`에 연출용 DTO/큐/Manager/View를 추가. RunBattle은 연출 완료 콜백 뒤 기존 전투 Effect 적용을 수행한다. Unity Editor 인스턴스가 없어 프리팹 재생성 및 Play 검증은 보류.
+- 2026-06-02: DOTween 추가 후 패턴/유물/최종 결과 UI 애니메이션을 DOTween 기반으로 교체.
+- 2026-06-03: `SlotPresentationDemoController`와 `SlotRogue > Slot Presentation > Rebuild Demo Scene` 메뉴를 추가. 배치 모드 생성은 프로젝트가 열린 Unity 인스턴스 때문에 실패했으므로, 현재 Editor에서 메뉴 실행 필요.
+- 2026-06-03: `Dev_SlotPresentation` 데모는 모든 버튼이 15칸 체리 아이콘 보드에서 작은/가로/세로/대각선/큰 패턴을 순차 재생한 뒤 `Perfect Spin x15` 특별 패턴을 재생하도록 고정. 패턴 SFX는 `Assets/Resources/Sounds`의 `SFX_C_Low`부터 `SFX_C_High`까지 단계적으로 연결.
+- 2026-06-03: `Assets/Resources/Textures`의 `Background_Outside`, `Background_Inside`, `Icon_Slot`을 데모 씬 생성 메뉴에 연결. 슬롯 칸 아이콘은 `Icon_Slot` sub-sprite, 유물 카드 아이콘은 첫 sub-sprite를 사용.
+- 2026-06-04: `RunBattle` 생성기에 내부 배경, 슬롯 아이콘, `SlotPresentationManager` 레이어를 연결. 본편 스핀은 전체 패턴 목록을 연출 DTO로 만들고, 연출 완료 뒤 기존 전투 Effect를 적용한다.
+- 2026-06-04: `Background_Inside`와 기존 인게임 UI Texture(`Ingame_Slot`, `Ingame_hp`, `Ingame_bt_spin`, `ingame_bt_pause`, `ingame_panel_coin`, `ingame_slot_potion1/2`, `ingame_bt_spec`) 기준으로 상단 재화/일시정지, 좌측 HP, 슬롯 상단 공격력, 하단 유물/포션 인벤토리, 중앙 스핀 버튼 위치를 재배치. 몬스터 리소스가 없는 동안 전투 임시 HUD는 생성하지 않고 null 바인딩으로 둔다.
+- 2026-06-04: `RunBattleResponsiveLayout`을 추가해 현재 프리팹에 배치된 RectTransform 위치를 기준 offset으로 캡처하고, 플레이 시 상단 UI는 Safe Area top, 하단 UI는 Safe Area bottom, 슬롯/공격력/스핀은 하단 중앙 기준으로 보정한다.
+- 2026-06-04: `icon_slot_ani.png` sub-sprite를 스핀 중 전용 아이콘으로 연결. 스핀 중에는 흔들린 아이콘 리소스와 위치/회전/스케일 jitter를 사용하고, 컬럼이 멈출 때 기존 정적 아이콘으로 확정한다.
+- 2026-06-04: `Ingame_lever.png` sub-sprite를 스핀 레버 연출로 연결. 스핀 클릭 시 레버가 내려가고, 슬롯 결과 적용 후 다시 올라간다.
+
+- 2026-06-04: `Spin Lever`를 런타임 생성 fallback이 아니라 `RunBattleView` 프리팹에 배치된 UI 오브젝트로 전환. 에디터에서 레버를 직접 확인할 수 있고, 프리팹 재생성 경로도 같은 레버 UI를 만든다.
+- 2026-06-04: 기존 UI를 재생성하지 않고 `RunBattleView`의 레버만 생성/보정하는 `SlotRogue > Game Flow > Patch Run Battle Lever (Keep UI)` 메뉴를 추가.
 
 ## Completion
 

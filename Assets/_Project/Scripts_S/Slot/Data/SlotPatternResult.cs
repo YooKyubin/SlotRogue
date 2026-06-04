@@ -4,8 +4,8 @@ namespace SlotRogue.Slot.Data
     {
         public static readonly SlotPatternResult NoMatch = new(
             false,
-            "No Match",
-            SlotSymbolType.Sword,
+            "매치 없음",
+            SlotSymbolType.Cherry,
             -1,
             -1,
             0,

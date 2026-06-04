@@ -348,8 +348,20 @@ namespace SlotRogue.UI.GameFlow
             }
 
             RectTransform parent = fill.rectTransform.parent as RectTransform;
-            float maxWidth = parent != null ? Mathf.Max(1f, parent.sizeDelta.x - 8f) : 1f;
             float ratio = max <= 0 ? 0f : Mathf.Clamp01((float)current / max);
+
+            if (parent != null && parent.sizeDelta.y > parent.sizeDelta.x * 1.4f)
+            {
+                fill.type = Image.Type.Filled;
+                fill.fillMethod = Image.FillMethod.Vertical;
+                fill.fillOrigin = (int)Image.OriginVertical.Bottom;
+                fill.fillAmount = ratio;
+                fill.preserveAspect = false;
+                return;
+            }
+
+            fill.type = Image.Type.Simple;
+            float maxWidth = parent != null ? Mathf.Max(1f, parent.sizeDelta.x - 8f) : 1f;
             fill.rectTransform.sizeDelta = new Vector2(maxWidth * ratio, fill.rectTransform.sizeDelta.y);
         }
 

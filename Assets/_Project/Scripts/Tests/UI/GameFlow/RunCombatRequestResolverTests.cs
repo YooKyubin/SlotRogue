@@ -34,18 +34,18 @@ namespace SlotRogue.UI.Tests.GameFlow
         {
             var pattern = new SlotPatternResult(
                 true,
-                "Sword x3",
-                SlotSymbolType.Sword,
+                "Cherry x3",
+                SlotSymbolType.Cherry,
                 row: 0,
                 startColumn: 0,
                 matchLength: 3,
                 score: 30);
-            var request = new SlotCombatRequest(18, 0, 1, 0, false, "Sword x3");
+            var request = new SlotCombatRequest(18, 0, 1, 0, false, "Cherry x3");
 
             RunCombatRequestResult result = _resolver.Resolve(
                 pattern,
                 request,
-                StarterArtifactCatalog.Get(StarterArtifactId.BeginnerBlade),
+                StarterArtifactCatalog.Get(StarterArtifactId.Cherry),
                 runDamageBonus: 0,
                 runDefenseBonus: 0);
 
@@ -58,18 +58,18 @@ namespace SlotRogue.UI.Tests.GameFlow
         {
             var pattern = new SlotPatternResult(
                 true,
-                "Gem x3",
-                SlotSymbolType.Gem,
+                "Clover x3",
+                SlotSymbolType.Clover,
                 row: 0,
                 startColumn: 0,
                 matchLength: 3,
                 score: 30);
-            var request = new SlotCombatRequest(15, 0, 1, 0, false, "Gem x3");
+            var request = new SlotCombatRequest(15, 0, 1, 0, false, "Clover x3");
 
             RunCombatRequestResult result = _resolver.Resolve(
                 pattern,
                 request,
-                StarterArtifactCatalog.Get(StarterArtifactId.BeginnerBlade),
+                StarterArtifactCatalog.Get(StarterArtifactId.Cherry),
                 runDamageBonus: 0,
                 runDefenseBonus: 0);
 
@@ -82,18 +82,18 @@ namespace SlotRogue.UI.Tests.GameFlow
         {
             var pattern = new SlotPatternResult(
                 true,
-                "Heart x3",
-                SlotSymbolType.Heart,
+                "Grape x3",
+                SlotSymbolType.Grape,
                 row: 1,
                 startColumn: 0,
                 matchLength: 3,
                 score: 30);
-            var request = new SlotCombatRequest(6, 0, 1, 12, false, "Heart x3");
+            var request = new SlotCombatRequest(6, 0, 1, 12, false, "Grape x3");
 
             RunCombatRequestResult result = _resolver.Resolve(
                 pattern,
                 request,
-                StarterArtifactCatalog.Get(StarterArtifactId.FirstAidCharm),
+                StarterArtifactCatalog.Get(StarterArtifactId.Grape),
                 runDamageBonus: 2,
                 runDefenseBonus: 2);
 

@@ -4,9 +4,9 @@ namespace SlotRogue.Slot.Data
     {
         public const int BaseAttackDamage = 4;
         public const int BaseAttackCount = 1;
-        public const string BaseAttackName = "Base Attack";
+        public const string BaseAttackName = "기본 공격";
 
-        public static readonly SlotCombatRequest Empty = new(0, 0, 0, 0, false, "No Match");
+        public static readonly SlotCombatRequest Empty = new(0, 0, 0, 0, false, "매치 없음");
 
         public SlotCombatRequest(
             int damage,

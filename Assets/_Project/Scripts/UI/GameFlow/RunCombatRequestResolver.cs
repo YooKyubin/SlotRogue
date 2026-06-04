@@ -8,13 +8,15 @@ namespace SlotRogue.UI.GameFlow
         public RunCombatRequestResult Resolve(
             SlotPatternResult patternResult,
             SlotCombatRequest baseRequest,
-            StarterArtifactDefinition starterArtifact,
+            ArtifactDefinitionSO artifact,
             int runDamageBonus,
             int runDefenseBonus)
         {
             SlotCombatRequest normalizedRequest = NormalizeBlankTurn(baseRequest);
-            StarterArtifactActivation artifactActivation =
-                TryApplyStarterArtifact(patternResult, starterArtifact, normalizedRequest, out SlotCombatRequest artifactRequest);
+            StarterArtifactActivation artifactActivation = TryApplyArtifact(
+                patternResult, artifact, normalizedRequest,
+                out SlotCombatRequest artifactRequest);
+
             string runBonusSummary = BuildRunBonusSummary(runDamageBonus, runDefenseBonus);
 
             SlotCombatRequest finalRequest = new(
@@ -53,16 +55,15 @@ namespace SlotRogue.UI.GameFlow
             request.Defense <= 0 &&
             request.HealAmount <= 0;
 
-        private static StarterArtifactActivation TryApplyStarterArtifact(
+        private static StarterArtifactActivation TryApplyArtifact(
             SlotPatternResult patternResult,
-            StarterArtifactDefinition artifact,
+            ArtifactDefinitionSO artifact,
             SlotCombatRequest request,
             out SlotCombatRequest artifactRequest)
         {
             artifactRequest = request;
 
             if (artifact == null ||
-                artifact.Id == StarterArtifactId.None ||
                 patternResult == null ||
                 !patternResult.HasMatch ||
                 patternResult.Symbol != artifact.TargetSymbol ||
@@ -71,13 +72,39 @@ namespace SlotRogue.UI.GameFlow
                 return StarterArtifactActivation.None;
             }
 
-            artifactRequest = new SlotCombatRequest(
-                request.Damage + artifact.BonusDamage,
-                request.Defense + artifact.BonusDefense,
-                request.AttackCount,
-                request.HealAmount + artifact.BonusHeal,
-                request.IsCritical,
-                request.PatternName);
+            switch (artifact.EffectKind)
+            {
+                case ArtifactEffectKind.BonusDamage:
+                    artifactRequest = new SlotCombatRequest(
+                        request.Damage + artifact.BonusAmount,
+                        request.Defense,
+                        request.AttackCount,
+                        request.HealAmount,
+                        request.IsCritical,
+                        request.PatternName);
+                    break;
+                case ArtifactEffectKind.BonusDefense:
+                    artifactRequest = new SlotCombatRequest(
+                        request.Damage,
+                        request.Defense + artifact.BonusAmount,
+                        request.AttackCount,
+                        request.HealAmount,
+                        request.IsCritical,
+                        request.PatternName);
+                    break;
+                case ArtifactEffectKind.BonusHeal:
+                    artifactRequest = new SlotCombatRequest(
+                        request.Damage,
+                        request.Defense,
+                        request.AttackCount,
+                        request.HealAmount + artifact.BonusAmount,
+                        request.IsCritical,
+                        request.PatternName);
+                    break;
+                // ApplyBurn / ApplyFreeze / ApplyPoison:
+                // 연출 발동(StarterArtifactActivation)만 처리하고
+                // 실제 상태이상 적용은 전투 담당이 구현 예정.
+            }
 
             return new StarterArtifactActivation(true, artifact.DisplayName, artifact.Description);
         }
@@ -88,7 +115,7 @@ namespace SlotRogue.UI.GameFlow
 
             if (runDamageBonus > 0)
             {
-                builder.Append($"damage +{runDamageBonus}");
+                builder.Append($"피해 +{runDamageBonus}");
             }
 
             if (runDefenseBonus > 0)
@@ -98,7 +125,7 @@ namespace SlotRogue.UI.GameFlow
                     builder.Append(", ");
                 }
 
-                builder.Append($"defense +{runDefenseBonus}");
+                builder.Append($"방어 +{runDefenseBonus}");
             }
 
             return builder.ToString();
