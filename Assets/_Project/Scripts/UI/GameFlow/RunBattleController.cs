@@ -132,7 +132,6 @@ namespace SlotRogue.UI.GameFlow
             _battle.StartBattle(player, _encounterRoster.Enemies, _encounterRoster.Schedules);
             _selectedEnemyId = ResolveSelectedEnemyId();
             _combatViewModel.SyncFrom(_battle);
-            _view.EnsureEnemySlotCapacity(_battle.Enemies.Count);
             BindEnemySlots();
             _eventLogger.LogEventsSince(_battle, eventCursor: 0);
         }

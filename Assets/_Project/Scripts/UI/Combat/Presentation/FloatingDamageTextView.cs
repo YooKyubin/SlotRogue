@@ -14,7 +14,7 @@ namespace SlotRogue.UI.Combat.Presentation
         [SerializeField] private RectTransform _rectTransform = null!;
 
         [Header("Normal")]
-        [SerializeField] private int _normalFontSize = 28;
+        [SerializeField] private int _normalFontSize = 50;
         [SerializeField] private Color _normalColor = new Color32(255, 120, 120, 255);
 
         [Header("Critical")]

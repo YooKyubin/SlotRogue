@@ -1,137 +1,71 @@
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace SlotRogue.UI.GameFlow
 {
-    public sealed class EnemyFormationSlotView : MonoBehaviour
+    public sealed class EnemyFormationSlotView : MonoBehaviour, IPointerClickHandler
     {
         private static readonly Color EnemySlotColor = new Color(0.11f, 0.14f, 0.2f, 0.96f);
         private static readonly Color SelectedEnemySlotColor = new Color(0.45f, 0.26f, 0.12f, 0.96f);
 
-        [SerializeField] private RectTransform _root;
-        [SerializeField] private Button _button;
-        [SerializeField] private GameFlowImageSlot _portrait;
+        [SerializeField] private Transform _root;
+        [SerializeField] private Transform _shakeGroup;
+        [SerializeField] private SpriteRenderer _portrait;
+        [SerializeField] private Canvas _hudRoot;
         [SerializeField] private Text _hudText;
         [SerializeField] private Image _hpFill;
         [SerializeField] private Image _statusBackground;
         [SerializeField] private RectTransform _damageAnchor;
         [SerializeField] private Text _placeholderText;
+        [SerializeField] private Collider2D _clickCollider;
 
-        public RectTransform Root => _root != null ? _root : transform as RectTransform;
+        private UnityAction _clickHandler;
+        private bool _interactable = true;
 
-        public RectTransform DamageAnchor
-        {
-            get
-            {
-                EnsureReferences();
-                return _damageAnchor;
-            }
-        }
+        public Transform Root => _root != null ? _root : transform;
 
-        private void Awake()
-        {
-            EnsureReferences();
-        }
+        public Transform ShakeGroup => _shakeGroup;
+
+        public Canvas HudRoot => _hudRoot;
+
+        public RectTransform DamageAnchor => _damageAnchor;
 
         public void Bind(
-            RectTransform root,
-            Button button,
-            GameFlowImageSlot portrait,
+            Transform root,
+            Transform shakeGroup,
+            SpriteRenderer portrait,
+            Canvas hudRoot,
             Text hudText,
             Image hpFill,
             Image statusBackground,
             RectTransform damageAnchor,
-            Text placeholderText)
+            Text placeholderText,
+            Collider2D clickCollider)
         {
             _root = root;
-            _button = button;
+            _shakeGroup = shakeGroup;
             _portrait = portrait;
+            _hudRoot = hudRoot;
             _hudText = hudText;
             _hpFill = hpFill;
             _statusBackground = statusBackground;
             _damageAnchor = damageAnchor;
             _placeholderText = placeholderText;
-        }
-
-        public void EnsureReferences()
-        {
-            if (_root == null)
-            {
-                _root = transform as RectTransform;
-            }
-
-            if (_button == null)
-            {
-                _button = GetComponent<Button>();
-                if (_button == null)
-                {
-                    _button = GetComponentInChildren<Button>(true);
-                }
-            }
-
-            if (_portrait == null)
-            {
-                _portrait = FindImageSlot("Portrait", "portrait");
-            }
-
-            if (_hudText == null)
-            {
-                _hudText = FindText("HUD Text");
-            }
-
-            if (_hpFill == null)
-            {
-                _hpFill = FindImage("HP Bar Fill");
-            }
-
-            if (_statusBackground == null)
-            {
-                _statusBackground = FindImage("Status Panel");
-            }
-
-            if (_damageAnchor == null)
-            {
-                _damageAnchor = FindRectTransform("Damage Anchor");
-                if (_damageAnchor == null)
-                {
-                    _damageAnchor = FindRectTransform("DamageAnchor");
-                }
-            }
-
-            if (_placeholderText == null)
-            {
-                _placeholderText = FindText("Portrait Placeholder Text");
-            }
+            _clickCollider = clickCollider;
         }
 
         public void SetPortrait(Sprite sprite)
         {
-            EnsureReferences();
-
-            if (sprite != null)
-            {
-                if (_portrait != null)
-                {
-                    _portrait.SetSprite(sprite);
-                }
-
-                if (_placeholderText != null)
-                {
-                    _placeholderText.gameObject.SetActive(false);
-                }
-
-                return;
-            }
-
             if (_portrait != null)
             {
-                _portrait.SetSprite(null);
+                _portrait.sprite = sprite;
             }
 
             if (_placeholderText != null)
             {
-                _placeholderText.gameObject.SetActive(true);
+                _placeholderText.gameObject.SetActive(sprite == null);
             }
         }
 
@@ -145,8 +79,6 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetHud(string value)
         {
-            EnsureReferences();
-
             if (_hudText != null)
             {
                 _hudText.text = value;
@@ -155,8 +87,6 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetHpFill(int current, int max)
         {
-            EnsureReferences();
-
             if (_hpFill == null)
             {
                 return;
@@ -170,8 +100,6 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetSelected(bool selected)
         {
-            EnsureReferences();
-
             if (_statusBackground != null)
             {
                 _statusBackground.color = selected ? SelectedEnemySlotColor : EnemySlotColor;
@@ -180,93 +108,31 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetInteractable(bool interactable)
         {
-            EnsureReferences();
-
-            if (_button != null)
+            _interactable = interactable;
+            if (_clickCollider != null)
             {
-                _button.interactable = interactable;
+                _clickCollider.enabled = interactable;
             }
         }
 
         public void SetClickHandler(UnityAction action)
         {
-            EnsureReferences();
+            _clickHandler = action;
+        }
 
-            if (_button == null)
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            if (!_interactable)
             {
                 return;
             }
 
-            _button.onClick.RemoveAllListeners();
-            if (action != null)
+            if (_clickHandler == null || _clickCollider == null || !_clickCollider.enabled)
             {
-                _button.onClick.AddListener(action);
-            }
-        }
-
-        private GameFlowImageSlot FindImageSlot(string objectName, string slotIdFragment)
-        {
-            Transform byName = FindDeepChild(transform, objectName);
-            if (byName != null && byName.TryGetComponent(out GameFlowImageSlot imageSlot))
-            {
-                return imageSlot;
+                return;
             }
 
-            GameFlowImageSlot[] slots = GetComponentsInChildren<GameFlowImageSlot>(true);
-            for (int index = 0; index < slots.Length; index++)
-            {
-                GameFlowImageSlot slot = slots[index];
-                if (slot != null &&
-                    !string.IsNullOrEmpty(slot.SlotId) &&
-                    slot.SlotId.ToLowerInvariant().Contains(slotIdFragment))
-                {
-                    return slot;
-                }
-            }
-
-            return null;
-        }
-
-        private Text FindText(string objectName)
-        {
-            Transform child = FindDeepChild(transform, objectName);
-            return child != null ? child.GetComponent<Text>() : null;
-        }
-
-        private Image FindImage(string objectName)
-        {
-            Transform child = FindDeepChild(transform, objectName);
-            return child != null ? child.GetComponent<Image>() : null;
-        }
-
-        private RectTransform FindRectTransform(string objectName)
-        {
-            Transform child = FindDeepChild(transform, objectName);
-            return child as RectTransform;
-        }
-
-        private static Transform FindDeepChild(Transform root, string objectName)
-        {
-            if (root == null)
-            {
-                return null;
-            }
-
-            if (root.name == objectName)
-            {
-                return root;
-            }
-
-            for (int index = 0; index < root.childCount; index++)
-            {
-                Transform found = FindDeepChild(root.GetChild(index), objectName);
-                if (found != null)
-                {
-                    return found;
-                }
-            }
-
-            return null;
+            _clickHandler.Invoke();
         }
     }
 }

@@ -10,7 +10,7 @@ namespace SlotRogue.UI.GameFlow
     public sealed class RunBattleView : MonoBehaviour
     {
         public const int FormationHudSlotCount = 3;
-        private const float FormationHudSpacing = 300f;
+        private const float FormationWorldSpacing = 2.7f;
 
         private static readonly Color PatternHitColor = new Color(1f, 0.82f, 0.23f, 1f);
         private static readonly Color BaseAttackColor = new Color(0.66f, 0.82f, 1f, 1f);
@@ -63,16 +63,6 @@ namespace SlotRogue.UI.GameFlow
         {
             AutoBindMissingReferences();
             return _spinButton != null && _continueButton != null && _restartButton != null;
-        }
-
-        public void EnsureEnemySlotCapacity(int enemyCount)
-        {
-            if (!EnsureReferences())
-            {
-                return;
-            }
-
-            LayoutFormationHudSlots();
         }
 
         public void Bind(
@@ -268,7 +258,6 @@ namespace SlotRogue.UI.GameFlow
 
             if (HasValidFormationSlots())
             {
-                LayoutFormationHudSlots();
                 return true;
             }
 
@@ -291,34 +280,9 @@ namespace SlotRogue.UI.GameFlow
                 {
                     return false;
                 }
-
-                _formationSlots[index].EnsureReferences();
             }
 
             return true;
-        }
-
-        private void LayoutFormationHudSlots()
-        {
-            if (_formationSlots == null)
-            {
-                return;
-            }
-
-            float startX = -(FormationHudSlotCount - 1) * FormationHudSpacing * 0.5f;
-
-            for (int index = 0; index < FormationHudSlotCount && index < _formationSlots.Length; index++)
-            {
-                EnemyFormationSlotView slot = _formationSlots[index];
-                if (slot == null || slot.Root == null)
-                {
-                    continue;
-                }
-
-                RectTransform root = slot.Root;
-                Vector2 position = new Vector2(startX + (index * FormationHudSpacing), root.anchoredPosition.y);
-                root.anchoredPosition = position;
-            }
         }
 
         private bool TryGetFormationSlot(int slotIndex, out EnemyFormationSlotView slot)
@@ -416,11 +380,6 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
-            for (int index = 0; index < discoveredSlots.Length; index++)
-            {
-                discoveredSlots[index]?.EnsureReferences();
-            }
-
             Array.Sort(discoveredSlots, CompareFormationSlots);
             _formationSlots = discoveredSlots;
         }
@@ -440,17 +399,6 @@ namespace SlotRogue.UI.GameFlow
             if (right == null)
             {
                 return -1;
-            }
-
-            RectTransform leftRoot = left.Root;
-            RectTransform rightRoot = right.Root;
-            if (leftRoot != null && rightRoot != null)
-            {
-                int xCompare = leftRoot.anchoredPosition.x.CompareTo(rightRoot.anchoredPosition.x);
-                if (xCompare != 0)
-                {
-                    return xCompare;
-                }
             }
 
             return string.Compare(left.name, right.name, StringComparison.Ordinal);
