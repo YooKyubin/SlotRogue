@@ -1,5 +1,6 @@
 using SlotRogue.Core.Combat;
 using SlotRogue.Slot.Data;
+using System.Text;
 using UnityEngine;
 
 namespace SlotRogue.UI.Combat
@@ -73,13 +74,42 @@ namespace SlotRogue.UI.Combat
         private static void LogSnapshot(BattleSystem battle)
         {
             CombatParticipant player = battle.Player;
-            CombatParticipant monster = battle.Monster;
+            string enemiesSummary = FormatEnemiesSnapshot(battle);
 
             Debug.Log(
                 $"[Combat] Snapshot | Phase={battle.CurrentPhase} EndReason={battle.EndReason} | " +
                 $"Player HP {player.CurrentHp}/{player.MaxHp} Shield {player.Shield} | " +
-                $"Monster HP {monster?.CurrentHp ?? 0}/{monster?.MaxHp ?? 0} Shield {monster?.Shield ?? 0} | " +
-                $"Enemies Alive {battle.Enemies.Count}");
+                $"Enemies {enemiesSummary}");
+        }
+
+        private static string FormatEnemiesSnapshot(BattleSystem battle)
+        {
+            if (battle.Enemies.Count == 0)
+            {
+                return "none";
+            }
+
+            var builder = new StringBuilder();
+            for (int index = 0; index < battle.Enemies.Count; index++)
+            {
+                CombatParticipant enemy = battle.Enemies[index];
+                if (index > 0)
+                {
+                    builder.Append(", ");
+                }
+
+                builder
+                    .Append("Enemy#")
+                    .Append(enemy.Id.Value)
+                    .Append(" HP ")
+                    .Append(enemy.CurrentHp)
+                    .Append('/')
+                    .Append(enemy.MaxHp)
+                    .Append(" Shield ")
+                    .Append(enemy.Shield);
+            }
+
+            return builder.ToString();
         }
 
         private static string ParticipantLabel(bool isPlayerParticipant) =>
