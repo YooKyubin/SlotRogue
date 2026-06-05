@@ -28,7 +28,8 @@ namespace SlotRogue.UI.GameFlow
         private void BindOptions()
         {
             GameFlowOptionView[] optionViews = _view.ArtifactOptions;
-            int visibleCount = Mathf.Min(optionViews.Length, StarterArtifactCatalog.All.Count);
+            var artifacts = StarterArtifactCatalog.All;
+            int visibleCount = Mathf.Min(optionViews.Length, artifacts.Count);
 
             for (int index = 0; index < optionViews.Length; index++)
             {
@@ -40,16 +41,16 @@ namespace SlotRogue.UI.GameFlow
                     continue;
                 }
 
-                StarterArtifactDefinition artifact = StarterArtifactCatalog.All[index];
+                ArtifactDefinitionSO artifact = artifacts[index];
                 optionView.SetText(artifact.DisplayName, artifact.Description);
                 optionView.Button.onClick.RemoveAllListeners();
-                optionView.Button.onClick.AddListener(() => SelectArtifact(artifact.Id));
+                optionView.Button.onClick.AddListener(() => SelectArtifact(artifact.ArtifactId));
             }
         }
 
-        private static void SelectArtifact(StarterArtifactId artifactId)
+        private static void SelectArtifact(string artifactId)
         {
-            GameFlowSession.SelectStarterArtifact(artifactId);
+            GameFlowSession.SelectArtifact(artifactId);
             SceneManager.LoadScene(GameFlowSceneNames.RunMap);
         }
     }

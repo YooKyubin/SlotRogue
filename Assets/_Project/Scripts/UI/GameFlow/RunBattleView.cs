@@ -1,3 +1,4 @@
+using System;
 using SlotRogue.Slot.Data;
 using UnityEngine;
 using UnityEngine.Events;
@@ -49,7 +50,19 @@ namespace SlotRogue.UI.GameFlow
 
         private void Awake()
         {
-            ValidateFormationSlots();
+            EnsureReferences();
+        }
+
+        public bool EnsureReferences()
+        {
+            AutoBindMissingReferences();
+            return ValidateFormationSlots();
+        }
+
+        public bool HasRequiredControls()
+        {
+            AutoBindMissingReferences();
+            return _spinButton != null && _continueButton != null && _restartButton != null;
         }
 
         public void Bind(
@@ -82,7 +95,7 @@ namespace SlotRogue.UI.GameFlow
             _floatingTextRoot = floatingTextRoot;
             _playerDamageAnchor = playerDamageAnchor;
             _formationSlots = formationSlots ?? System.Array.Empty<EnemyFormationSlotView>();
-            ValidateFormationSlots();
+            EnsureReferences();
         }
 
         public void SetAttackResult(string value)
@@ -241,6 +254,8 @@ namespace SlotRogue.UI.GameFlow
 
         private bool ValidateFormationSlots()
         {
+            AutoBindFormationSlotsIfNeeded();
+
             if (HasValidFormationSlots())
             {
                 return true;
@@ -248,7 +263,7 @@ namespace SlotRogue.UI.GameFlow
 
             Debug.LogError(
                 "[RunBattleView] Enemy formation requires 3 configured slots. " +
-                "Run menu: SlotRogue > Game Flow > Rebuild Scene UI Prefabs.");
+                "Keep three EnemyFormationSlotView children under the battle view.");
             return false;
         }
 
@@ -280,6 +295,148 @@ namespace SlotRogue.UI.GameFlow
 
             slot = _formationSlots[slotIndex];
             return slot != null;
+        }
+
+        private void AutoBindMissingReferences()
+        {
+            AutoBindSlotCellsIfNeeded();
+
+            if (_spinButton == null)
+            {
+                _spinButton = FindComponentByName<Button>("Spin Button");
+            }
+
+            if (_continueButton == null)
+            {
+                _continueButton = FindComponentByName<Button>("Continue Button");
+            }
+
+            if (_restartButton == null)
+            {
+                _restartButton = FindComponentByName<Button>("Restart Button");
+            }
+
+            if (_floatingTextRoot == null)
+            {
+                _floatingTextRoot = FindRectTransform("Presentation Overlay");
+            }
+
+            if (_playerDamageAnchor == null)
+            {
+                _playerDamageAnchor = FindRectTransform("player-damage-anchor");
+                if (_playerDamageAnchor == null)
+                {
+                    _playerDamageAnchor = FindRectTransform("Player Damage Anchor");
+                }
+            }
+
+            AutoBindFormationSlotsIfNeeded();
+        }
+
+        private void AutoBindSlotCellsIfNeeded()
+        {
+            if (_slotCells != null && _slotCells.Length >= SlotSpinResult.Columns * SlotSpinResult.Rows)
+            {
+                bool hasMissingCell = false;
+                for (int index = 0; index < SlotSpinResult.Columns * SlotSpinResult.Rows; index++)
+                {
+                    if (_slotCells[index] == null)
+                    {
+                        hasMissingCell = true;
+                        break;
+                    }
+                }
+
+                if (!hasMissingCell)
+                {
+                    return;
+                }
+            }
+
+            Text[] cells = new Text[SlotSpinResult.Columns * SlotSpinResult.Rows];
+            bool foundAny = false;
+            for (int index = 0; index < cells.Length; index++)
+            {
+                cells[index] = FindComponentByName<Text>($"Slot Cell Text {index:00}");
+                foundAny |= cells[index] != null;
+            }
+
+            if (foundAny)
+            {
+                _slotCells = cells;
+            }
+        }
+
+        private void AutoBindFormationSlotsIfNeeded()
+        {
+            if (HasValidFormationSlots())
+            {
+                return;
+            }
+
+            EnemyFormationSlotView[] discoveredSlots = GetComponentsInChildren<EnemyFormationSlotView>(true);
+            if (discoveredSlots == null || discoveredSlots.Length == 0)
+            {
+                return;
+            }
+
+            Array.Sort(discoveredSlots, CompareFormationSlots);
+            _formationSlots = discoveredSlots;
+        }
+
+        private static int CompareFormationSlots(EnemyFormationSlotView left, EnemyFormationSlotView right)
+        {
+            if (left == right)
+            {
+                return 0;
+            }
+
+            if (left == null)
+            {
+                return 1;
+            }
+
+            if (right == null)
+            {
+                return -1;
+            }
+
+            return string.Compare(left.name, right.name, StringComparison.Ordinal);
+        }
+
+        private T FindComponentByName<T>(string objectName) where T : Component
+        {
+            Transform child = FindDeepChild(transform, objectName);
+            return child != null ? child.GetComponent<T>() : null;
+        }
+
+        private RectTransform FindRectTransform(string objectName)
+        {
+            return FindDeepChild(transform, objectName) as RectTransform;
+        }
+
+        private static Transform FindDeepChild(Transform root, string objectName)
+        {
+            if (root == null)
+            {
+                return null;
+            }
+
+            if (root.name == objectName)
+            {
+                return root;
+            }
+
+            for (int index = 0; index < root.childCount; index++)
+            {
+                Transform found = FindDeepChild(root.GetChild(index), objectName);
+                if (found != null)
+                {
+                    return found;
+                }
+            }
+
+            return null;
         }
 
         private static void SetText(Text text, string value)
@@ -314,8 +471,20 @@ namespace SlotRogue.UI.GameFlow
             }
 
             RectTransform parent = fill.rectTransform.parent as RectTransform;
-            float maxWidth = parent != null ? Mathf.Max(1f, parent.sizeDelta.x - 8f) : 1f;
             float ratio = max <= 0 ? 0f : Mathf.Clamp01((float)current / max);
+
+            if (parent != null && parent.sizeDelta.y > parent.sizeDelta.x * 1.4f)
+            {
+                fill.type = Image.Type.Filled;
+                fill.fillMethod = Image.FillMethod.Vertical;
+                fill.fillOrigin = (int)Image.OriginVertical.Bottom;
+                fill.fillAmount = ratio;
+                fill.preserveAspect = false;
+                return;
+            }
+
+            fill.type = Image.Type.Simple;
+            float maxWidth = parent != null ? Mathf.Max(1f, parent.sizeDelta.x - 8f) : 1f;
             fill.rectTransform.sizeDelta = new Vector2(maxWidth * ratio, fill.rectTransform.sizeDelta.y);
         }
 

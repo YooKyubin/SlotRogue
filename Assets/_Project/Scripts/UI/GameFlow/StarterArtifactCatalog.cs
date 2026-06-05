@@ -5,60 +5,145 @@ namespace SlotRogue.UI.GameFlow
 {
     public static class StarterArtifactCatalog
     {
-        private static readonly StarterArtifactDefinition NoneDefinition = new(
-            StarterArtifactId.None,
-            "None",
-            "No starter artifact selected.",
-            SlotSymbolType.Sword,
-            int.MaxValue,
-            0,
-            0,
-            0);
+        public static IReadOnlyList<ArtifactDefinitionSO> All => GetStarterArtifacts();
 
-        private static readonly StarterArtifactDefinition[] AllDefinitions =
+        public static ArtifactDefinitionSO Get(StarterArtifactId id)
         {
-            new(
-                StarterArtifactId.BeginnerBlade,
-                "Beginner Blade",
-                "Sword matches of 3 or more gain +5 damage.",
-                SlotSymbolType.Sword,
-                3,
-                5,
-                0,
-                0),
-            new(
-                StarterArtifactId.FirstAidCharm,
-                "First Aid Charm",
-                "Heart matches of 3 or more gain +4 heal.",
-                SlotSymbolType.Heart,
-                3,
-                0,
-                0,
-                4),
-            new(
-                StarterArtifactId.GuardMedal,
-                "Guard Medal",
-                "Shield matches of 3 or more gain +6 defense.",
-                SlotSymbolType.Shield,
-                3,
-                0,
-                6,
-                0),
-        };
+            string artifactId = ToArtifactId(id);
 
-        public static IReadOnlyList<StarterArtifactDefinition> All => AllDefinitions;
-
-        public static StarterArtifactDefinition Get(StarterArtifactId id)
-        {
-            for (int index = 0; index < AllDefinitions.Length; index++)
+            if (string.IsNullOrEmpty(artifactId))
             {
-                if (AllDefinitions[index].Id == id)
+                return null;
+            }
+
+            ArtifactDefinitionSO found = FindInCatalog(artifactId);
+            return found != null ? found : GetFallback(id);
+        }
+
+        public static ArtifactDefinitionSO GetById(string artifactId)
+        {
+            if (string.IsNullOrEmpty(artifactId))
+            {
+                return null;
+            }
+
+            ArtifactDefinitionSO found = FindInCatalog(artifactId);
+
+            if (found != null)
+            {
+                return found;
+            }
+
+            foreach (StarterArtifactId id in System.Enum.GetValues(typeof(StarterArtifactId)))
+            {
+                if (ToArtifactId(id) == artifactId)
                 {
-                    return AllDefinitions[index];
+                    return GetFallback(id);
                 }
             }
 
-            return NoneDefinition;
+            return null;
         }
+
+        private static IReadOnlyList<ArtifactDefinitionSO> GetStarterArtifacts()
+        {
+            ArtifactCatalogSO catalog = ArtifactCatalogSO.Load();
+
+            if (catalog != null)
+            {
+                return catalog.GetByCategory(ArtifactCategory.Starter);
+            }
+
+            return CreateFallbackAll();
+        }
+
+        private static ArtifactDefinitionSO FindInCatalog(string artifactId)
+        {
+            ArtifactCatalogSO catalog = ArtifactCatalogSO.Load();
+            return catalog != null ? catalog.GetById(artifactId) : null;
+        }
+
+        // 카탈로그 에셋이 없을 때만 쓰는 폴백. SO는 id마다 한 번만 생성해 재사용한다
+        // (매 호출 CreateInstance 시 발생하던 인스턴스 누수 방지).
+        private static ArtifactDefinitionSO GetFallback(StarterArtifactId id)
+        {
+            if (id == StarterArtifactId.None)
+            {
+                return null;
+            }
+
+            if (_fallbackCache.TryGetValue(id, out ArtifactDefinitionSO cached) && cached != null)
+            {
+                return cached;
+            }
+
+            ArtifactDefinitionSO created = CreateFallback(id);
+            _fallbackCache[id] = created;
+            return created;
+        }
+
+        private static string ToArtifactId(StarterArtifactId id) => id switch
+        {
+            StarterArtifactId.Cherry => "cherry",
+            StarterArtifactId.Grape => "grape",
+            StarterArtifactId.Seven => "seven",
+            StarterArtifactId.Lemon => "lemon",
+            StarterArtifactId.Bell => "bell",
+            StarterArtifactId.Clover => "clover",
+            _ => string.Empty
+        };
+
+        private static ArtifactDefinitionSO CreateFallback(StarterArtifactId id) => id switch
+        {
+            StarterArtifactId.Cherry => ArtifactDefinitionSO.Create(
+                "cherry", "체리",
+                "체리 아이콘 3개 이상 매치 시 피해 +5.",
+                ArtifactCategory.Starter, SlotSymbolType.Cherry, 3,
+                ArtifactEffectKind.BonusDamage, bonusAmount: 5),
+            StarterArtifactId.Grape => ArtifactDefinitionSO.Create(
+                "grape", "포도",
+                "포도 아이콘 3개 이상 매치 시 회복 +4.",
+                ArtifactCategory.Starter, SlotSymbolType.Grape, 3,
+                ArtifactEffectKind.BonusHeal, bonusAmount: 4),
+            StarterArtifactId.Seven => ArtifactDefinitionSO.Create(
+                "seven", "세븐",
+                "세븐 아이콘 3개 이상 매치 시 방어 +6.",
+                ArtifactCategory.Starter, SlotSymbolType.Seven, 3,
+                ArtifactEffectKind.BonusDefense, bonusAmount: 6),
+            StarterArtifactId.Lemon => ArtifactDefinitionSO.Create(
+                "lemon", "레몬",
+                "레몬 아이콘 3개 이상 매치 시 화염 부여 (3턴, 턴당 피해 2).",
+                ArtifactCategory.Starter, SlotSymbolType.Lemon, 3,
+                ArtifactEffectKind.ApplyBurn, statusDuration: 3, statusMagnitude: 2,
+                statusStackBehavior: StatusStackBehavior.Refresh),
+            StarterArtifactId.Bell => ArtifactDefinitionSO.Create(
+                "bell", "종",
+                "종 아이콘 3개 이상 매치 시 빙결 부여 (적 행동 1턴 스킵).",
+                ArtifactCategory.Starter, SlotSymbolType.Bell, 3,
+                ArtifactEffectKind.ApplyFreeze, statusDuration: 1,
+                statusStackBehavior: StatusStackBehavior.Refresh),
+            StarterArtifactId.Clover => ArtifactDefinitionSO.Create(
+                "clover", "네잎클로버",
+                "네잎클로버 아이콘 3개 이상 매치 시 독 스택 +1 (스택당 매 턴 피해, 최대 5).",
+                ArtifactCategory.Starter, SlotSymbolType.Clover, 3,
+                ArtifactEffectKind.ApplyPoison, statusMagnitude: 1,
+                statusStackBehavior: StatusStackBehavior.Stack),
+            _ => null
+        };
+
+        private static IReadOnlyList<ArtifactDefinitionSO> CreateFallbackAll()
+        {
+            return new[]
+            {
+                GetFallback(StarterArtifactId.Cherry),
+                GetFallback(StarterArtifactId.Grape),
+                GetFallback(StarterArtifactId.Seven),
+                GetFallback(StarterArtifactId.Lemon),
+                GetFallback(StarterArtifactId.Bell),
+                GetFallback(StarterArtifactId.Clover),
+            };
+        }
+
+        private static readonly Dictionary<StarterArtifactId, ArtifactDefinitionSO> _fallbackCache = new();
     }
 }

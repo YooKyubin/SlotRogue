@@ -1,0 +1,445 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e55b5478fe46484fa65bc3e44fd7f407, type: 3}
+  m_Name: SlotPatternCatalog
+  m_EditorClassIdentifier: SlotRogue.Slot::SlotRogue.Slot.Core.SlotPatternCatalogAsset
+  _entries:
+  - _enabled: 1
+    _includeInSpinEvaluation: 1
+    _includeInForcedPatternPool: 0
+    _matchKind: 1
+    _patternId: horizontal-sm
+    _displayName: 가로 3칸
+    _orderIndex: 0
+    _multiplier: 1
+    _rank: 0
+    _isJackpot: 0
+    _horizontalLength: 3
+    _cells: []
+  - _enabled: 1
+    _includeInSpinEvaluation: 1
+    _includeInForcedPatternPool: 0
+    _matchKind: 1
+    _patternId: horizontal-lg
+    _displayName: 가로 4칸
+    _orderIndex: 3
+    _multiplier: 2
+    _rank: 3
+    _isJackpot: 0
+    _horizontalLength: 4
+    _cells: []
+  - _enabled: 1
+    _includeInSpinEvaluation: 1
+    _includeInForcedPatternPool: 0
+    _matchKind: 1
+    _patternId: horizontal-xl
+    _displayName: 가로 5칸
+    _orderIndex: 4
+    _multiplier: 3
+    _rank: 4
+    _isJackpot: 0
+    _horizontalLength: 5
+    _cells: []
+  - _enabled: 1
+    _includeInSpinEvaluation: 1
+    _includeInForcedPatternPool: 1
+    _matchKind: 0
+    _patternId: vertical-col0
+    _displayName: 1열 세로
+    _orderIndex: 1
+    _multiplier: 1
+    _rank: 1
+    _isJackpot: 0
+    _horizontalLength: 3
+    _cells:
+    - _col: 0
+      _row: 0
+    - _col: 0
+      _row: 1
+    - _col: 0
+      _row: 2
+  - _enabled: 1
+    _includeInSpinEvaluation: 1
+    _includeInForcedPatternPool: 1
+    _matchKind: 0
+    _patternId: vertical-col1
+    _displayName: 2열 세로
+    _orderIndex: 1
+    _multiplier: 1
+    _rank: 1
+    _isJackpot: 0
+    _horizontalLength: 3
+    _cells:
+    - _col: 1
+      _row: 0
+    - _col: 1
+      _row: 1
+    - _col: 1
+      _row: 2
+  - _enabled: 1
+    _includeInSpinEvaluation: 1
+    _includeInForcedPatternPool: 1
+    _matchKind: 0
+    _patternId: vertical-col2
+    _displayName: 3열 세로
+    _orderIndex: 1
+    _multiplier: 1
+    _rank: 1
+    _isJackpot: 0
+    _horizontalLength: 3
+    _cells:
+    - _col: 2
+      _row: 0
+    - _col: 2
+      _row: 1
+    - _col: 2
+      _row: 2
+  - _enabled: 1
+    _includeInSpinEvaluation: 1
+    _includeInForcedPatternPool: 1
+    _matchKind: 0
+    _patternId: vertical-col3
+    _displayName: 4열 세로
+    _orderIndex: 1
+    _multiplier: 1
+    _rank: 1
+    _isJackpot: 0
+    _horizontalLength: 3
+    _cells:
+    - _col: 3
+      _row: 0
+    - _col: 3
+      _row: 1
+    - _col: 3
+      _row: 2
+  - _enabled: 1
+    _includeInSpinEvaluation: 1
+    _includeInForcedPatternPool: 1
+    _matchKind: 0
+    _patternId: vertical-col4
+    _displayName: 5열 세로
+    _orderIndex: 1
+    _multiplier: 1
+    _rank: 1
+    _isJackpot: 0
+    _horizontalLength: 3
+    _cells:
+    - _col: 4
+      _row: 0
+    - _col: 4
+      _row: 1
+    - _col: 4
+      _row: 2
+  - _enabled: 1
+    _includeInSpinEvaluation: 1
+    _includeInForcedPatternPool: 1
+    _matchKind: 0
+    _patternId: diag-bs0
+    _displayName: 역대각 1
+    _orderIndex: 2
+    _multiplier: 1
+    _rank: 2
+    _isJackpot: 0
+    _horizontalLength: 3
+    _cells:
+    - _col: 0
+      _row: 0
+    - _col: 1
+      _row: 1
+    - _col: 2
+      _row: 2
+  - _enabled: 1
+    _includeInSpinEvaluation: 1
+    _includeInForcedPatternPool: 1
+    _matchKind: 0
+    _patternId: diag-bs1
+    _displayName: 역대각 2
+    _orderIndex: 2
+    _multiplier: 1
+    _rank: 2
+    _isJackpot: 0
+    _horizontalLength: 3
+    _cells:
+    - _col: 1
+      _row: 0
+    - _col: 2
+      _row: 1
+    - _col: 3
+      _row: 2
+  - _enabled: 1
+    _includeInSpinEvaluation: 1
+    _includeInForcedPatternPool: 1
+    _matchKind: 0
+    _patternId: diag-bs2
+    _displayName: 역대각 3
+    _orderIndex: 2
+    _multiplier: 1
+    _rank: 2
+    _isJackpot: 0
+    _horizontalLength: 3
+    _cells:
+    - _col: 2
+      _row: 0
+    - _col: 3
+      _row: 1
+    - _col: 4
+      _row: 2
+  - _enabled: 1
+    _includeInSpinEvaluation: 1
+    _includeInForcedPatternPool: 1
+    _matchKind: 0
+    _patternId: diag-s0
+    _displayName: 정대각 1
+    _orderIndex: 2
+    _multiplier: 1
+    _rank: 2
+    _isJackpot: 0
+    _horizontalLength: 3
+    _cells:
+    - _col: 2
+      _row: 0
+    - _col: 1
+      _row: 1
+    - _col: 0
+      _row: 2
+  - _enabled: 1
+    _includeInSpinEvaluation: 1
+    _includeInForcedPatternPool: 1
+    _matchKind: 0
+    _patternId: diag-s1
+    _displayName: 정대각 2
+    _orderIndex: 2
+    _multiplier: 1
+    _rank: 2
+    _isJackpot: 0
+    _horizontalLength: 3
+    _cells:
+    - _col: 3
+      _row: 0
+    - _col: 2
+      _row: 1
+    - _col: 1
+      _row: 2
+  - _enabled: 1
+    _includeInSpinEvaluation: 1
+    _includeInForcedPatternPool: 1
+    _matchKind: 0
+    _patternId: diag-s2
+    _displayName: 정대각 3
+    _orderIndex: 2
+    _multiplier: 1
+    _rank: 2
+    _isJackpot: 0
+    _horizontalLength: 3
+    _cells:
+    - _col: 4
+      _row: 0
+    - _col: 3
+      _row: 1
+    - _col: 2
+      _row: 2
+  - _enabled: 1
+    _includeInSpinEvaluation: 1
+    _includeInForcedPatternPool: 1
+    _matchKind: 0
+    _patternId: zig
+    _displayName: 지그재그
+    _orderIndex: 5
+    _multiplier: 4
+    _rank: 5
+    _isJackpot: 0
+    _horizontalLength: 3
+    _cells:
+    - _col: 2
+      _row: 0
+    - _col: 1
+      _row: 1
+    - _col: 3
+      _row: 1
+    - _col: 0
+      _row: 2
+    - _col: 4
+      _row: 2
+  - _enabled: 1
+    _includeInSpinEvaluation: 1
+    _includeInForcedPatternPool: 1
+    _matchKind: 0
+    _patternId: zag
+    _displayName: 역지그재그
+    _orderIndex: 6
+    _multiplier: 4
+    _rank: 6
+    _isJackpot: 0
+    _horizontalLength: 3
+    _cells:
+    - _col: 0
+      _row: 0
+    - _col: 4
+      _row: 0
+    - _col: 1
+      _row: 1
+    - _col: 3
+      _row: 1
+    - _col: 2
+      _row: 2
+  - _enabled: 1
+    _includeInSpinEvaluation: 1
+    _includeInForcedPatternPool: 1
+    _matchKind: 0
+    _patternId: ground
+    _displayName: 대지
+    _orderIndex: 7
+    _multiplier: 7
+    _rank: 7
+    _isJackpot: 0
+    _horizontalLength: 3
+    _cells:
+    - _col: 2
+      _row: 0
+    - _col: 1
+      _row: 1
+    - _col: 3
+      _row: 1
+    - _col: 0
+      _row: 2
+    - _col: 1
+      _row: 2
+    - _col: 2
+      _row: 2
+    - _col: 3
+      _row: 2
+    - _col: 4
+      _row: 2
+  - _enabled: 1
+    _includeInSpinEvaluation: 1
+    _includeInForcedPatternPool: 1
+    _matchKind: 0
+    _patternId: heaven
+    _displayName: 천상
+    _orderIndex: 8
+    _multiplier: 7
+    _rank: 8
+    _isJackpot: 0
+    _horizontalLength: 3
+    _cells:
+    - _col: 0
+      _row: 0
+    - _col: 1
+      _row: 0
+    - _col: 2
+      _row: 0
+    - _col: 3
+      _row: 0
+    - _col: 4
+      _row: 0
+    - _col: 1
+      _row: 1
+    - _col: 3
+      _row: 1
+    - _col: 2
+      _row: 2
+  - _enabled: 1
+    _includeInSpinEvaluation: 1
+    _includeInForcedPatternPool: 1
+    _matchKind: 0
+    _patternId: eye
+    _displayName: 눈
+    _orderIndex: 9
+    _multiplier: 8
+    _rank: 9
+    _isJackpot: 0
+    _horizontalLength: 3
+    _cells:
+    - _col: 1
+      _row: 0
+    - _col: 2
+      _row: 0
+    - _col: 3
+      _row: 0
+    - _col: 0
+      _row: 1
+    - _col: 1
+      _row: 1
+    - _col: 3
+      _row: 1
+    - _col: 4
+      _row: 1
+    - _col: 1
+      _row: 2
+    - _col: 2
+      _row: 2
+    - _col: 3
+      _row: 2
+  - _enabled: 1
+    _includeInSpinEvaluation: 1
+    _includeInForcedPatternPool: 0
+    _matchKind: 0
+    _patternId: jackpot
+    _displayName: 잭팟
+    _orderIndex: 10
+    _multiplier: 10
+    _rank: 10
+    _isJackpot: 1
+    _horizontalLength: 3
+    _cells:
+    - _col: 0
+      _row: 0
+    - _col: 1
+      _row: 0
+    - _col: 2
+      _row: 0
+    - _col: 3
+      _row: 0
+    - _col: 4
+      _row: 0
+    - _col: 0
+      _row: 1
+    - _col: 1
+      _row: 1
+    - _col: 2
+      _row: 1
+    - _col: 3
+      _row: 1
+    - _col: 4
+      _row: 1
+    - _col: 0
+      _row: 2
+    - _col: 1
+      _row: 2
+    - _col: 2
+      _row: 2
+    - _col: 3
+      _row: 2
+    - _col: 4
+      _row: 2
+  - _enabled: 1
+    _includeInSpinEvaluation: 0
+    _includeInForcedPatternPool: 1
+    _matchKind: 0
+    _patternId: forced-horizontal-xl-row1
+    _displayName: 가로 5칸
+    _orderIndex: 4
+    _multiplier: 3
+    _rank: 4
+    _isJackpot: 0
+    _horizontalLength: 3
+    _cells:
+    - _col: 0
+      _row: 1
+    - _col: 1
+      _row: 1
+    - _col: 2
+      _row: 1
+    - _col: 3
+      _row: 1
+    - _col: 4
+      _row: 1

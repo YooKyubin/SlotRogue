@@ -91,12 +91,22 @@ namespace SlotRogue.UI.Combat.Presentation
             Vector2 startPosition = _rectTransform.anchoredPosition;
             Color startColor = _text.color;
 
+            Vector2 endPosition = startPosition + new Vector2(0f, _moveDistance);
             Sequence sequence = DOTween.Sequence();
             sequence.Join(
-                _rectTransform
-                    .DOAnchorPos(startPosition + new Vector2(0f, _moveDistance), _duration)
-                    .SetEase(_moveEase));
-            sequence.Join(_text.DOFade(0f, _duration).SetEase(_fadeEase));
+                DOTween.To(
+                    () => _rectTransform.anchoredPosition,
+                    v => _rectTransform.anchoredPosition = v,
+                    endPosition,
+                    _duration)
+                .SetEase(_moveEase));
+            sequence.Join(
+                DOTween.To(
+                    () => _text.color.a,
+                    a => { Color c = _text.color; c.a = a; _text.color = c; },
+                    0f,
+                    _duration)
+                .SetEase(_fadeEase));
 
             if (isCritical && _criticalPeakScale > 1f && _criticalScaleDuration > 0f)
             {

@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6, type: 3}
+  m_Name: ArtifactCatalog
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.ArtifactCatalogSO
+  _artifacts:
+  - {fileID: 11400000, guid: cf5723ee02174644ea7aadcf35f8d40c, type: 2}
+  - {fileID: 11400000, guid: 688a84f1317490441a466b055e17b662, type: 2}
+  - {fileID: 11400000, guid: 8b99da4b12687714cbc22dc3ad0ea274, type: 2}
+  - {fileID: 11400000, guid: 2d2ae2f8aad72c24cafcdd23f3a8a231, type: 2}
+  - {fileID: 11400000, guid: 19722c2cf48130147a123690c9bdc0b3, type: 2}
+  - {fileID: 11400000, guid: 2d684f353e20f064f9cce6db00b533e2, type: 2}
