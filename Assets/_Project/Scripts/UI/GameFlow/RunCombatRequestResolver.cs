@@ -1,4 +1,5 @@
 using System.Text;
+using SlotRogue.Core.Combat;
 using SlotRogue.Slot.Data;
 
 namespace SlotRogue.UI.GameFlow
@@ -15,7 +16,8 @@ namespace SlotRogue.UI.GameFlow
             SlotCombatRequest normalizedRequest = NormalizeBlankTurn(baseRequest);
             StarterArtifactActivation artifactActivation = TryApplyArtifact(
                 patternResult, artifact, normalizedRequest,
-                out SlotCombatRequest artifactRequest);
+                out SlotCombatRequest artifactRequest,
+                out StatusEffectSpec statusEffectToApply);
 
             string runBonusSummary = BuildRunBonusSummary(runDamageBonus, runDefenseBonus);
 
@@ -31,7 +33,8 @@ namespace SlotRogue.UI.GameFlow
                 normalizedRequest,
                 finalRequest,
                 artifactActivation,
-                runBonusSummary);
+                runBonusSummary,
+                statusEffectToApply);
         }
 
         private static SlotCombatRequest NormalizeBlankTurn(SlotCombatRequest request)
@@ -59,9 +62,11 @@ namespace SlotRogue.UI.GameFlow
             SlotPatternResult patternResult,
             ArtifactDefinitionSO artifact,
             SlotCombatRequest request,
-            out SlotCombatRequest artifactRequest)
+            out SlotCombatRequest artifactRequest,
+            out StatusEffectSpec statusEffectToApply)
         {
             artifactRequest = request;
+            statusEffectToApply = StatusEffectSpec.None;
 
             if (artifact == null ||
                 patternResult == null ||
@@ -101,13 +106,34 @@ namespace SlotRogue.UI.GameFlow
                         request.IsCritical,
                         request.PatternName);
                     break;
-                // ApplyBurn / ApplyFreeze / ApplyPoison:
-                // 연출 발동(StarterArtifactActivation)만 처리하고
-                // 실제 상태이상 적용은 전투 담당이 구현 예정.
+                case ArtifactEffectKind.ApplyBurn:
+                    statusEffectToApply = new StatusEffectSpec(
+                        StatusEffectKind.Burn,
+                        artifact.StatusDuration,
+                        artifact.StatusMagnitude,
+                        ToStatusStackMode(artifact.StatusStackBehavior));
+                    break;
+                case ArtifactEffectKind.ApplyFreeze:
+                    statusEffectToApply = new StatusEffectSpec(
+                        StatusEffectKind.Freeze,
+                        artifact.StatusDuration,
+                        artifact.StatusMagnitude,
+                        ToStatusStackMode(artifact.StatusStackBehavior));
+                    break;
+                case ArtifactEffectKind.ApplyPoison:
+                    statusEffectToApply = new StatusEffectSpec(
+                        StatusEffectKind.Poison,
+                        artifact.StatusDuration,
+                        artifact.StatusMagnitude,
+                        ToStatusStackMode(artifact.StatusStackBehavior));
+                    break;
             }
 
             return new StarterArtifactActivation(true, artifact.DisplayName, artifact.Description);
         }
+
+        private static StatusStackMode ToStatusStackMode(StatusStackBehavior behavior) =>
+            behavior == StatusStackBehavior.Stack ? StatusStackMode.Stack : StatusStackMode.Refresh;
 
         private static string BuildRunBonusSummary(int runDamageBonus, int runDefenseBonus)
         {

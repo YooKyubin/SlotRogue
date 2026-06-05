@@ -5,5 +5,6 @@ namespace SlotRogue.Core.Combat
         Damage = 0,
         Shield = 1,
         Heal = 2,
+        ApplyStatus = 3,
     }
 }

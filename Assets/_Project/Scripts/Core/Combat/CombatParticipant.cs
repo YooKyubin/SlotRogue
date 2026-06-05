@@ -1,7 +1,11 @@
 namespace SlotRogue.Core.Combat
 {
+    using System.Collections.Generic;
+
     public sealed class CombatParticipant
     {
+        private readonly List<StatusEffectInstance> _statusEffects = new();
+
         public CombatParticipant(
             int maxHp,
             int currentHp = -1,
@@ -27,5 +31,9 @@ namespace SlotRogue.Core.Combat
         public int Shield { get; internal set; }
 
         public bool IsDead => CurrentHp <= 0;
+
+        public IReadOnlyList<StatusEffectInstance> StatusEffects => _statusEffects;
+
+        internal List<StatusEffectInstance> MutableStatusEffects => _statusEffects;
     }
 }

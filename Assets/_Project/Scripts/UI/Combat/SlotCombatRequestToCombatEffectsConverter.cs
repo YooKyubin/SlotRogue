@@ -15,6 +15,14 @@ namespace SlotRogue.UI.Combat
             SlotCombatRequest request,
             CombatParticipantId selectedTargetId)
         {
+            return Convert(request, selectedTargetId, StatusEffectSpec.None);
+        }
+
+        public CombatEffect[] Convert(
+            SlotCombatRequest request,
+            CombatParticipantId selectedTargetId,
+            StatusEffectSpec statusEffectToApply)
+        {
             if (request == null)
             {
                 return System.Array.Empty<CombatEffect>();
@@ -42,6 +50,14 @@ namespace SlotRogue.UI.Combat
                         : CombatEffectTarget.Enemy;
                     effects.Add(new CombatEffect(CombatEffectKind.Damage, request.Damage, target));
                 }
+            }
+
+            if (statusEffectToApply.IsValid)
+            {
+                CombatEffectTarget target = selectedTargetId.IsValid
+                    ? CombatEffectTarget.SelectedEnemy(selectedTargetId)
+                    : CombatEffectTarget.Enemy;
+                effects.Add(CombatEffect.ApplyStatus(statusEffectToApply, target));
             }
 
             return effects.ToArray();

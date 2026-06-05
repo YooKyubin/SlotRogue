@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using SlotRogue.Slot.Data;
 using UnityEngine;
 using UnityEngine.Events;
@@ -190,6 +191,7 @@ namespace SlotRogue.UI.GameFlow
             string value,
             int currentHp,
             int maxHp,
+            IReadOnlyList<StatusEffectViewData> statuses,
             bool selected,
             bool interactable)
         {
@@ -201,6 +203,7 @@ namespace SlotRogue.UI.GameFlow
             slot.SetActive(true);
             slot.SetHud(selected ? $"> {value}" : value);
             slot.SetHpFill(currentHp, maxHp);
+            slot.SetStatusEffects(statuses);
             slot.SetSelected(selected);
             slot.SetInteractable(interactable);
         }

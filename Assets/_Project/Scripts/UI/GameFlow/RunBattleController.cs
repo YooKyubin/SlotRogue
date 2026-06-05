@@ -281,7 +281,10 @@ namespace SlotRogue.UI.GameFlow
 
                 SlotCombatRequest request = _lastRequestResult.FinalRequest;
                 CombatParticipantId selectedTargetId = ResolveSelectedEnemyId();
-                CombatEffect[] playerEffects = _converter.Convert(request, selectedTargetId);
+                CombatEffect[] playerEffects = _converter.Convert(
+                    request,
+                    selectedTargetId,
+                    _lastRequestResult.StatusEffectToApply);
                 var context = new PresentationContext(request.IsCritical, request.PatternName);
                 int eventCursor = _eventLogger.CaptureEventCursor(_battle);
 
@@ -598,10 +601,32 @@ namespace SlotRogue.UI.GameFlow
                     $"{snapshot.Hp}/{enemy.MaxHp}  SH {snapshot.Shield}",
                     snapshot.Hp,
                     enemy.MaxHp,
+                    BuildStatusEffectViewData(enemy),
                     selected,
                     !enemy.IsDead && !_flowController.IsBusy && !_spinRoutineRunning);
                 _view.SetEnemyPortrait(slotIndex, ResolveEncounterMonster(rosterIndex)?.portrait);
             }
+        }
+
+        private static StatusEffectViewData[] BuildStatusEffectViewData(CombatParticipant enemy)
+        {
+            if (enemy == null || enemy.StatusEffects.Count == 0)
+            {
+                return System.Array.Empty<StatusEffectViewData>();
+            }
+
+            var statuses = new StatusEffectViewData[enemy.StatusEffects.Count];
+            for (int index = 0; index < enemy.StatusEffects.Count; index++)
+            {
+                StatusEffectInstance status = enemy.StatusEffects[index];
+                statuses[index] = new StatusEffectViewData(
+                    status.Kind,
+                    status.RemainingTurns,
+                    status.Magnitude,
+                    status.StackCount);
+            }
+
+            return statuses;
         }
 
         private int ResolveHudSlotIndex(int rosterIndex, int slotCount, HashSet<int> usedFormationSlots)

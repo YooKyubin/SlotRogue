@@ -1,4 +1,5 @@
 using SlotRogue.Slot.Data;
+using SlotRogue.Core.Combat;
 
 namespace SlotRogue.UI.GameFlow
 {
@@ -8,12 +9,14 @@ namespace SlotRogue.UI.GameFlow
             SlotCombatRequest baseRequest,
             SlotCombatRequest finalRequest,
             StarterArtifactActivation starterArtifactActivation,
-            string runBonusSummary)
+            string runBonusSummary,
+            StatusEffectSpec statusEffectToApply = default)
         {
             BaseRequest = baseRequest;
             FinalRequest = finalRequest;
             StarterArtifactActivation = starterArtifactActivation;
             RunBonusSummary = runBonusSummary;
+            StatusEffectToApply = statusEffectToApply;
         }
 
         public SlotCombatRequest BaseRequest { get; }
@@ -23,5 +26,7 @@ namespace SlotRogue.UI.GameFlow
         public StarterArtifactActivation StarterArtifactActivation { get; }
 
         public string RunBonusSummary { get; }
+
+        public StatusEffectSpec StatusEffectToApply { get; }
     }
 }

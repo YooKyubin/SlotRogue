@@ -118,5 +118,23 @@ namespace SlotRogue.UI.Tests.Combat
                 new CombatEffect(CombatEffectKind.Heal, 2, CombatEffectTarget.Self),
             }));
         }
+
+        [Test]
+        public void Convert_StatusEffectToApply_AppendsApplyStatusEffect()
+        {
+            var request = new SlotCombatRequest(5, 0, 1, 0, false, "Attack");
+            var selectedTargetId = new CombatParticipantId(101);
+
+            CombatEffect[] effects = _converter.Convert(
+                request,
+                selectedTargetId,
+                new StatusEffectSpec(StatusEffectKind.Poison, duration: 0, magnitude: 1, StatusStackMode.Stack));
+
+            Assert.That(effects, Has.Length.EqualTo(2));
+            Assert.That(effects[0].Kind, Is.EqualTo(CombatEffectKind.Damage));
+            Assert.That(effects[1].Kind, Is.EqualTo(CombatEffectKind.ApplyStatus));
+            Assert.That(effects[1].StatusEffect.Kind, Is.EqualTo(StatusEffectKind.Poison));
+            Assert.That(effects[1].Target.ParticipantId, Is.EqualTo(selectedTargetId));
+        }
     }
 }
