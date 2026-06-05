@@ -28,7 +28,8 @@ namespace SlotRogue.UI.GameFlow
         private void BindOptions()
         {
             GameFlowOptionView[] optionViews = _view.RewardOptions;
-            int visibleCount = Mathf.Min(optionViews.Length, RunRewardCatalog.All.Count);
+            var rewards = RunRewardCatalog.All;
+            int visibleCount = Mathf.Min(optionViews.Length, rewards.Count);
 
             for (int index = 0; index < optionViews.Length; index++)
             {
@@ -40,7 +41,7 @@ namespace SlotRogue.UI.GameFlow
                     continue;
                 }
 
-                RunRewardDefinition reward = RunRewardCatalog.All[index];
+                RunRewardDefinition reward = rewards[index];
                 optionView.SetText(reward.DisplayName, reward.Description);
                 optionView.Button.onClick.RemoveAllListeners();
                 optionView.Button.onClick.AddListener(() => ClaimReward(reward.Type));

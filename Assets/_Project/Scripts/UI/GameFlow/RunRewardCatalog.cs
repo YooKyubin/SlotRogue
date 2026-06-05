@@ -6,9 +6,9 @@ namespace SlotRogue.UI.GameFlow
     {
         private static readonly RunRewardDefinition[] AllDefinitions =
         {
-            new(RunRewardType.Heal, "Field Ration", "Recover 8 HP."),
-            new(RunRewardType.DamageBonus, "Sharpening Stone", "Future spins gain +2 damage."),
-            new(RunRewardType.DefenseBonus, "Guard Polish", "Future spins gain +2 defense."),
+            new(RunRewardType.Heal, "전투 식량", "HP 8 회복."),
+            new(RunRewardType.DamageBonus, "숫돌", "이후 스핀에서 피해 +2."),
+            new(RunRewardType.DefenseBonus, "방어 연마제", "이후 스핀에서 방어 +2."),
         };
 
         public static IReadOnlyList<RunRewardDefinition> All => AllDefinitions;

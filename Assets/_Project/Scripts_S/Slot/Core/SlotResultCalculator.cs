@@ -25,32 +25,32 @@ namespace SlotRogue.Slot.Core
 
             switch (patternResult.Symbol)
             {
-                case SlotSymbolType.Sword:
+                case SlotSymbolType.Cherry:
                     damage = matchLength * 6;
                     attackCount = 1 + (matchLength - 3);
                     isCritical = matchLength >= 5;
                     break;
-                case SlotSymbolType.Shield:
+                case SlotSymbolType.Seven:
                     damage = matchLength * 2;
                     defense = matchLength * 5;
                     attackCount = 1;
                     break;
-                case SlotSymbolType.Heart:
+                case SlotSymbolType.Grape:
                     damage = matchLength * 2;
                     healAmount = matchLength * 4;
                     attackCount = 1;
                     break;
-                case SlotSymbolType.Coin:
+                case SlotSymbolType.Bell:
                     damage = matchLength * 3;
                     defense = matchLength;
                     attackCount = 1;
                     break;
-                case SlotSymbolType.Gem:
+                case SlotSymbolType.Clover:
                     damage = matchLength * 5;
                     attackCount = 1;
                     isCritical = matchLength >= 4;
                     break;
-                case SlotSymbolType.Skull:
+                case SlotSymbolType.Lemon:
                     damage = matchLength * 4;
                     attackCount = matchLength - 2;
                     isCritical = matchLength >= 5;

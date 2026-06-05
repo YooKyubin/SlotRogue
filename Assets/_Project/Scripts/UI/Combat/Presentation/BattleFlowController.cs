@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -26,7 +27,9 @@ namespace SlotRogue.UI.Combat.Presentation
             IReadOnlyList<CombatEffect> effects,
             CombatParticipantId selectedTargetId,
             PresentationContext context,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            Func<CombatEvent, int, IReadOnlyList<CombatEvent>, UniTask> beforeEventPresented = null,
+            Func<CombatEvent, int, IReadOnlyList<CombatEvent>, UniTask> afterEventPresented = null)
         {
             if (_isBusy)
             {
@@ -48,7 +51,18 @@ namespace SlotRogue.UI.Combat.Presentation
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     CombatEvent combatEvent = battle.Events[index];
+
+                    if (beforeEventPresented != null)
+                    {
+                        await beforeEventPresented(combatEvent, index, battle.Events);
+                    }
+
                     await _pipeline.PresentAsync(combatEvent, _viewModel, context, cancellationToken);
+
+                    if (afterEventPresented != null)
+                    {
+                        await afterEventPresented(combatEvent, index, battle.Events);
+                    }
                 }
 
                 _viewModel.SyncFrom(battle);

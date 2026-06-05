@@ -8,7 +8,9 @@ using SlotRogue.Data.GameFlow;
 using SlotRogue.Slot.Data;
 using SlotRogue.Slot.ViewModels;
 using SlotRogue.UI.Combat;
+using SlotRogue.Slot.Core;
 using SlotRogue.UI.Combat.Presentation;
+using SlotRogue.UI.SlotPresentation;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -22,6 +24,7 @@ namespace SlotRogue.UI.GameFlow
     {
         private readonly BattleSystem _battle = new();
         private readonly SlotMachineViewModel _slotViewModel = new();
+        private readonly SlotPatternResolver _presentationPatternResolver = new();
         private readonly SlotCombatRequestToCombatEffectsConverter _converter = new();
         private readonly CombatEventConsoleLogger _eventLogger = new();
         private readonly RunCombatRequestResolver _requestResolver = new();
@@ -37,9 +40,12 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private RunBattleView _view;
         [SerializeField] private FloatingDamageTextView _floatingDamageTextPrefab;
         [SerializeField] private MonsterDefinition _monsterDefinition;
+        [SerializeField] private SlotLeverView _spinLeverView;
+        [SerializeField] private SlotPresentationManager _slotPresentationManager;
 
         private RunCombatRequestResult _lastRequestResult;
         private bool _battleCompleted;
+        private bool _spinRoutineRunning;
         private CombatParticipantId _selectedEnemyId;
         private RunEncounterRoster _encounterRoster = null!;
 
@@ -62,6 +68,30 @@ namespace SlotRogue.UI.GameFlow
             {
                 return;
             }
+
+            if (!_view.EnsureReferences())
+            {
+                return;
+            }
+
+            if (!_view.HasRequiredControls())
+            {
+                Debug.LogError(
+                    "[RunBattleController] RunBattleView requires Spin, Continue, and Restart buttons.");
+                return;
+            }
+
+            if (_spinLeverView == null)
+            {
+                _spinLeverView = GetComponentInChildren<SlotLeverView>(true);
+            }
+
+            if (_slotPresentationManager == null)
+            {
+                _slotPresentationManager = GetComponentInChildren<SlotPresentationManager>(true);
+            }
+
+            _spinLeverView?.SetUpImmediate();
 
             InitializePresentationStack();
 
@@ -118,9 +148,13 @@ namespace SlotRogue.UI.GameFlow
             _monsterDamageAnchor = _view.GetEnemyDamageAnchor(1);
             if (_monsterDamageAnchor == null)
             {
-                Debug.LogError(
+                _monsterDamageAnchor = ResolveDamageAnchor(
+                    floatingTextRoot,
+                    "monster-damage-anchor",
+                    new Vector2(0f, 140f));
+                Debug.LogWarning(
                     "[RunBattleController] Center formation damage anchor missing. " +
-                    "Run menu: SlotRogue > Game Flow > Rebuild Scene UI Prefabs.");
+                    "Using a temporary overlay anchor for this play session.");
             }
 
             _presentationHost = new CombatPresentationHost(
@@ -212,7 +246,7 @@ namespace SlotRogue.UI.GameFlow
 
         private async UniTaskVoid HandleSpinClickedAsync()
         {
-            if (_battleCompleted || !_battle.CanApplyPlayerTurn)
+            if (_battleCompleted || _spinRoutineRunning || !_battle.CanApplyPlayerTurn)
             {
                 RefreshStatusText();
                 return;
@@ -223,34 +257,51 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
-            _slotViewModel.Spin();
-            StarterArtifactDefinition artifact = StarterArtifactCatalog.Get(GameFlowSession.SelectedStarterArtifactId);
-            _lastRequestResult = _requestResolver.Resolve(
-                _slotViewModel.CurrentPatternResult,
-                _slotViewModel.CurrentCombatRequest,
-                artifact,
-                GameFlowSession.DamageBonus,
-                GameFlowSession.DefenseBonus);
-
-            RefreshSlotCells(_slotViewModel.CurrentSpinResult);
-            RefreshSlotResultText();
-
-            SlotCombatRequest request = _lastRequestResult.FinalRequest;
-            CombatParticipantId selectedTargetId = ResolveSelectedEnemyId();
-            CombatEffect[] playerEffects = _converter.Convert(request, selectedTargetId);
-            var context = new PresentationContext(request.IsCritical, request.PatternName);
-            int eventCursor = _eventLogger.CaptureEventCursor(_battle);
-
             SetSpinInteractable(false);
+            _spinRoutineRunning = true;
+            bool leverRaised = false;
 
             try
             {
+                if (_spinLeverView != null)
+                {
+                    await _spinLeverView.PlayDownAsync(_presentationCts.Token);
+                }
+
+                _slotViewModel.Spin();
+                ArtifactDefinitionSO artifact = StarterArtifactCatalog.GetById(GameFlowSession.SelectedArtifactId);
+                _lastRequestResult = _requestResolver.Resolve(
+                    _slotViewModel.CurrentPatternResult,
+                    _slotViewModel.CurrentCombatRequest,
+                    artifact,
+                    GameFlowSession.DamageBonus,
+                    GameFlowSession.DefenseBonus);
+
+                RefreshSlotCells(_slotViewModel.CurrentSpinResult);
+                RefreshSlotResultText();
+
+                SlotCombatRequest request = _lastRequestResult.FinalRequest;
+                CombatParticipantId selectedTargetId = ResolveSelectedEnemyId();
+                CombatEffect[] playerEffects = _converter.Convert(request, selectedTargetId);
+                var context = new PresentationContext(request.IsCritical, request.PatternName);
+                int eventCursor = _eventLogger.CaptureEventCursor(_battle);
+
+                if (_slotPresentationManager != null)
+                {
+                    SlotPresentationResult presentationResult = BuildSlotPresentationResult();
+                    bool presentationDone = false;
+                    _slotPresentationManager.Play(presentationResult, _ => presentationDone = true);
+                    await UniTask.WaitUntil(() => presentationDone, cancellationToken: _presentationCts.Token);
+                }
+
                 BattleApplyResult result = await _flowController.RunTurnAsync(
                     _battle,
                     playerEffects,
                     selectedTargetId,
                     context,
-                    _presentationCts.Token);
+                    _presentationCts.Token,
+                    RaiseLeverBeforeTurnTransitionAsync,
+                    RaiseLeverAfterPlayerAttackAsync);
 
                 if (result.Accepted)
                 {
@@ -259,9 +310,95 @@ namespace SlotRogue.UI.GameFlow
             }
             finally
             {
+                if (!leverRaised)
+                {
+                    _spinLeverView?.SetUpImmediate();
+                }
+
+                _spinRoutineRunning = false;
                 RefreshStatusText();
                 HandleBattleEndIfNeeded();
+                UpdateSpinButtonState();
             }
+
+            async UniTask RaiseLeverBeforeTurnTransitionAsync(
+                CombatEvent combatEvent,
+                int eventIndex,
+                IReadOnlyList<CombatEvent> events)
+            {
+                if (ShouldRaiseLeverBeforeEvent(combatEvent))
+                {
+                    await RaiseLeverIfNeededAsync();
+                }
+            }
+
+            async UniTask RaiseLeverAfterPlayerAttackAsync(
+                CombatEvent combatEvent,
+                int eventIndex,
+                IReadOnlyList<CombatEvent> events)
+            {
+                if (IsLastPlayerAttackPresentation(combatEvent, eventIndex, events))
+                {
+                    await RaiseLeverIfNeededAsync();
+                }
+            }
+
+            async UniTask RaiseLeverIfNeededAsync()
+            {
+                if (leverRaised || _spinLeverView == null)
+                {
+                    return;
+                }
+
+                leverRaised = true;
+                await _spinLeverView.PlayUpAsync();
+            }
+        }
+
+        private static bool ShouldRaiseLeverBeforeEvent(CombatEvent combatEvent)
+        {
+            if (combatEvent.Kind == CombatEventKind.BattleEnded)
+            {
+                return true;
+            }
+
+            return combatEvent.Kind == CombatEventKind.PhaseChanged &&
+                combatEvent.Phase != BattlePhase.Resolving;
+        }
+
+        private static bool IsLastPlayerAttackPresentation(
+            CombatEvent combatEvent,
+            int eventIndex,
+            IReadOnlyList<CombatEvent> events)
+        {
+            if (!IsPlayerAttackPresentation(combatEvent))
+            {
+                return false;
+            }
+
+            for (int index = eventIndex + 1; index < events.Count; index++)
+            {
+                CombatEvent nextEvent = events[index];
+                if (IsPlayerAttackPresentation(nextEvent))
+                {
+                    return false;
+                }
+
+                if (nextEvent.Kind == CombatEventKind.PhaseChanged &&
+                    nextEvent.Phase != BattlePhase.Resolving)
+                {
+                    break;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool IsPlayerAttackPresentation(CombatEvent combatEvent)
+        {
+            return combatEvent.Kind == CombatEventKind.EffectApplied &&
+                combatEvent.Phase == BattlePhase.Resolving &&
+                !combatEvent.IsPlayerParticipant;
         }
 
         private void SetSpinInteractable(bool interactable)
@@ -281,7 +418,8 @@ namespace SlotRogue.UI.GameFlow
 
             bool canSpin = _battle.CurrentPhase != BattlePhase.NotInBattle
                 && _battle.CanApplyPlayerTurn
-                && !_flowController.IsBusy;
+                && !_flowController.IsBusy
+                && !_spinRoutineRunning;
 
             _view.SpinButton.interactable = canSpin;
         }
@@ -311,14 +449,18 @@ namespace SlotRogue.UI.GameFlow
 
         private void RefreshSlotCells(SlotSpinResult spinResult)
         {
-            if (spinResult == null)
+            if (spinResult == null || _view.SlotCells == null)
             {
                 return;
             }
 
-            for (int index = 0; index < _view.SlotCells.Length; index++)
+            int cellCount = Mathf.Min(_view.SlotCells.Length, spinResult.Symbols.Count);
+            for (int index = 0; index < cellCount; index++)
             {
-                _view.SlotCells[index].text = FormatSlotSymbol(spinResult.Symbols[index]);
+                if (_view.SlotCells[index] != null)
+                {
+                    _view.SlotCells[index].text = FormatSlotSymbol(spinResult.Symbols[index]);
+                }
             }
         }
 
@@ -458,7 +600,7 @@ namespace SlotRogue.UI.GameFlow
                     snapshot.Hp,
                     enemy.MaxHp,
                     selected,
-                    !enemy.IsDead && !_flowController.IsBusy);
+                    !enemy.IsDead && !_flowController.IsBusy && !_spinRoutineRunning);
                 _view.SetEnemyPortrait(slotIndex, ResolveEncounterMonster(rosterIndex)?.portrait);
             }
         }
@@ -510,7 +652,7 @@ namespace SlotRogue.UI.GameFlow
 
         private void HandleEnemySelected(CombatParticipantId enemyId)
         {
-            if (_flowController.IsBusy)
+            if (_flowController.IsBusy || _spinRoutineRunning)
             {
                 return;
             }
@@ -577,18 +719,18 @@ namespace SlotRogue.UI.GameFlow
         {
             switch (symbol)
             {
-                case SlotSymbolType.Sword:
-                    return "SWORD";
-                case SlotSymbolType.Shield:
-                    return "SHIELD";
-                case SlotSymbolType.Heart:
-                    return "HEART";
-                case SlotSymbolType.Coin:
-                    return "COIN";
-                case SlotSymbolType.Gem:
-                    return "GEM";
-                case SlotSymbolType.Skull:
-                    return "SKULL";
+                case SlotSymbolType.Cherry:
+                    return "CHERRY";
+                case SlotSymbolType.Seven:
+                    return "SEVEN";
+                case SlotSymbolType.Grape:
+                    return "GRAPE";
+                case SlotSymbolType.Bell:
+                    return "BELL";
+                case SlotSymbolType.Clover:
+                    return "CLOVER";
+                case SlotSymbolType.Lemon:
+                    return "LEMON";
                 default:
                     return symbol.ToString().ToUpperInvariant();
             }
@@ -607,6 +749,51 @@ namespace SlotRogue.UI.GameFlow
         private static void ReturnToStart()
         {
             SceneManager.LoadScene(GameFlowSceneNames.GameStart);
+        }
+
+        private SlotPresentationResult BuildSlotPresentationResult()
+        {
+            SlotSpinResult spinResult = _slotViewModel.CurrentSpinResult;
+            SlotCombatRequest request = _lastRequestResult?.FinalRequest ?? SlotCombatRequest.Empty;
+
+            IReadOnlyList<SlotPatternMatch> matches =
+                _presentationPatternResolver.ResolveAll(spinResult);
+
+            var patternPresentations = new SlotPatternPresentationResult[matches.Count];
+
+            for (int index = 0; index < matches.Count; index++)
+            {
+                SlotPatternMatch match = matches[index];
+                var cellIndices = new int[match.MatchedCells.Count];
+
+                for (int cellIndex = 0; cellIndex < match.MatchedCells.Count; cellIndex++)
+                {
+                    SlotCell cell = match.MatchedCells[cellIndex];
+                    cellIndices[cellIndex] = SlotSpinResult.ToIndex(cell.Col, cell.Row);
+                }
+
+                patternPresentations[index] = new SlotPatternPresentationResult(
+                    match.PresentationTitle,
+                    match.Symbol,
+                    match.MatchedCells.Count > 0 ? match.MatchedCells[0].Row : -1,
+                    match.MatchedCells.Count > 0 ? match.MatchedCells[0].Col : -1,
+                    match.MatchedCells.Count,
+                    cellIndices,
+                    $"{match.Symbol} x{match.MatchedCells.Count} / x{match.Multiplier:0.0}",
+                    $"+{match.CalculatedValue} pts",
+                    match.Definition.IsJackpot,
+                    index,
+                    match.CalculatedValue);
+            }
+
+            var finalResult = new SlotFinalPresentationResult(
+                request.Damage,
+                request.Defense,
+                request.AttackCount,
+                request.HealAmount,
+                $"DMG {request.Damage} / DEF {request.Defense}");
+
+            return new SlotPresentationResult(spinResult, patternPresentations, null, finalResult);
         }
 
     }

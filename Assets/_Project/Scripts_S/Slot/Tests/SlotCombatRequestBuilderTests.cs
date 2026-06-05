@@ -11,8 +11,8 @@ namespace SlotRogue.Slot.Tests
         {
             var patternResult = new SlotPatternResult(
                 hasMatch: true,
-                patternName: "Skull Line x5",
-                symbol: SlotSymbolType.Skull,
+                patternName: "Lemon Line x5",
+                symbol: SlotSymbolType.Lemon,
                 row: 0,
                 startColumn: 0,
                 matchLength: 5,
@@ -27,7 +27,7 @@ namespace SlotRogue.Slot.Tests
             Assert.That(request.AttackCount, Is.EqualTo(3));
             Assert.That(request.HealAmount, Is.EqualTo(5));
             Assert.That(request.IsCritical, Is.True);
-            Assert.That(request.PatternName, Is.EqualTo("Skull Line x5"));
+            Assert.That(request.PatternName, Is.EqualTo("Lemon Line x5"));
         }
 
         [Test]

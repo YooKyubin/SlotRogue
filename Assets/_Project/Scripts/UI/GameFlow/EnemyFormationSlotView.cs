@@ -20,7 +20,19 @@ namespace SlotRogue.UI.GameFlow
 
         public RectTransform Root => _root != null ? _root : transform as RectTransform;
 
-        public RectTransform DamageAnchor => _damageAnchor;
+        public RectTransform DamageAnchor
+        {
+            get
+            {
+                EnsureReferences();
+                return _damageAnchor;
+            }
+        }
+
+        private void Awake()
+        {
+            EnsureReferences();
+        }
 
         public void Bind(
             RectTransform root,
@@ -42,8 +54,61 @@ namespace SlotRogue.UI.GameFlow
             _placeholderText = placeholderText;
         }
 
+        public void EnsureReferences()
+        {
+            if (_root == null)
+            {
+                _root = transform as RectTransform;
+            }
+
+            if (_button == null)
+            {
+                _button = GetComponent<Button>();
+                if (_button == null)
+                {
+                    _button = GetComponentInChildren<Button>(true);
+                }
+            }
+
+            if (_portrait == null)
+            {
+                _portrait = FindImageSlot("Portrait", "portrait");
+            }
+
+            if (_hudText == null)
+            {
+                _hudText = FindText("HUD Text");
+            }
+
+            if (_hpFill == null)
+            {
+                _hpFill = FindImage("HP Bar Fill");
+            }
+
+            if (_statusBackground == null)
+            {
+                _statusBackground = FindImage("Status Panel");
+            }
+
+            if (_damageAnchor == null)
+            {
+                _damageAnchor = FindRectTransform("Damage Anchor");
+                if (_damageAnchor == null)
+                {
+                    _damageAnchor = FindRectTransform("DamageAnchor");
+                }
+            }
+
+            if (_placeholderText == null)
+            {
+                _placeholderText = FindText("Portrait Placeholder Text");
+            }
+        }
+
         public void SetPortrait(Sprite sprite)
         {
+            EnsureReferences();
+
             if (sprite != null)
             {
                 if (_portrait != null)
@@ -80,6 +145,8 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetHud(string value)
         {
+            EnsureReferences();
+
             if (_hudText != null)
             {
                 _hudText.text = value;
@@ -88,6 +155,8 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetHpFill(int current, int max)
         {
+            EnsureReferences();
+
             if (_hpFill == null)
             {
                 return;
@@ -101,6 +170,8 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetSelected(bool selected)
         {
+            EnsureReferences();
+
             if (_statusBackground != null)
             {
                 _statusBackground.color = selected ? SelectedEnemySlotColor : EnemySlotColor;
@@ -109,6 +180,8 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetInteractable(bool interactable)
         {
+            EnsureReferences();
+
             if (_button != null)
             {
                 _button.interactable = interactable;
@@ -117,6 +190,8 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetClickHandler(UnityAction action)
         {
+            EnsureReferences();
+
             if (_button == null)
             {
                 return;
@@ -127,6 +202,71 @@ namespace SlotRogue.UI.GameFlow
             {
                 _button.onClick.AddListener(action);
             }
+        }
+
+        private GameFlowImageSlot FindImageSlot(string objectName, string slotIdFragment)
+        {
+            Transform byName = FindDeepChild(transform, objectName);
+            if (byName != null && byName.TryGetComponent(out GameFlowImageSlot imageSlot))
+            {
+                return imageSlot;
+            }
+
+            GameFlowImageSlot[] slots = GetComponentsInChildren<GameFlowImageSlot>(true);
+            for (int index = 0; index < slots.Length; index++)
+            {
+                GameFlowImageSlot slot = slots[index];
+                if (slot != null &&
+                    !string.IsNullOrEmpty(slot.SlotId) &&
+                    slot.SlotId.ToLowerInvariant().Contains(slotIdFragment))
+                {
+                    return slot;
+                }
+            }
+
+            return null;
+        }
+
+        private Text FindText(string objectName)
+        {
+            Transform child = FindDeepChild(transform, objectName);
+            return child != null ? child.GetComponent<Text>() : null;
+        }
+
+        private Image FindImage(string objectName)
+        {
+            Transform child = FindDeepChild(transform, objectName);
+            return child != null ? child.GetComponent<Image>() : null;
+        }
+
+        private RectTransform FindRectTransform(string objectName)
+        {
+            Transform child = FindDeepChild(transform, objectName);
+            return child as RectTransform;
+        }
+
+        private static Transform FindDeepChild(Transform root, string objectName)
+        {
+            if (root == null)
+            {
+                return null;
+            }
+
+            if (root.name == objectName)
+            {
+                return root;
+            }
+
+            for (int index = 0; index < root.childCount; index++)
+            {
+                Transform found = FindDeepChild(root.GetChild(index), objectName);
+                if (found != null)
+                {
+                    return found;
+                }
+            }
+
+            return null;
         }
     }
 }

@@ -39,6 +39,138 @@ namespace SlotRogue.Editor.GameFlow
         private static readonly Color32 ShieldColor = new(39, 144, 235, 255);
         private static readonly Color32 EnergyColor = new(39, 203, 235, 255);
 
+        private const string InGameLeverTexturePath = "Assets/_Project/Resources/Textures/Ingame_lever.png";
+
+        [MenuItem("SlotRogue/Game Flow/Patch Run Battle Lever (Keep UI)")]
+        public static void PatchRunBattleLeverOnly()
+        {
+            string prefabPath = $"{PrefabFolder}/RunBattleView.prefab";
+            GameObject prefabAsset = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+
+            if (prefabAsset != null)
+            {
+                using (var scope = new PrefabUtility.EditPrefabContentsScope(prefabPath))
+                {
+                    PatchLeverInRoot(scope.prefabContentsRoot);
+                    UnityEngine.Debug.Log("[SlotRogue] RunBattleView 프리팹 레버 패치 완료.");
+                }
+            }
+
+            foreach (Scene scene in GetOpenRunBattleScenes())
+            {
+                foreach (GameObject root in scene.GetRootGameObjects())
+                {
+                    RunBattleView view = root.GetComponentInChildren<RunBattleView>(true);
+                    if (view != null)
+                    {
+                        PatchLeverInRoot(view.gameObject);
+                        EditorSceneManager.MarkSceneDirty(scene);
+                        UnityEngine.Debug.Log("[SlotRogue] RunBattle 씬 레버 패치 완료.");
+                    }
+                }
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+        }
+
+        private static void PatchLeverInRoot(GameObject root)
+        {
+            Transform spinButtonTransform = FindDeepChild(root.transform, "Spin Button");
+            RectTransform spinButton = spinButtonTransform != null
+                ? spinButtonTransform as RectTransform
+                : null;
+
+            Transform leverTransform = FindDeepChild(root.transform, "Spin Lever");
+            GameObject leverObject;
+
+            if (leverTransform != null)
+            {
+                leverObject = leverTransform.gameObject;
+            }
+            else
+            {
+                leverObject = new GameObject("Spin Lever",
+                    typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                RectTransform leverRect = leverObject.GetComponent<RectTransform>();
+                Transform parent = spinButton != null ? spinButton.parent : root.transform;
+                leverRect.SetParent(parent, false);
+            }
+
+            RectTransform lever = leverObject.GetComponent<RectTransform>();
+            lever.sizeDelta = new Vector2(96f, 170f);
+            lever.localScale = Vector3.one;
+            lever.localRotation = Quaternion.identity;
+
+            if (spinButton != null)
+            {
+                lever.anchorMin = spinButton.anchorMin;
+                lever.anchorMax = spinButton.anchorMax;
+                lever.pivot = new Vector2(0.5f, 0.5f);
+                lever.anchoredPosition = spinButton.anchoredPosition + new Vector2(160f, 10f);
+                lever.SetSiblingIndex(spinButton.GetSiblingIndex() + 1);
+            }
+
+            Image leverImage = leverObject.GetComponent<Image>();
+            if (leverImage == null)
+            {
+                leverImage = leverObject.AddComponent<Image>();
+            }
+
+            leverImage.raycastTarget = false;
+            Sprite[] sprites = LoadSprites(InGameLeverTexturePath);
+            if (sprites != null && sprites.Length > 0)
+            {
+                leverImage.sprite = sprites[0];
+            }
+            leverImage.preserveAspect = true;
+            leverImage.enabled = true;
+
+            SlotLeverView leverView = leverObject.GetComponent<SlotLeverView>();
+            if (leverView == null)
+            {
+                leverView = leverObject.AddComponent<SlotLeverView>();
+            }
+            leverView.Bind(leverImage, sprites);
+
+            RunBattleController controller = root.GetComponentInChildren<RunBattleController>(true);
+            if (controller != null)
+            {
+                var so = new SerializedObject(controller);
+                SerializedProperty leverProp = so.FindProperty("_spinLeverView");
+                if (leverProp != null)
+                {
+                    leverProp.objectReferenceValue = leverView;
+                    so.ApplyModifiedPropertiesWithoutUndo();
+                }
+            }
+        }
+
+        private static List<Scene> GetOpenRunBattleScenes()
+        {
+            var scenes = new List<Scene>();
+            for (int i = 0; i < SceneManager.sceneCount; i++)
+            {
+                Scene scene = SceneManager.GetSceneAt(i);
+                if (scene.isLoaded && scene.path.Contains("RunBattle"))
+                {
+                    scenes.Add(scene);
+                }
+            }
+            return scenes;
+        }
+
+        private static Transform FindDeepChild(Transform parent, string name)
+        {
+            foreach (Transform child in parent)
+            {
+                if (child.name == name) return child;
+                Transform found = FindDeepChild(child, name);
+                if (found != null) return found;
+            }
+            return null;
+        }
+
         [MenuItem("SlotRogue/Game Flow/Rebuild Scene UI Prefabs")]
         public static void BuildAll()
         {
@@ -756,6 +888,29 @@ namespace SlotRogue.Editor.GameFlow
         {
             Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             return font != null ? font : Resources.GetBuiltinResource<Font>("Arial.ttf");
+        }
+
+        private static Sprite[] LoadSprites(string path)
+        {
+            UnityEngine.Object[] assets = AssetDatabase.LoadAllAssetRepresentationsAtPath(path);
+            var sprites = new List<Sprite>();
+            foreach (UnityEngine.Object asset in assets)
+            {
+                if (asset is Sprite sprite)
+                {
+                    sprites.Add(sprite);
+                }
+            }
+            sprites.Sort((a, b) => GetFrameIndex(a).CompareTo(GetFrameIndex(b)));
+            return sprites.ToArray();
+        }
+
+        private static int GetFrameIndex(Sprite sprite)
+        {
+            if (sprite == null || string.IsNullOrEmpty(sprite.name)) return int.MaxValue;
+            int sep = sprite.name.LastIndexOf('_');
+            if (sep < 0 || sep >= sprite.name.Length - 1) return int.MaxValue;
+            return int.TryParse(sprite.name.Substring(sep + 1), out int idx) ? idx : int.MaxValue;
         }
     }
 }
