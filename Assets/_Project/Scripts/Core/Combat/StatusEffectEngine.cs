@@ -35,22 +35,7 @@ namespace SlotRogue.Core.Combat
                 return;
             }
 
-            StatusEffectInstance instance = Find(participant, spec.Kind);
-            if (instance == null)
-            {
-                participant.MutableStatusEffects.Add(incoming);
-                instance = incoming;
-            }
-            else if (spec.StackMode == StatusStackMode.Stack)
-            {
-                instance.StackCount += incoming.StackCount;
-                instance.Magnitude = incoming.Magnitude;
-            }
-            else
-            {
-                instance.RemainingTurns = incoming.RemainingTurns;
-                instance.Magnitude = incoming.Magnitude;
-            }
+            StatusEffectInstance instance = participant.ApplyStatusEffect(incoming, spec.StackMode);
 
             StatusEffectContext context = CreateContext(phase, participant, instance, events);
             InvokeApplied(instance, context);
@@ -64,7 +49,7 @@ namespace SlotRogue.Core.Combat
                 return;
             }
 
-            StatusEffectInstance[] instances = participant.MutableStatusEffects.ToArray();
+            StatusEffectInstance[] instances = participant.GetStatusEffectsSnapshot();
             for (int index = 0; index < instances.Length; index++)
             {
                 StatusEffectInstance instance = instances[index];
@@ -83,7 +68,7 @@ namespace SlotRogue.Core.Combat
                 return false;
             }
 
-            StatusEffectInstance[] instances = participant.MutableStatusEffects.ToArray();
+            StatusEffectInstance[] instances = participant.GetStatusEffectsSnapshot();
             for (int index = 0; index < instances.Length; index++)
             {
                 StatusEffectInstance instance = instances[index];
@@ -108,7 +93,7 @@ namespace SlotRogue.Core.Combat
                 return;
             }
 
-            StatusEffectInstance[] instances = participant.MutableStatusEffects.ToArray();
+            StatusEffectInstance[] instances = participant.GetStatusEffectsSnapshot();
             for (int index = 0; index < instances.Length; index++)
             {
                 StatusEffectInstance instance = instances[index];
@@ -142,20 +127,6 @@ namespace SlotRogue.Core.Combat
             }
         }
 
-        private static StatusEffectInstance Find(CombatParticipant participant, StatusEffectKind kind)
-        {
-            for (int index = 0; index < participant.StatusEffects.Count; index++)
-            {
-                StatusEffectInstance instance = participant.StatusEffects[index];
-                if (instance.Kind == kind)
-                {
-                    return instance;
-                }
-            }
-
-            return null;
-        }
-
         private static bool HasDurationComponent(StatusEffectInstance instance)
         {
             for (int index = 0; index < instance.Components.Count; index++)
@@ -176,7 +147,7 @@ namespace SlotRogue.Core.Combat
                 instance.Components[index].OnExpired(context);
             }
 
-            participant.MutableStatusEffects.Remove(instance);
+            participant.RemoveStatusEffect(instance);
             context.EmitExpired();
         }
     }

@@ -229,9 +229,9 @@ namespace SlotRogue.Core.Combat
                 for (int targetIndex = 0; targetIndex < targets.Count; targetIndex++)
                 {
                     CombatParticipant target = targets[targetIndex];
-                    CombatParticipantSnapshot targetBefore = CaptureSnapshot(target);
+                    CombatParticipantSnapshot targetBefore = target.CaptureSnapshot();
                     EffectApplyResult applyResult = ApplyEffectToTarget(effect, target);
-                    CombatParticipantSnapshot targetAfter = CaptureSnapshot(target);
+                    CombatParticipantSnapshot targetAfter = target.CaptureSnapshot();
                     bool isPlayerTarget = target.Team == CombatTeam.Player;
 
                     _events.Add(new CombatEvent(
@@ -354,17 +354,12 @@ namespace SlotRogue.Core.Combat
 
         private void ResetShield(CombatParticipant participant)
         {
-            participant.Shield = 0;
+            participant.ResetShield();
             _events.Add(new CombatEvent(
                 CombatEventKind.ShieldReset,
                 CurrentPhase,
                 isPlayerParticipant: participant.Team == CombatTeam.Player,
                 targetParticipantId: participant.Id));
-        }
-
-        private static CombatParticipantSnapshot CaptureSnapshot(CombatParticipant participant)
-        {
-            return new(participant.CurrentHp, participant.Shield);
         }
 
         private IReadOnlyList<CombatParticipant> ResolveTargets(

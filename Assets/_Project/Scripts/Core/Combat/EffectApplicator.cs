@@ -18,36 +18,11 @@ namespace SlotRogue.Core.Combat
 
             return effect.Kind switch
             {
-                CombatEffectKind.Damage => ApplyDamage(target, effect.Amount),
-                CombatEffectKind.Shield => ApplyShield(target, effect.Amount),
-                CombatEffectKind.Heal => ApplyHeal(target, effect.Amount),
+                CombatEffectKind.Damage => target.ApplyDamage(effect.Amount),
+                CombatEffectKind.Shield => target.GainShield(effect.Amount),
+                CombatEffectKind.Heal => target.Heal(effect.Amount),
                 _ => EffectApplyResult.None,
             };
-        }
-
-        private static EffectApplyResult ApplyDamage(CombatParticipant target, int amount)
-        {
-            int shieldConsumed = Math.Min(target.Shield, amount);
-            int damageDealt = amount - shieldConsumed;
-
-            target.Shield -= shieldConsumed;
-            target.CurrentHp = Math.Max(0, target.CurrentHp - damageDealt);
-
-            return new EffectApplyResult(damageDealt, shieldConsumed, 0, 0);
-        }
-
-        private static EffectApplyResult ApplyShield(CombatParticipant target, int amount)
-        {
-            target.Shield += amount;
-            return new EffectApplyResult(0, 0, amount, 0);
-        }
-
-        private static EffectApplyResult ApplyHeal(CombatParticipant target, int amount)
-        {
-            int healApplied = Math.Min(amount, target.MaxHp - target.CurrentHp);
-            target.CurrentHp += healApplied;
-
-            return new EffectApplyResult(0, 0, 0, healApplied);
         }
     }
 }
