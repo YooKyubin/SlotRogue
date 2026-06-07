@@ -1507,13 +1507,12 @@ namespace SlotRogue.Editor.GameFlow
                 overlayView,
                 worldView);
 
-            compositionRoot.Bind(
-                screenView,
-                floatingDamageTextPrefab,
-                null,
-                null,
-                slotMachineFrameView,
-                null);
+            //compositionRoot.Bind(
+            //    screenView,
+            //    floatingDamageTextPrefab,
+            //    null,
+            //    slotMachineFrameView,
+            //    null);
 
             ConfigureRunBattleRaycasts(canvas.transform);
             SavePrefabAndScene(prefabRoot, "RunBattleView", "RunBattle");

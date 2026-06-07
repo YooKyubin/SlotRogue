@@ -37,7 +37,7 @@ namespace SlotRogue.UI.GameFlow
             {
                 RunEncounterEntry entry = entries[index];
                 int maxHp = ResolveEntryMaxHp(entry);
-                enemies[index] = new CombatParticipant(maxHp, id: new CombatParticipantId(100 + index), team: CombatTeam.Enemy);
+                enemies[index] = RunCombatParticipantFactory.CreateEnemy(index, maxHp);
                 schedules[index] = ResolveEntryTurnSchedule(entry);
                 formationSlots[index] = entry.formationSlot;
             }

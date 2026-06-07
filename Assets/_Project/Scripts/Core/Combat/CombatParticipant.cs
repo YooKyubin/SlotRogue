@@ -1,5 +1,6 @@
 namespace SlotRogue.Core.Combat
 {
+    using System;
     using System.Collections.Generic;
 
     public sealed class CombatParticipant
@@ -8,6 +9,16 @@ namespace SlotRogue.Core.Combat
 
         public CombatParticipant(int maxHp, int currentHp, int shield, CombatParticipantId id, CombatTeam team)
         {
+            if (!id.IsValid)
+            {
+                throw new ArgumentException("Participant id must be valid.", nameof(id));
+            }
+
+            if (team == default)
+            {
+                throw new ArgumentException("Participant team must be valid.", nameof(team));
+            }
+
             MaxHp = maxHp;
             CurrentHp = currentHp < 0 ? maxHp : currentHp;
             Shield = shield;

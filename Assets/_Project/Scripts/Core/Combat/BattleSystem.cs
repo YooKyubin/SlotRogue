@@ -31,9 +31,6 @@ namespace SlotRogue.Core.Combat
 
         public CombatParticipant Player => _player;
 
-        [Obsolete("Use Enemies for multi-enemy combat. Use Enemies[0] only for legacy single-enemy callers.")]
-        public CombatParticipant Monster => _enemies.Count > 0 ? _enemies[0] : null;
-
         public IReadOnlyList<CombatParticipant> Enemies => _enemies;
 
         public IReadOnlyList<CombatEvent> Events => _events;
@@ -80,7 +77,7 @@ namespace SlotRogue.Core.Combat
                 throw new ArgumentException("Enemy schedules must match enemy count.", nameof(enemyTurnSchedules));
             }
 
-           _player = EnsureParticipantMeta(player, fallbackId: 1, fallbackTeam: CombatTeam.Player);
+            _player = player;
             _enemies.Clear();
             _enemyTurnStates.Clear();
             _participantsById.Clear();
@@ -88,7 +85,7 @@ namespace SlotRogue.Core.Combat
 
             for (int index = 0; index < enemies.Count; index++)
             {
-                CombatParticipant enemy = EnsureParticipantMeta(enemies[index] ?? throw new ArgumentNullException(nameof(enemies)), fallbackId: 100 + index, fallbackTeam: CombatTeam.Enemy);
+                CombatParticipant enemy = enemies[index] ?? throw new ArgumentNullException(nameof(enemies));
                 MonsterTurnSchedule schedule = enemyTurnSchedules[index] ?? throw new ArgumentNullException(nameof(enemyTurnSchedules));
                 schedule.Reset();
                 _enemies.Add(enemy);
@@ -350,8 +347,10 @@ namespace SlotRogue.Core.Combat
             _events.Add(new CombatEvent(CombatEventKind.PhaseChanged, phase));
         }
 
-        private BattleApplyResult AcceptedResult() =>
-            new(accepted: true, CurrentPhase, EndReason);
+        private BattleApplyResult AcceptedResult()
+        {
+            return new(accepted: true, CurrentPhase, EndReason);
+        }
 
         private void ResetShield(CombatParticipant participant)
         {
@@ -363,8 +362,10 @@ namespace SlotRogue.Core.Combat
                 targetParticipantId: participant.Id));
         }
 
-        private static CombatParticipantSnapshot CaptureSnapshot(CombatParticipant participant) =>
-            new(participant.CurrentHp, participant.Shield);
+        private static CombatParticipantSnapshot CaptureSnapshot(CombatParticipant participant)
+        {
+            return new(participant.CurrentHp, participant.Shield);
+        }
 
         private IReadOnlyList<CombatParticipant> ResolveTargets(
             CombatEffect effect,
@@ -445,23 +446,6 @@ namespace SlotRogue.Core.Combat
         private void RegisterParticipant(CombatParticipant participant)
         {
             _participantsById[participant.Id.Value] = participant;
-        }
-
-        private static CombatParticipant EnsureParticipantMeta(CombatParticipant participant, int fallbackId, CombatTeam fallbackTeam)
-        {
-            CombatParticipantId resolvedId = participant.Id.IsValid
-                ? participant.Id
-                : new CombatParticipantId(fallbackId);
-            CombatTeam resolvedTeam = participant.Team != CombatTeam.None
-                ? participant.Team
-                : fallbackTeam;
-
-            return new CombatParticipant(
-                participant.MaxHp,
-                participant.CurrentHp,
-                participant.Shield,
-                resolvedId,
-                resolvedTeam);
         }
 
         private sealed class EnemyTurnState
