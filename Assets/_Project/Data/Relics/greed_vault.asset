@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ddcfc7d3a7be18347a3826d8bf6db5eb, type: 3}
+  m_Name: greed_vault
+  m_EditorClassIdentifier: SlotRogue.Relics::SlotRogue.Relics.Data.RelicDataSO
+  _relicId: greed_vault
+  _relicName: "\uD0D0\uC695\uC758 \uAE08\uACE0"
+  _description: "\uC2AC\uB86F \uD480\uC5D0 \uBCF4\uBB3C \uC2EC\uBCFC 8\uAC1C \uC774\uC0C1\uC774\uBA74
+    \uBCF4\uBB3C \uD53C\uD574 20% \uC99D\uAC00, \uACE8\uB4DC +5."
+  _icon: {fileID: 0}
+  _rarity: 2
+  _triggerTiming: 2
+  _applyMode: 0
+  _condition:
+    _type: 10
+    _targetSymbol: 0
+    _group: 3
+    _symbols: 
+    _patternRanks: 
+    _minCount: 8
+    _patternCountMode: 0
+    _poolQueryMode: 0
+    _hpPercentThreshold: 30
+    _requiredEnemyStatus: 0
+    _hpBelowPercentGate: 0
+    _enemyStatusGate: 0
+  _effects:
+  - _type: 1
+    _amount: 0
+    _value: 1.2
+    _chance: 0
+    _customId: 
+  - _type: 5
+    _amount: 5
+    _value: 0
+    _chance: 0
+    _customId: 

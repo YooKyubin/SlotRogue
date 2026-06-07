@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ddcfc7d3a7be18347a3826d8bf6db5eb, type: 3}
+  m_Name: compact_storage
+  m_EditorClassIdentifier: SlotRogue.Relics::SlotRogue.Relics.Data.RelicDataSO
+  _relicId: compact_storage
+  _relicName: "\uC555\uCD95 \uBCF4\uAD00\uD568"
+  _description: "\uC2AC\uB86F \uD480 \uC2EC\uBCFC \uC885\uB958\uAC00 4\uC885 \uC774\uD558\uBA74
+    \uCD5C\uC885 \uD53C\uD574 25% \uC99D\uAC00."
+  _icon: {fileID: 0}
+  _rarity: 2
+  _triggerTiming: 3
+  _applyMode: 0
+  _condition:
+    _type: 10
+    _targetSymbol: 0
+    _group: 0
+    _symbols: 
+    _patternRanks: 
+    _minCount: 4
+    _patternCountMode: 0
+    _poolQueryMode: 1
+    _hpPercentThreshold: 30
+    _requiredEnemyStatus: 0
+    _hpBelowPercentGate: 0
+    _enemyStatusGate: 0
+  _effects:
+  - _type: 1
+    _amount: 0
+    _value: 1.25
+    _chance: 0
+    _customId: 
