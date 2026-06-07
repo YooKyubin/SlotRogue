@@ -192,7 +192,7 @@ namespace SlotRogue.UI.GameFlow
         {
             RunMapNodeDefinition encounterNode = GetEncounterNode();
             int floor = Mathf.Max(1, encounterNode.Floor);
-            var player = new CombatParticipant(GameFlowSession.PlayerMaxHp, GameFlowSession.PlayerCurrentHp);
+            var player = new CombatParticipant(GameFlowSession.PlayerMaxHp, GameFlowSession.PlayerCurrentHp, 0, new CombatParticipantId(1), CombatTeam.Player);
             _encounterRoster = RunEncounterRosterBuilder.Build(encounterNode, floor);
 
             _battle.StartBattle(player, _encounterRoster.Enemies, _encounterRoster.Schedules);
@@ -267,6 +267,97 @@ namespace SlotRogue.UI.GameFlow
         private void HandleSpinClicked()
         {
             HandleSpinClickedAsync().Forget();
+        }
+
+        public void DevApplyStatusTurn(StatusEffectKind statusEffectKind, int duration, int magnitude,
+            StatusStackMode stackMode, bool includeDamage, int damage, int attackCount)
+        {
+            DevApplyStatusTurnAsync(
+                statusEffectKind,
+                duration,
+                magnitude,
+                stackMode,
+                includeDamage,
+                damage,
+                attackCount).Forget();
+        }
+
+        private async UniTaskVoid DevApplyStatusTurnAsync(
+            StatusEffectKind statusEffectKind,
+            int duration,
+            int magnitude,
+            StatusStackMode stackMode,
+            bool includeDamage,
+            int damage,
+            int attackCount)
+        {
+            if (statusEffectKind == StatusEffectKind.None)
+            {
+                Debug.LogWarning("[RunBattleCompositionRoot] Dev status turn ignored because status kind is None.");
+                return;
+            }
+
+            if (_battleCompleted || _spinRoutineRunning || !_battle.CanApplyPlayerTurn || _flowController.IsBusy)
+            {
+                RefreshStatusText();
+                return;
+            }
+
+            CombatParticipantId selectedTargetId = ResolveSelectedEnemyId();
+            if (!selectedTargetId.IsValid)
+            {
+                Debug.LogWarning("[RunBattleCompositionRoot] Dev status turn ignored because no selected enemy target was found.");
+                return;
+            }
+
+            SetSpinInteractable(false);
+            _spinRoutineRunning = true;
+
+            try
+            {
+                var statusEffect = new StatusEffectSpec(
+                    statusEffectKind,
+                    Mathf.Max(0, duration),
+                    Mathf.Max(0, magnitude),
+                    stackMode);
+                var request = new SlotCombatRequest(
+                    includeDamage ? Mathf.Max(0, damage) : 0,
+                    0,
+                    Mathf.Max(1, attackCount),
+                    0,
+                    false,
+                    $"DEV {statusEffectKind}");
+                _lastRequestResult = new RunCombatRequestResult(
+                    request,
+                    request,
+                    StarterArtifactActivation.None,
+                    $"DEV {statusEffectKind}",
+                    statusEffect);
+                RefreshSlotResultText();
+
+                CombatEffect[] playerEffects = _converter.Convert(request, selectedTargetId, statusEffect);
+                var context = new PresentationContext(isCritical: false, request.PatternName);
+                int eventCursor = _eventLogger.CaptureEventCursor(_battle);
+
+                BattleApplyResult result = await _flowController.RunTurnAsync(
+                    _battle,
+                    playerEffects,
+                    selectedTargetId,
+                    context,
+                    _presentationCts != null ? _presentationCts.Token : CancellationToken.None);
+
+                if (result.Accepted)
+                {
+                    _eventLogger.LogEventsSince(_battle, eventCursor, request);
+                }
+            }
+            finally
+            {
+                _spinRoutineRunning = false;
+                RefreshStatusText();
+                HandleBattleEndIfNeeded();
+                UpdateSpinButtonState();
+            }
         }
 
         private async UniTaskVoid HandleSpinClickedAsync()

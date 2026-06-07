@@ -141,7 +141,8 @@ namespace SlotRogue.UI.GameFlow
             int hp,
             int maxHp,
             bool selected,
-            bool interactable)
+            bool interactable,
+            StatusEffectViewData[] statuses = null)
         {
             if (slotIndex < 0 || slotIndex >= _enemySlots.Length)
             {
@@ -155,7 +156,8 @@ namespace SlotRogue.UI.GameFlow
                 Math.Max(0, hp),
                 Math.Max(1, maxHp),
                 selected,
-                interactable);
+                interactable,
+                statuses);
             RequestPublish();
         }
 
@@ -302,6 +304,8 @@ namespace SlotRogue.UI.GameFlow
 
     public readonly struct RunBattleEnemySlotState
     {
+        private readonly StatusEffectViewData[] _statuses;
+
         public RunBattleEnemySlotState(
             int slotIndex,
             bool active,
@@ -309,7 +313,8 @@ namespace SlotRogue.UI.GameFlow
             int hp,
             int maxHp,
             bool selected,
-            bool interactable)
+            bool interactable,
+            StatusEffectViewData[] statuses = null)
         {
             SlotIndex = slotIndex;
             Active = active;
@@ -318,6 +323,7 @@ namespace SlotRogue.UI.GameFlow
             MaxHp = maxHp;
             Selected = selected;
             Interactable = interactable;
+            _statuses = Clone(statuses);
         }
 
         public int SlotIndex { get; }
@@ -334,6 +340,8 @@ namespace SlotRogue.UI.GameFlow
 
         public bool Interactable { get; }
 
+        public StatusEffectViewData[] Statuses => Clone(_statuses);
+
         public static RunBattleEnemySlotState Hidden(int slotIndex)
         {
             return new RunBattleEnemySlotState(
@@ -343,7 +351,20 @@ namespace SlotRogue.UI.GameFlow
                 hp: 0,
                 maxHp: 1,
                 selected: false,
-                interactable: false);
+                interactable: false,
+                statuses: null);
+        }
+
+        private static StatusEffectViewData[] Clone(StatusEffectViewData[] source)
+        {
+            if (source == null)
+            {
+                return Array.Empty<StatusEffectViewData>();
+            }
+
+            var copy = new StatusEffectViewData[source.Length];
+            Array.Copy(source, copy, source.Length);
+            return copy;
         }
     }
 

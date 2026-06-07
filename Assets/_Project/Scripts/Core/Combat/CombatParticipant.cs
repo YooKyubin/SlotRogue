@@ -6,12 +6,7 @@ namespace SlotRogue.Core.Combat
     {
         private readonly List<StatusEffectInstance> _statusEffects = new();
 
-        public CombatParticipant(
-            int maxHp,
-            int currentHp = -1,
-            int shield = 0,
-            CombatParticipantId id = default,
-            CombatTeam team = CombatTeam.None)
+        public CombatParticipant(int maxHp, int currentHp, int shield, CombatParticipantId id, CombatTeam team)
         {
             MaxHp = maxHp;
             CurrentHp = currentHp < 0 ? maxHp : currentHp;

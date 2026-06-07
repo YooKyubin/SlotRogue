@@ -59,6 +59,8 @@ flowchart TD
 - `StatusEffectFactory`가 현재 3종 상태이상의 컴포넌트 조합을 만든다. 새 상태이상은 factory 조합과 필요한 컴포넌트만 추가한다.
 - `Poison`은 duration 없이 유지되는 stack형 상태이상으로 둔다. 해제/정화가 필요해지면 별도 component 또는 effect로 추가한다.
 - `dotnet test ... --no-build`는 종료 코드 0을 반환했지만 Unity Test Runner 결과를 출력하지 않았다. 최종 테스트 권위는 Unity Editor EditMode 테스트다.
+- 2026-06-07: `RunBattleEnemySlotState`에 상태이상 목록을 추가하고 `RunBattleScreenStateUpdater` → `EnemyFormationView` → `EnemyFormationSlotView.SetStatusEffects()` 경로로 전달되도록 연결했다.
+- 2026-06-07: 에디터 수동 검증용 `RunBattleStatusEffectDebugButton`을 추가하고, 선택/formation slot/첫 생존 몬스터에게 상태이상 턴을 실제 전투 턴 경로로 적용하는 dev-only hook을 `RunBattleCompositionRoot`에 열었다.
 
 ## Completion
 

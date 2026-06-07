@@ -151,11 +151,34 @@ namespace SlotRogue.UI.GameFlow
                         snapshot.Hp,
                         enemy.MaxHp,
                         selected,
-                        !enemy.IsDead && !isBusy && !isSpinRunning);
+                        !enemy.IsDead && !isBusy && !isSpinRunning,
+                        BuildStatusViewData(enemy.StatusEffects));
                 }
             });
 
             return computedSlotIndices;
+        }
+
+        private static StatusEffectViewData[] BuildStatusViewData(
+            IReadOnlyList<StatusEffectInstance> statusEffects)
+        {
+            if (statusEffects == null || statusEffects.Count == 0)
+            {
+                return System.Array.Empty<StatusEffectViewData>();
+            }
+
+            var statuses = new StatusEffectViewData[statusEffects.Count];
+            for (int index = 0; index < statusEffects.Count; index++)
+            {
+                StatusEffectInstance status = statusEffects[index];
+                statuses[index] = new StatusEffectViewData(
+                    status.Kind,
+                    status.RemainingTurns,
+                    status.Magnitude,
+                    status.StackCount);
+            }
+
+            return statuses;
         }
 
         internal static int ResolveHudSlotIndex(

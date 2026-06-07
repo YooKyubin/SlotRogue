@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using SlotRogue.Core.Combat;
 using SlotRogue.UI.GameFlow;
 
 namespace SlotRogue.UI.Tests.GameFlow
@@ -41,7 +42,11 @@ namespace SlotRogue.UI.Tests.GameFlow
                 hp: 8,
                 maxHp: 10,
                 selected: true,
-                interactable: false);
+                interactable: false,
+                statuses: new[]
+                {
+                    new StatusEffectViewData(StatusEffectKind.Burn, remainingTurns: 2, magnitude: 3, stackCount: 1),
+                });
 
             RunBattleEnemySlotState hidden = viewModel.State.EnemySlots[0];
             RunBattleEnemySlotState shown = viewModel.State.EnemySlots[1];
@@ -53,6 +58,8 @@ namespace SlotRogue.UI.Tests.GameFlow
             Assert.That(shown.MaxHp, Is.EqualTo(10));
             Assert.That(shown.Selected, Is.True);
             Assert.That(shown.Interactable, Is.False);
+            Assert.That(shown.Statuses, Has.Length.EqualTo(1));
+            Assert.That(shown.Statuses[0].Kind, Is.EqualTo(StatusEffectKind.Burn));
         }
 
         [Test]
@@ -65,6 +72,28 @@ namespace SlotRogue.UI.Tests.GameFlow
             state.SlotCells[0] = "Mutated";
 
             Assert.That(viewModel.State.SlotCells[0], Is.EqualTo("A"));
+        }
+
+        [Test]
+        public void EnemySlotState_ReturnsStatusCopies()
+        {
+            var viewModel = new RunBattleScreenViewModel(slotCellCount: 0, enemySlotCount: 1);
+            viewModel.SetEnemySlot(
+                slotIndex: 0,
+                hudText: "Enemy",
+                hp: 10,
+                maxHp: 10,
+                selected: false,
+                interactable: true,
+                statuses: new[]
+                {
+                    new StatusEffectViewData(StatusEffectKind.Poison, remainingTurns: 0, magnitude: 1, stackCount: 2),
+                });
+
+            StatusEffectViewData[] statuses = viewModel.State.EnemySlots[0].Statuses;
+            statuses[0] = new StatusEffectViewData(StatusEffectKind.Freeze, remainingTurns: 1, magnitude: 0, stackCount: 1);
+
+            Assert.That(viewModel.State.EnemySlots[0].Statuses[0].Kind, Is.EqualTo(StatusEffectKind.Poison));
         }
     }
 }

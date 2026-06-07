@@ -47,10 +47,7 @@ namespace SlotRogue.Core.Combat
 
         public bool CanApplyPlayerTurn => CurrentPhase == BattlePhase.PlayerTurn;
 
-        public void StartBattle(
-            CombatParticipant player,
-            CombatParticipant monster,
-            IReadOnlyList<CombatEffect> monsterTurnActions)
+        public void StartBattle(CombatParticipant player, CombatParticipant monster, IReadOnlyList<CombatEffect> monsterTurnActions)
         {
             StartBattle(player, monster, new MonsterTurnSchedule(monsterTurnActions));
         }
@@ -83,7 +80,7 @@ namespace SlotRogue.Core.Combat
                 throw new ArgumentException("Enemy schedules must match enemy count.", nameof(enemyTurnSchedules));
             }
 
-            _player = EnsureParticipantMeta(player, fallbackId: 1, fallbackTeam: CombatTeam.Player);
+           _player = EnsureParticipantMeta(player, fallbackId: 1, fallbackTeam: CombatTeam.Player);
             _enemies.Clear();
             _enemyTurnStates.Clear();
             _participantsById.Clear();
@@ -91,12 +88,8 @@ namespace SlotRogue.Core.Combat
 
             for (int index = 0; index < enemies.Count; index++)
             {
-                CombatParticipant enemy = EnsureParticipantMeta(
-                    enemies[index] ?? throw new ArgumentNullException(nameof(enemies)),
-                    fallbackId: 100 + index,
-                    fallbackTeam: CombatTeam.Enemy);
-                MonsterTurnSchedule schedule =
-                    enemyTurnSchedules[index] ?? throw new ArgumentNullException(nameof(enemyTurnSchedules));
+                CombatParticipant enemy = EnsureParticipantMeta(enemies[index] ?? throw new ArgumentNullException(nameof(enemies)), fallbackId: 100 + index, fallbackTeam: CombatTeam.Enemy);
+                MonsterTurnSchedule schedule = enemyTurnSchedules[index] ?? throw new ArgumentNullException(nameof(enemyTurnSchedules));
                 schedule.Reset();
                 _enemies.Add(enemy);
                 _enemyTurnStates.Add(new EnemyTurnState(enemy, schedule));
