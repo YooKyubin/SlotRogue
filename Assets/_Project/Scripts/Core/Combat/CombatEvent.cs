@@ -11,7 +11,11 @@ namespace SlotRogue.Core.Combat
             bool isPlayerParticipant = false,
             CombatParticipantId targetParticipantId = default,
             CombatParticipantSnapshot targetBefore = default,
-            CombatParticipantSnapshot targetAfter = default)
+            CombatParticipantSnapshot targetAfter = default,
+            StatusEffectKind statusEffectKind = StatusEffectKind.None,
+            int statusDuration = 0,
+            int statusMagnitude = 0,
+            int statusStackCount = 0)
         {
             Kind = kind;
             Phase = phase;
@@ -22,6 +26,10 @@ namespace SlotRogue.Core.Combat
             TargetParticipantId = targetParticipantId;
             TargetBefore = targetBefore;
             TargetAfter = targetAfter;
+            StatusEffectKind = statusEffectKind;
+            StatusDuration = statusDuration;
+            StatusMagnitude = statusMagnitude;
+            StatusStackCount = statusStackCount;
         }
 
         public CombatEventKind Kind { get; }
@@ -42,6 +50,16 @@ namespace SlotRogue.Core.Combat
 
         public CombatParticipantSnapshot TargetAfter { get; }
 
-        public bool HasTargetSnapshot => Kind == CombatEventKind.EffectApplied;
+        public StatusEffectKind StatusEffectKind { get; }
+
+        public int StatusDuration { get; }
+
+        public int StatusMagnitude { get; }
+
+        public int StatusStackCount { get; }
+
+        public bool HasTargetSnapshot =>
+            Kind == CombatEventKind.EffectApplied ||
+            Kind == CombatEventKind.StatusTicked;
     }
 }

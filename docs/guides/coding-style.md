@@ -21,7 +21,8 @@ SlotRogue 코드 작성 시 따르는 규칙. **절대 규칙**은 [`../../AGENT
 - `m_` prefix (`m_reels`) — 사용 안 함.
 - `s_` / `g_` prefix (static/global) — 필요하면 클래스 분리.
 - 헝가리언 (`strName`, `iCount`).
-- 약어 대문자 폭주 (`HTTPSConnection` 대신 `HttpsConnection`).
+- 약어 대문자 폭주 (`HTTPSConnection  대신 HttpsConnection`).
+- 마지막 단어가 약어인 경우 원형을 유지한다 (`HTTPSConnectionID`, `HttpsConnectionID`).
 
 ### 서술적 이름 — 약어 금지
 
@@ -32,7 +33,7 @@ SlotRogue 코드 작성 시 따르는 규칙. **절대 규칙**은 [`../../AGENT
 - **허용되는 예외** (좁게):
   - 사소한 정수 카운터의 인덱스 `i`, `j`, `k`.
   - 수학·그래픽스에서 표기 자체가 표준인 짧은 이름: `x`, `y`, `z`, `w`, `r`, `g`, `b`, `a`, `uv`, `n` (normal), `t` (시간/파라미터), 행렬 `M`, `V`, `P`. 주변 문맥이 모호하지 않을 때만.
-  - 도메인에서 풀어쓰는 게 오히려 어색한 확립된 약자: `id`, `url`, `ui`, `rng`, `rtt`. **개념 자체일 때만** bare 형태. 구체 인스턴스(핸들, 카운트, 포맷)는 수식어를 붙인다 — `rngSeed`, `uiCanvas`.
+- 도메인에서 풀어쓰는 게 오히려 어색한 확립된 약자: `ID`, `URL`, `UI`, `RNG`, `RTT`. **개념 자체일 때만** bare 형태. 구체 인스턴스(핸들, 카운트, 포맷)는 수식어를 붙인다 — `rngSeed`, `uiCanvas`, `connectionID`.
   - Unity SDK 관용: 인스펙터 노출 desc 구조체에 `desc`, 디버그 라벨에 `name`. 같은 스코프에 여러 desc가 있으면 수식어 (`spinDesc`, `payoutDesc`).
 - **헷갈리면 풀어쓴다.** 길어지는 비용은 싸고, 모호함은 비싸다.
 

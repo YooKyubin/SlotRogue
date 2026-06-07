@@ -7,6 +7,7 @@ namespace SlotRogue.Core.Combat
     public sealed class BattleSystem
     {
         private readonly EffectApplicator _effectApplicator;
+        private readonly StatusEffectEngine _statusEffectEngine;
         private readonly List<CombatEvent> _events = new();
         private readonly List<CombatParticipant> _enemies = new();
         private readonly List<EnemyTurnState> _enemyTurnStates = new();
@@ -21,6 +22,7 @@ namespace SlotRogue.Core.Combat
         public BattleSystem(EffectApplicator effectApplicator)
         {
             _effectApplicator = effectApplicator ?? new EffectApplicator();
+            _statusEffectEngine = new StatusEffectEngine(_effectApplicator);
         }
 
         public BattlePhase CurrentPhase { get; private set; } = BattlePhase.NotInBattle;
@@ -29,6 +31,7 @@ namespace SlotRogue.Core.Combat
 
         public CombatParticipant Player => _player;
 
+        [Obsolete("Use Enemies for multi-enemy combat. Use Enemies[0] only for legacy single-enemy callers.")]
         public CombatParticipant Monster => _enemies.Count > 0 ? _enemies[0] : null;
 
         public IReadOnlyList<CombatParticipant> Enemies => _enemies;
@@ -52,10 +55,7 @@ namespace SlotRogue.Core.Combat
             StartBattle(player, monster, new MonsterTurnSchedule(monsterTurnActions));
         }
 
-        public void StartBattle(
-            CombatParticipant player,
-            CombatParticipant monster,
-            MonsterTurnSchedule monsterTurnSchedule)
+        public void StartBattle(CombatParticipant player, CombatParticipant monster, MonsterTurnSchedule monsterTurnSchedule)
         {
             StartBattle(
                 player,
@@ -120,7 +120,33 @@ namespace SlotRogue.Core.Combat
 
             SetPhase(BattlePhase.Resolving);
 
+            RunParticipantTurnStart(_player);
+            if (TryEndBattle())
+            {
+                return AcceptedResult();
+            }
+
+            if (TrySkipParticipantAction(_player))
+            {
+                RunParticipantTurnEnd(_player);
+                if (TryEndBattle())
+                {
+                    return AcceptedResult();
+                }
+
+                ResetShieldByTeam(CombatTeam.Enemy);
+                RunEnemyTurn();
+                return AcceptedResult();
+            }
+
             ApplyEffects(playerEffects ?? Array.Empty<CombatEffect>(), _player, selectedTargetId);
+
+            if (TryEndBattleAfterPlayerTurn())
+            {
+                return AcceptedResult();
+            }
+
+            RunParticipantTurnEnd(_player);
 
             if (TryEndBattleAfterPlayerTurn())
             {
@@ -151,8 +177,33 @@ namespace SlotRogue.Core.Combat
                     continue;
                 }
 
+                RunParticipantTurnStart(enemyState.Participant);
+                if (TryEndBattle())
+                {
+                    return;
+                }
+
+                if (TrySkipParticipantAction(enemyState.Participant))
+                {
+                    enemyState.Schedule.ConsumeUpcomingTurn();
+                    RunParticipantTurnEnd(enemyState.Participant);
+                    if (TryEndBattle())
+                    {
+                        return;
+                    }
+
+                    continue;
+                }
+
                 IReadOnlyList<CombatEffect> enemyTurnActions = enemyState.Schedule.ConsumeUpcomingTurn();
                 ApplyEffects(enemyTurnActions, enemyState.Participant, default);
+
+                if (TryEndBattle())
+                {
+                    return;
+                }
+
+                RunParticipantTurnEnd(enemyState.Participant);
 
                 if (TryEndBattle())
                 {
@@ -189,7 +240,7 @@ namespace SlotRogue.Core.Combat
                 {
                     CombatParticipant target = targets[targetIndex];
                     CombatParticipantSnapshot targetBefore = CaptureSnapshot(target);
-                    EffectApplyResult applyResult = _effectApplicator.ApplyToParticipant(effect, target);
+                    EffectApplyResult applyResult = ApplyEffectToTarget(effect, target);
                     CombatParticipantSnapshot targetAfter = CaptureSnapshot(target);
                     bool isPlayerTarget = target.Team == CombatTeam.Player;
 
@@ -209,6 +260,32 @@ namespace SlotRogue.Core.Combat
                     }
                 }
             }
+        }
+
+        private EffectApplyResult ApplyEffectToTarget(CombatEffect effect, CombatParticipant target)
+        {
+            if (effect.Kind == CombatEffectKind.ApplyStatus)
+            {
+                _statusEffectEngine.ApplyStatus(effect.StatusEffect, target, CurrentPhase, _events);
+                return EffectApplyResult.None;
+            }
+
+            return _effectApplicator.ApplyToParticipant(effect, target);
+        }
+
+        private void RunParticipantTurnStart(CombatParticipant participant)
+        {
+            _statusEffectEngine.TickTurnStart(participant, CurrentPhase, _events);
+        }
+
+        private bool TrySkipParticipantAction(CombatParticipant participant)
+        {
+            return _statusEffectEngine.ShouldSkipAction(participant, CurrentPhase, _events);
+        }
+
+        private void RunParticipantTurnEnd(CombatParticipant participant)
+        {
+            _statusEffectEngine.TickTurnEnd(participant, CurrentPhase, _events);
         }
 
         private bool TryEndBattleAfterPlayerTurn()
@@ -377,10 +454,7 @@ namespace SlotRogue.Core.Combat
             _participantsById[participant.Id.Value] = participant;
         }
 
-        private static CombatParticipant EnsureParticipantMeta(
-            CombatParticipant participant,
-            int fallbackId,
-            CombatTeam fallbackTeam)
+        private static CombatParticipant EnsureParticipantMeta(CombatParticipant participant, int fallbackId, CombatTeam fallbackTeam)
         {
             CombatParticipantId resolvedId = participant.Id.IsValid
                 ? participant.Id

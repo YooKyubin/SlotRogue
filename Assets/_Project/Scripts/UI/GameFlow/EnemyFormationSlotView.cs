@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using System.Collections.Generic;
 
 namespace SlotRogue.UI.GameFlow
 {
@@ -20,9 +21,13 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private RectTransform _damageAnchor;
         [SerializeField] private Text _placeholderText;
         [SerializeField] private Collider2D _clickCollider;
+        [SerializeField] private RectTransform _statusEffectRoot;
+        [SerializeField] private GameObject _statusEffectIconPrefab;
 
+        private readonly List<EnemyStatusEffectIconView> _statusEffectIcons = new();
         private UnityAction _clickHandler;
         private bool _interactable = true;
+        private bool _statusEffectMissingReferenceWarningLogged;
         private float _hpFillMaxWidth;
         private bool _hpFillLayoutInitialized;
 
@@ -44,7 +49,9 @@ namespace SlotRogue.UI.GameFlow
             Image statusBackground,
             RectTransform damageAnchor,
             Text placeholderText,
-            Collider2D clickCollider)
+            Collider2D clickCollider,
+            RectTransform statusEffectRoot = null,
+            GameObject statusEffectIconPrefab = null)
         {
             _root = root;
             _shakeGroup = shakeGroup;
@@ -57,6 +64,8 @@ namespace SlotRogue.UI.GameFlow
             _damageAnchor = damageAnchor;
             _placeholderText = placeholderText;
             _clickCollider = clickCollider;
+            _statusEffectRoot = statusEffectRoot;
+            _statusEffectIconPrefab = statusEffectIconPrefab;
         }
 
         public void SetPortrait(Sprite sprite)
@@ -127,6 +136,36 @@ namespace SlotRogue.UI.GameFlow
                 _hpFillMaxWidth * ratio);
         }
 
+        public void SetStatusEffects(IReadOnlyList<StatusEffectViewData> statuses)
+        {
+            AutoBindStatusEffectRootIfNeeded();
+            if (_statusEffectRoot == null)
+            {
+                LogMissingStatusEffectReferenceWarning("Status Effect Root");
+                return;
+            }
+
+            if (_statusEffectIconPrefab == null)
+            {
+                LogMissingStatusEffectReferenceWarning("Status Effect Icon Prefab");
+                return;
+            }
+
+            int statusCount = statuses != null ? statuses.Count : 0;
+            EnsureStatusIconCount(statusCount);
+
+            for (int index = 0; index < _statusEffectIcons.Count; index++)
+            {
+                EnemyStatusEffectIconView icon = _statusEffectIcons[index];
+                bool active = index < statusCount;
+                icon.gameObject.SetActive(active);
+                if (active)
+                {
+                    icon.Set(statuses[index]);
+                }
+            }
+        }
+
         public void SetSelected(bool selected)
         {
             if (_statusBackground != null)
@@ -162,6 +201,90 @@ namespace SlotRogue.UI.GameFlow
             }
 
             _clickHandler.Invoke();
+        }
+
+        private void AutoBindStatusEffectRootIfNeeded()
+        {
+            if (_statusEffectRoot != null)
+            {
+                return;
+            }
+
+            Transform rootTransform = FindDeepChild(Root, "Status Effect Root");
+            _statusEffectRoot = rootTransform as RectTransform;
+        }
+
+        private void EnsureStatusIconCount(int count)
+        {
+            while (_statusEffectIcons.Count < count)
+            {
+                EnemyStatusEffectIconView icon = CreateStatusEffectIcon();
+                if (icon == null)
+                {
+                    return;
+                }
+
+                _statusEffectIcons.Add(icon);
+            }
+        }
+
+        private EnemyStatusEffectIconView CreateStatusEffectIcon()
+        {
+            if (_statusEffectIconPrefab == null || _statusEffectRoot == null)
+            {
+                return null;
+            }
+
+            GameObject iconObject = Instantiate(_statusEffectIconPrefab, _statusEffectRoot);
+            iconObject.name = $"Status Effect Icon {_statusEffectIcons.Count}";
+
+            EnemyStatusEffectIconView icon = iconObject.GetComponent<EnemyStatusEffectIconView>();
+            if (icon == null)
+            {
+                Destroy(iconObject);
+                LogMissingStatusEffectReferenceWarning("EnemyStatusEffectIconView component on Status Effect Icon Prefab");
+                return null;
+            }
+
+            iconObject.SetActive(false);
+            return icon;
+        }
+
+        private void LogMissingStatusEffectReferenceWarning(string missingReferenceName)
+        {
+            if (_statusEffectMissingReferenceWarningLogged)
+            {
+                return;
+            }
+
+            _statusEffectMissingReferenceWarningLogged = true;
+            Debug.LogWarning(
+                $"[EnemyFormationSlotView] {missingReferenceName} is missing. " +
+                "Status effect icons will not be shown for this slot.");
+        }
+
+        private static Transform FindDeepChild(Transform parent, string childName)
+        {
+            if (parent == null)
+            {
+                return null;
+            }
+
+            if (parent.name == childName)
+            {
+                return parent;
+            }
+
+            for (int index = 0; index < parent.childCount; index++)
+            {
+                Transform found = FindDeepChild(parent.GetChild(index), childName);
+                if (found != null)
+                {
+                    return found;
+                }
+            }
+
+            return null;
         }
     }
 }

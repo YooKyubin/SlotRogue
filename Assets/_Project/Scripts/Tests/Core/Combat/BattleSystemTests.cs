@@ -8,6 +8,8 @@ namespace SlotRogue.Core.Tests.Combat
     {
         private BattleSystem _battle = null!;
 
+        private CombatParticipant FirstEnemy => _battle.Enemies[0];
+
         [SetUp]
         public void SetUp()
         {
@@ -74,7 +76,7 @@ namespace SlotRogue.Core.Tests.Combat
             Assert.That(result.Accepted, Is.True);
             Assert.That(result.Phase, Is.EqualTo(BattlePhase.Ended));
             Assert.That(result.EndReason, Is.EqualTo(BattleEndReason.Victory));
-            Assert.That(player.CurrentHp, Is.EqualTo(30));
+            Assert.That(_battle.Player.CurrentHp, Is.EqualTo(30));
         }
 
         [Test]
@@ -92,7 +94,7 @@ namespace SlotRogue.Core.Tests.Combat
 
             Assert.That(result.Phase, Is.EqualTo(BattlePhase.Ended));
             Assert.That(result.EndReason, Is.EqualTo(BattleEndReason.Defeat));
-            Assert.That(monster.CurrentHp, Is.EqualTo(50));
+            Assert.That(FirstEnemy.CurrentHp, Is.EqualTo(50));
         }
 
         [Test]
@@ -108,7 +110,7 @@ namespace SlotRogue.Core.Tests.Combat
                 new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy),
             });
 
-            Assert.That(monster.Shield, Is.Zero);
+            Assert.That(FirstEnemy.Shield, Is.Zero);
             Assert.That(_battle.CurrentPhase, Is.EqualTo(BattlePhase.PlayerTurn));
         }
 
@@ -128,7 +130,7 @@ namespace SlotRogue.Core.Tests.Combat
                 new CombatEffect(CombatEffectKind.Shield, 5, CombatEffectTarget.Self),
             });
 
-            Assert.That(player.Shield, Is.Zero);
+            Assert.That(_battle.Player.Shield, Is.Zero);
             Assert.That(_battle.CurrentPhase, Is.EqualTo(BattlePhase.PlayerTurn));
         }
 
@@ -150,8 +152,8 @@ namespace SlotRogue.Core.Tests.Combat
 
             Assert.That(result.Accepted, Is.True);
             Assert.That(result.Phase, Is.EqualTo(BattlePhase.PlayerTurn));
-            Assert.That(monster.CurrentHp, Is.EqualTo(17));
-            Assert.That(player.CurrentHp, Is.EqualTo(26));
+            Assert.That(FirstEnemy.CurrentHp, Is.EqualTo(17));
+            Assert.That(_battle.Player.CurrentHp, Is.EqualTo(26));
         }
 
         [Test]
@@ -167,8 +169,8 @@ namespace SlotRogue.Core.Tests.Combat
                 new CombatEffect(CombatEffectKind.Damage, 5, CombatEffectTarget.Enemy),
             });
 
-            Assert.That(monster.CurrentHp, Is.EqualTo(18));
-            Assert.That(monster.Shield, Is.Zero);
+            Assert.That(FirstEnemy.CurrentHp, Is.EqualTo(18));
+            Assert.That(FirstEnemy.Shield, Is.Zero);
         }
 
         [Test]
@@ -205,7 +207,7 @@ namespace SlotRogue.Core.Tests.Combat
 
             Assert.That(result.Phase, Is.EqualTo(BattlePhase.Ended));
             Assert.That(result.EndReason, Is.EqualTo(BattleEndReason.Defeat));
-            Assert.That(player.CurrentHp, Is.Zero);
+            Assert.That(_battle.Player.CurrentHp, Is.Zero);
         }
 
         [Test]
@@ -226,9 +228,9 @@ namespace SlotRogue.Core.Tests.Combat
             });
 
             Assert.That(_battle.CurrentPhase, Is.EqualTo(BattlePhase.PlayerTurn));
-            Assert.That(player.CurrentHp, Is.EqualTo(30));
-            Assert.That(monster.CurrentHp, Is.EqualTo(16));
-            Assert.That(player.Shield, Is.Zero);
+            Assert.That(_battle.Player.CurrentHp, Is.EqualTo(30));
+            Assert.That(FirstEnemy.CurrentHp, Is.EqualTo(16));
+            Assert.That(_battle.Player.Shield, Is.Zero);
 
             _battle.ApplyPlayerTurn(new[]
             {
@@ -236,8 +238,8 @@ namespace SlotRogue.Core.Tests.Combat
             });
 
             Assert.That(_battle.CurrentPhase, Is.EqualTo(BattlePhase.PlayerTurn));
-            Assert.That(monster.CurrentHp, Is.EqualTo(11));
-            Assert.That(player.CurrentHp, Is.EqualTo(28));
+            Assert.That(FirstEnemy.CurrentHp, Is.EqualTo(11));
+            Assert.That(_battle.Player.CurrentHp, Is.EqualTo(28));
         }
 
         [Test]
@@ -340,15 +342,15 @@ namespace SlotRogue.Core.Tests.Combat
             Assert.That(_battle.UpcomingMonsterTurnIndex, Is.Zero);
 
             _battle.ApplyPlayerTurn(System.Array.Empty<CombatEffect>());
-            Assert.That(player.CurrentHp, Is.EqualTo(29));
+            Assert.That(_battle.Player.CurrentHp, Is.EqualTo(29));
             Assert.That(_battle.UpcomingMonsterTurnIndex, Is.EqualTo(1));
 
             _battle.ApplyPlayerTurn(System.Array.Empty<CombatEffect>());
-            Assert.That(player.CurrentHp, Is.EqualTo(27));
+            Assert.That(_battle.Player.CurrentHp, Is.EqualTo(27));
             Assert.That(_battle.UpcomingMonsterTurnIndex, Is.EqualTo(2));
 
             _battle.ApplyPlayerTurn(System.Array.Empty<CombatEffect>());
-            Assert.That(player.CurrentHp, Is.EqualTo(24));
+            Assert.That(_battle.Player.CurrentHp, Is.EqualTo(24));
             Assert.That(_battle.UpcomingMonsterTurnIndex, Is.Zero);
         }
     }

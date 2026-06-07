@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using SlotRogue.Core.Combat;
 using SlotRogue.Slot.Data;
 using SlotRogue.UI.GameFlow;
 
@@ -100,7 +101,34 @@ namespace SlotRogue.UI.Tests.GameFlow
             Assert.That(result.FinalRequest.Damage, Is.EqualTo(8));
             Assert.That(result.FinalRequest.Defense, Is.EqualTo(2));
             Assert.That(result.FinalRequest.HealAmount, Is.EqualTo(16));
-            Assert.That(result.RunBonusSummary, Is.EqualTo("damage +2, defense +2"));
+            Assert.That(result.RunBonusSummary, Is.EqualTo("피해 +2, 방어 +2"));
+        }
+
+        [Test]
+        public void Resolve_MatchingAttributeArtifact_ReturnsStatusEffectToApply()
+        {
+            var pattern = new SlotPatternResult(
+                true,
+                "Lemon x3",
+                SlotSymbolType.Lemon,
+                row: 0,
+                startColumn: 0,
+                matchLength: 3,
+                score: 30);
+            var request = new SlotCombatRequest(6, 0, 1, 0, false, "Lemon x3");
+
+            RunCombatRequestResult result = _resolver.Resolve(
+                pattern,
+                request,
+                StarterArtifactCatalog.Get(StarterArtifactId.Lemon),
+                runDamageBonus: 0,
+                runDefenseBonus: 0);
+
+            Assert.That(result.StarterArtifactActivation.Activated, Is.True);
+            Assert.That(result.StatusEffectToApply.Kind, Is.EqualTo(StatusEffectKind.Burn));
+            Assert.That(result.StatusEffectToApply.Duration, Is.EqualTo(3));
+            Assert.That(result.StatusEffectToApply.Magnitude, Is.EqualTo(2));
+            Assert.That(result.StatusEffectToApply.StackMode, Is.EqualTo(StatusStackMode.Refresh));
         }
 
         [Test]
