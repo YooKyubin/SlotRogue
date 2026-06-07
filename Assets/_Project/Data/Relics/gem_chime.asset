@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ddcfc7d3a7be18347a3826d8bf6db5eb, type: 3}
+  m_Name: gem_chime
+  m_EditorClassIdentifier: SlotRogue.Relics::SlotRogue.Relics.Data.RelicDataSO
+  _relicId: gem_chime
+  _relicName: "\uBCF4\uC11D \uC885\uC18C\uB9AC"
+  _description: "\uBCF4\uBB3C \uC871\uBCF4 1\uAC1C\uB2F9 \uBC29\uC5B4\uB3C4 +3."
+  _icon: {fileID: 0}
+  _rarity: 1
+  _triggerTiming: 2
+  _applyMode: 1
+  _condition:
+    _type: 3
+    _targetSymbol: 0
+    _group: 3
+    _symbols: 
+    _patternRanks: 
+    _minCount: 1
+    _patternCountMode: 0
+    _poolQueryMode: 0
+    _hpPercentThreshold: 30
+    _requiredEnemyStatus: 0
+    _hpBelowPercentGate: 0
+    _enemyStatusGate: 0
+  _effects:
+  - _type: 4
+    _amount: 3
+    _value: 0
+    _chance: 0
+    _customId: 

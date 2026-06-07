@@ -17,13 +17,23 @@ namespace SlotRogue.Slot.Core
         };
 
         public SlotMachineService()
-            : this(new Random())
+            : this(new Random(), null)
         {
         }
 
         public SlotMachineService(Random random)
+            : this(random, null)
+        {
+        }
+
+        /// <summary>
+        /// 가변 심볼 풀을 사용하려면 <paramref name="pool"/>을 전달합니다.
+        /// null이면 종래의 균등 추첨(고정 6심볼)을 사용합니다.
+        /// </summary>
+        public SlotMachineService(Random random, SlotSymbolPool pool)
         {
             _random = random ?? new Random();
+            _pool = pool;
         }
 
         public SlotSpinResult Spin()
@@ -100,6 +110,12 @@ namespace SlotRogue.Slot.Core
 
         private SlotSymbolType PickSymbol(ISet<SlotSymbolType> exclude)
         {
+            // 가변 풀이 있으면 개수 비례 가중 추첨.
+            if (_pool != null)
+            {
+                return _pool.Draw(_random, exclude);
+            }
+
             if (exclude == null || exclude.Count == 0)
             {
                 return SymbolPool[_random.Next(SymbolPool.Length)];
@@ -124,5 +140,6 @@ namespace SlotRogue.Slot.Core
         }
 
         private readonly Random _random;
+        private readonly SlotSymbolPool _pool;
     }
 }

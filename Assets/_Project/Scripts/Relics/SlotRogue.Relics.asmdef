@@ -1,0 +1,16 @@
+{
+    "name": "SlotRogue.Relics",
+    "rootNamespace": "SlotRogue.Relics",
+    "references": [
+        "SlotRogue.Slot"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

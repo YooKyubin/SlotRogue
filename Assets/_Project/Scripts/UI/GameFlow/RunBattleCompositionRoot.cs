@@ -22,7 +22,13 @@ namespace SlotRogue.UI.GameFlow
     public sealed class RunBattleCompositionRoot : MonoBehaviour
     {
         private readonly BattleSystem _battle = new();
-        private readonly SlotMachineViewModel _slotViewModel = new();
+
+        // 슬롯은 런별 가변 심볼 풀(GameFlowSession.SlotPool)에서 개수 비례로 뽑는다.
+        private readonly SlotMachineViewModel _slotViewModel = new(
+            new SlotMachineService(new System.Random(), GameFlowSession.SlotPool),
+            new SlotPatternResolver(),
+            new SlotResultCalculator(),
+            new SlotCombatRequestBuilder());
         private readonly SlotPatternResolver _presentationPatternResolver = new();
         private readonly SlotCombatRequestToCombatEffectsConverter _converter = new();
         private readonly CombatEventConsoleLogger _eventLogger = new();
@@ -48,15 +54,26 @@ namespace SlotRogue.UI.GameFlow
         private CombatParticipantId _selectedEnemyId;
         private RunEncounterRoster _encounterRoster;
 
+        /// <summary>전투 승리 시 BattleView가 구독합니다.</summary>
+        public event System.Action BattleVictory;
+
+        /// <summary>전투 패배 시 BattleView가 구독합니다.</summary>
+        public event System.Action BattleDefeat;
+
         private void Awake()
         {
-            GameFlowSession.EnsureRunStarted();
+            // 단일 씬 구조에서는 BeginBattle()이 Navigator에 의해 명시적으로 호출됩니다.
+            // Awake에서는 씬 레퍼런스만 확보합니다.
+            ResolveSceneReferences();
+        }
 
-            if (!GameFlowSession.HasStarterArtifact)
-            {
-                SceneManager.LoadScene(GameFlowSceneNames.StartArtifactSelection);
-                return;
-            }
+        /// <summary>
+        /// BattleView(OnEnter)가 전투 화면에 진입할 때 호출합니다.
+        /// 매 전투마다 상태를 초기화하고 전투를 시작합니다.
+        /// </summary>
+        public void BeginBattle()
+        {
+            GameFlowSession.EnsureRunStarted();
 
             ResolveSceneReferences();
 
@@ -72,14 +89,30 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
+            // 중복 구독 방지: 재진입 시 기존 구독 제거
+            _screenViewModel.Changed -= HandleScreenStateChanged;
+            _view.SpinRequested -= HandleSpinClicked;
+            _view.ContinueRequested -= NavigateToReward;
+            _view.RestartRequested -= NavigateToStart;
+
+            // 이전 전투 취소토큰 정리
+            _presentationCts?.Cancel();
+            _presentationCts?.Dispose();
+            _presentationCts = null;
+
+            // 상태 리셋
+            _battleCompleted = false;
+            _spinRoutineRunning = false;
+            _lastRequestResult = null;
+
             _stateUpdater = new RunBattleScreenStateUpdater(_screenViewModel);
             _spinSequence = new RunBattleSpinSequence(_spinLeverView, _slotMachineFrameView);
             _spinSequence.SetupImmediate();
 
             _screenViewModel.Changed += HandleScreenStateChanged;
             _view.SpinRequested += HandleSpinClicked;
-            _view.ContinueRequested += LoadRewardScene;
-            _view.RestartRequested += ReturnToStart;
+            _view.ContinueRequested += NavigateToReward;
+            _view.RestartRequested += NavigateToStart;
             _view.Render(_screenViewModel.State);
 
             InitializePresentationStack();
@@ -102,8 +135,8 @@ namespace SlotRogue.UI.GameFlow
             if (_view != null)
             {
                 _view.SpinRequested -= HandleSpinClicked;
-                _view.ContinueRequested -= LoadRewardScene;
-                _view.RestartRequested -= ReturnToStart;
+                _view.ContinueRequested -= NavigateToReward;
+                _view.RestartRequested -= NavigateToStart;
             }
 
             _screenViewModel.Changed -= HandleScreenStateChanged;
@@ -190,10 +223,8 @@ namespace SlotRogue.UI.GameFlow
 
         private void StartBattle()
         {
-            RunMapNodeDefinition encounterNode = GetEncounterNode();
-            int floor = Mathf.Max(1, encounterNode.Floor);
             var player = new CombatParticipant(GameFlowSession.PlayerMaxHp, GameFlowSession.PlayerCurrentHp);
-            _encounterRoster = RunEncounterRosterBuilder.Build(encounterNode, floor);
+            _encounterRoster = BuildEncounterRoster();
 
             _battle.StartBattle(player, _encounterRoster.Enemies, _encounterRoster.Schedules);
             _selectedEnemyId = ResolveSelectedEnemyId();
@@ -467,7 +498,15 @@ namespace SlotRogue.UI.GameFlow
 
             if (_battle.EndReason == BattleEndReason.Victory)
             {
-                GameFlowSession.CompleteBattleVictory(_battle.Player.CurrentHp);
+                if (GameFlowSession.IsInfiniteMode)
+                {
+                    GameFlowSession.CompleteInfiniteVictory(_battle.Player.CurrentHp);
+                }
+                else
+                {
+                    GameFlowSession.CompleteBattleVictory(_battle.Player.CurrentHp);
+                }
+
                 _screenViewModel.SetActionMode(RunBattleActionMode.Continue, spinInteractable: false);
                 RefreshStatusText();
             }
@@ -511,7 +550,7 @@ namespace SlotRogue.UI.GameFlow
                 enemySlotIndices = _stateUpdater.UpdateEnemySlots(
                     _battle,
                     _combatViewModel,
-                    GetEncounterNode().DisplayName,
+                    GetEncounterTitle(),
                     _view.EnemySlotCount,
                     _encounterRoster,
                     selectedTargetId,
@@ -581,6 +620,11 @@ namespace SlotRogue.UI.GameFlow
 
         private MonsterDefinition ResolveEncounterMonster(int rosterIndex)
         {
+            if (GameFlowSession.IsInfiniteMode)
+            {
+                return null;
+            }
+
             RunMapNodeDefinition node = GetEncounterNode();
             RunEncounterDefinition encounter = node?.Encounter;
             if (encounter?.entries == null ||
@@ -645,14 +689,37 @@ namespace SlotRogue.UI.GameFlow
             return GameFlowSession.CurrentEncounterNode ?? GameFlowSession.CurrentMapNode;
         }
 
-        private static void LoadRewardScene()
+        // 무한모드는 맵 노드 없이 등급(Tier) 기반으로, 스토리모드는 기존 맵 경로로 적을 구성합니다.
+        private RunEncounterRoster BuildEncounterRoster()
         {
-            SceneManager.LoadScene(GameFlowSceneNames.RunReward);
+            if (GameFlowSession.IsInfiniteMode)
+            {
+                return RunEncounterRosterBuilder.BuildForTier(
+                    GameFlowSession.CurrentTier,
+                    GameFlowSession.CurrentBattleNumber,
+                    fallback: null);
+            }
+
+            RunMapNodeDefinition encounterNode = GetEncounterNode();
+            int floor = Mathf.Max(1, encounterNode.Floor);
+            return RunEncounterRosterBuilder.Build(encounterNode, floor);
         }
 
-        private static void ReturnToStart()
+        private static string GetEncounterTitle()
         {
-            SceneManager.LoadScene(GameFlowSceneNames.GameStart);
+            return GameFlowSession.IsInfiniteMode
+                ? GameFlowSession.CurrentEncounterTitle
+                : GetEncounterNode().DisplayName;
+        }
+
+        private void NavigateToReward()
+        {
+            BattleVictory?.Invoke();
+        }
+
+        private void NavigateToStart()
+        {
+            BattleDefeat?.Invoke();
         }
 
         private SlotPresentationResult BuildSlotPresentationResult()
