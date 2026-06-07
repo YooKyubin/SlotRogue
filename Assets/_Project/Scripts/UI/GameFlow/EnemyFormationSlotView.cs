@@ -28,6 +28,8 @@ namespace SlotRogue.UI.GameFlow
         private UnityAction _clickHandler;
         private bool _interactable = true;
         private bool _statusEffectMissingReferenceWarningLogged;
+        private float _hpFillMaxWidth;
+        private bool _hpFillLayoutInitialized;
 
         public Transform Root => _root != null ? _root : transform;
 
@@ -57,6 +59,7 @@ namespace SlotRogue.UI.GameFlow
             _hudRoot = hudRoot;
             _hudText = hudText;
             _hpFill = hpFill;
+            _hpFillLayoutInitialized = false;
             _statusBackground = statusBackground;
             _damageAnchor = damageAnchor;
             _placeholderText = placeholderText;
@@ -101,10 +104,36 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
-            RectTransform parent = _hpFill.rectTransform.parent as RectTransform;
-            float maxWidth = parent != null ? Mathf.Max(1f, parent.sizeDelta.x - 8f) : 1f;
+            RectTransform fillRect = _hpFill.rectTransform;
+            RectTransform parent = fillRect.parent as RectTransform;
+            if (!_hpFillLayoutInitialized)
+            {
+                float currentWidth = Mathf.Max(0f, fillRect.rect.width);
+                _hpFillMaxWidth = currentWidth > 0f
+                    ? currentWidth
+                    : Mathf.Max(0f, fillRect.sizeDelta.x);
+
+                float leftInset = 0f;
+                if (parent != null)
+                {
+                    float parentWidth = parent.rect.width;
+                    float pivotPosition = (parentWidth * fillRect.anchorMin.x) + fillRect.anchoredPosition.x;
+                    leftInset = pivotPosition - (_hpFillMaxWidth * fillRect.pivot.x);
+                }
+
+                fillRect.anchorMin = new Vector2(0f, 0.5f);
+                fillRect.anchorMax = new Vector2(0f, 0.5f);
+                fillRect.pivot = new Vector2(0f, 0.5f);
+                fillRect.anchoredPosition = new Vector2(leftInset, fillRect.anchoredPosition.y);
+                _hpFillLayoutInitialized = true;
+            }
+
             float ratio = max <= 0 ? 0f : Mathf.Clamp01((float)current / max);
-            _hpFill.rectTransform.sizeDelta = new Vector2(maxWidth * ratio, _hpFill.rectTransform.sizeDelta.y);
+            _hpFill.type = Image.Type.Simple;
+            _hpFill.preserveAspect = false;
+            fillRect.SetSizeWithCurrentAnchors(
+                RectTransform.Axis.Horizontal,
+                _hpFillMaxWidth * ratio);
         }
 
         public void SetStatusEffects(IReadOnlyList<StatusEffectViewData> statuses)

@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
+using SlotRogue.Data.Combat;
 using SlotRogue.Data.GameFlow;
 using SlotRogue.Slot.Data;
+using SlotRogue.UI.Combat.Presentation;
 using SlotRogue.UI.GameFlow;
+using SlotRogue.UI.SlotPresentation;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -17,6 +20,8 @@ namespace SlotRogue.Editor.GameFlow
         private const string PrefabFolder = "Assets/_Project/Prefabs/UI/GameFlow";
         private const string WorldPrefabFolder = "Assets/_Project/Prefabs/World/GameFlow";
         private const string EnemyFormationSlotPrefabName = "EnemyFormationSlot";
+        private const string MonsterViewPrefabName = "MonsterView";
+        private const string FloatingDamageTextPrefabName = "FloatingDamageTextView";
         private const int FormationSlotCount = 3;
         private const float FormationWorldSpacing = 2.7f;
         private const string SceneFolder = "Assets/_Project/Scenes";
@@ -41,11 +46,15 @@ namespace SlotRogue.Editor.GameFlow
         private static readonly Color32 ShieldColor = new(39, 144, 235, 255);
         private static readonly Color32 EnergyColor = new(39, 203, 235, 255);
 
-        private const string InGameLeverTexturePath = "Assets/_Project/Resources/Textures/Ingame_lever.png";
+        private const string InGameLeverTexturePath = "Assets/_Project/Resources/Textures/UI/Ingame_lever.png";
+        private const string InGameSlotAnimationTexturePath = "Assets/_Project/Resources/Textures/UI/Ingame_Slot_ani.png";
+        private const string SlotIconAnimationTexturePath = "Assets/_Project/Resources/Textures/UI/icon_slot_ani.png";
 
-        [MenuItem("SlotRogue/Game Flow/Patch Run Battle Lever (Keep UI)")]
-        public static void PatchRunBattleLeverOnly()
+        [MenuItem("SlotRogue/Game Flow/Migrate Run Battle Hierarchy In Place (Preserve UI)")]
+        [MenuItem("SlotRogue/Game Flow/Reorganize Run Battle Hierarchy (Keep Layout)")]
+        public static void ReorganizeRunBattleHierarchy()
         {
+            bool changed = false;
             string prefabPath = $"{PrefabFolder}/RunBattleView.prefab";
             GameObject prefabAsset = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
 
@@ -53,99 +62,1158 @@ namespace SlotRogue.Editor.GameFlow
             {
                 using (var scope = new PrefabUtility.EditPrefabContentsScope(prefabPath))
                 {
-                    PatchLeverInRoot(scope.prefabContentsRoot);
-                    UnityEngine.Debug.Log("[SlotRogue] RunBattleView 프리팹 레버 패치 완료.");
+                    changed |= ReorganizeRunBattleViewRoot(scope.prefabContentsRoot);
+                    changed |= ApplyStrictRunBattleMvvmInPlace(
+                        scope.prefabContentsRoot,
+                        new[] { scope.prefabContentsRoot },
+                        createCompositionRoot: false,
+                        compositionParent: null);
                 }
             }
 
             foreach (Scene scene in GetOpenRunBattleScenes())
             {
-                foreach (GameObject root in scene.GetRootGameObjects())
+                changed |= ReorganizeRunBattleScene(scene);
+            }
+
+            changed |= ReorganizeClosedRunBattleSceneAsset();
+
+            if (changed)
+            {
+                AssetDatabase.SaveAssets();
+                AssetDatabase.Refresh();
+                UnityEngine.Debug.Log("[SlotRogue] RunBattle hierarchy reorganized.");
+            }
+            else
+            {
+                UnityEngine.Debug.Log("[SlotRogue] RunBattle hierarchy already matches the organizer layout.");
+            }
+        }
+
+        private static bool ReorganizeRunBattleScene(Scene scene)
+        {
+            bool changed = false;
+            GameObject sceneRoot = FindRootGameObject(scene, "RunBattleSceneRoot");
+
+            if (sceneRoot == null)
+            {
+                sceneRoot = new GameObject("RunBattleSceneRoot");
+                SceneManager.MoveGameObjectToScene(sceneRoot, scene);
+                changed = true;
+            }
+
+            Transform composition = EnsureOrganizerGroup(sceneRoot.transform, "00_Composition", 0, ref changed);
+            Transform systems = EnsureOrganizerGroup(sceneRoot.transform, "10_Systems", 1, ref changed);
+            Transform world = EnsureOrganizerGroup(sceneRoot.transform, "20_World", 2, ref changed);
+            Transform ui = EnsureOrganizerGroup(sceneRoot.transform, "30_UI", 3, ref changed);
+
+            GameObject[] roots = scene.GetRootGameObjects();
+            for (int index = 0; index < roots.Length; index++)
+            {
+                GameObject root = roots[index];
+
+                if (root == sceneRoot)
                 {
-                    RunBattleView view = root.GetComponentInChildren<RunBattleView>(true);
-                    if (view != null)
+                    continue;
+                }
+
+                if (root.GetComponent<Camera>() != null || root.GetComponent<EventSystem>() != null)
+                {
+                    changed |= MoveTransform(root.transform, systems);
+                    continue;
+                }
+
+                if (HasRunBattleScreen(root))
+                {
+                    changed |= MoveTransform(root.transform, ui);
+                    changed |= ReorganizeRunBattleViewRoot(root, composition, systems, world);
+                    continue;
+                }
+
+                if (root.name == "BattleArenaRoot")
+                {
+                    changed |= MoveTransform(root.transform, world);
+                }
+            }
+
+            changed |= ApplyStrictRunBattleMvvmInPlace(
+                sceneRoot,
+                scene.GetRootGameObjects(),
+                createCompositionRoot: true,
+                compositionParent: composition);
+            EditorSceneManager.MarkSceneDirty(scene);
+            return changed;
+        }
+
+        private static bool ReorganizeClosedRunBattleSceneAsset()
+        {
+            string scenePath = $"{SceneFolder}/RunBattle.unity";
+            SceneAsset sceneAsset = AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath);
+            if (sceneAsset == null)
+            {
+                return false;
+            }
+
+            for (int index = 0; index < SceneManager.sceneCount; index++)
+            {
+                Scene openScene = SceneManager.GetSceneAt(index);
+                if (openScene.isLoaded && openScene.path == scenePath)
+                {
+                    return false;
+                }
+            }
+
+            Scene scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Additive);
+            bool changed = ReorganizeRunBattleScene(scene);
+            if (changed)
+            {
+                EditorSceneManager.SaveScene(scene);
+            }
+
+            EditorSceneManager.CloseScene(scene, removeScene: true);
+            return changed;
+        }
+
+        private static bool HasRunBattleScreen(GameObject root)
+        {
+            return root != null &&
+                (root.name == "RunBattleView" ||
+                root.GetComponentInChildren<RunBattleScreenView>(true) != null ||
+                FindDeepChild(root.transform, "Run Battle Root") != null);
+        }
+
+        private static bool ReorganizeRunBattleViewRoot(GameObject root)
+        {
+            return ReorganizeRunBattleViewRoot(
+                root,
+                compositionDestination: null,
+                systemsDestination: null,
+                worldDestination: null);
+        }
+
+        private static bool ReorganizeRunBattleViewRoot(
+            GameObject root,
+            Transform compositionDestination,
+            Transform systemsDestination,
+            Transform worldDestination)
+        {
+            if (root == null)
+            {
+                return false;
+            }
+
+            bool changed = false;
+            Transform rootTransform = root.transform;
+            changed |= FlattenNestedRunBattleSceneGroups(
+                rootTransform,
+                compositionDestination,
+                systemsDestination,
+                worldDestination);
+
+            Transform battleRoot = FindDeepChild(rootTransform, "Run Battle Root");
+            if (battleRoot != null)
+            {
+                changed |= ReorganizeRunBattleUiRoot(battleRoot);
+            }
+
+            return changed;
+        }
+
+        private static bool FlattenNestedRunBattleSceneGroups(
+            Transform viewRoot,
+            Transform compositionDestination,
+            Transform systemsDestination,
+            Transform worldDestination)
+        {
+            bool changed = false;
+            changed |= MoveGroupChildrenOrDelete(viewRoot, "00_Composition", compositionDestination);
+            changed |= MoveGroupChildrenOrDelete(viewRoot, "10_Systems", systemsDestination);
+            changed |= MoveGroupChildrenOrDelete(viewRoot, "20_World", worldDestination);
+
+            Transform nestedUi = FindDirectChild(viewRoot, "30_UI");
+            if (nestedUi != null)
+            {
+                changed |= MoveAllChildren(nestedUi, viewRoot);
+                UnityEngine.Object.DestroyImmediate(nestedUi.gameObject, true);
+                changed = true;
+            }
+
+            return changed;
+        }
+
+        private static bool MoveGroupChildrenOrDelete(
+            Transform parent,
+            string groupName,
+            Transform destination)
+        {
+            Transform group = FindDirectChild(parent, groupName);
+            if (group == null)
+            {
+                return false;
+            }
+
+            if (destination != null)
+            {
+                MoveAllChildren(group, destination);
+            }
+
+            UnityEngine.Object.DestroyImmediate(group.gameObject, true);
+            return true;
+        }
+
+        private static bool MoveAllChildren(Transform source, Transform destination)
+        {
+            bool changed = false;
+            while (source.childCount > 0)
+            {
+                Transform child = source.GetChild(0);
+                changed |= MoveTransform(child, destination);
+            }
+
+            return changed;
+        }
+
+        private static bool ReorganizeRunBattleUiRoot(Transform battleRoot)
+        {
+            bool changed = false;
+            Transform background = EnsureOrganizerGroup(battleRoot, "00_Background", 0, ref changed);
+            Transform playerHud = EnsureOrganizerGroup(battleRoot, "10_PlayerHUD", 1, ref changed);
+            Transform battlefield = EnsureOrganizerGroup(battleRoot, "20_Battlefield", 2, ref changed);
+            Transform slotMachine = EnsureOrganizerGroup(battleRoot, "30_SlotMachine", 3, ref changed);
+            Transform actions = EnsureOrganizerGroup(battleRoot, "40_Actions", 4, ref changed);
+            Transform bottomHud = EnsureOrganizerGroup(battleRoot, "50_BottomHUD", 5, ref changed);
+            Transform presentationOverlay = EnsureOrganizerGroup(battleRoot, "90_PresentationOverlay", 6, ref changed);
+
+            changed |= MoveNamedChild(battleRoot, "Inside Top", background);
+            changed |= MoveNamedChild(battleRoot, "Inside Bottom", background);
+            changed |= MoveNamedChild(battleRoot, "Currency HUD", playerHud);
+            changed |= MoveNamedChild(battleRoot, "Pause Button", playerHud);
+            changed |= MoveNamedChild(battleRoot, "Player Status HUD", playerHud);
+            changed |= MoveNamedChild(battleRoot, "Wave HUD", playerHud);
+            changed |= MoveNamedChild(battleRoot, "Settings HUD", playerHud);
+            changed |= MoveNamedChild(battleRoot, "Battle Arena Image", battlefield);
+            changed |= MoveNamedChild(battleRoot, "Enemy Intent Panel", battlefield);
+            changed |= MoveNamedChild(battleRoot, "Slot Machine Panel", slotMachine);
+            changed |= MoveNamedChild(battleRoot, "Attack Result Panel", actions);
+            changed |= MoveNamedChild(battleRoot, "Spin Button", actions);
+            changed |= MoveNamedChild(battleRoot, "Spin Lever", actions);
+            changed |= MoveNamedChild(battleRoot, "Claim Reward Button", actions);
+            changed |= MoveNamedChild(battleRoot, "Return To Start Button", actions);
+            changed |= MoveNamedChild(battleRoot, "Next Attack Panel", actions);
+            changed |= MoveNamedChild(battleRoot, "Battle Status Panel", bottomHud);
+            changed |= MoveNamedChild(battleRoot, "Energy Panel", bottomHud);
+            changed |= MoveNamedChild(battleRoot, "Credits Panel", bottomHud);
+            changed |= MoveNamedChild(battleRoot, "Presentation Overlay", presentationOverlay);
+            changed |= MoveNamedChild(battleRoot, "Slot Presentation Layer", presentationOverlay);
+
+            return changed;
+        }
+
+        private sealed class RunBattleMigrationBindings
+        {
+            public Text[] SlotCells = Array.Empty<Text>();
+            public Image[] SlotCellIcons = Array.Empty<Image>();
+            public Text StatusText;
+            public Text SlotResultText;
+            public Text AttackResultText;
+            public Text PlayerHudText;
+            public Text EnemyIntentText;
+            public Image PlayerHpFill;
+            public Image PlayerShieldFill;
+            public EnemyFormationSlotView[] FormationSlots = Array.Empty<EnemyFormationSlotView>();
+            public MonsterView[] MonsterViews = Array.Empty<MonsterView>();
+            public Button SpinButton;
+            public Button ContinueButton;
+            public Button RestartButton;
+            public RectTransform FloatingTextRoot;
+            public RectTransform PlayerDamageAnchor;
+            public FloatingDamageTextView FloatingDamageTextPrefab;
+            public MonsterDefinition MonsterDefinition;
+            public SlotLeverView SpinLeverView;
+            public SlotMachineFrameView SlotMachineFrameView;
+            public SlotPresentationManager SlotPresentationManager;
+        }
+
+        private static bool ApplyStrictRunBattleMvvmInPlace(
+            GameObject root,
+            GameObject[] searchRoots,
+            bool createCompositionRoot,
+            Transform compositionParent)
+        {
+            if (root == null)
+            {
+                return false;
+            }
+
+            RunBattleScreenView existingScreenView =
+                root.GetComponentInChildren<RunBattleScreenView>(true);
+
+            if (existingScreenView == null && !HasRunBattleScreen(root))
+            {
+                return false;
+            }
+
+            bool changed = false;
+            RunBattleMigrationBindings bindings = CaptureRunBattleBindings(root, searchRoots);
+
+            GameObject screenObject = ResolveRunBattleScreenObject(root, searchRoots, existingScreenView);
+            RunBattleScreenView screenView = EnsureComponent<RunBattleScreenView>(screenObject, ref changed);
+
+            RunBattlePlayerHudView playerHudView = EnsureComponent<RunBattlePlayerHudView>(
+                ResolveGameObject(searchRoots, "Player Status HUD", screenObject),
+                ref changed);
+            SetObjectField(playerHudView, "_hudText", bindings.PlayerHudText, ref changed);
+            SetObjectField(playerHudView, "_hpFill", bindings.PlayerHpFill, ref changed);
+            SetObjectField(playerHudView, "_shieldFill", bindings.PlayerShieldFill, ref changed);
+
+            RunBattleStatusView statusView = EnsureComponent<RunBattleStatusView>(
+                ResolveGameObject(searchRoots, "Battle Status Panel", screenObject),
+                ref changed);
+            SetObjectField(statusView, "_statusText", bindings.StatusText, ref changed);
+            SetObjectField(statusView, "_enemyIntentText", bindings.EnemyIntentText, ref changed);
+
+            GameObject slotMachineObject = ResolveGameObject(searchRoots, "Slot Machine Panel", screenObject);
+            RunBattleSlotBoardView slotBoardView = EnsureComponent<RunBattleSlotBoardView>(
+                slotMachineObject,
+                ref changed);
+            SetObjectArrayField(slotBoardView, "_slotCells", bindings.SlotCells, ref changed);
+            SlotMachineFrameView slotMachineFrameView =
+                bindings.SlotMachineFrameView != null
+                    ? bindings.SlotMachineFrameView
+                    : EnsureComponent<SlotMachineFrameView>(slotMachineObject, ref changed);
+            BindSlotMachineFrameView(slotMachineFrameView, ref changed);
+
+            SlotCellSpinView slotCellSpinView =
+                FindFirstComponent<SlotCellSpinView>(searchRoots);
+            BindSlotCellSpinView(slotCellSpinView, bindings.SlotCellIcons, ref changed);
+
+            GameObject actionObject =
+                ResolveGameObject(searchRoots, "Attack Result Panel", null) ??
+                ResolveGameObject(searchRoots, "Attack Power HUD", screenObject);
+            RunBattleActionView actionView = EnsureComponent<RunBattleActionView>(
+                actionObject,
+                ref changed);
+            SetObjectField(actionView, "_slotResultText", bindings.SlotResultText, ref changed);
+            SetObjectField(actionView, "_attackResultText", bindings.AttackResultText, ref changed);
+            SetObjectField(actionView, "_spinButton", bindings.SpinButton, ref changed);
+            SetObjectField(actionView, "_continueButton", bindings.ContinueButton, ref changed);
+            SetObjectField(actionView, "_restartButton", bindings.RestartButton, ref changed);
+
+            RunBattlePresentationOverlayView overlayView =
+                EnsureComponent<RunBattlePresentationOverlayView>(
+                    ResolveGameObject(searchRoots, "Presentation Overlay", screenObject),
+                    ref changed);
+            SetObjectField(overlayView, "_floatingTextRoot", bindings.FloatingTextRoot, ref changed);
+            SetObjectField(overlayView, "_playerDamageAnchor", bindings.PlayerDamageAnchor, ref changed);
+
+            EnemyFormationView enemyFormationView = null;
+            RunBattleWorldView worldView = null;
+            GameObject worldObject =
+                ResolveGameObject(searchRoots, "BattleArenaRoot", null) ??
+                ResolveGameObject(searchRoots, "Formation Slots Root", null) ??
+                ResolveGameObject(searchRoots, "FormationSlotsRoot", null);
+
+            if (worldObject != null)
+            {
+                worldView = EnsureComponent<RunBattleWorldView>(worldObject, ref changed);
+                GameObject formationObject =
+                    ResolveGameObject(searchRoots, "Formation Slots Root", null) ??
+                    ResolveGameObject(searchRoots, "FormationSlotsRoot", worldObject);
+                enemyFormationView = EnsureComponent<EnemyFormationView>(formationObject, ref changed);
+                if (bindings.MonsterViews.Length > 0)
+                {
+                    SetObjectArrayField(
+                        enemyFormationView,
+                        "_monsterViews",
+                        bindings.MonsterViews,
+                        ref changed);
+                    SetObjectArrayField(
+                        enemyFormationView,
+                        "_formationSlotViews",
+                        Array.Empty<EnemyFormationSlotView>(),
+                        ref changed);
+                }
+                else
+                {
+                    SetObjectArrayField(
+                        enemyFormationView,
+                        "_formationSlotViews",
+                        bindings.FormationSlots,
+                        ref changed);
+                    SetObjectArrayField(
+                        enemyFormationView,
+                        "_monsterViews",
+                        Array.Empty<MonsterView>(),
+                        ref changed);
+                }
+
+                SetObjectField(worldView, "_battleShakeRoot", worldObject.transform, ref changed);
+                SetObjectField(worldView, "_enemyFormationView", enemyFormationView, ref changed);
+            }
+
+            SetObjectField(screenView, "_playerHudView", playerHudView, ref changed);
+            SetObjectField(screenView, "_statusView", statusView, ref changed);
+            SetObjectField(screenView, "_slotBoardView", slotBoardView, ref changed);
+            SetObjectField(screenView, "_actionView", actionView, ref changed);
+            SetObjectField(screenView, "_presentationOverlayView", overlayView, ref changed);
+            SetObjectField(screenView, "_worldView", worldView, ref changed);
+
+            if (createCompositionRoot)
+            {
+                GameObject compositionObject = ResolveGameObject(searchRoots, "RunBattleCompositionRoot", null);
+                if (compositionObject == null)
+                {
+                    compositionParent ??= ResolveTransform(searchRoots, "00_Composition", root.transform);
+                    compositionObject = new GameObject("RunBattleCompositionRoot");
+                    compositionObject.transform.SetParent(compositionParent, false);
+                    changed = true;
+                }
+                else if (compositionParent != null)
+                {
+                    changed |= MoveTransform(compositionObject.transform, compositionParent);
+                }
+
+                RunBattleCompositionRoot compositionRoot =
+                    EnsureComponent<RunBattleCompositionRoot>(compositionObject, ref changed);
+                SetObjectField(compositionRoot, "_view", screenView, ref changed);
+                SetObjectField(
+                    compositionRoot,
+                    "_floatingDamageTextPrefab",
+                    bindings.FloatingDamageTextPrefab ?? EnsureFloatingDamageTextPrefab(),
+                    ref changed);
+                SetObjectField(compositionRoot, "_monsterDefinition", bindings.MonsterDefinition, ref changed);
+                SetObjectField(compositionRoot, "_spinLeverView", bindings.SpinLeverView, ref changed);
+                SetObjectField(compositionRoot, "_slotMachineFrameView", slotMachineFrameView, ref changed);
+                SetObjectField(
+                    compositionRoot,
+                    "_slotPresentationManager",
+                    bindings.SlotPresentationManager,
+                    ref changed);
+            }
+            else
+            {
+                changed |= RemoveCompositionRootObjects(root);
+            }
+
+            return changed;
+        }
+
+        private static RunBattleMigrationBindings CaptureRunBattleBindings(
+            GameObject root,
+            GameObject[] searchRoots)
+        {
+            RunBattleCompositionRoot compositionRoot = FindFirstComponent<RunBattleCompositionRoot>(searchRoots);
+            var bindings = new RunBattleMigrationBindings
+            {
+                SlotCells = FindSlotCellTexts(searchRoots),
+                SlotCellIcons = FindSlotCellIconImages(searchRoots),
+                StatusText = FindComponentByName<Text>(searchRoots, "Battle Status Text"),
+                SlotResultText = FindComponentByName<Text>(searchRoots, "Next Attack Text"),
+                AttackResultText =
+                    FindComponentByName<Text>(searchRoots, "Attack Power Text") ??
+                    FindComponentByName<Text>(searchRoots, "Attack Result Value"),
+                PlayerHudText = FindComponentByName<Text>(searchRoots, "Player HUD Values"),
+                EnemyIntentText = FindComponentByName<Text>(searchRoots, "Enemy Intent Text"),
+                PlayerHpFill =
+                    FindImageSlotById(searchRoots, "battle/player-hp-fill") ??
+                    FindComponentByName<Image>(searchRoots, "Player HP Bar Fill"),
+                PlayerShieldFill =
+                    FindImageSlotById(searchRoots, "battle/player-shield-fill") ??
+                    FindComponentByName<Image>(searchRoots, "Player Shield Bar Fill"),
+                FormationSlots = FindFormationSlots(searchRoots),
+                MonsterViews = FindMonsterViews(searchRoots),
+                SpinButton = FindComponentByName<Button>(searchRoots, "Spin Button"),
+                ContinueButton = FindComponentByName<Button>(searchRoots, "Claim Reward Button"),
+                RestartButton = FindComponentByName<Button>(searchRoots, "Return To Start Button"),
+                FloatingTextRoot =
+                    ResolveTransform(searchRoots, "Presentation Overlay", root.transform) as RectTransform,
+                PlayerDamageAnchor =
+                    ResolveTransform(searchRoots, "player-damage-anchor", null) as RectTransform ??
+                    ResolveTransform(searchRoots, "Player Damage Anchor", null) as RectTransform,
+                FloatingDamageTextPrefab =
+                    ReadObject<FloatingDamageTextView>(compositionRoot, "_floatingDamageTextPrefab"),
+                MonsterDefinition = ReadObject<MonsterDefinition>(compositionRoot, "_monsterDefinition"),
+                SpinLeverView = FindComponentByName<SlotLeverView>(searchRoots, "Spin Lever"),
+                SlotMachineFrameView = FindFirstComponent<SlotMachineFrameView>(searchRoots),
+                SlotPresentationManager =
+                    FindFirstComponent<SlotPresentationManager>(searchRoots)
+            };
+
+            return bindings;
+        }
+
+        private static bool RemoveCompositionRootObjects(GameObject root)
+        {
+            bool changed = false;
+            RunBattleCompositionRoot[] compositionRoots =
+                root.GetComponentsInChildren<RunBattleCompositionRoot>(true);
+            for (int index = 0; index < compositionRoots.Length; index++)
+            {
+                GameObject gameObject = compositionRoots[index].gameObject;
+                UnityEngine.Object.DestroyImmediate(gameObject, true);
+                changed = true;
+            }
+
+            return changed;
+        }
+
+        private static GameObject ResolveRunBattleScreenObject(
+            GameObject root,
+            GameObject[] searchRoots,
+            RunBattleScreenView existingScreenView)
+        {
+            if (existingScreenView != null)
+            {
+                return existingScreenView.gameObject;
+            }
+
+            Canvas canvas = FindFirstComponent<Canvas>(searchRoots);
+            return canvas != null ? canvas.gameObject : root;
+        }
+
+        private static T EnsureComponent<T>(GameObject gameObject, ref bool changed)
+            where T : Component
+        {
+            if (gameObject == null)
+            {
+                return null;
+            }
+
+            T component = gameObject.GetComponent<T>();
+            if (component != null)
+            {
+                return component;
+            }
+
+            changed = true;
+            component = gameObject.AddComponent<T>();
+            EditorUtility.SetDirty(gameObject);
+            return component;
+        }
+
+        private static void BindSlotMachineFrameView(
+            SlotMachineFrameView slotMachineFrameView,
+            ref bool changed)
+        {
+            if (slotMachineFrameView == null)
+            {
+                return;
+            }
+
+            Image animationImage = EnsureSlotMachineAnimationImage(slotMachineFrameView.transform as RectTransform, ref changed);
+            Sprite[] sprites = LoadSprites(InGameSlotAnimationTexturePath);
+            SetObjectField(slotMachineFrameView, "_animationImage", animationImage, ref changed);
+            SetObjectArrayField(slotMachineFrameView, "_slotMachineSprites", sprites, ref changed);
+            slotMachineFrameView.SetIdleImmediate();
+            EditorUtility.SetDirty(slotMachineFrameView);
+
+            if (animationImage != null)
+            {
+                EditorUtility.SetDirty(animationImage);
+            }
+        }
+
+        private static Image EnsureSlotMachineAnimationImage(RectTransform slotMachine, ref bool changed)
+        {
+            if (slotMachine == null)
+            {
+                return null;
+            }
+
+            Transform existing = FindDirectChild(slotMachine, SlotMachineFrameView.AnimationImageName);
+            RectTransform animationTransform = existing as RectTransform;
+            if (animationTransform == null)
+            {
+                animationTransform = CreateRect(
+                    SlotMachineFrameView.AnimationImageName,
+                    slotMachine,
+                    Vector2.zero,
+                    Vector2.zero);
+                changed = true;
+            }
+
+            if (animationTransform.GetSiblingIndex() != 0)
+            {
+                animationTransform.SetAsFirstSibling();
+                changed = true;
+            }
+
+            changed |= SetSlotMachineAnimationRect(animationTransform, slotMachine);
+
+            Image image = animationTransform.GetComponent<Image>();
+            if (image == null)
+            {
+                image = animationTransform.gameObject.AddComponent<Image>();
+                changed = true;
+            }
+
+            if (image.raycastTarget)
+            {
+                image.raycastTarget = false;
+                changed = true;
+            }
+
+            if (image.preserveAspect)
+            {
+                image.preserveAspect = false;
+                changed = true;
+            }
+
+            if (image.color != Color.white)
+            {
+                image.color = Color.white;
+                changed = true;
+            }
+
+            return image;
+        }
+
+        private static bool SetSlotMachineAnimationRect(
+            RectTransform rectTransform,
+            RectTransform slotMachine)
+        {
+            bool changed = false;
+            Vector2 centerAnchor = new(0.5f, 0.5f);
+            if (rectTransform.anchorMin != centerAnchor)
+            {
+                rectTransform.anchorMin = centerAnchor;
+                changed = true;
+            }
+
+            if (rectTransform.anchorMax != centerAnchor)
+            {
+                rectTransform.anchorMax = centerAnchor;
+                changed = true;
+            }
+
+            if (rectTransform.anchoredPosition != Vector2.zero)
+            {
+                rectTransform.anchoredPosition = Vector2.zero;
+                changed = true;
+            }
+
+            Vector2 targetSize = SlotMachineFrameView.ResolveAnimationImageSize(ResolveRectSize(slotMachine));
+            if (rectTransform.sizeDelta != targetSize)
+            {
+                rectTransform.sizeDelta = targetSize;
+                changed = true;
+            }
+
+            if (rectTransform.pivot != new Vector2(0.5f, 0.5f))
+            {
+                rectTransform.pivot = new Vector2(0.5f, 0.5f);
+                changed = true;
+            }
+
+            if (rectTransform.localScale != Vector3.one)
+            {
+                rectTransform.localScale = Vector3.one;
+                changed = true;
+            }
+
+            return changed;
+        }
+
+        private static Vector2 ResolveRectSize(RectTransform rectTransform)
+        {
+            if (rectTransform == null)
+            {
+                return new Vector2(SlotMachineFrameView.BaseFrameWidth, SlotMachineFrameView.BaseFrameHeight);
+            }
+
+            Vector2 size = rectTransform.rect.size;
+            if (size.x > 0f && size.y > 0f)
+            {
+                return size;
+            }
+
+            size = rectTransform.sizeDelta;
+            return size.x > 0f && size.y > 0f
+                ? size
+                : new Vector2(SlotMachineFrameView.BaseFrameWidth, SlotMachineFrameView.BaseFrameHeight);
+        }
+
+        private static void BindSlotCellSpinView(
+            SlotCellSpinView slotCellSpinView,
+            Image[] slotCellIcons,
+            ref bool changed)
+        {
+            if (slotCellSpinView == null)
+            {
+                return;
+            }
+
+            if (slotCellIcons != null && slotCellIcons.Length == SlotSpinResult.CellCount)
+            {
+                SetObjectArrayField(slotCellSpinView, "_cellIcons", slotCellIcons, ref changed);
+            }
+
+            Sprite[] spinSprites = LoadSprites(SlotIconAnimationTexturePath);
+            if (spinSprites.Length > 0)
+            {
+                SetObjectArrayField(slotCellSpinView, "_spinSymbolSprites", spinSprites, ref changed);
+            }
+
+            slotCellSpinView.EnsureReferences();
+            EditorUtility.SetDirty(slotCellSpinView);
+        }
+
+        private static GameObject ResolveGameObject(
+            GameObject[] searchRoots,
+            string objectName,
+            GameObject fallback)
+        {
+            Transform transform = ResolveTransform(searchRoots, objectName, null);
+            return transform != null ? transform.gameObject : fallback;
+        }
+
+        private static Transform ResolveTransform(
+            GameObject[] searchRoots,
+            string objectName,
+            Transform fallback)
+        {
+            if (searchRoots != null)
+            {
+                for (int index = 0; index < searchRoots.Length; index++)
+                {
+                    if (searchRoots[index] == null)
                     {
-                        PatchLeverInRoot(view.gameObject);
-                        EditorSceneManager.MarkSceneDirty(scene);
-                        UnityEngine.Debug.Log("[SlotRogue] RunBattle 씬 레버 패치 완료.");
+                        continue;
+                    }
+
+                    Transform found = FindDeepChild(searchRoots[index].transform, objectName);
+                    if (found != null)
+                    {
+                        return found;
                     }
                 }
             }
 
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
+            return fallback;
         }
 
-        private static void PatchLeverInRoot(GameObject root)
+        private static T FindFirstComponent<T>(GameObject[] searchRoots)
+            where T : Component
         {
-            Transform spinButtonTransform = FindDeepChild(root.transform, "Spin Button");
-            RectTransform spinButton = spinButtonTransform != null
-                ? spinButtonTransform as RectTransform
-                : null;
-
-            Transform leverTransform = FindDeepChild(root.transform, "Spin Lever");
-            GameObject leverObject;
-
-            if (leverTransform != null)
+            if (searchRoots == null)
             {
-                leverObject = leverTransform.gameObject;
-            }
-            else
-            {
-                leverObject = new GameObject("Spin Lever",
-                    typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-                RectTransform leverRect = leverObject.GetComponent<RectTransform>();
-                Transform parent = spinButton != null ? spinButton.parent : root.transform;
-                leverRect.SetParent(parent, false);
+                return null;
             }
 
-            RectTransform lever = leverObject.GetComponent<RectTransform>();
-            lever.sizeDelta = new Vector2(96f, 170f);
-            lever.localScale = Vector3.one;
-            lever.localRotation = Quaternion.identity;
-
-            if (spinButton != null)
+            for (int index = 0; index < searchRoots.Length; index++)
             {
-                lever.anchorMin = spinButton.anchorMin;
-                lever.anchorMax = spinButton.anchorMax;
-                lever.pivot = new Vector2(0.5f, 0.5f);
-                lever.anchoredPosition = spinButton.anchoredPosition + new Vector2(160f, 10f);
-                lever.SetSiblingIndex(spinButton.GetSiblingIndex() + 1);
-            }
-
-            Image leverImage = leverObject.GetComponent<Image>();
-            if (leverImage == null)
-            {
-                leverImage = leverObject.AddComponent<Image>();
-            }
-
-            leverImage.raycastTarget = false;
-            Sprite[] sprites = LoadSprites(InGameLeverTexturePath);
-            if (sprites != null && sprites.Length > 0)
-            {
-                leverImage.sprite = sprites[0];
-            }
-            leverImage.preserveAspect = true;
-            leverImage.enabled = true;
-
-            SlotLeverView leverView = leverObject.GetComponent<SlotLeverView>();
-            if (leverView == null)
-            {
-                leverView = leverObject.AddComponent<SlotLeverView>();
-            }
-            leverView.Bind(leverImage, sprites);
-
-            RunBattleController controller = root.GetComponentInChildren<RunBattleController>(true);
-            if (controller != null)
-            {
-                var so = new SerializedObject(controller);
-                SerializedProperty leverProp = so.FindProperty("_spinLeverView");
-                if (leverProp != null)
+                if (searchRoots[index] == null)
                 {
-                    leverProp.objectReferenceValue = leverView;
-                    so.ApplyModifiedPropertiesWithoutUndo();
+                    continue;
+                }
+
+                T component = searchRoots[index].GetComponentInChildren<T>(true);
+                if (component != null)
+                {
+                    return component;
                 }
             }
+
+            return null;
+        }
+
+        private static T FindComponentByName<T>(
+            GameObject[] searchRoots,
+            string objectName)
+            where T : Component
+        {
+            Transform transform = ResolveTransform(searchRoots, objectName, null);
+            return transform != null ? transform.GetComponent<T>() : null;
+        }
+
+        private static Image FindImageSlotById(GameObject[] searchRoots, string slotId)
+        {
+            if (searchRoots == null)
+            {
+                return null;
+            }
+
+            for (int rootIndex = 0; rootIndex < searchRoots.Length; rootIndex++)
+            {
+                if (searchRoots[rootIndex] == null)
+                {
+                    continue;
+                }
+
+                GameFlowImageSlot[] slots =
+                    searchRoots[rootIndex].GetComponentsInChildren<GameFlowImageSlot>(true);
+                for (int slotIndex = 0; slotIndex < slots.Length; slotIndex++)
+                {
+                    if (slots[slotIndex].SlotId == slotId)
+                    {
+                        return slots[slotIndex].Image != null
+                            ? slots[slotIndex].Image
+                            : slots[slotIndex].GetComponent<Image>();
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static Text[] FindSlotCellTexts(GameObject[] searchRoots)
+        {
+            Text[] cells = new Text[SlotSpinResult.CellCount];
+            bool foundAny = false;
+            for (int index = 0; index < cells.Length; index++)
+            {
+                cells[index] = FindComponentByName<Text>(searchRoots, $"Slot Cell Text {index:00}");
+                foundAny |= cells[index] != null;
+            }
+
+            return foundAny ? cells : Array.Empty<Text>();
+        }
+
+        private static Image[] FindSlotCellIconImages(GameObject[] searchRoots)
+        {
+            var icons = new List<IndexedSlotCellIcon>(SlotSpinResult.CellCount);
+            if (searchRoots != null)
+            {
+                for (int index = 0; index < searchRoots.Length; index++)
+                {
+                    if (searchRoots[index] == null)
+                    {
+                        continue;
+                    }
+
+                    CollectSlotCellIconImages(searchRoots[index].transform, icons);
+                }
+            }
+
+            if (icons.Count == 0)
+            {
+                return Array.Empty<Image>();
+            }
+
+            icons.Sort((left, right) => left.Index.CompareTo(right.Index));
+            var cells = new Image[Math.Min(SlotSpinResult.CellCount, icons.Count)];
+            for (int index = 0; index < cells.Length; index++)
+            {
+                cells[index] = icons[index].Image;
+            }
+
+            return cells;
+        }
+
+        private static void CollectSlotCellIconImages(
+            Transform parent,
+            List<IndexedSlotCellIcon> icons)
+        {
+            if (parent == null)
+            {
+                return;
+            }
+
+            if (TryGetSlotCellIconIndex(parent.name, out int slotIndex))
+            {
+                Image image = parent.GetComponent<Image>();
+                if (image != null)
+                {
+                    icons.Add(new IndexedSlotCellIcon(slotIndex, image));
+                }
+            }
+
+            for (int index = 0; index < parent.childCount; index++)
+            {
+                CollectSlotCellIconImages(parent.GetChild(index), icons);
+            }
+        }
+
+        private static bool TryGetSlotCellIconIndex(string objectName, out int index)
+        {
+            index = -1;
+
+            const string baseName = "Slot Cell Icon";
+            if (objectName == baseName)
+            {
+                index = 0;
+                return true;
+            }
+
+            if (string.IsNullOrEmpty(objectName) ||
+                !objectName.StartsWith(baseName + " (", StringComparison.Ordinal) ||
+                !objectName.EndsWith(")", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            int startIndex = baseName.Length + 2;
+            int length = objectName.Length - startIndex - 1;
+            if (length <= 0)
+            {
+                return false;
+            }
+
+            return int.TryParse(objectName.Substring(startIndex, length), out index);
+        }
+
+        private readonly struct IndexedSlotCellIcon
+        {
+            public IndexedSlotCellIcon(int index, Image image)
+            {
+                Index = index;
+                Image = image;
+            }
+
+            public int Index { get; }
+            public Image Image { get; }
+        }
+
+        private static EnemyFormationSlotView[] FindFormationSlots(GameObject[] searchRoots)
+        {
+            var slots = new List<EnemyFormationSlotView>();
+            if (searchRoots != null)
+            {
+                for (int index = 0; index < searchRoots.Length; index++)
+                {
+                    if (searchRoots[index] == null)
+                    {
+                        continue;
+                    }
+
+                    slots.AddRange(searchRoots[index].GetComponentsInChildren<EnemyFormationSlotView>(true));
+                }
+            }
+
+            slots.Sort((left, right) => string.Compare(left.name, right.name, StringComparison.Ordinal));
+            return slots.ToArray();
+        }
+
+        private static MonsterView[] FindMonsterViews(GameObject[] searchRoots)
+        {
+            var monsterViews = new List<MonsterView>();
+            if (searchRoots != null)
+            {
+                for (int index = 0; index < searchRoots.Length; index++)
+                {
+                    if (searchRoots[index] == null)
+                    {
+                        continue;
+                    }
+
+                    monsterViews.AddRange(searchRoots[index].GetComponentsInChildren<MonsterView>(true));
+                }
+            }
+
+            monsterViews.Sort((left, right) => string.Compare(left.name, right.name, StringComparison.Ordinal));
+            return monsterViews.ToArray();
+        }
+
+        private static T ReadObject<T>(Component component, string propertyName)
+            where T : UnityEngine.Object
+        {
+            if (component == null)
+            {
+                return null;
+            }
+
+            var serializedObject = new SerializedObject(component);
+            SerializedProperty property = serializedObject.FindProperty(propertyName);
+            return property != null ? property.objectReferenceValue as T : null;
+        }
+
+        private static void SetObjectField(
+            Component component,
+            string propertyName,
+            UnityEngine.Object value,
+            ref bool changed)
+        {
+            if (component == null)
+            {
+                return;
+            }
+
+            var serializedObject = new SerializedObject(component);
+            SerializedProperty property = serializedObject.FindProperty(propertyName);
+            if (property == null || property.objectReferenceValue == value)
+            {
+                return;
+            }
+
+            property.objectReferenceValue = value;
+            serializedObject.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(component);
+            changed = true;
+        }
+
+        private static void SetObjectArrayField<T>(
+            Component component,
+            string propertyName,
+            T[] values,
+            ref bool changed)
+            where T : UnityEngine.Object
+        {
+            if (component == null)
+            {
+                return;
+            }
+
+            values ??= Array.Empty<T>();
+            var serializedObject = new SerializedObject(component);
+            SerializedProperty property = serializedObject.FindProperty(propertyName);
+            if (property == null || !property.isArray)
+            {
+                return;
+            }
+
+            bool arrayChanged = property.arraySize != values.Length;
+            if (!arrayChanged)
+            {
+                for (int index = 0; index < values.Length; index++)
+                {
+                    if (property.GetArrayElementAtIndex(index).objectReferenceValue != values[index])
+                    {
+                        arrayChanged = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!arrayChanged)
+            {
+                return;
+            }
+
+            property.arraySize = values.Length;
+            for (int index = 0; index < values.Length; index++)
+            {
+                property.GetArrayElementAtIndex(index).objectReferenceValue = values[index];
+            }
+
+            serializedObject.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(component);
+            changed = true;
+        }
+
+        private static GameObject FindRootGameObject(Scene scene, string name)
+        {
+            GameObject[] roots = scene.GetRootGameObjects();
+            for (int index = 0; index < roots.Length; index++)
+            {
+                if (roots[index].name == name)
+                {
+                    return roots[index];
+                }
+            }
+
+            return null;
+        }
+
+        private static Transform EnsureOrganizerGroup(
+            Transform parent,
+            string name,
+            int siblingIndex,
+            ref bool changed)
+        {
+            Transform group = FindDirectChild(parent, name);
+            if (group == null)
+            {
+                GameObject groupObject = parent is RectTransform
+                    ? new GameObject(name, typeof(RectTransform))
+                    : new GameObject(name);
+                group = groupObject.transform;
+                group.SetParent(parent, false);
+                ConfigureOrganizerTransform(group);
+                changed = true;
+            }
+
+            int targetSiblingIndex = Mathf.Clamp(siblingIndex, 0, parent.childCount - 1);
+            if (group.GetSiblingIndex() != targetSiblingIndex)
+            {
+                group.SetSiblingIndex(targetSiblingIndex);
+                changed = true;
+            }
+
+            return group;
+        }
+
+        private static void ConfigureOrganizerTransform(Transform group)
+        {
+            group.localPosition = Vector3.zero;
+            group.localRotation = Quaternion.identity;
+            group.localScale = Vector3.one;
+
+            if (group is RectTransform rectTransform)
+            {
+                rectTransform.anchorMin = Vector2.zero;
+                rectTransform.anchorMax = Vector2.one;
+                rectTransform.offsetMin = Vector2.zero;
+                rectTransform.offsetMax = Vector2.zero;
+                rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            }
+        }
+
+        private static bool MoveNamedChild(Transform searchRoot, string childName, Transform newParent)
+        {
+            Transform child = FindDeepChild(searchRoot, childName);
+            if (child == null)
+            {
+                return false;
+            }
+
+            return MoveTransform(child, newParent);
+        }
+
+        private static bool MoveDirectChild(Transform searchRoot, string childName, Transform newParent)
+        {
+            Transform child = FindDirectChild(searchRoot, childName);
+            if (child == null)
+            {
+                return false;
+            }
+
+            return MoveTransform(child, newParent);
+        }
+
+        private static bool MoveTransform(Transform child, Transform newParent)
+        {
+            if (child == null || newParent == null || child == newParent)
+            {
+                return false;
+            }
+
+            if (child.parent == newParent || IsAncestor(child, newParent))
+            {
+                return false;
+            }
+
+            child.SetParent(newParent, false);
+            return true;
+        }
+
+        private static bool IsAncestor(Transform possibleAncestor, Transform child)
+        {
+            Transform current = child.parent;
+            while (current != null)
+            {
+                if (current == possibleAncestor)
+                {
+                    return true;
+                }
+
+                current = current.parent;
+            }
+
+            return false;
+        }
+
+        private static Transform FindDirectChild(Transform parent, string name)
+        {
+            for (int index = 0; index < parent.childCount; index++)
+            {
+                Transform child = parent.GetChild(index);
+                if (child.name == name)
+                {
+                    return child;
+                }
+            }
+
+            return null;
         }
 
         private static List<Scene> GetOpenRunBattleScenes()
@@ -176,6 +1244,11 @@ namespace SlotRogue.Editor.GameFlow
         [MenuItem("SlotRogue/Game Flow/Rebuild Scene UI Prefabs")]
         public static void BuildAll()
         {
+            BuildAllInternal();
+        }
+
+        private static void BuildAllInternal()
+        {
             EnsureFolder(PrefabFolder);
             EnsureFolder(WorldPrefabFolder);
 
@@ -189,13 +1262,58 @@ namespace SlotRogue.Editor.GameFlow
             AssetDatabase.Refresh();
         }
 
+        [MenuItem("SlotRogue/Game Flow/Rebuild Run Battle UI Prefab Only")]
+        public static void BuildRunBattleOnly()
+        {
+            BuildRunBattleOnlyInternal();
+        }
+
+        private static void BuildRunBattleOnlyInternal()
+        {
+            EnsureFolder(PrefabFolder);
+            EnsureFolder(WorldPrefabFolder);
+
+            BuildRunBattle();
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+        }
+
         public static void BuildAllFromCommandLine()
         {
             BuildAll();
         }
 
+        private static bool EnsureSceneSwitchAllowed()
+        {
+            return Application.isBatchMode || EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo();
+        }
+
+        private static bool ShouldBuildGeneratedAsset(string prefabName, string sceneName)
+        {
+            string prefabPath = $"{PrefabFolder}/{prefabName}.prefab";
+            string scenePath = $"{SceneFolder}/{sceneName}.unity";
+            bool prefabExists = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath) != null;
+            bool sceneExists = AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath) != null;
+
+            if (!prefabExists && !sceneExists)
+            {
+                return EnsureSceneSwitchAllowed();
+            }
+
+            UnityEngine.Debug.LogWarning(
+                $"[SlotRogue] Skipped {prefabName}/{sceneName} rebuild because existing assets are preserved. " +
+                "Delete the target assets manually first if you intentionally want to regenerate them.");
+            return false;
+        }
+
         private static void BuildGameStart()
         {
+            if (!ShouldBuildGeneratedAsset("GameStartView", "GameStart"))
+            {
+                return;
+            }
+
             GameObject canvas = CreateCanvasRoot("Game Start UI");
             var view = canvas.AddComponent<GameStartView>();
             canvas.AddComponent<GameStartController>();
@@ -219,6 +1337,11 @@ namespace SlotRogue.Editor.GameFlow
 
         private static void BuildArtifactSelection()
         {
+            if (!ShouldBuildGeneratedAsset("StartArtifactSelectionView", "StartArtifactSelection"))
+            {
+                return;
+            }
+
             GameObject canvas = CreateCanvasRoot("Starter Artifact UI");
             var view = canvas.AddComponent<StartArtifactSelectionView>();
             canvas.AddComponent<StartArtifactSelectionController>();
@@ -244,6 +1367,11 @@ namespace SlotRogue.Editor.GameFlow
 
         private static void BuildRunReward()
         {
+            if (!ShouldBuildGeneratedAsset("RunRewardView", "RunReward"))
+            {
+                return;
+            }
+
             GameObject canvas = CreateCanvasRoot("Run Reward UI");
             var view = canvas.AddComponent<RunRewardView>();
             canvas.AddComponent<RunRewardController>();
@@ -270,6 +1398,11 @@ namespace SlotRogue.Editor.GameFlow
 
         private static void BuildRunMap()
         {
+            if (!ShouldBuildGeneratedAsset("RunMapView", "RunMap"))
+            {
+                return;
+            }
+
             GameObject canvas = CreateCanvasRoot("Run Map UI");
             var view = canvas.AddComponent<RunMapView>();
             canvas.AddComponent<RunMapController>();
@@ -299,20 +1432,46 @@ namespace SlotRogue.Editor.GameFlow
 
         private static void BuildRunBattle()
         {
+            string prefabPath = $"{PrefabFolder}/RunBattleView.prefab";
+            bool prefabExists = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath) != null;
+
+            if (prefabExists)
+            {
+                ReorganizeRunBattleHierarchy();
+                UnityEngine.Debug.Log(
+                    "[SlotRogue] Existing RunBattleView.prefab was migrated in place. " +
+                    "Sprites, references, transforms, and user-added children were preserved.");
+                return;
+            }
+
+            BuildRunBattleFresh();
+        }
+
+        private static void BuildRunBattleFresh()
+        {
+            if (!EnsureSceneSwitchAllowed())
+            {
+                return;
+            }
+
             var prefabRoot = new GameObject("RunBattleView");
+
+            var compositionObject = new GameObject("RunBattleCompositionRoot");
+            compositionObject.transform.SetParent(prefabRoot.transform, false);
+            RunBattleCompositionRoot compositionRoot = compositionObject.AddComponent<RunBattleCompositionRoot>();
+
             GameObject canvas = CreateCanvasRoot("Run Battle UI");
             canvas.transform.SetParent(prefabRoot.transform, false);
             MoveEventSystemToRoot(canvas.transform, prefabRoot.transform);
-            var view = canvas.AddComponent<RunBattleView>();
-            canvas.AddComponent<RunBattleController>();
+            var screenView = canvas.AddComponent<RunBattleScreenView>();
             RectTransform root = CreateRootPanel(canvas.transform, "Run Battle Root");
 
             Text[] slotCells = new Text[SlotSpinResult.CellCount];
             CreateBattleTopHud(root, out Text playerHud, out Image playerHp, out Image playerShield);
-            EnsureEnemyFormationSlotPrefab();
+            EnsureMonsterViewPrefab();
             CreateBattleArena(root, out Text enemyIntent);
-            CreateBattleWorldArena(prefabRoot.transform, out EnemyFormationSlotView[] formationSlots);
-            CreateSlotMachine(root, slotCells);
+            RunBattleWorldView worldView = CreateBattleWorldFormationOnly(prefabRoot.transform);
+            CreateSlotMachine(root, slotCells, out SlotMachineFrameView slotMachineFrameView);
             CreateBattleActionRow(root, out Text resultValue, out Button spinButton, out Button continueButton, out Button restartButton, out Text slotResult);
             CreateBattleBottomRow(root, out Text statusText);
             RectTransform presentationOverlay = CreatePresentationOverlay(canvas.transform);
@@ -322,24 +1481,374 @@ namespace SlotRogue.Editor.GameFlow
                 new Vector2(0f, -120f));
             presentationOverlay.SetAsLastSibling();
 
-            view.Bind(
-                slotCells,
-                statusText,
-                slotResult,
-                resultValue,
-                playerHud,
-                enemyIntent,
-                playerHp,
-                playerShield,
-                spinButton,
-                continueButton,
-                restartButton,
-                presentationOverlay,
-                playerDamageAnchor,
-                formationSlots);
+            FloatingDamageTextView floatingDamageTextPrefab = EnsureFloatingDamageTextPrefab();
+
+            RunBattlePlayerHudView playerHudView = root.gameObject.AddComponent<RunBattlePlayerHudView>();
+            playerHudView.Bind(playerHud, playerHp, playerShield);
+
+            RunBattleStatusView statusView = root.gameObject.AddComponent<RunBattleStatusView>();
+            statusView.Bind(statusText, enemyIntent);
+
+            RunBattleSlotBoardView slotBoardView = root.gameObject.AddComponent<RunBattleSlotBoardView>();
+            slotBoardView.Bind(slotCells);
+
+            RunBattleActionView actionView = root.gameObject.AddComponent<RunBattleActionView>();
+            actionView.Bind(slotResult, resultValue, spinButton, continueButton, restartButton);
+
+            RunBattlePresentationOverlayView overlayView =
+                presentationOverlay.gameObject.AddComponent<RunBattlePresentationOverlayView>();
+            overlayView.Bind(presentationOverlay, playerDamageAnchor);
+
+            screenView.Bind(
+                playerHudView,
+                statusView,
+                slotBoardView,
+                actionView,
+                overlayView,
+                worldView);
+
+            compositionRoot.Bind(
+                screenView,
+                floatingDamageTextPrefab,
+                null,
+                null,
+                slotMachineFrameView,
+                null);
 
             ConfigureRunBattleRaycasts(canvas.transform);
             SavePrefabAndScene(prefabRoot, "RunBattleView", "RunBattle");
+        }
+
+        private static void CreateBattleBackdrop(RectTransform root)
+        {
+            RectTransform top = CreatePanel(
+                root,
+                "Inside Top",
+                "battle/background/inside-top",
+                new Color32(21, 24, 34, 255),
+                new Vector2(0f, 465f),
+                new Vector2(860f, 790f));
+            CreateOverlayText(
+                top,
+                "Inside Top Label",
+                "RUN BATTLE",
+                24,
+                TextAnchor.UpperCenter,
+                new RectOffset(22, 22, 20, 720));
+
+            CreatePanel(
+                root,
+                "Inside Bottom",
+                "battle/background/inside-bottom",
+                new Color32(19, 21, 29, 255),
+                new Vector2(0f, -530f),
+                new Vector2(860f, 680f));
+        }
+
+        private static void CreateBattlefieldOverlay(
+            RectTransform root,
+            out Text enemyIntent)
+        {
+            RectTransform intentPanel = CreatePanel(
+                root,
+                "Enemy Intent Panel",
+                "battle/enemy-intent-panel",
+                PanelColor,
+                new Vector2(0f, 62f),
+                new Vector2(620f, 86f));
+            enemyIntent = CreateOverlayText(
+                intentPanel,
+                "Enemy Intent Text",
+                "ENEMY INTENT: -",
+                24,
+                TextAnchor.MiddleCenter,
+                new RectOffset(16, 16, 10, 10));
+        }
+
+        private static RunBattleWorldView CreateBattleWorld(Transform parent)
+        {
+            var worldObject = new GameObject("RunBattleWorldView");
+            worldObject.transform.SetParent(parent, false);
+
+            var worldView = worldObject.AddComponent<RunBattleWorldView>();
+
+            var shakeRoot = new GameObject("BattleShakeRoot");
+            shakeRoot.transform.SetParent(worldObject.transform, false);
+            shakeRoot.transform.localPosition = new Vector3(0f, 1.2f, 0f);
+
+            CreateBattleWorldBackground(shakeRoot.transform);
+
+            var formationRoot = new GameObject("EnemyFormationView");
+            formationRoot.transform.SetParent(shakeRoot.transform, false);
+            formationRoot.transform.localPosition = Vector3.zero;
+            EnemyFormationView formationView = formationRoot.AddComponent<EnemyFormationView>();
+
+            string monsterPrefabPath = $"{WorldPrefabFolder}/{MonsterViewPrefabName}.prefab";
+            GameObject monsterPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(monsterPrefabPath);
+            var monsterViews = new MonsterView[FormationSlotCount];
+
+            for (int index = 0; index < FormationSlotCount; index++)
+            {
+                Vector3 slotPosition = ResolveEnemyWorldSlotPosition(index, FormationSlotCount);
+                GameObject monsterObject = monsterPrefab != null
+                    ? (GameObject)PrefabUtility.InstantiatePrefab(monsterPrefab, formationRoot.transform)
+                    : CreateMonsterView(formationRoot.transform, index, slotPosition).gameObject;
+
+                monsterObject.name = $"MonsterView {index + 1}";
+                monsterObject.transform.localPosition = slotPosition;
+
+                monsterViews[index] = monsterObject.GetComponent<MonsterView>();
+                if (monsterViews[index] == null)
+                {
+                    monsterViews[index] = monsterObject.AddComponent<MonsterView>();
+                }
+            }
+
+            formationView.Bind(monsterViews);
+            worldView.Bind(shakeRoot.transform, formationView);
+            return worldView;
+        }
+
+        private static RunBattleWorldView CreateBattleWorldFormationOnly(Transform parent)
+        {
+            var arenaRoot = new GameObject("BattleArenaRoot");
+            arenaRoot.transform.SetParent(parent, false);
+            arenaRoot.transform.localPosition = new Vector3(0f, 1.2f, 0f);
+
+            RunBattleWorldView worldView = arenaRoot.AddComponent<RunBattleWorldView>();
+
+            var formationRoot = new GameObject("FormationSlotsRoot");
+            formationRoot.transform.SetParent(arenaRoot.transform, false);
+            formationRoot.transform.localPosition = Vector3.zero;
+            EnemyFormationView formationView = formationRoot.AddComponent<EnemyFormationView>();
+
+            string monsterPrefabPath = $"{WorldPrefabFolder}/{MonsterViewPrefabName}.prefab";
+            GameObject monsterPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(monsterPrefabPath);
+            var monsterViews = new MonsterView[FormationSlotCount];
+
+            for (int index = 0; index < FormationSlotCount; index++)
+            {
+                Vector3 slotPosition = ResolveEnemyWorldSlotPosition(index, FormationSlotCount);
+                GameObject monsterObject = monsterPrefab != null
+                    ? (GameObject)PrefabUtility.InstantiatePrefab(monsterPrefab, formationRoot.transform)
+                    : CreateMonsterView(formationRoot.transform, index, slotPosition).gameObject;
+
+                monsterObject.name = $"Formation Slot {index + 1}";
+                monsterObject.transform.localPosition = slotPosition;
+
+                monsterViews[index] = monsterObject.GetComponent<MonsterView>();
+                if (monsterViews[index] == null)
+                {
+                    monsterViews[index] = monsterObject.AddComponent<MonsterView>();
+                }
+            }
+
+            formationView.Bind(monsterViews);
+            worldView.Bind(arenaRoot.transform, formationView);
+            return worldView;
+        }
+
+        private static void CreateBattleWorldBackground(Transform parent)
+        {
+            Canvas backgroundCanvas = CreateWorldCanvas(
+                parent,
+                "Battle Background Canvas",
+                new Vector3(0f, 0.15f, 0.25f),
+                new Vector2(900f, 690f),
+                sortingOrder: 0);
+            RectTransform backgroundRoot = backgroundCanvas.GetComponent<RectTransform>();
+            RectTransform arena = CreatePanel(
+                backgroundRoot,
+                "Battle Background View",
+                "battle/world-background",
+                ArenaColor,
+                Vector2.zero,
+                new Vector2(900f, 690f));
+            CreateOverlayText(
+                arena,
+                "Battle Background Label",
+                "ALIEN FRONTIER",
+                30,
+                TextAnchor.UpperCenter,
+                new RectOffset(22, 22, 24, 610));
+        }
+
+        private static void EnsureMonsterViewPrefab()
+        {
+            string prefabPath = $"{WorldPrefabFolder}/{MonsterViewPrefabName}.prefab";
+            MonsterView monsterView = CreateMonsterView(parent: null, index: 0, position: Vector3.zero);
+            try
+            {
+                PrefabUtility.SaveAsPrefabAsset(monsterView.gameObject, prefabPath);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(monsterView.gameObject);
+            }
+        }
+
+        private static MonsterView CreateMonsterView(
+            Transform parent,
+            int index,
+            Vector3 position)
+        {
+            var root = new GameObject($"{MonsterViewPrefabName} {index + 1}");
+            if (parent != null)
+            {
+                root.transform.SetParent(parent, false);
+            }
+
+            root.transform.localPosition = position;
+            var clickCollider = root.AddComponent<BoxCollider2D>();
+            clickCollider.size = new Vector2(2.35f, 3.45f);
+            clickCollider.offset = new Vector2(0f, 0.05f);
+
+            var shakeGroup = new GameObject("ShakeGroup");
+            shakeGroup.transform.SetParent(root.transform, false);
+            shakeGroup.transform.localPosition = Vector3.zero;
+
+            var portraitObject = new GameObject("Portrait", typeof(SpriteRenderer));
+            portraitObject.transform.SetParent(shakeGroup.transform, false);
+            portraitObject.transform.localPosition = new Vector3(0f, 0.55f, 0f);
+            portraitObject.transform.localScale = new Vector3(1.75f, 2.25f, 1f);
+            SpriteRenderer portrait = portraitObject.GetComponent<SpriteRenderer>();
+            portrait.color = MonsterColor;
+            portrait.sortingOrder = 10;
+
+            Canvas hudRoot = CreateWorldCanvas(
+                shakeGroup.transform,
+                "HudRoot",
+                new Vector3(0f, -1.35f, 0f),
+                new Vector2(260f, 126f),
+                sortingOrder: 20);
+            RectTransform hudTransform = hudRoot.GetComponent<RectTransform>();
+            Text placeholder = CreateText(
+                hudTransform,
+                "Portrait Placeholder Text",
+                "MONSTER\nSPRITE SLOT",
+                20,
+                TextAnchor.MiddleCenter,
+                new Vector2(0f, 48f),
+                new Vector2(245f, 58f));
+            RectTransform statusPanel = CreatePanel(
+                hudTransform,
+                "Status Panel",
+                "battle/monster/status-panel",
+                PanelColor,
+                new Vector2(0f, -28f),
+                new Vector2(255f, 92f));
+            Image statusBackground = statusPanel.GetComponent<Image>();
+            Text hudText = CreateOverlayText(
+                statusPanel,
+                "HUD Text",
+                $"MONSTER {index + 1}",
+                20,
+                TextAnchor.UpperCenter,
+                new RectOffset(8, 8, 8, 44));
+            Image hpFill = CreateFillBar(
+                statusPanel,
+                "HP Bar",
+                "battle/monster/hp-bar",
+                "battle/monster/hp-fill",
+                new Vector2(0f, -22f),
+                new Vector2(205f, 22f),
+                HpColor);
+
+            var damageAnchorObject = new GameObject("Damage Anchor", typeof(RectTransform));
+            RectTransform damageAnchor = damageAnchorObject.GetComponent<RectTransform>();
+            damageAnchor.SetParent(root.transform, false);
+            damageAnchor.localPosition = new Vector3(0f, 1.75f, 0f);
+            damageAnchor.sizeDelta = Vector2.zero;
+
+            var monsterView = root.AddComponent<MonsterView>();
+            monsterView.Bind(
+                root.transform,
+                shakeGroup.transform,
+                portrait,
+                hudRoot,
+                hudText,
+                hpFill,
+                statusBackground,
+                damageAnchor,
+                placeholder,
+                clickCollider);
+            return monsterView;
+        }
+
+        private static FloatingDamageTextView EnsureFloatingDamageTextPrefab()
+        {
+            string prefabPath = $"{PrefabFolder}/{FloatingDamageTextPrefabName}.prefab";
+            GameObject existingPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (existingPrefab != null)
+            {
+                FloatingDamageTextView existingView = existingPrefab.GetComponent<FloatingDamageTextView>();
+                if (existingView != null)
+                {
+                    return existingView;
+                }
+            }
+
+            var root = new GameObject(
+                FloatingDamageTextPrefabName,
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(Text));
+            RectTransform rectTransform = root.GetComponent<RectTransform>();
+            rectTransform.sizeDelta = new Vector2(240f, 72f);
+
+            Text text = root.GetComponent<Text>();
+            ConfigureText(text, "-0", 48, TextAnchor.MiddleCenter);
+            text.raycastTarget = false;
+
+            FloatingDamageTextView view = root.AddComponent<FloatingDamageTextView>();
+            var serializedView = new SerializedObject(view);
+            serializedView.FindProperty("_text").objectReferenceValue = text;
+            serializedView.FindProperty("_rectTransform").objectReferenceValue = rectTransform;
+            serializedView.ApplyModifiedPropertiesWithoutUndo();
+
+            try
+            {
+                PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(root);
+            }
+
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            return prefab != null ? prefab.GetComponent<FloatingDamageTextView>() : null;
+        }
+
+        private static SlotLeverView CreateSpinLever(RectTransform root, Button spinButton)
+        {
+            RectTransform lever = CreateRect("Spin Lever", root, new Vector2(160f, -560f), new Vector2(96f, 170f));
+
+            if (spinButton != null)
+            {
+                RectTransform spinButtonRect = spinButton.transform as RectTransform;
+                if (spinButtonRect != null)
+                {
+                    lever.anchorMin = spinButtonRect.anchorMin;
+                    lever.anchorMax = spinButtonRect.anchorMax;
+                    lever.pivot = new Vector2(0.5f, 0.5f);
+                    lever.anchoredPosition = spinButtonRect.anchoredPosition + new Vector2(160f, 10f);
+                    lever.SetSiblingIndex(spinButtonRect.GetSiblingIndex() + 1);
+                }
+            }
+
+            Image leverImage = AddImageSlot(lever.gameObject, "battle/spin-lever", Color.white);
+            leverImage.raycastTarget = false;
+            leverImage.preserveAspect = true;
+
+            Sprite[] sprites = LoadSprites(InGameLeverTexturePath);
+            if (sprites != null && sprites.Length > 0)
+            {
+                leverImage.sprite = sprites[0];
+            }
+
+            SlotLeverView leverView = lever.gameObject.AddComponent<SlotLeverView>();
+            leverView.Bind(leverImage, sprites);
+            return leverView;
         }
 
         private static RectTransform CreatePresentationOverlay(Transform canvasTransform)
@@ -588,9 +2097,22 @@ namespace SlotRogue.Editor.GameFlow
             return new Vector3(startX + (index * spacing), 0f, 0f);
         }
 
-        private static void CreateSlotMachine(RectTransform root, Text[] slotCells)
+        private static void CreateSlotMachine(
+            RectTransform root,
+            Text[] slotCells,
+            out SlotMachineFrameView slotMachineFrameView)
         {
             RectTransform slotMachine = CreatePanel(root, "Slot Machine Panel", "battle/slot-machine-panel", SlotBoardColor, new Vector2(0f, -205f), new Vector2(860f, 430f));
+            slotMachineFrameView = slotMachine.gameObject.AddComponent<SlotMachineFrameView>();
+            bool animationImageChanged = false;
+            Image animationImage = EnsureSlotMachineAnimationImage(slotMachine, ref animationImageChanged);
+            Sprite[] slotMachineSprites = LoadSprites(InGameSlotAnimationTexturePath);
+            slotMachineFrameView.Bind(animationImage, slotMachineSprites);
+            if (animationImageChanged)
+            {
+                EditorUtility.SetDirty(slotMachine);
+            }
+
             const float cellWidth = 154f;
             const float cellHeight = 112f;
             const float spacing = 9f;
@@ -793,7 +2315,12 @@ namespace SlotRogue.Editor.GameFlow
             fill.anchorMin = new Vector2(0f, 0.5f);
             fill.anchorMax = new Vector2(0f, 0.5f);
             fill.pivot = new Vector2(0f, 0.5f);
-            return AddImageSlot(fill.gameObject, fillSlotId, color);
+            Image image = AddImageSlot(fill.gameObject, fillSlotId, color);
+            image.type = Image.Type.Filled;
+            image.fillMethod = Image.FillMethod.Horizontal;
+            image.fillOrigin = (int)Image.OriginHorizontal.Left;
+            image.fillAmount = 1f;
+            return image;
         }
 
         private static Text CreateText(
@@ -904,22 +2431,47 @@ namespace SlotRogue.Editor.GameFlow
             eventSystem.AddComponent<StandaloneInputModule>();
         }
 
-        private static void SavePrefabAndScene(GameObject canvas, string prefabName, string sceneName)
+        private static void SavePrefabAndScene(
+            GameObject canvas,
+            string prefabName,
+            string sceneName,
+            bool createCamera = true)
         {
             string prefabPath = $"{PrefabFolder}/{prefabName}.prefab";
+            string scenePath = $"{SceneFolder}/{sceneName}.unity";
+            bool prefabExists = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath) != null;
+            bool sceneExists = AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath) != null;
+
+            if (prefabExists || sceneExists)
+            {
+                UnityEngine.Debug.LogWarning(
+                    $"[SlotRogue] Preserved existing {prefabName}/{sceneName}; generated replacement was discarded.");
+                UnityEngine.Object.DestroyImmediate(canvas);
+                return;
+            }
+
             PrefabUtility.SaveAsPrefabAsset(canvas, prefabPath);
             UnityEngine.Object.DestroyImmediate(canvas);
 
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
             PrefabUtility.InstantiatePrefab(prefab, scene);
-            CreateMainCamera();
-            EditorSceneManager.SaveScene(scene, $"{SceneFolder}/{sceneName}.unity");
+            if (createCamera)
+            {
+                CreateMainCamera();
+            }
+
+            EditorSceneManager.SaveScene(scene, scenePath);
         }
 
-        private static void CreateMainCamera()
+        private static GameObject CreateMainCamera(Transform parent = null)
         {
             var cameraObject = new GameObject("Main Camera");
+            if (parent != null)
+            {
+                cameraObject.transform.SetParent(parent, false);
+            }
+
             cameraObject.tag = "MainCamera";
             var camera = cameraObject.AddComponent<Camera>();
             camera.orthographic = true;
@@ -927,6 +2479,7 @@ namespace SlotRogue.Editor.GameFlow
             camera.transform.position = new Vector3(0f, 0f, -10f);
             cameraObject.AddComponent<Physics2DRaycaster>();
             cameraObject.AddComponent<AudioListener>();
+            return cameraObject;
         }
 
         private static void EnsureFolder(string path)

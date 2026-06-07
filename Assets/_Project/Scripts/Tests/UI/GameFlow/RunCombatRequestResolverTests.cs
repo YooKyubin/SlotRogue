@@ -130,5 +130,22 @@ namespace SlotRogue.UI.Tests.GameFlow
             Assert.That(result.StatusEffectToApply.Magnitude, Is.EqualTo(2));
             Assert.That(result.StatusEffectToApply.StackMode, Is.EqualTo(StatusStackMode.Refresh));
         }
+
+        [Test]
+        public void Resolve_MultiHitRequest_CalculatesTotalAttackPower()
+        {
+            var request = new SlotCombatRequest(6, 0, 3, 0, false, "Multi Hit");
+
+            RunCombatRequestResult result = _resolver.Resolve(
+                SlotPatternResult.NoMatch,
+                request,
+                StarterArtifactCatalog.Get(StarterArtifactId.None),
+                runDamageBonus: 2,
+                runDefenseBonus: 0);
+
+            Assert.That(result.FinalRequest.Damage, Is.EqualTo(8));
+            Assert.That(result.FinalRequest.AttackCount, Is.EqualTo(3));
+            Assert.That(result.AttackPower, Is.EqualTo(24));
+        }
     }
 }
