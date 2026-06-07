@@ -136,7 +136,6 @@ namespace SlotRogue.Editor.GameFlow
 
             EditorGUILayout.LabelField("Content Defaults", EditorStyles.boldLabel);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_floatingDamageTextPrefab"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_monsterDefinition"));
 
             EditorGUILayout.Space(6f);
             DrawBindingSummary();

@@ -25,7 +25,7 @@ namespace SlotRogue.UI.Tests.GameFlow
                 floor: 2,
                 encounter: encounter);
 
-            RunEncounterRoster roster = RunEncounterRosterBuilder.Build(node, floor: 2, inspectorFallback: null);
+            RunEncounterRoster roster = RunEncounterRosterBuilder.Build(node, floor: 2);
 
             Assert.That(roster.Enemies, Has.Length.EqualTo(2));
             Assert.That(roster.FormationSlots[0], Is.EqualTo(0));
@@ -41,7 +41,7 @@ namespace SlotRogue.UI.Tests.GameFlow
                 floor: 1);
 
             Assert.Throws<InvalidOperationException>(() =>
-                RunEncounterRosterBuilder.Build(node, floor: 1, inspectorFallback: null));
+                RunEncounterRosterBuilder.Build(node, floor: 1));
         }
 
         private static RunMapNodeDefinition CreateNode(

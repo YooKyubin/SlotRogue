@@ -11,7 +11,5 @@ namespace SlotRogue.Data.GameFlow
 
         [Tooltip("HUD slot index: 0=left, 1=center, 2=right.")]
         public int formationSlot;
-
-        public MonsterTurnPatternDefinition turnPatternOverride = null!;
     }
 }

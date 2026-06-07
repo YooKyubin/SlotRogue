@@ -38,7 +38,6 @@ namespace SlotRogue.UI.GameFlow
 
         [SerializeField] private RunBattleScreenView _view;
         [SerializeField] private FloatingDamageTextView _floatingDamageTextPrefab;
-        [SerializeField] private MonsterDefinition _monsterDefinition;
         [SerializeField] private SlotLeverView _spinLeverView;
         [SerializeField] private SlotMachineFrameView _slotMachineFrameView;
         [SerializeField] private SlotPresentationManager _slotPresentationManager;
@@ -123,7 +122,6 @@ namespace SlotRogue.UI.GameFlow
         {
             _view = view;
             _floatingDamageTextPrefab = floatingDamageTextPrefab;
-            _monsterDefinition = monsterDefinition;
             _spinLeverView = spinLeverView;
             _slotMachineFrameView = slotMachineFrameView;
             _slotPresentationManager = slotPresentationManager;
@@ -195,7 +193,7 @@ namespace SlotRogue.UI.GameFlow
             RunMapNodeDefinition encounterNode = GetEncounterNode();
             int floor = Mathf.Max(1, encounterNode.Floor);
             var player = new CombatParticipant(GameFlowSession.PlayerMaxHp, GameFlowSession.PlayerCurrentHp);
-            _encounterRoster = RunEncounterRosterBuilder.Build(encounterNode, floor, _monsterDefinition);
+            _encounterRoster = RunEncounterRosterBuilder.Build(encounterNode, floor);
 
             _battle.StartBattle(player, _encounterRoster.Enemies, _encounterRoster.Schedules);
             _selectedEnemyId = ResolveSelectedEnemyId();
