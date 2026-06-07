@@ -76,10 +76,7 @@ namespace SlotRogue.Core.Combat
             }
         }
 
-        public bool ShouldSkipAction(
-            CombatParticipant participant,
-            BattlePhase phase,
-            List<CombatEvent> events)
+        public bool ShouldSkipAction(CombatParticipant participant, BattlePhase phase, List<CombatEvent> events)
         {
             if (participant == null)
             {
@@ -172,10 +169,7 @@ namespace SlotRogue.Core.Combat
             return false;
         }
 
-        private static void Expire(
-            CombatParticipant participant,
-            StatusEffectInstance instance,
-            StatusEffectContext context)
+        private static void Expire(CombatParticipant participant, StatusEffectInstance instance, StatusEffectContext context)
         {
             for (int index = 0; index < instance.Components.Count; index++)
             {

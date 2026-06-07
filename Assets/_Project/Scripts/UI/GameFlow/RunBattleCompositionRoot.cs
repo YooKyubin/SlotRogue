@@ -628,11 +628,13 @@ namespace SlotRogue.UI.GameFlow
             CombatParticipantId selectedTargetId = _enemySelectionBinder != null
                 ? _enemySelectionBinder.ResolveSelectedEnemyId()
                 : default;
+
             string statusText =
                 $"{_battle.CurrentPhase}\n" +
                 $"Turn {_battle.UpcomingMonsterTurnIndex}\n" +
                 $"Enemies {_battle.Enemies.Count}\n" +
                 $"Bonus D+{GameFlowSession.DamageBonus} / S+{GameFlowSession.DefenseBonus}";
+
             string enemyIntentText =
                 $"ENEMY INTENT: {RunBattleScreenStateUpdater.FormatUpcomingEnemyAction(_battle)}\n" +
                 $"TARGET: {selectedTargetId}";
