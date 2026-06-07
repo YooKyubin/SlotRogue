@@ -19,8 +19,8 @@ namespace SlotRogue.Core.Tests.Combat
         [Test]
         public void StartBattle_SetsPlayerTurn()
         {
-            var player = new CombatParticipant(maxHp: 30);
-            var monster = new CombatParticipant(maxHp: 10);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30);
+            CombatParticipant monster = CombatParticipantFactory.CreateEnemy(maxHp: 10);
             var enemyActions = new[] { new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy) };
 
             _battle.StartBattle(player, monster, enemyActions);
@@ -34,8 +34,8 @@ namespace SlotRogue.Core.Tests.Combat
         [Test]
         public void ApplyPlayerTurn_RejectsWhenNotPlayerTurn()
         {
-            var player = new CombatParticipant(maxHp: 30);
-            var monster = new CombatParticipant(maxHp: 5);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30);
+            CombatParticipant monster = CombatParticipantFactory.CreateEnemy(maxHp: 5);
             _battle.StartBattle(player, monster, System.Array.Empty<CombatEffect>());
 
             BattleApplyResult winResult = _battle.ApplyPlayerTurn(new[]
@@ -63,8 +63,8 @@ namespace SlotRogue.Core.Tests.Combat
         [Test]
         public void ApplyPlayerTurn_MonsterDies_SkipsEnemyTurnAndEndsVictory()
         {
-            var player = new CombatParticipant(maxHp: 30);
-            var monster = new CombatParticipant(maxHp: 5);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30);
+            CombatParticipant monster = CombatParticipantFactory.CreateEnemy(maxHp: 5);
             var enemyActions = new[] { new CombatEffect(CombatEffectKind.Damage, 99, CombatEffectTarget.Enemy) };
             _battle.StartBattle(player, monster, enemyActions);
 
@@ -82,8 +82,8 @@ namespace SlotRogue.Core.Tests.Combat
         [Test]
         public void ApplyPlayerTurn_PlayerDiesDuringPlayerTurn_SkipsEnemyTurn()
         {
-            var player = new CombatParticipant(maxHp: 30, currentHp: 1);
-            var monster = new CombatParticipant(maxHp: 50);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30, currentHp: 1);
+            CombatParticipant monster = CombatParticipantFactory.CreateEnemy(maxHp: 50);
             var enemyActions = new[] { new CombatEffect(CombatEffectKind.Damage, 99, CombatEffectTarget.Enemy) };
             _battle.StartBattle(player, monster, enemyActions);
 
@@ -100,8 +100,8 @@ namespace SlotRogue.Core.Tests.Combat
         [Test]
         public void ApplyPlayerTurn_ResetsMonsterShieldAfterPlayerEffects()
         {
-            var player = new CombatParticipant(maxHp: 30);
-            var monster = new CombatParticipant(maxHp: 20, shield: 4);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30);
+            CombatParticipant monster = CombatParticipantFactory.CreateEnemy(maxHp: 20, shield: 4);
             var enemyActions = System.Array.Empty<CombatEffect>();
             _battle.StartBattle(player, monster, enemyActions);
 
@@ -117,8 +117,8 @@ namespace SlotRogue.Core.Tests.Combat
         [Test]
         public void ApplyPlayerTurn_ResetsPlayerShieldAfterEnemyTurn()
         {
-            var player = new CombatParticipant(maxHp: 30);
-            var monster = new CombatParticipant(maxHp: 20);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30);
+            CombatParticipant monster = CombatParticipantFactory.CreateEnemy(maxHp: 20);
             var enemyActions = new[]
             {
                 new CombatEffect(CombatEffectKind.Shield, 3, CombatEffectTarget.Self),
@@ -137,8 +137,8 @@ namespace SlotRogue.Core.Tests.Combat
         [Test]
         public void ApplyPlayerTurn_RunsEnemyTurnAndReturnsToPlayerTurn()
         {
-            var player = new CombatParticipant(maxHp: 30);
-            var monster = new CombatParticipant(maxHp: 20);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30);
+            CombatParticipant monster = CombatParticipantFactory.CreateEnemy(maxHp: 20);
             var enemyActions = new[]
             {
                 new CombatEffect(CombatEffectKind.Damage, 4, CombatEffectTarget.Enemy),
@@ -159,8 +159,8 @@ namespace SlotRogue.Core.Tests.Combat
         [Test]
         public void ApplyPlayerTurn_MonsterShieldBlocksDuringPlayerTurnOnly()
         {
-            var player = new CombatParticipant(maxHp: 30);
-            var monster = new CombatParticipant(maxHp: 20, shield: 3);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30);
+            CombatParticipant monster = CombatParticipantFactory.CreateEnemy(maxHp: 20, shield: 3);
             var enemyActions = System.Array.Empty<CombatEffect>();
             _battle.StartBattle(player, monster, enemyActions);
 
@@ -176,8 +176,8 @@ namespace SlotRogue.Core.Tests.Combat
         [Test]
         public void ApplyPlayerTurn_EmitsPhaseAndEffectEvents()
         {
-            var player = new CombatParticipant(maxHp: 30);
-            var monster = new CombatParticipant(maxHp: 10);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30);
+            CombatParticipant monster = CombatParticipantFactory.CreateEnemy(maxHp: 10);
             var enemyActions = System.Array.Empty<CombatEffect>();
             _battle.StartBattle(player, monster, enemyActions);
 
@@ -195,8 +195,8 @@ namespace SlotRogue.Core.Tests.Combat
         [Test]
         public void ApplyPlayerTurn_PlayerDiesDuringEnemyTurn_EndsDefeat()
         {
-            var player = new CombatParticipant(maxHp: 30, currentHp: 3);
-            var monster = new CombatParticipant(maxHp: 50);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30, currentHp: 3);
+            CombatParticipant monster = CombatParticipantFactory.CreateEnemy(maxHp: 50);
             var enemyActions = new[]
             {
                 new CombatEffect(CombatEffectKind.Damage, 4, CombatEffectTarget.Enemy),
@@ -213,8 +213,8 @@ namespace SlotRogue.Core.Tests.Combat
         [Test]
         public void ApplyPlayerTurn_MultiTurnCycle_PreservesHpAndPhase()
         {
-            var player = new CombatParticipant(maxHp: 30);
-            var monster = new CombatParticipant(maxHp: 20);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30);
+            CombatParticipant monster = CombatParticipantFactory.CreateEnemy(maxHp: 20);
             var enemyActions = new[]
             {
                 new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy),
@@ -245,8 +245,8 @@ namespace SlotRogue.Core.Tests.Combat
         [Test]
         public void ApplyPlayerTurn_EmitsEventsInExpectedOrder()
         {
-            var player = new CombatParticipant(maxHp: 30);
-            var monster = new CombatParticipant(maxHp: 20);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30);
+            CombatParticipant monster = CombatParticipantFactory.CreateEnemy(maxHp: 20);
             var enemyActions = new[]
             {
                 new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy),
@@ -284,8 +284,8 @@ namespace SlotRogue.Core.Tests.Combat
         [Test]
         public void ApplyPlayerTurn_EffectApplied_DamageSnapshot_ReflectsShieldAndHp()
         {
-            var player = new CombatParticipant(maxHp: 30);
-            var monster = new CombatParticipant(maxHp: 20, shield: 3);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30);
+            CombatParticipant monster = CombatParticipantFactory.CreateEnemy(maxHp: 20, shield: 3);
             _battle.StartBattle(player, monster, System.Array.Empty<CombatEffect>());
 
             _battle.ApplyPlayerTurn(new[]
@@ -310,8 +310,8 @@ namespace SlotRogue.Core.Tests.Combat
         [Test]
         public void ApplyPlayerTurn_EffectApplied_HealSnapshot_ReflectsCappedHeal()
         {
-            var player = new CombatParticipant(maxHp: 30, currentHp: 25);
-            var monster = new CombatParticipant(maxHp: 20);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30, currentHp: 25);
+            CombatParticipant monster = CombatParticipantFactory.CreateEnemy(maxHp: 20);
             _battle.StartBattle(player, monster, System.Array.Empty<CombatEffect>());
 
             _battle.ApplyPlayerTurn(new[]
@@ -331,8 +331,8 @@ namespace SlotRogue.Core.Tests.Combat
         [Test]
         public void ApplyPlayerTurn_CyclesMonsterTurnSchedule()
         {
-            var player = new CombatParticipant(maxHp: 30);
-            var monster = new CombatParticipant(maxHp: 50);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30);
+            CombatParticipant monster = CombatParticipantFactory.CreateEnemy(maxHp: 50);
             var schedule = new MonsterTurnSchedule(
                 new[] { new CombatEffect(CombatEffectKind.Damage, 1, CombatEffectTarget.Enemy) },
                 new[] { new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy) },

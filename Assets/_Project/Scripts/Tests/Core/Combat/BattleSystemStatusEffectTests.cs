@@ -19,8 +19,8 @@ namespace SlotRogue.Core.Tests.Combat
         [Test]
         public void ApplyPlayerTurn_BurnTicksOnEnemyTurnStart()
         {
-            var player = new CombatParticipant(maxHp: 30);
-            var monster = new CombatParticipant(maxHp: 20);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30);
+            CombatParticipant monster = CombatParticipantFactory.CreateEnemy(maxHp: 20);
             _battle.StartBattle(player, monster, System.Array.Empty<CombatEffect>());
 
             _battle.ApplyPlayerTurn(new[]
@@ -42,8 +42,8 @@ namespace SlotRogue.Core.Tests.Combat
         [Test]
         public void ApplyPlayerTurn_FreezeSkipsEnemyActionAndExpires()
         {
-            var player = new CombatParticipant(maxHp: 30);
-            var monster = new CombatParticipant(maxHp: 20);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30);
+            CombatParticipant monster = CombatParticipantFactory.CreateEnemy(maxHp: 20);
             var enemyActions = new[] { new CombatEffect(CombatEffectKind.Damage, 5, CombatEffectTarget.Enemy) };
             _battle.StartBattle(player, monster, enemyActions);
 
@@ -67,8 +67,8 @@ namespace SlotRogue.Core.Tests.Combat
         [Test]
         public void ApplyPlayerTurn_PoisonStacksAndCapsAtFive()
         {
-            var player = new CombatParticipant(maxHp: 30);
-            var monster = new CombatParticipant(maxHp: 30);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30);
+            CombatParticipant monster = CombatParticipantFactory.CreateEnemy(maxHp: 30);
             _battle.StartBattle(player, monster, System.Array.Empty<CombatEffect>());
 
             _battle.ApplyPlayerTurn(new[]
