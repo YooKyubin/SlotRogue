@@ -9,7 +9,7 @@ namespace SlotRogue.UI.GameFlow
 {
     public sealed class SlotLeverView : MonoBehaviour
     {
-        private const string LeverSpriteResourcePath = "Textures/Ingame_lever";
+        private const string LeverSpriteResourcePath = "Textures/UI/Ingame_lever";
 
         private static readonly int[] DownFrameOrder = { 0, 1, 2, 3, 4 };
         private static readonly int[] UpFrameOrder = { 4, 5, 6, 7 };

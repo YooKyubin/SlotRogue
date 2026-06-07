@@ -1,3 +1,4 @@
+using System;
 using SlotRogue.Slot.Data;
 
 namespace SlotRogue.UI.GameFlow
@@ -12,6 +13,7 @@ namespace SlotRogue.UI.GameFlow
         {
             BaseRequest = baseRequest;
             FinalRequest = finalRequest;
+            AttackPower = CalculateAttackPower(finalRequest);
             StarterArtifactActivation = starterArtifactActivation;
             RunBonusSummary = runBonusSummary;
         }
@@ -20,8 +22,20 @@ namespace SlotRogue.UI.GameFlow
 
         public SlotCombatRequest FinalRequest { get; }
 
+        public int AttackPower { get; }
+
         public StarterArtifactActivation StarterArtifactActivation { get; }
 
         public string RunBonusSummary { get; }
+
+        private static int CalculateAttackPower(SlotCombatRequest request)
+        {
+            if (request == null || request.Damage <= 0)
+            {
+                return 0;
+            }
+
+            return request.Damage * Math.Max(1, request.AttackCount);
+        }
     }
 }
