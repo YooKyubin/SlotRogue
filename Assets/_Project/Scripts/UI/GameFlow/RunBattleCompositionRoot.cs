@@ -22,7 +22,13 @@ namespace SlotRogue.UI.GameFlow
     public sealed class RunBattleCompositionRoot : MonoBehaviour
     {
         private readonly BattleSystem _battle = new();
-        private readonly SlotMachineViewModel _slotViewModel = new();
+
+        // щ’ 곕퀎 媛蹂 щ낵 (GameFlowSession.SlotPool)먯꽌 媛쒖닔 鍮꾨濡戮묐뒗
+        private readonly SlotMachineViewModel _slotViewModel = new(
+            new SlotMachineService(new System.Random(), GameFlowSession.SlotPool),
+            new SlotPatternResolver(),
+            new SlotResultCalculator(),
+            new SlotCombatRequestBuilder());
         private readonly SlotPatternResolver _presentationPatternResolver = new();
         private readonly SlotCombatRequestToCombatEffectsConverter _converter = new();
         private readonly CombatEventConsoleLogger _eventLogger = new();
@@ -48,15 +54,26 @@ namespace SlotRogue.UI.GameFlow
         private bool _spinRoutineRunning;
         private RunEncounterRoster _encounterRoster;
 
+        /// <summary>꾪닾 밸━ BattleView媛 援щ룆⑸땲</summary>
+        public event System.Action BattleVictory;
+
+        /// <summary>꾪닾 ⑤같 BattleView媛 援щ룆⑸땲</summary>
+        public event System.Action BattleDefeat;
+
         private void Awake()
         {
-            GameFlowSession.EnsureRunStarted();
+            // ⑥씪 援ъ“먯꽌BeginBattle()Navigator섑빐 紐낆떆곸쑝濡몄텧⑸땲
+            // Awake먯꽌덊띁곗뒪留뺣낫⑸땲
+            ResolveSceneReferences();
+        }
 
-            if (!GameFlowSession.HasStarterArtifact)
-            {
-                SceneManager.LoadScene(GameFlowSceneNames.StartArtifactSelection);
-                return;
-            }
+        /// <summary>
+        /// BattleView(OnEnter)媛 꾪닾 붾㈃吏꾩엯몄텧⑸땲
+        /// 留꾪닾留덈떎 곹깭瑜珥덇린뷀븯怨꾪닾瑜쒖옉⑸땲
+        /// </summary>
+        public void BeginBattle()
+        {
+            GameFlowSession.EnsureRunStarted();
 
             ResolveSceneReferences();
 
@@ -72,14 +89,30 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
+            // 以묐났 援щ룆 諛⑹: ъ쭊湲곗〈 援щ룆 쒓굅
+            _screenViewModel.Changed -= HandleScreenStateChanged;
+            _view.SpinRequested -= HandleSpinClicked;
+            _view.ContinueRequested -= NavigateToReward;
+            _view.RestartRequested -= NavigateToStart;
+
+            // 댁쟾 꾪닾 痍⑥냼좏겙 뺣━
+            _presentationCts?.Cancel();
+            _presentationCts?.Dispose();
+            _presentationCts = null;
+
+            // 곹깭 由ъ뀑
+            _battleCompleted = false;
+            _spinRoutineRunning = false;
+            _lastRequestResult = null;
+
             _stateUpdater = new RunBattleScreenStateUpdater(_screenViewModel);
             _spinSequence = new RunBattleSpinSequence(_spinLeverView, _slotMachineFrameView);
             _spinSequence.SetupImmediate();
 
             _screenViewModel.Changed += HandleScreenStateChanged;
             _view.SpinRequested += HandleSpinClicked;
-            _view.ContinueRequested += LoadRewardScene;
-            _view.RestartRequested += ReturnToStart;
+            _view.ContinueRequested += NavigateToReward;
+            _view.RestartRequested += NavigateToStart;
             _view.Render(_screenViewModel.State);
 
             InitializePresentationStack();
@@ -102,8 +135,8 @@ namespace SlotRogue.UI.GameFlow
             if (_view != null)
             {
                 _view.SpinRequested -= HandleSpinClicked;
-                _view.ContinueRequested -= LoadRewardScene;
-                _view.RestartRequested -= ReturnToStart;
+                _view.ContinueRequested -= NavigateToReward;
+                _view.RestartRequested -= NavigateToStart;
             }
 
             _screenViewModel.Changed -= HandleScreenStateChanged;
@@ -175,12 +208,11 @@ namespace SlotRogue.UI.GameFlow
 
         private void StartBattle()
         {
-            RunMapNodeDefinition encounterNode = GetEncounterNode();
-            int floor = Mathf.Max(1, encounterNode.Floor);
+            RunMapNodeDefinition encounterNode = GameFlowSession.IsInfiniteMode ? null : GetEncounterNode();
             CombatParticipant player = RunCombatParticipantFactory.CreatePlayer(
                 GameFlowSession.PlayerMaxHp,
                 GameFlowSession.PlayerCurrentHp);
-            _encounterRoster = RunEncounterRosterBuilder.Build(encounterNode, floor);
+            _encounterRoster = BuildEncounterRoster();
 
             _battle.StartBattle(player, _encounterRoster.Enemies, _encounterRoster.Schedules);
             _enemySelectionBinder = new RunBattleEnemySelectionBinder(
@@ -558,7 +590,15 @@ namespace SlotRogue.UI.GameFlow
 
             if (_battle.EndReason == BattleEndReason.Victory)
             {
-                GameFlowSession.CompleteBattleVictory(_battle.Player.CurrentHp);
+                if (GameFlowSession.IsInfiniteMode)
+                {
+                    GameFlowSession.CompleteInfiniteVictory(_battle.Player.CurrentHp);
+                }
+                else
+                {
+                    GameFlowSession.CompleteBattleVictory(_battle.Player.CurrentHp);
+                }
+
                 _screenViewModel.SetActionMode(RunBattleActionMode.Continue, spinInteractable: false);
                 RefreshStatusText();
             }
@@ -604,7 +644,7 @@ namespace SlotRogue.UI.GameFlow
                 enemySlotIndices = _stateUpdater.UpdateEnemySlots(
                     _battle,
                     _combatViewModel,
-                    GetEncounterNode().DisplayName,
+                    GetEncounterTitle(),
                     _view.EnemySlotCount,
                     _encounterRoster,
                     selectedTargetId,
@@ -622,14 +662,37 @@ namespace SlotRogue.UI.GameFlow
             return GameFlowSession.CurrentEncounterNode ?? GameFlowSession.CurrentMapNode;
         }
 
-        private static void LoadRewardScene()
+        // 臾댄븳紐⑤뱶留몃뱶 놁씠 깃툒(Tier) 湲곕컲쇰줈, ㅽ넗由щえ쒕뒗 湲곗〈 留寃쎈줈濡곸쓣 援ъ꽦⑸땲
+        private RunEncounterRoster BuildEncounterRoster()
         {
-            SceneManager.LoadScene(GameFlowSceneNames.RunReward);
+            if (GameFlowSession.IsInfiniteMode)
+            {
+                return RunEncounterRosterBuilder.BuildForTier(
+                    GameFlowSession.CurrentTier,
+                    GameFlowSession.CurrentBattleNumber,
+                    fallback: null);
+            }
+
+            RunMapNodeDefinition encounterNode = GetEncounterNode();
+            int floor = Mathf.Max(1, encounterNode.Floor);
+            return RunEncounterRosterBuilder.Build(encounterNode, floor);
         }
 
-        private static void ReturnToStart()
+        private static string GetEncounterTitle()
         {
-            SceneManager.LoadScene(GameFlowSceneNames.GameStart);
+            return GameFlowSession.IsInfiniteMode
+                ? GameFlowSession.CurrentEncounterTitle
+                : GetEncounterNode().DisplayName;
+        }
+
+        private void NavigateToReward()
+        {
+            BattleVictory?.Invoke();
+        }
+
+        private void NavigateToStart()
+        {
+            BattleDefeat?.Invoke();
         }
 
         private SlotPresentationResult BuildSlotPresentationResult()

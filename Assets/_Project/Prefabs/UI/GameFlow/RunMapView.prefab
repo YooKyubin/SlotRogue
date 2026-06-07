@@ -10665,7 +10665,6 @@ GameObject:
   - component: {fileID: 7983544364135412770}
   - component: {fileID: 1710328413266779895}
   - component: {fileID: 7313980643718397906}
-  - component: {fileID: 564760197936265667}
   m_Layer: 0
   m_Name: RunMapView
   m_TagString: Untagged
@@ -10824,19 +10823,6 @@ MonoBehaviour:
   - {fileID: 3698486467618640533}
   - {fileID: 3231539042674351243}
   - {fileID: 7806472834540089769}
---- !u!114 &564760197936265667
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6029536955760535178}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a026, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RunMapController
-  _view: {fileID: 0}
 --- !u!1 &6036579793728026575
 GameObject:
   m_ObjectHideFlags: 0

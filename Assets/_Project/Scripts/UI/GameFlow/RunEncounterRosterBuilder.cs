@@ -88,5 +88,77 @@ namespace SlotRogue.UI.GameFlow
 
             return formationSlot;
         }
+
+        // ── 등급(Tier) 기반 생성 (무한모드) ──────────────────────────────
+        // RunMapNodeDefinition 없이 등급 + 레벨만으로 적 한 마리를 구성합니다.
+        // 적 패턴은 fallback 몬스터가 있으면 그 패턴을, 없으면 등급 기본 패턴을 씁니다.
+        // HP는 항상 등급/레벨 스케일이 결정하여 난이도 곡선을 보장합니다.
+
+        public static RunEncounterRoster BuildForTier(
+            EncounterTier tier,
+            int level,
+            MonsterDefinition fallback)
+        {
+            int maxHp = TierMaxHp(tier, level);
+            var enemies = new[]
+            {
+                RunCombatParticipantFactory.CreateEnemy(rosterIndex: 0, maxHp),
+            };
+
+            MonsterTurnSchedule schedule =
+                fallback != null && fallback.turnPattern != null
+                    ? MonsterTurnScheduleFactory.FromPattern(fallback.turnPattern)
+                    : TierTurnSchedule(tier, level);
+
+            return new RunEncounterRoster(enemies, new[] { schedule }, new[] { 0 });
+        }
+
+        public static EncounterTier ToTier(RunMapNodeType nodeType)
+        {
+            return nodeType switch
+            {
+                RunMapNodeType.Elite => EncounterTier.Elite,
+                RunMapNodeType.Boss => EncounterTier.Boss,
+                _ => EncounterTier.Normal,
+            };
+        }
+
+        private static int TierMaxHp(EncounterTier tier, int level)
+        {
+            int lv = Mathf.Max(1, level);
+
+            return tier switch
+            {
+                EncounterTier.Elite => 32 + (lv * 8),
+                EncounterTier.Boss => 46 + (lv * 10),
+                _ => 22 + (lv * 6),
+            };
+        }
+
+        private static MonsterTurnSchedule TierTurnSchedule(EncounterTier tier, int level)
+        {
+            int lv = Mathf.Max(1, level);
+
+            if (tier == EncounterTier.Boss)
+            {
+                return new MonsterTurnSchedule(
+                    new[] { new CombatEffect(CombatEffectKind.Damage, 6 + lv, CombatEffectTarget.Enemy) },
+                    new[] { new CombatEffect(CombatEffectKind.Shield, 5 + lv, CombatEffectTarget.Self) },
+                    new[] { new CombatEffect(CombatEffectKind.Damage, 9 + lv, CombatEffectTarget.Enemy) });
+            }
+
+            if (tier == EncounterTier.Elite)
+            {
+                return new MonsterTurnSchedule(
+                    new[] { new CombatEffect(CombatEffectKind.Damage, 5 + lv, CombatEffectTarget.Enemy) },
+                    new[] { new CombatEffect(CombatEffectKind.Shield, 4 + lv, CombatEffectTarget.Self) },
+                    new[] { new CombatEffect(CombatEffectKind.Damage, 7 + lv, CombatEffectTarget.Enemy) });
+            }
+
+            return new MonsterTurnSchedule(
+                new[] { new CombatEffect(CombatEffectKind.Damage, 3 + lv, CombatEffectTarget.Enemy) },
+                new[] { new CombatEffect(CombatEffectKind.Shield, 2 + lv, CombatEffectTarget.Self) },
+                new[] { new CombatEffect(CombatEffectKind.Damage, 5 + lv, CombatEffectTarget.Enemy) });
+        }
     }
 }
