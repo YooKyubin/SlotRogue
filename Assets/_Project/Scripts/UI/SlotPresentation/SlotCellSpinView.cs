@@ -1,15 +1,17 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using DG.Tweening;
 using SlotRogue.Slot.Data;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace SlotRogue.UI.SlotPresentation
 {
     public sealed class SlotCellSpinView : MonoBehaviour
     {
-        private const string SpinSpriteResourcePath = "Textures/icon_slot_ani";
+        private const string SpinSpriteResourcePath = "Textures/UI/icon_slot_ani";
 
         [SerializeField] private Image[] _cellIcons;
         [SerializeField] private Sprite[] _symbolSprites;
@@ -41,12 +43,19 @@ namespace SlotRogue.UI.SlotPresentation
 
         public void StopImmediate(SlotSpinResult spinResult = null)
         {
+            EnsureReferences();
             KillTweens();
 
             if (spinResult != null)
             {
                 SetAllIconsImmediate(spinResult);
             }
+        }
+
+        public bool EnsureReferences()
+        {
+            EnsureCellIcons();
+            return HasUsableCellIcons();
         }
 
         public IEnumerator Play(SlotSpinResult spinResult, Func<bool> shouldSkip)
@@ -83,7 +92,10 @@ namespace SlotRogue.UI.SlotPresentation
             {
                 int capturedColumn = column;
                 _lockSequence.AppendCallback(() => LockColumn(capturedColumn, spinResult));
-                _lockSequence.AppendInterval(_stopIntervalPerColumn);
+                if (column < SlotSpinResult.Columns - 1)
+                {
+                    _lockSequence.AppendInterval(_stopIntervalPerColumn);
+                }
             }
 
             yield return WaitForTweenOrSkip(_lockSequence, shouldSkip);
@@ -102,7 +114,9 @@ namespace SlotRogue.UI.SlotPresentation
 
         private bool CanPlay(SlotSpinResult spinResult)
         {
-            return _cellIcons != null &&
+            EnsureReferences();
+
+            return HasUsableCellIcons() &&
                 _symbolSprites != null &&
                 _symbolSprites.Length > 0 &&
                 spinResult != null;
@@ -171,6 +185,8 @@ namespace SlotRogue.UI.SlotPresentation
 
         private void SetAllIconsImmediate(SlotSpinResult spinResult)
         {
+            EnsureReferences();
+
             if (_cellIcons == null || spinResult == null)
             {
                 return;
@@ -369,6 +385,136 @@ namespace SlotRogue.UI.SlotPresentation
 
         private static void NoOp()
         {
+        }
+
+        private void EnsureCellIcons()
+        {
+            if (HasUsableCellIcons())
+            {
+                return;
+            }
+
+            Image[] foundIcons = FindSlotCellIconsInScene();
+            if (foundIcons.Length == SlotSpinResult.CellCount)
+            {
+                _cellIcons = foundIcons;
+            }
+        }
+
+        private bool HasUsableCellIcons()
+        {
+            if (_cellIcons == null || _cellIcons.Length < SlotSpinResult.CellCount)
+            {
+                return false;
+            }
+
+            for (int index = 0; index < SlotSpinResult.CellCount; index++)
+            {
+                if (_cellIcons[index] == null)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private Image[] FindSlotCellIconsInScene()
+        {
+            var icons = new List<IndexedSlotCellIcon>(SlotSpinResult.CellCount);
+            Transform root = transform.root != null ? transform.root : transform;
+            CollectSlotCellIcons(root, icons);
+
+            Scene scene = gameObject.scene;
+            if (icons.Count < SlotSpinResult.CellCount && scene.IsValid() && scene.isLoaded)
+            {
+                GameObject[] roots = scene.GetRootGameObjects();
+                for (int index = 0; index < roots.Length; index++)
+                {
+                    if (roots[index] == null || roots[index].transform == root)
+                    {
+                        continue;
+                    }
+
+                    CollectSlotCellIcons(roots[index].transform, icons);
+                }
+            }
+
+            if (icons.Count == 0)
+            {
+                return Array.Empty<Image>();
+            }
+
+            icons.Sort((left, right) => left.Index.CompareTo(right.Index));
+            var result = new Image[Math.Min(SlotSpinResult.CellCount, icons.Count)];
+            for (int index = 0; index < result.Length; index++)
+            {
+                result[index] = icons[index].Image;
+            }
+
+            return result;
+        }
+
+        private static void CollectSlotCellIcons(Transform parent, List<IndexedSlotCellIcon> icons)
+        {
+            if (parent == null)
+            {
+                return;
+            }
+
+            if (TryGetSlotCellIconIndex(parent.name, out int slotIndex))
+            {
+                Image image = parent.GetComponent<Image>();
+                if (image != null)
+                {
+                    icons.Add(new IndexedSlotCellIcon(slotIndex, image));
+                }
+            }
+
+            for (int index = 0; index < parent.childCount; index++)
+            {
+                CollectSlotCellIcons(parent.GetChild(index), icons);
+            }
+        }
+
+        private static bool TryGetSlotCellIconIndex(string objectName, out int index)
+        {
+            index = -1;
+
+            const string baseName = "Slot Cell Icon";
+            if (objectName == baseName)
+            {
+                index = 0;
+                return true;
+            }
+
+            if (string.IsNullOrEmpty(objectName) ||
+                !objectName.StartsWith(baseName + " (", StringComparison.Ordinal) ||
+                !objectName.EndsWith(")", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            int startIndex = baseName.Length + 2;
+            int length = objectName.Length - startIndex - 1;
+            if (length <= 0)
+            {
+                return false;
+            }
+
+            return int.TryParse(objectName.Substring(startIndex, length), out index);
+        }
+
+        private readonly struct IndexedSlotCellIcon
+        {
+            public IndexedSlotCellIcon(int index, Image image)
+            {
+                Index = index;
+                Image = image;
+            }
+
+            public int Index { get; }
+            public Image Image { get; }
         }
 
         private Tween _cycleTween;

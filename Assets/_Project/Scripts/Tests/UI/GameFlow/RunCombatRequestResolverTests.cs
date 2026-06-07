@@ -102,5 +102,22 @@ namespace SlotRogue.UI.Tests.GameFlow
             Assert.That(result.FinalRequest.HealAmount, Is.EqualTo(16));
             Assert.That(result.RunBonusSummary, Is.EqualTo("damage +2, defense +2"));
         }
+
+        [Test]
+        public void Resolve_MultiHitRequest_CalculatesTotalAttackPower()
+        {
+            var request = new SlotCombatRequest(6, 0, 3, 0, false, "Multi Hit");
+
+            RunCombatRequestResult result = _resolver.Resolve(
+                SlotPatternResult.NoMatch,
+                request,
+                StarterArtifactCatalog.Get(StarterArtifactId.None),
+                runDamageBonus: 2,
+                runDefenseBonus: 0);
+
+            Assert.That(result.FinalRequest.Damage, Is.EqualTo(8));
+            Assert.That(result.FinalRequest.AttackCount, Is.EqualTo(3));
+            Assert.That(result.AttackPower, Is.EqualTo(24));
+        }
     }
 }

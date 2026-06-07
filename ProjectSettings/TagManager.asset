@@ -38,11 +38,17 @@ TagManager:
   - 
   - 
   m_SortingLayers:
+  - name: UI_Background
+    uniqueID: 1971390959
+    locked: 0
   - name: Default
     uniqueID: 0
     locked: 0
-  - name: Monster
+  - name: World
     uniqueID: 796154759
+    locked: 0
+  - name: UI
+    uniqueID: 2826688847
     locked: 0
   m_RenderingLayers:
   - Default

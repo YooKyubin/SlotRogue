@@ -21,6 +21,7 @@ namespace SlotRogue.UI.SlotPresentation
         [SerializeField] private bool _skipCurrentOnTap = true;
 
         public event Action<SlotPresentationResult> Completed;
+        public event Action SlotSpinCompleted;
         public event Action<SlotPatternPresentationResult> PatternStepStarted;
 
         public bool IsPlaying => _playRoutine != null;
@@ -128,6 +129,8 @@ namespace SlotRogue.UI.SlotPresentation
                 yield return _slotCellSpinView.Play(result.SpinResult, IsSkipRequested);
                 _skipRequested = false;
             }
+
+            SlotSpinCompleted?.Invoke();
 
             if (_skipAllRequested)
             {

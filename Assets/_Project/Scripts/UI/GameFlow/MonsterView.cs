@@ -1,14 +1,14 @@
+using System;
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace SlotRogue.UI.GameFlow
 {
-    public sealed class EnemyFormationSlotView : MonoBehaviour, IPointerClickHandler
+    public sealed class MonsterView : MonoBehaviour, IPointerClickHandler
     {
-        private static readonly Color EnemySlotColor = new Color(0.11f, 0.14f, 0.2f, 0.96f);
-        private static readonly Color SelectedEnemySlotColor = new Color(0.45f, 0.26f, 0.12f, 0.96f);
+        private static readonly Color EnemySlotColor = new(0.11f, 0.14f, 0.2f, 0.96f);
+        private static readonly Color SelectedEnemySlotColor = new(0.45f, 0.26f, 0.12f, 0.96f);
 
         [SerializeField] private Transform _root;
         [SerializeField] private Transform _shakeGroup;
@@ -21,7 +21,7 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private Text _placeholderText;
         [SerializeField] private Collider2D _clickCollider;
 
-        private UnityAction _clickHandler;
+        private Action _clickHandler;
         private bool _interactable = true;
         private float _hpFillMaxWidth;
         private bool _hpFillLayoutInitialized;
@@ -59,6 +59,20 @@ namespace SlotRogue.UI.GameFlow
             _clickCollider = clickCollider;
         }
 
+        public void Render(RunBattleEnemySlotState state)
+        {
+            SetActive(state.Active);
+            if (!state.Active)
+            {
+                return;
+            }
+
+            SetHud(state.Selected ? $"> {state.HudText}" : state.HudText);
+            SetHpFill(state.Hp, state.MaxHp);
+            SetSelected(state.Selected);
+            SetInteractable(state.Interactable);
+        }
+
         public void SetPortrait(Sprite sprite)
         {
             if (_portrait != null)
@@ -72,7 +86,22 @@ namespace SlotRogue.UI.GameFlow
             }
         }
 
-        public void SetActive(bool active)
+        public void SetClickHandler(Action action)
+        {
+            _clickHandler = action;
+        }
+
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            if (!_interactable || _clickHandler == null || _clickCollider == null || !_clickCollider.enabled)
+            {
+                return;
+            }
+
+            _clickHandler.Invoke();
+        }
+
+        private void SetActive(bool active)
         {
             if (Root != null)
             {
@@ -80,7 +109,7 @@ namespace SlotRogue.UI.GameFlow
             }
         }
 
-        public void SetHud(string value)
+        private void SetHud(string value)
         {
             if (_hudText != null)
             {
@@ -88,7 +117,7 @@ namespace SlotRogue.UI.GameFlow
             }
         }
 
-        public void SetHpFill(int current, int max)
+        private void SetHpFill(int current, int max)
         {
             if (_hpFill == null)
             {
@@ -127,7 +156,7 @@ namespace SlotRogue.UI.GameFlow
                 _hpFillMaxWidth * ratio);
         }
 
-        public void SetSelected(bool selected)
+        private void SetSelected(bool selected)
         {
             if (_statusBackground != null)
             {
@@ -135,33 +164,13 @@ namespace SlotRogue.UI.GameFlow
             }
         }
 
-        public void SetInteractable(bool interactable)
+        private void SetInteractable(bool interactable)
         {
             _interactable = interactable;
             if (_clickCollider != null)
             {
                 _clickCollider.enabled = interactable;
             }
-        }
-
-        public void SetClickHandler(UnityAction action)
-        {
-            _clickHandler = action;
-        }
-
-        public void OnPointerClick(PointerEventData eventData)
-        {
-            if (!_interactable)
-            {
-                return;
-            }
-
-            if (_clickHandler == null || _clickCollider == null || !_clickCollider.enabled)
-            {
-                return;
-            }
-
-            _clickHandler.Invoke();
         }
     }
 }
