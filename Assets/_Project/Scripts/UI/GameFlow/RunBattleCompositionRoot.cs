@@ -91,6 +91,7 @@ namespace SlotRogue.UI.GameFlow
 
             // 중복 구독 방지: 재진입 시 기존 구독 제거
             _screenViewModel.Changed -= HandleScreenStateChanged;
+            _combatViewModel.Changed -= RefreshStatusText;
             _view.SpinRequested -= HandleSpinClicked;
             _view.ContinueRequested -= NavigateToReward;
             _view.RestartRequested -= NavigateToStart;
@@ -110,6 +111,7 @@ namespace SlotRogue.UI.GameFlow
             _spinSequence.SetupImmediate();
 
             _screenViewModel.Changed += HandleScreenStateChanged;
+            _combatViewModel.Changed += RefreshStatusText;
             _view.SpinRequested += HandleSpinClicked;
             _view.ContinueRequested += NavigateToReward;
             _view.RestartRequested += NavigateToStart;
@@ -140,6 +142,7 @@ namespace SlotRogue.UI.GameFlow
             }
 
             _screenViewModel.Changed -= HandleScreenStateChanged;
+            _combatViewModel.Changed -= RefreshStatusText;
             _presentationCts?.Cancel();
             _presentationCts?.Dispose();
             _presentationCts = null;
@@ -246,17 +249,31 @@ namespace SlotRogue.UI.GameFlow
                     "Using a temporary overlay anchor for this play session.");
             }
 
-            _presentationHost = new CombatPresentationHost(
-                gameObject,
-                _view.StatusText,
+            FloatingCombatTextLayerView floatingTextLayer = EnsureFloatingTextLayerView(floatingTextRoot);
+            floatingTextLayer.Bind(
                 floatingTextRoot,
                 _floatingDamageTextPrefab,
                 playerDamageAnchor,
                 monsterDamageAnchor,
                 GetDefaultFont(),
-                RefreshStatusText);
+                gameObject);
+
+            _presentationHost = new CombatPresentationHost(gameObject, floatingTextLayer);
             CombatPresentationPipeline pipeline = CombatPresentationPipeline.CreateDefault(_presentationHost);
             _flowController = new BattleFlowController(pipeline, _combatViewModel);
+        }
+
+        private static FloatingCombatTextLayerView EnsureFloatingTextLayerView(Transform floatingTextRoot)
+        {
+            Transform target = floatingTextRoot != null ? floatingTextRoot : null;
+            if (target != null &&
+                target.TryGetComponent(out FloatingCombatTextLayerView existing))
+            {
+                return existing;
+            }
+
+            GameObject layerObject = target != null ? target.gameObject : new GameObject("Floating Combat Text Layer");
+            return layerObject.AddComponent<FloatingCombatTextLayerView>();
         }
 
         private static RectTransform ResolveDamageAnchor(

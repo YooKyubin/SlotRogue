@@ -27,7 +27,6 @@ namespace SlotRogue.UI.Combat.Presentation
 
             Debug.Log($"[Presentation] Battle ended: {combatEvent.EndReason}");
             await CombatPresentationTweens.DelayAsync(PauseDuration, Host.LinkTarget, cancellationToken);
-            RefreshHUD();
         }
     }
 }

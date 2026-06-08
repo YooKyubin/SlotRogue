@@ -3,6 +3,9 @@ using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using System.Collections.Generic;
+#if DOTWEEN
+using DG.Tweening;
+#endif
 
 namespace SlotRogue.UI.GameFlow
 {
@@ -30,6 +33,10 @@ namespace SlotRogue.UI.GameFlow
         private bool _statusEffectMissingReferenceWarningLogged;
         private float _hpFillMaxWidth;
         private bool _hpFillLayoutInitialized;
+        private bool _hpFillRendered;
+#if DOTWEEN
+        private Tween _hpFillTween;
+#endif
 
         public Transform Root => _root != null ? _root : transform;
 
@@ -60,12 +67,20 @@ namespace SlotRogue.UI.GameFlow
             _hudText = hudText;
             _hpFill = hpFill;
             _hpFillLayoutInitialized = false;
+            _hpFillRendered = false;
             _statusBackground = statusBackground;
             _damageAnchor = damageAnchor;
             _placeholderText = placeholderText;
             _clickCollider = clickCollider;
             _statusEffectRoot = statusEffectRoot;
             _statusEffectIconPrefab = statusEffectIconPrefab;
+        }
+
+        private void OnDisable()
+        {
+#if DOTWEEN
+            _hpFillTween?.Kill();
+#endif
         }
 
         public void SetPortrait(Sprite sprite)
@@ -131,9 +146,29 @@ namespace SlotRogue.UI.GameFlow
             float ratio = max <= 0 ? 0f : Mathf.Clamp01((float)current / max);
             _hpFill.type = Image.Type.Simple;
             _hpFill.preserveAspect = false;
+#if DOTWEEN
+            float targetWidth = _hpFillMaxWidth * ratio;
+            if (!_hpFillRendered)
+            {
+                fillRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, targetWidth);
+                _hpFillRendered = true;
+                return;
+            }
+
+            _hpFillTween?.Kill();
+            _hpFillTween = DOTween.To(
+                    () => fillRect.rect.width,
+                    width => fillRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width),
+                    targetWidth,
+                    0.35f)
+                .SetEase(Ease.OutQuad)
+                .SetLink(gameObject);
+#else
             fillRect.SetSizeWithCurrentAnchors(
                 RectTransform.Axis.Horizontal,
                 _hpFillMaxWidth * ratio);
+            _hpFillRendered = true;
+#endif
         }
 
         public void SetStatusEffects(IReadOnlyList<StatusEffectViewData> statuses)

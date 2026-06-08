@@ -6,14 +6,12 @@ namespace SlotRogue.UI.Combat.Presentation
 {
     public sealed class ShieldPresenter : CombatPresenterBase
     {
-        private const float TweenDuration = 0.15f;
-
         public ShieldPresenter(CombatPresentationHost host)
             : base(host)
         {
         }
 
-        public override async UniTask PresentAsync(
+        public override UniTask PresentAsync(
             CombatEvent combatEvent,
             CombatViewModel viewModel,
             PresentationContext context,
@@ -22,15 +20,14 @@ namespace SlotRogue.UI.Combat.Presentation
             if (combatEvent.Kind != CombatEventKind.EffectApplied ||
                 combatEvent.Effect.Kind != CombatEffectKind.Shield)
             {
-                return;
+                return UniTask.CompletedTask;
             }
 
-            await TweenTargetShieldAsync(combatEvent, viewModel, TweenDuration, cancellationToken);
             viewModel.ApplyParticipantSnapshot(
                 combatEvent.TargetParticipantId,
                 combatEvent.TargetAfter,
                 combatEvent.IsPlayerParticipant);
-            RefreshHUD();
+            return UniTask.CompletedTask;
         }
     }
 }

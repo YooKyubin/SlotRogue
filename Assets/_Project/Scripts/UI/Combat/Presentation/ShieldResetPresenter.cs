@@ -29,7 +29,6 @@ namespace SlotRogue.UI.Combat.Presentation
                 0,
                 combatEvent.IsPlayerParticipant);
 
-            RefreshHUD();
             await CombatPresentationTweens.DelayAsync(BlinkDuration, Host.LinkTarget, cancellationToken);
         }
     }
