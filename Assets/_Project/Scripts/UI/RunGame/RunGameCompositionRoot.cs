@@ -24,7 +24,6 @@ namespace SlotRogue.UI.RunGame
 
         [Header("Game Views  (IRunGameView 구현체)")]
         [SerializeField] private StartArtifactSelectionView _startRelicSelectView;
-        [SerializeField] private RunMapView                 _mapView;
         [SerializeField] private BattleView                 _battleView;
         [SerializeField] private RunRewardView              _rewardView;
 
@@ -34,7 +33,6 @@ namespace SlotRogue.UI.RunGame
         // ── ViewModel ────────────────────────────────────────────────────
 
         private StartRelicSelectViewModel _startRelicSelectVM;
-        private RunMapViewModel           _mapVM;
         private RunRewardViewModel        _rewardVM;
         private RunHUDViewModel           _hudVM;
 
@@ -73,7 +71,6 @@ namespace SlotRogue.UI.RunGame
         private void CreateViewModels()
         {
             _startRelicSelectVM = new StartRelicSelectViewModel();
-            _mapVM              = new RunMapViewModel();
             _rewardVM           = new RunRewardViewModel();
             _hudVM              = new RunHUDViewModel();
         }
@@ -83,7 +80,6 @@ namespace SlotRogue.UI.RunGame
         private void BindViews()
         {
             _startRelicSelectView?.Bind(_startRelicSelectVM);
-            _mapView?.Bind(_mapVM);
             _rewardView?.Bind(_rewardVM);
             _hudView?.Bind(_hudVM);
             // BattleView는 RunBattleCompositionRoot를 직접 참조하므로 별도 Bind 불필요
@@ -94,7 +90,6 @@ namespace SlotRogue.UI.RunGame
         private void RegisterViews()
         {
             RegisterIfPresent(RunGameState.StartRelicSelect, _startRelicSelectView);
-            RegisterIfPresent(RunGameState.Map,              _mapView);
             RegisterIfPresent(RunGameState.Battle,           _battleView);
             RegisterIfPresent(RunGameState.Reward,           _rewardView);
         }
@@ -112,13 +107,6 @@ namespace SlotRogue.UI.RunGame
         {
             // 시작 유물 선택 완료 → 첫 전투로 (무한모드는 맵을 건너뜀)
             _startRelicSelectVM.ArtifactSelected += _ =>
-            {
-                _hudVM.Refresh();
-                _navigator.GoTo(RunGameState.Battle);
-            };
-
-            // (스토리모드용) 맵 노드 선택 → 전투로. 무한모드에선 Map에 진입하지 않음.
-            _mapVM.NodeSelected += _ =>
             {
                 _hudVM.Refresh();
                 _navigator.GoTo(RunGameState.Battle);
@@ -190,11 +178,6 @@ namespace SlotRogue.UI.RunGame
     public interface IStartRelicSelectView : IRunGameView
     {
         void Bind(StartRelicSelectViewModel viewModel);
-    }
-
-    public interface IRunMapView : IRunGameView
-    {
-        void Bind(RunMapViewModel viewModel);
     }
 
     public interface IRunRewardView : IRunGameView

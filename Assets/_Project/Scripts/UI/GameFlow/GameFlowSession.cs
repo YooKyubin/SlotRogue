@@ -8,7 +8,6 @@ namespace SlotRogue.UI.GameFlow
     public static class GameFlowSession
     {
         private const int DefaultPlayerMaxHp = 30;
-        private static readonly List<string> visitedMapNodeIds = new();
 
         // ── 무한모드 진행 (Infinite Mode) ───────────────────────────────
         // v1 출시 스코프. 맵/노드 없이 인덱스 기반으로 전투를 반복하며,
@@ -101,14 +100,6 @@ namespace SlotRogue.UI.GameFlow
 
         public static string SelectedArtifactId { get; private set; } = string.Empty;
 
-        public static RunMapNodeDefinition CurrentMapNode { get; private set; }
-
-        public static RunMapNodeDefinition CurrentEncounterNode { get; private set; }
-
-        public static RunMapGraphDefinition CurrentMapGraph { get; private set; }
-
-        public static IReadOnlyList<string> VisitedMapNodeIds => visitedMapNodeIds;
-
         public static bool HasStarterArtifact => !string.IsNullOrEmpty(SelectedArtifactId);
 
         public static void StartNewRun()
@@ -125,13 +116,6 @@ namespace SlotRogue.UI.GameFlow
             DefenseBonus = 0;
             SelectedArtifactId = string.Empty;
             SlotPool.Reset();
-            CurrentMapGraph = RunMapNodeCatalog.BuildDefaultGraph();
-            CurrentMapNode =
-                CurrentMapGraph.GetNode("start-0") ??
-                RunMapNodeCatalog.StartNode;
-            CurrentEncounterNode = null;
-            visitedMapNodeIds.Clear();
-            visitedMapNodeIds.Add(CurrentMapNode.NodeId);
         }
 
         public static void EnsureRunStarted()
@@ -152,47 +136,6 @@ namespace SlotRogue.UI.GameFlow
         {
             ArtifactDefinitionSO so = StarterArtifactCatalog.Get(artifactId);
             SelectArtifact(so?.ArtifactId ?? string.Empty);
-        }
-
-        public static RunMapNodeDefinition[] GetNextMapChoices()
-        {
-            EnsureRunStarted();
-            return RunMapNodeCatalog.BuildNextChoices(CurrentMapGraph, CurrentMapNode);
-        }
-
-        public static bool SelectNextMapNode(string nodeId)
-        {
-            EnsureRunStarted();
-            RunMapNodeDefinition[] choices = GetNextMapChoices();
-            RunMapNodeDefinition selectedNode = RunMapNodeCatalog.FindChoice(choices, nodeId);
-
-            if (selectedNode == null)
-            {
-                return false;
-            }
-
-            CurrentMapNode = selectedNode;
-            CurrentEncounterNode = selectedNode;
-            if (!visitedMapNodeIds.Contains(selectedNode.NodeId))
-            {
-                visitedMapNodeIds.Add(selectedNode.NodeId);
-            }
-
-            BattleIndex++;
-            return true;
-        }
-
-        public static bool IsMapNodeVisited(string nodeId)
-        {
-            EnsureRunStarted();
-            return visitedMapNodeIds.Contains(nodeId);
-        }
-
-        public static bool IsMapNodeSelectable(string nodeId)
-        {
-            EnsureRunStarted();
-            RunMapNodeDefinition[] choices = GetNextMapChoices();
-            return RunMapNodeCatalog.FindChoice(choices, nodeId) != null;
         }
 
         public static void CompleteBattleVictory(int remainingPlayerHp)
@@ -262,7 +205,8 @@ namespace SlotRogue.UI.GameFlow
                 $"진입 전투: {BattleIndex}\n" +
                 $"승리: {Victories}\n" +
                 $"보상: {RewardsClaimed}\n" +
-                $"현재 노드: {CurrentMapNode.DisplayName}\n" +
+                $"현재 전투: {CurrentBattleNumber}\n" +
+                $"전투 등급: {CurrentTier}\n" +
                 $"시작 유물: {artifact?.DisplayName ?? "없음"}\n" +
                 $"런 보너스: 피해 +{DamageBonus}, 방어 +{DefenseBonus}\n" +
                 $"슬롯 풀: {SlotPool.BuildSummary()}";

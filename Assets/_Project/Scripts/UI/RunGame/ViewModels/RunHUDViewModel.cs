@@ -14,7 +14,7 @@ namespace SlotRogue.UI.RunGame.ViewModels
 
         public int CurrentHp => GameFlowSession.PlayerCurrentHp;
         public int MaxHp => GameFlowSession.PlayerMaxHp;
-        public int BattleIndex => GameFlowSession.BattleIndex;
+        public int BattleIndex => GameFlowSession.CurrentBattleNumber;
         public int Victories => GameFlowSession.Victories;
 
         // ── 이벤트 ──────────────────────────────────────────────────────

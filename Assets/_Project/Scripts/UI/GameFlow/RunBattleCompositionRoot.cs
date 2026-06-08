@@ -620,21 +620,7 @@ namespace SlotRogue.UI.GameFlow
 
         private MonsterDefinition ResolveEncounterMonster(int rosterIndex)
         {
-            if (GameFlowSession.IsInfiniteMode)
-            {
-                return null;
-            }
-
-            RunMapNodeDefinition node = GetEncounterNode();
-            RunEncounterDefinition encounter = node?.Encounter;
-            if (encounter?.entries == null ||
-                rosterIndex < 0 ||
-                rosterIndex >= encounter.entries.Length)
-            {
-                return null;
-            }
-
-            return encounter.entries[rosterIndex].monster;
+            return null;
         }
 
         private void HandleEnemySelected(CombatParticipantId enemyId)
@@ -684,32 +670,18 @@ namespace SlotRogue.UI.GameFlow
             return default;
         }
 
-        private static RunMapNodeDefinition GetEncounterNode()
-        {
-            return GameFlowSession.CurrentEncounterNode ?? GameFlowSession.CurrentMapNode;
-        }
-
         // 무한모드는 맵 노드 없이 등급(Tier) 기반으로, 스토리모드는 기존 맵 경로로 적을 구성합니다.
         private RunEncounterRoster BuildEncounterRoster()
         {
-            if (GameFlowSession.IsInfiniteMode)
-            {
-                return RunEncounterRosterBuilder.BuildForTier(
-                    GameFlowSession.CurrentTier,
-                    GameFlowSession.CurrentBattleNumber,
-                    fallback: null);
-            }
-
-            RunMapNodeDefinition encounterNode = GetEncounterNode();
-            int floor = Mathf.Max(1, encounterNode.Floor);
-            return RunEncounterRosterBuilder.Build(encounterNode, floor);
+            return RunEncounterRosterBuilder.BuildForTier(
+                GameFlowSession.CurrentTier,
+                GameFlowSession.CurrentBattleNumber,
+                fallback: null);
         }
 
         private static string GetEncounterTitle()
         {
-            return GameFlowSession.IsInfiniteMode
-                ? GameFlowSession.CurrentEncounterTitle
-                : GetEncounterNode().DisplayName;
+            return GameFlowSession.CurrentEncounterTitle;
         }
 
         private void NavigateToReward()
