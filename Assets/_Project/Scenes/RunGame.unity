@@ -1869,7 +1869,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RunBattleCompositionRoot
   _view: {fileID: 1537428643}
-  _floatingDamageTextPrefab: {fileID: 5329079396028033193, guid: fdb67ef6b4c10b04f9df98f4d41f9362, type: 3}
+  _floatingTextLayerView: {fileID: 3782469260917267955}
+  _turnBannerView: {fileID: 3782469260917267954}
   _spinLeverView: {fileID: 1309101483}
   _slotMachineFrameView: {fileID: 1900000001}
   _slotPresentationManager: {fileID: 228715807}
@@ -2044,8 +2045,54 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2895045475200210533, guid: 661c42a39f196fe448cd6dc03a619b69, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3782469260917267955}
+    - targetCorrespondingSourceObject: {fileID: 2895045475200210533, guid: 661c42a39f196fe448cd6dc03a619b69, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3782469260917267954}
   m_SourcePrefab: {fileID: 100100000, guid: 661c42a39f196fe448cd6dc03a619b69, type: 3}
+--- !u!1 &3782469260917267953 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2895045475200210533, guid: 661c42a39f196fe448cd6dc03a619b69, type: 3}
+  m_PrefabInstance: {fileID: 3782469260917267952}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &3782469260917267954
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3782469260917267953}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fff52ff2095a49069cefb86e15cdebb7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.Combat.Presentation.TurnBannerView
+  _bannerRoot: {fileID: 3782469260917267956}
+  _defaultFont: {fileID: 0}
+  _linkTarget: {fileID: 2132137698}
+--- !u!114 &3782469260917267955
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3782469260917267953}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a1b2c3d4e5f4788a9b0c1d2e3f40002, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.Combat.Presentation.FloatingCombatTextLayerView
+  _floatingTextRoot: {fileID: 3782469260917267956}
+  _floatingDamageTextPrefab: {fileID: 1000000000000000401, guid: b4c7d9e1f2a3456789abcdef01234567, type: 3}
+  _damageAnchorRegistrySource: {fileID: 1537428643}
+--- !u!224 &3782469260917267956 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 4845591018184913282, guid: 661c42a39f196fe448cd6dc03a619b69, type: 3}
+  m_PrefabInstance: {fileID: 3782469260917267952}
+  m_PrefabAsset: {fileID: 0}
 --- !u!224 &6252447740897747008 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 2716031693084600746, guid: 156a5d44823893d42aec86fe5db73f64, type: 3}
