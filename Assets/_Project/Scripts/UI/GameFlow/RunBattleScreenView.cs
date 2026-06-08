@@ -1,10 +1,12 @@
 using System;
+using SlotRogue.Core.Combat;
+using SlotRogue.UI.Combat.Presentation;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace SlotRogue.UI.GameFlow
 {
-    public sealed class RunBattleScreenView : MonoBehaviour
+    public sealed class RunBattleScreenView : MonoBehaviour, ICombatDamageAnchorRegistry
     {
         [SerializeField] private RunBattlePlayerHudView _playerHudView;
         [SerializeField] private RunBattleStatusView _statusView;
@@ -108,6 +110,24 @@ namespace SlotRogue.UI.GameFlow
         public RectTransform GetEnemyDamageAnchor(int slotIndex)
         {
             return _worldView != null ? _worldView.GetEnemyDamageAnchor(slotIndex) : null;
+        }
+
+        public void SetEnemyDamageAnchor(CombatParticipantId participantId, RectTransform anchor)
+        {
+            _worldView?.SetEnemyDamageAnchor(participantId, anchor);
+        }
+
+        public RectTransform ResolveDamageAnchor(CombatParticipantId participantId, bool isPlayerTarget)
+        {
+            if (isPlayerTarget)
+            {
+                return PlayerDamageAnchor;
+            }
+
+            RectTransform enemyAnchor = _worldView != null
+                ? _worldView.ResolveEnemyDamageAnchor(participantId)
+                : null;
+            return enemyAnchor;
         }
 
         private void SubscribeActions()

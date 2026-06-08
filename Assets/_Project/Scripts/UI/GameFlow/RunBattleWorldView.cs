@@ -1,4 +1,5 @@
 using System;
+using SlotRogue.Core.Combat;
 using UnityEngine;
 
 namespace SlotRogue.UI.GameFlow
@@ -63,6 +64,20 @@ namespace SlotRogue.UI.GameFlow
         {
             EnsureReferences();
             return _enemyFormationView != null ? _enemyFormationView.GetDamageAnchor(slotIndex) : null;
+        }
+
+        public void SetEnemyDamageAnchor(
+            CombatParticipantId participantId,
+            RectTransform anchor)
+        {
+            EnsureReferences();
+            _enemyFormationView?.SetEnemyDamageAnchor(participantId, anchor);
+        }
+
+        public RectTransform ResolveEnemyDamageAnchor(CombatParticipantId participantId)
+        {
+            EnsureReferences();
+            return _enemyFormationView != null ? _enemyFormationView.ResolveDamageAnchor(participantId) : null;
         }
 
         private Transform ResolveBattleShakeRoot()

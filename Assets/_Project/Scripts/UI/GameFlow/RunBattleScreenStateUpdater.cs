@@ -147,6 +147,7 @@ namespace SlotRogue.UI.GameFlow
                     string deadSuffix = enemy.IsDead ? " [DOWN]" : string.Empty;
                     _vm.SetEnemySlot(
                         slotIndex,
+                        enemy.Id,
                         $"{encounterDisplayName} #{index + 1}{deadSuffix}\n{snapshot.Hp}/{enemy.MaxHp}  SH {snapshot.Shield}",
                         snapshot.Hp,
                         enemy.MaxHp,

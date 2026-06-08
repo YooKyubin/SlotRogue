@@ -28,6 +28,9 @@
 - [x] 플레이어 HP fill 바인딩 복구 및 플레이어/몬스터 HP 바 감소 방향 통일
 - [x] Sprite 없는 몬스터 HP 바 표시와 최종 공격력 ATK HUD 연결
 - [x] 전투 연출 1차 MVVM 정리 — `DamagePresenter`의 View 생성/HP tween 제거, floating text 명령 View 분리, HP fill 보간을 View로 이동
+- [x] 전투 연출 후속 정리 — `TurnBannerView` 분리, presentation command에서 enemy damage anchor 등록 제거, anchor resolve를 View registry 흐름으로 이동
+- [x] 전투 연출 View 자동 wiring 제거 — `FloatingCombatTextLayerView` / `TurnBannerView` / fallback anchor를 RunGame 씬 Inspector 수동 연결 대상으로 전환
+- [x] damage anchor fallback 제거 — 적 anchor 조회 실패 시 대체 anchor를 쓰지 않고 에러로 노출
 - [ ] Unity Editor에서 `SlotRogue > Game Flow > Migrate Run Battle Hierarchy In Place (Preserve UI)` 실행해 prefab/scene strict MVVM 적용과 기존 배치 리소스 유지 확인
 - [ ] RunBattle 수동 플레이테스트로 스핀, 타겟 선택, 승리/패배 전환 확인
 
@@ -38,6 +41,9 @@
 - 2026-06-06: 플레이어 HP 이미지는 오브젝트 이름 대신 `battle/player-hp-fill` 슬롯 ID로 복구하도록 변경했다. 플레이어/몬스터 HP 바는 `Image.Type.Filled`를 사용해 세로 게이지는 아래에서 위로, 가로 게이지는 왼쪽에서 오른쪽으로 채워지도록 통일했다.
 - 2026-06-06: Sprite가 없는 몬스터 HP 이미지는 `fillAmount`가 적용되지 않아 왼쪽 pivot 고정 + 캐시된 최대 폭 조절 방식으로 변경했다. `Attack Power Text`는 런타임과 migration에서 자동 연결하고 최종 `Damage × AttackCount`를 `ATK`로 표시한다.
 - 2026-06-08: 전투 연출 Presenter를 MVVM에 더 가깝게 정리했다. `DamagePresenter`는 최종 스냅샷 반영과 floating damage 요청만 수행하고, `FloatingCombatTextLayerView`가 prefab 생성·anchor 배치·턴 배너 표시를 담당한다. `CombatViewModel.Changed`를 화면 갱신 트리거로 연결하고, 플레이어/몬스터 HP fill 보간은 각 View가 처리한다.
+- 2026-06-08: `FloatingCombatTextLayerView`에서 turn banner 생성을 제거하고 `TurnBannerView`로 분리했다. `ICombatPresentationCommands`는 floating damage와 turn banner 요청만 남겼고, enemy damage anchor resolve는 `ICombatDamageAnchorRegistry` / `RunBattleScreenView` / `EnemyFormationView` 흐름으로 옮겼다.
+- 2026-06-08: 사용자가 RunGame 씬을 수동 wiring하기로 결정해, `RunBattleCompositionRoot`의 런타임 `AddComponent`와 임시 damage anchor 생성 코드를 제거했다. 이제 전투 연출 View 참조와 floating text prefab/root/anchor registry는 Inspector에서 명시적으로 연결해야 한다.
+- 2026-06-09: damage anchor fallback을 제거했다. 적 participantId에 대응하는 slot anchor를 찾지 못하면 floating damage를 표시하지 않고 에러 로그로 세팅 문제를 드러낸다.
 
 - 엄격한 MVVM 기준은 “ViewModel이 UnityEngine과 화면 오브젝트를 모르는 것”으로 둔다. Unity 씬 생명주기와 입력 연결은 `CompositionRoot`가 담당한다.
 - 카메라 셰이크는 world root를 기준으로 적용한다. 배경/몬스터를 함께 흔들지, 몬스터만 흔들지는 기존 화면 유지가 끝난 뒤 별도 migration으로 다시 판단한다.

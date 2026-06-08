@@ -1,4 +1,3 @@
-using SlotRogue.Core.Combat;
 using UnityEngine;
 
 namespace SlotRogue.UI.Combat.Presentation
@@ -16,12 +15,5 @@ namespace SlotRogue.UI.Combat.Presentation
         public GameObject LinkTarget { get; }
 
         public ICombatPresentationCommands Commands { get; }
-
-        public void SetEnemyDamageAnchor(
-            CombatParticipantId participantId,
-            RectTransform anchor)
-        {
-            Commands.SetEnemyDamageAnchor(participantId, anchor);
-        }
     }
 }

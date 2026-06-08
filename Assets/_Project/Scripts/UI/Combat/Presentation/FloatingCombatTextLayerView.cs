@@ -1,49 +1,20 @@
-using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using SlotRogue.Core.Combat;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace SlotRogue.UI.Combat.Presentation
 {
-    public sealed class FloatingCombatTextLayerView : MonoBehaviour, ICombatPresentationCommands
+    public sealed class FloatingCombatTextLayerView : MonoBehaviour
     {
-        private readonly Dictionary<int, RectTransform> _enemyDamageAnchors = new();
-
         [SerializeField] private RectTransform _floatingTextRoot;
         [SerializeField] private FloatingDamageTextView _floatingDamageTextPrefab;
-        [SerializeField] private RectTransform _playerDamageAnchor;
-        [SerializeField] private RectTransform _fallbackMonsterDamageAnchor;
-        [SerializeField] private Font _defaultFont;
-        [SerializeField] private GameObject _linkTarget;
+        [SerializeField] private MonoBehaviour _damageAnchorRegistrySource;
 
-        public void Bind(
-            Transform floatingTextRoot,
-            FloatingDamageTextView floatingDamageTextPrefab,
-            RectTransform playerDamageAnchor,
-            RectTransform fallbackMonsterDamageAnchor,
-            Font defaultFont,
-            GameObject linkTarget)
+        private ICombatDamageAnchorRegistry _damageAnchorRegistry;
+
+        private void Awake()
         {
-            _floatingTextRoot = floatingTextRoot as RectTransform;
-            _floatingDamageTextPrefab = floatingDamageTextPrefab;
-            _playerDamageAnchor = playerDamageAnchor;
-            _fallbackMonsterDamageAnchor = fallbackMonsterDamageAnchor;
-            _defaultFont = defaultFont;
-            _linkTarget = linkTarget;
-        }
-
-        public void SetEnemyDamageAnchor(
-            CombatParticipantId participantId,
-            RectTransform anchor)
-        {
-            if (!participantId.IsValid || anchor == null)
-            {
-                return;
-            }
-
-            _enemyDamageAnchors[participantId.Value] = anchor;
+            ResolveDamageAnchorRegistry();
         }
 
         public async UniTask ShowFloatingDamageAsync(
@@ -67,10 +38,15 @@ namespace SlotRogue.UI.Combat.Presentation
                 return;
             }
 
-            RectTransform anchor = ResolveDamageAnchor(request.TargetParticipantId, request.IsPlayerTarget);
+            ResolveDamageAnchorRegistry();
+            RectTransform anchor = _damageAnchorRegistry != null
+                ? _damageAnchorRegistry.ResolveDamageAnchor(request.TargetParticipantId, request.IsPlayerTarget)
+                : null;
             if (anchor == null)
             {
-                Debug.LogWarning($"[Presentation] Missing {(request.IsPlayerTarget ? "player" : "monster")} damage anchor.");
+                Debug.LogError(
+                    $"[Presentation] Missing {(request.IsPlayerTarget ? "player" : "monster")} damage anchor " +
+                    $"for participant {request.TargetParticipantId.Value}.");
                 return;
             }
 
@@ -88,72 +64,14 @@ namespace SlotRogue.UI.Combat.Presentation
             await damageText.Play(request.Amount, request.IsCritical, anchorKind, cancellationToken);
         }
 
-        public async UniTask ShowTurnBannerAsync(
-            string message,
-            float duration,
-            CancellationToken cancellationToken)
+        private void ResolveDamageAnchorRegistry()
         {
-            if (string.IsNullOrEmpty(message))
+            if (_damageAnchorRegistry != null)
             {
                 return;
             }
 
-            if (_floatingTextRoot == null)
-            {
-                await CombatPresentationTweens.DelayAsync(duration, ResolveLinkTarget(), cancellationToken);
-                return;
-            }
-
-            var bannerObject = new GameObject("Turn Banner", typeof(RectTransform));
-            RectTransform rectTransform = bannerObject.GetComponent<RectTransform>();
-            rectTransform.SetParent(_floatingTextRoot, false);
-            rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-            rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-            rectTransform.pivot = new Vector2(0.5f, 0.5f);
-            rectTransform.anchoredPosition = new Vector2(0f, 180f);
-            rectTransform.sizeDelta = new Vector2(700f, 80f);
-
-            var text = bannerObject.AddComponent<Text>();
-            text.font = _defaultFont;
-            text.fontSize = 40;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.color = new Color32(255, 230, 140, 255);
-            text.text = message;
-
-            try
-            {
-                await CombatPresentationTweens.DelayAsync(duration, ResolveLinkTarget(), cancellationToken);
-            }
-            finally
-            {
-                if (bannerObject != null)
-                {
-                    Destroy(bannerObject);
-                }
-            }
-        }
-
-        private RectTransform ResolveDamageAnchor(
-            CombatParticipantId participantId,
-            bool isPlayerTarget)
-        {
-            if (isPlayerTarget)
-            {
-                return _playerDamageAnchor;
-            }
-
-            if (participantId.IsValid &&
-                _enemyDamageAnchors.TryGetValue(participantId.Value, out RectTransform anchor))
-            {
-                return anchor;
-            }
-
-            return _fallbackMonsterDamageAnchor;
-        }
-
-        private GameObject ResolveLinkTarget()
-        {
-            return _linkTarget != null ? _linkTarget : gameObject;
+            _damageAnchorRegistry = _damageAnchorRegistrySource as ICombatDamageAnchorRegistry;
         }
 
         private static void AlignFloatingTextToAnchor(

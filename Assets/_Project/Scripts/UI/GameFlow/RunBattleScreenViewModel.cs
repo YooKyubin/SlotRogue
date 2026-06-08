@@ -1,4 +1,5 @@
 using System;
+using SlotRogue.Core.Combat;
 
 namespace SlotRogue.UI.GameFlow
 {
@@ -137,6 +138,7 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetEnemySlot(
             int slotIndex,
+            CombatParticipantId participantId,
             string hudText,
             int hp,
             int maxHp,
@@ -151,6 +153,7 @@ namespace SlotRogue.UI.GameFlow
 
             _enemySlots[slotIndex] = new RunBattleEnemySlotState(
                 slotIndex,
+                participantId,
                 active: true,
                 hudText ?? string.Empty,
                 Math.Max(0, hp),
@@ -308,6 +311,7 @@ namespace SlotRogue.UI.GameFlow
 
         public RunBattleEnemySlotState(
             int slotIndex,
+            CombatParticipantId participantId,
             bool active,
             string hudText,
             int hp,
@@ -317,6 +321,7 @@ namespace SlotRogue.UI.GameFlow
             StatusEffectViewData[] statuses = null)
         {
             SlotIndex = slotIndex;
+            ParticipantId = participantId;
             Active = active;
             HudText = hudText ?? string.Empty;
             Hp = hp;
@@ -327,6 +332,8 @@ namespace SlotRogue.UI.GameFlow
         }
 
         public int SlotIndex { get; }
+
+        public CombatParticipantId ParticipantId { get; }
 
         public bool Active { get; }
 
@@ -346,6 +353,7 @@ namespace SlotRogue.UI.GameFlow
         {
             return new RunBattleEnemySlotState(
                 slotIndex,
+                default,
                 active: false,
                 string.Empty,
                 hp: 0,

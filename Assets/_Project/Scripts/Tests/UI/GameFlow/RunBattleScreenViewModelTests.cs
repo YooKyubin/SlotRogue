@@ -38,6 +38,7 @@ namespace SlotRogue.UI.Tests.GameFlow
 
             viewModel.SetEnemySlot(
                 slotIndex: 1,
+                participantId: new CombatParticipantId(101),
                 hudText: "Enemy\n8/10",
                 hp: 8,
                 maxHp: 10,
@@ -53,6 +54,7 @@ namespace SlotRogue.UI.Tests.GameFlow
 
             Assert.That(hidden.Active, Is.False);
             Assert.That(shown.Active, Is.True);
+            Assert.That(shown.ParticipantId.Value, Is.EqualTo(101));
             Assert.That(shown.HudText, Is.EqualTo("Enemy\n8/10"));
             Assert.That(shown.Hp, Is.EqualTo(8));
             Assert.That(shown.MaxHp, Is.EqualTo(10));
@@ -80,6 +82,7 @@ namespace SlotRogue.UI.Tests.GameFlow
             var viewModel = new RunBattleScreenViewModel(slotCellCount: 0, enemySlotCount: 1);
             viewModel.SetEnemySlot(
                 slotIndex: 0,
+                participantId: new CombatParticipantId(102),
                 hudText: "Enemy",
                 hp: 10,
                 maxHp: 10,

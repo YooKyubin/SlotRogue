@@ -1,10 +1,14 @@
 using System;
+using System.Collections.Generic;
+using SlotRogue.Core.Combat;
 using UnityEngine;
 
 namespace SlotRogue.UI.GameFlow
 {
     public sealed class EnemyFormationView : MonoBehaviour
     {
+        private readonly Dictionary<int, int> _slotIndexByParticipantId = new();
+
         [SerializeField] private MonsterView[] _monsterViews = Array.Empty<MonsterView>();
         [SerializeField] private EnemyFormationSlotView[] _formationSlotViews = Array.Empty<EnemyFormationSlotView>();
 
@@ -38,12 +42,18 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
+            _slotIndexByParticipantId.Clear();
             for (int index = 0; index < slotCount; index++)
             {
                 bool hasState = enemySlots != null && index < enemySlots.Length;
                 RunBattleEnemySlotState state = hasState
                     ? enemySlots[index]
                     : RunBattleEnemySlotState.Hidden(index);
+
+                if (state.Active && state.ParticipantId.IsValid)
+                {
+                    _slotIndexByParticipantId[state.ParticipantId.Value] = state.SlotIndex;
+                }
 
                 if (TryGetMonsterView(index, out MonsterView monsterView))
                 {
@@ -102,6 +112,36 @@ namespace SlotRogue.UI.GameFlow
             return TryGetFormationSlotView(slotIndex, out EnemyFormationSlotView formationSlotView)
                 ? formationSlotView.DamageAnchor
                 : null;
+        }
+
+        public void SetEnemyDamageAnchor(
+            CombatParticipantId participantId,
+            RectTransform anchor)
+        {
+            if (!participantId.IsValid || anchor == null)
+            {
+                return;
+            }
+
+            for (int index = 0; index < SlotCount; index++)
+            {
+                if (GetDamageAnchor(index) == anchor)
+                {
+                    _slotIndexByParticipantId[participantId.Value] = index;
+                    return;
+                }
+            }
+        }
+
+        public RectTransform ResolveDamageAnchor(CombatParticipantId participantId)
+        {
+            if (participantId.IsValid &&
+                _slotIndexByParticipantId.TryGetValue(participantId.Value, out int slotIndex))
+            {
+                return GetDamageAnchor(slotIndex);
+            }
+
+            return GetDamageAnchor(Mathf.Min(1, Mathf.Max(0, SlotCount - 1)));
         }
 
         private static void RenderFormationSlot(

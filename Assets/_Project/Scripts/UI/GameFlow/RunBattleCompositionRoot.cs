@@ -12,7 +12,6 @@ using SlotRogue.UI.Combat.Presentation;
 using SlotRogue.UI.SlotPresentation;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 #if DOTWEEN
 using DG.Tweening;
 #endif
@@ -44,7 +43,8 @@ namespace SlotRogue.UI.GameFlow
         private RunBattleEnemySelectionBinder _enemySelectionBinder;
 
         [SerializeField] private RunBattleScreenView _view;
-        [SerializeField] private FloatingDamageTextView _floatingDamageTextPrefab;
+        [SerializeField] private FloatingCombatTextLayerView _floatingTextLayerView;
+        [SerializeField] private TurnBannerView _turnBannerView;
         [SerializeField] private SlotLeverView _spinLeverView;
         [SerializeField] private SlotMachineFrameView _slotMachineFrameView;
         [SerializeField] private SlotPresentationManager _slotPresentationManager;
@@ -222,7 +222,6 @@ namespace SlotRogue.UI.GameFlow
                 _battle,
                 _view,
                 _encounterRoster,
-                _presentationHost,
                 encounterNode,
                 () => _flowController.IsBusy,
                 () => _spinRoutineRunning,
@@ -236,77 +235,21 @@ namespace SlotRogue.UI.GameFlow
         private void InitializePresentationStack()
         {
             _presentationCts = new CancellationTokenSource();
-            Transform floatingTextRoot = _view.FloatingTextRoot ?? _view.transform;
-            RectTransform playerDamageAnchor = _view.PlayerDamageAnchor
-                ?? ResolveDamageAnchor(floatingTextRoot, "player-damage-anchor", new Vector2(0f, -120f));
-            RectTransform monsterDamageAnchor = _view.GetEnemyDamageAnchor(1);
-            if (monsterDamageAnchor == null)
+
+            if (_floatingTextLayerView == null)
             {
-                monsterDamageAnchor = ResolveDamageAnchor(
-                    floatingTextRoot, "monster-damage-anchor", new Vector2(0f, 140f));
-                Debug.LogWarning(
-                    "[RunBattleCompositionRoot] Center monster damage anchor missing. " +
-                    "Using a temporary overlay anchor for this play session.");
+                Debug.LogError("[RunBattleCompositionRoot] FloatingCombatTextLayerView is not assigned.");
             }
 
-            FloatingCombatTextLayerView floatingTextLayer = EnsureFloatingTextLayerView(floatingTextRoot);
-            floatingTextLayer.Bind(
-                floatingTextRoot,
-                _floatingDamageTextPrefab,
-                playerDamageAnchor,
-                monsterDamageAnchor,
-                GetDefaultFont(),
-                gameObject);
+            if (_turnBannerView == null)
+            {
+                Debug.LogError("[RunBattleCompositionRoot] TurnBannerView is not assigned.");
+            }
 
-            _presentationHost = new CombatPresentationHost(gameObject, floatingTextLayer);
+            var commands = new CombatPresentationCommandDispatcher(_floatingTextLayerView, _turnBannerView);
+            _presentationHost = new CombatPresentationHost(gameObject, commands);
             CombatPresentationPipeline pipeline = CombatPresentationPipeline.CreateDefault(_presentationHost);
             _flowController = new BattleFlowController(pipeline, _combatViewModel);
-        }
-
-        private static FloatingCombatTextLayerView EnsureFloatingTextLayerView(Transform floatingTextRoot)
-        {
-            Transform target = floatingTextRoot != null ? floatingTextRoot : null;
-            if (target != null &&
-                target.TryGetComponent(out FloatingCombatTextLayerView existing))
-            {
-                return existing;
-            }
-
-            GameObject layerObject = target != null ? target.gameObject : new GameObject("Floating Combat Text Layer");
-            return layerObject.AddComponent<FloatingCombatTextLayerView>();
-        }
-
-        private static RectTransform ResolveDamageAnchor(
-            Transform overlayRoot,
-            string anchorName,
-            Vector2 defaultPosition)
-        {
-            if (overlayRoot == null)
-            {
-                return null;
-            }
-
-            Transform existing = overlayRoot.Find(anchorName);
-            if (existing is RectTransform existingRect)
-            {
-                return existingRect;
-            }
-
-            var anchorObject = new GameObject(anchorName, typeof(RectTransform));
-            RectTransform anchor = anchorObject.GetComponent<RectTransform>();
-            anchor.SetParent(overlayRoot, false);
-            anchor.anchorMin = new Vector2(0.5f, 0.5f);
-            anchor.anchorMax = new Vector2(0.5f, 0.5f);
-            anchor.pivot = new Vector2(0.5f, 0.5f);
-            anchor.anchoredPosition = defaultPosition;
-            anchor.sizeDelta = Vector2.zero;
-            return anchor;
-        }
-
-        private static Font GetDefaultFont()
-        {
-            Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            return font != null ? font : Resources.GetBuiltinResource<Font>("Arial.ttf");
         }
 
         private void HandleSpinClicked()

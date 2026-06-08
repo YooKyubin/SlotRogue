@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using SlotRogue.Core.Combat;
 using SlotRogue.Data.Combat;
 using SlotRogue.Data.GameFlow;
-using SlotRogue.UI.Combat.Presentation;
 using UnityEngine;
 
 namespace SlotRogue.UI.GameFlow
@@ -13,7 +12,6 @@ namespace SlotRogue.UI.GameFlow
         private readonly BattleSystem _battle;
         private readonly RunBattleScreenView _view;
         private readonly RunEncounterRoster _encounterRoster;
-        private readonly CombatPresentationHost _presentationHost;
         private readonly RunMapNodeDefinition _encounterNode;
         private readonly Func<bool> _isBusy;
         private readonly Func<bool> _isSpinRunning;
@@ -25,7 +23,6 @@ namespace SlotRogue.UI.GameFlow
             BattleSystem battle,
             RunBattleScreenView view,
             RunEncounterRoster encounterRoster,
-            CombatPresentationHost presentationHost,
             RunMapNodeDefinition encounterNode,
             Func<bool> isBusy,
             Func<bool> isSpinRunning,
@@ -34,7 +31,6 @@ namespace SlotRogue.UI.GameFlow
             _battle = battle ?? throw new ArgumentNullException(nameof(battle));
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _encounterRoster = encounterRoster ?? throw new ArgumentNullException(nameof(encounterRoster));
-            _presentationHost = presentationHost ?? throw new ArgumentNullException(nameof(presentationHost));
             _encounterNode = encounterNode;
             _isBusy = isBusy ?? throw new ArgumentNullException(nameof(isBusy));
             _isSpinRunning = isSpinRunning ?? throw new ArgumentNullException(nameof(isSpinRunning));
@@ -59,8 +55,6 @@ namespace SlotRogue.UI.GameFlow
                 int slotIndex = RunBattleScreenStateUpdater.ResolveHudSlotIndex(
                     _encounterRoster, rosterIndex, slotCount, usedFormationSlots);
                 _view.SetEnemySlotClickHandler(slotIndex, () => HandleEnemySelected(enemyId));
-                RectTransform anchor = ResolveEnemyDamageAnchor(slotIndex);
-                _presentationHost.SetEnemyDamageAnchor(enemyId, anchor);
             }
 
             if (_battle.Enemies.Count > slotCount)
@@ -109,19 +103,6 @@ namespace SlotRogue.UI.GameFlow
 
             _selectedEnemyId = default;
             return default;
-        }
-
-        private RectTransform ResolveEnemyDamageAnchor(int slotIndex)
-        {
-            RectTransform anchor = _view.GetEnemyDamageAnchor(slotIndex);
-            if (anchor == null)
-            {
-                Debug.LogError(
-                    $"[RunBattleCompositionRoot] Damage anchor missing for formation slot {slotIndex}. " +
-                    "Run menu: SlotRogue > Game Flow > Rebuild Scene UI Prefabs.");
-            }
-
-            return anchor;
         }
 
         private MonsterDefinition ResolveEncounterMonster(int rosterIndex)
