@@ -98,6 +98,57 @@ namespace SlotRogue.Core.Tests.Combat
         }
 
         [Test]
+        public void ApplyPlayerTurn_PlayerAndEnemyAlreadyDead_EndsDefeat()
+        {
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30, currentHp: 0);
+            CombatParticipant monster = CombatParticipantFactory.CreateEnemy(maxHp: 10, currentHp: 0);
+            _battle.StartBattle(player, monster, System.Array.Empty<CombatEffect>());
+
+            BattleApplyResult result = _battle.ApplyPlayerTurn(System.Array.Empty<CombatEffect>());
+
+            Assert.That(result.Phase, Is.EqualTo(BattlePhase.Ended));
+            Assert.That(result.EndReason, Is.EqualTo(BattleEndReason.Defeat));
+            Assert.That(_battle.EndReason, Is.EqualTo(BattleEndReason.Defeat));
+        }
+
+        [Test]
+        public void ApplyPlayerTurn_PlayerActionSkipped_StillEndsTurnResetsEnemyShieldAndRunsEnemyTurn()
+        {
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30);
+            CombatParticipant monster = CombatParticipantFactory.CreateEnemy(maxHp: 20);
+            var schedule = new MonsterTurnSchedule(
+                new[] { new CombatEffect(CombatEffectKind.Shield, 4, CombatEffectTarget.Self) },
+                new[] { new CombatEffect(CombatEffectKind.Damage, 3, CombatEffectTarget.Enemy) });
+            _battle.StartBattle(player, monster, schedule);
+
+            _battle.ApplyPlayerTurn(new[]
+            {
+                CombatEffect.ApplyStatus(
+                    new StatusEffectSpec(StatusEffectKind.Freeze, duration: 2, magnitude: 0, StatusStackMode.Refresh),
+                    CombatEffectTarget.Self),
+            });
+            Assert.That(FirstEnemy.Shield, Is.EqualTo(4));
+
+            BattleApplyResult result = _battle.ApplyPlayerTurn(new[]
+            {
+                new CombatEffect(CombatEffectKind.Damage, 99, CombatEffectTarget.Enemy),
+            });
+
+            Assert.That(result.Phase, Is.EqualTo(BattlePhase.PlayerTurn));
+            Assert.That(FirstEnemy.CurrentHp, Is.EqualTo(20));
+            Assert.That(FirstEnemy.Shield, Is.Zero);
+            Assert.That(_battle.Player.CurrentHp, Is.EqualTo(27));
+            Assert.That(_battle.Events, Has.Some.Matches<CombatEvent>(e =>
+                e.Kind == CombatEventKind.ActionSkipped &&
+                e.StatusEffectKind == StatusEffectKind.Freeze &&
+                e.IsPlayerParticipant));
+            Assert.That(_battle.Events.Count(e =>
+                e.Kind == CombatEventKind.StatusExpired &&
+                e.StatusEffectKind == StatusEffectKind.Freeze &&
+                e.IsPlayerParticipant), Is.EqualTo(1));
+        }
+
+        [Test]
         public void ApplyPlayerTurn_ResetsMonsterShieldAfterPlayerEffects()
         {
             CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30);

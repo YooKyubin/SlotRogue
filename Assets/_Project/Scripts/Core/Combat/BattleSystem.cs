@@ -110,42 +110,23 @@ namespace SlotRogue.Core.Combat
 
             SetPhase(BattlePhase.Resolving);
 
-            RunParticipantTurnStart(_player);
-            if (TryEndBattle())
+            if (RunBattleStep(() => RunParticipantTurnStart(_player)))
             {
                 return AcceptedResult();
             }
 
-            if (TrySkipParticipantAction(_player))
-            {
-                RunParticipantTurnEnd(_player);
-                if (TryEndBattle())
-                {
-                    return AcceptedResult();
-                }
-
-                ResetShieldByTeam(CombatTeam.Enemy);
-                RunEnemyTurn();
-                return AcceptedResult();
-            }
-
-            ApplyEffects(playerEffects ?? Array.Empty<CombatEffect>(), _player, selectedTargetId);
-
-            if (TryEndBattleAfterPlayerTurn())
+            if (!TrySkipParticipantAction(_player) &&
+                ApplyEffects(playerEffects ?? Array.Empty<CombatEffect>(), _player, selectedTargetId))
             {
                 return AcceptedResult();
             }
 
-            RunParticipantTurnEnd(_player);
-
-            if (TryEndBattleAfterPlayerTurn())
+            if (RunBattleStep(() => RunParticipantTurnEnd(_player)))
             {
                 return AcceptedResult();
             }
 
-            ResetShieldByTeam(CombatTeam.Enemy);
-
-            if (TryEndBattleAfterPlayerTurn())
+            if (RunBattleStep(() => ResetShieldByTeam(CombatTeam.Enemy)))
             {
                 return AcceptedResult();
             }
@@ -167,48 +148,26 @@ namespace SlotRogue.Core.Combat
                     continue;
                 }
 
-                RunParticipantTurnStart(enemyState.Participant);
-                if (TryEndBattle())
+                if (RunBattleStep(() => RunParticipantTurnStart(enemyState.Participant)))
                 {
                     return;
                 }
 
-                if (TrySkipParticipantAction(enemyState.Participant))
-                {
-                    enemyState.Schedule.ConsumeUpcomingTurn();
-                    RunParticipantTurnEnd(enemyState.Participant);
-                    if (TryEndBattle())
-                    {
-                        return;
-                    }
-
-                    continue;
-                }
-
+                bool shouldSkipAction = TrySkipParticipantAction(enemyState.Participant);
                 IReadOnlyList<CombatEffect> enemyTurnActions = enemyState.Schedule.ConsumeUpcomingTurn();
-                ApplyEffects(enemyTurnActions, enemyState.Participant, default);
-
-                if (TryEndBattle())
+                if (!shouldSkipAction &&
+                    ApplyEffects(enemyTurnActions, enemyState.Participant, default))
                 {
                     return;
                 }
 
-                RunParticipantTurnEnd(enemyState.Participant);
-
-                if (TryEndBattle())
+                if (RunBattleStep(() => RunParticipantTurnEnd(enemyState.Participant)))
                 {
                     return;
                 }
             }
 
-            if (TryEndBattle())
-            {
-                return;
-            }
-
-            ResetShieldByTeam(CombatTeam.Player);
-
-            if (TryEndBattle())
+            if (RunBattleStep(() => ResetShieldByTeam(CombatTeam.Player)))
             {
                 return;
             }
@@ -216,7 +175,19 @@ namespace SlotRogue.Core.Combat
             SetPhase(BattlePhase.PlayerTurn);
         }
 
-        private void ApplyEffects(
+        private bool RunBattleStep(Action step)
+        {
+            if (CurrentPhase == BattlePhase.Ended)
+            {
+                return true;
+            }
+
+            step();
+
+            return TryEndBattle();
+        }
+
+        private bool ApplyEffects(
             IReadOnlyList<CombatEffect> effects,
             CombatParticipant source,
             CombatParticipantId selectedTargetId)
@@ -246,10 +217,12 @@ namespace SlotRogue.Core.Combat
 
                     if (TryEndBattle())
                     {
-                        return;
+                        return true;
                     }
                 }
             }
+
+            return false;
         }
 
         private EffectApplyResult ApplyEffectToTarget(CombatEffect effect, CombatParticipant target)
@@ -276,23 +249,6 @@ namespace SlotRogue.Core.Combat
         private void RunParticipantTurnEnd(CombatParticipant participant)
         {
             _statusEffectEngine.TickTurnEnd(participant, CurrentPhase, _events);
-        }
-
-        private bool TryEndBattleAfterPlayerTurn()
-        {
-            if (AreAllEnemiesDefeated())
-            {
-                EndBattle(BattleEndReason.Victory);
-                return true;
-            }
-
-            if (IsPlayerTeamDefeated())
-            {
-                EndBattle(BattleEndReason.Defeat);
-                return true;
-            }
-
-            return false;
         }
 
         private bool TryEndBattle()
