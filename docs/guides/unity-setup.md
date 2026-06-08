@@ -35,6 +35,15 @@ Unity Hub에서 `Open` → 클론한 폴더 선택 → 첫 임포트(수 분 소
 - **Version Control Mode**: `Visible Meta Files` — `.meta` 파일이 보이고 커밋 대상이 됨.
 - **Default Behavior Mode**: `3D` 또는 `2D` (프로젝트 결정 — 슬롯 게임 특성상 `2D` 가능성 높음, 결정 시 ADR로 박제).
 
+### Git / Smart Merge
+
+- repo 루트 [`/.gitattributes`](../../.gitattributes)는 Unity serialized YAML(`.unity`, `.prefab`, `.asset` 등)에 `merge=unityyamlmerge`를 지정한다.
+- 각 머신의 Git에는 UnityYAMLMerge merge driver를 1회 설정해야 한다. Unity 설치 경로가 다르면 `unityyamlmerge.cmd` 위치를 맞춘다.
+  ```powershell
+  git config merge.unityyamlmerge.name "Unity Smart Merge"
+  git config merge.unityyamlmerge.driver '"C:\Program Files\Unity\Hub\Editor\6000.3.10f1\Editor\Data\Tools\UnityYAMLMerge.exe" merge -p %O %B %A %A'
+  ```
+
 ### Player (Android)
 
 - **Scripting Backend**: `IL2CPP`

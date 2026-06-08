@@ -20,7 +20,7 @@ tab_width                = 4
 charset                  = utf-8
 trim_trailing_whitespace = true
 insert_final_newline     = true
-end_of_line              = crlf
+end_of_line              = lf
 
 # =============================================================================
 # Markdown — keep trailing spaces (used for hard line breaks)

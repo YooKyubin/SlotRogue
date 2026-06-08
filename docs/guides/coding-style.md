@@ -368,6 +368,7 @@ repo 루트 [`/.editorconfig`](../../.editorconfig)가 **유일한 권위**다. 
 핵심 설정 요약 (자세히는 `.editorconfig`):
 
 - **들여쓰기 4 spaces, 탭 금지, UTF-8.**
+- **줄끝은 LF.** Git 정규화 기준은 repo 루트 [`/.gitattributes`](../../.gitattributes), 편집기 저장 기준은 [`/.editorconfig`](../../.editorconfig)가 고정한다.
 - **Allman braces** — 함수·타입·`if`/`for`/`while` 모두 `{`를 다음 줄로.
 - **단일 문장에도 항상 중괄호.** `if (cond) Do();` 금지.
 - **`var` 정책**은 §`var` 사용 정책에 맞춰 인코딩.
