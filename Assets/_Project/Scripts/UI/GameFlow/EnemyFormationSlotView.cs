@@ -21,6 +21,7 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private Text _hudText;
         [SerializeField] private Image _hpFill;
         [SerializeField] private Image _statusBackground;
+        [SerializeField] private ShieldGaugeView _shieldGauge;
         [SerializeField] private RectTransform _damageAnchor;
         [SerializeField] private Text _placeholderText;
         [SerializeField] private Collider2D _clickCollider;
@@ -54,6 +55,7 @@ namespace SlotRogue.UI.GameFlow
             Text hudText,
             Image hpFill,
             Image statusBackground,
+            ShieldGaugeView shieldGauge,
             RectTransform damageAnchor,
             Text placeholderText,
             Collider2D clickCollider,
@@ -69,6 +71,7 @@ namespace SlotRogue.UI.GameFlow
             _hpFillLayoutInitialized = false;
             _hpFillRendered = false;
             _statusBackground = statusBackground;
+            _shieldGauge = shieldGauge;
             _damageAnchor = damageAnchor;
             _placeholderText = placeholderText;
             _clickCollider = clickCollider;
@@ -169,6 +172,14 @@ namespace SlotRogue.UI.GameFlow
                 _hpFillMaxWidth * ratio);
             _hpFillRendered = true;
 #endif
+        }
+
+        public void SetShield(int shield)
+        {
+            if (_shieldGauge != null)
+            {
+                _shieldGauge.Render(shield);
+            }
         }
 
         public void SetStatusEffects(IReadOnlyList<StatusEffectViewData> statuses)

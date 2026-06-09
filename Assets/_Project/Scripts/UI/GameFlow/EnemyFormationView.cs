@@ -131,6 +131,7 @@ namespace SlotRogue.UI.GameFlow
 
             formationSlotView.SetHud(state.Selected ? $"> {state.HudText}" : state.HudText);
             formationSlotView.SetHpFill(state.Hp, state.MaxHp);
+            formationSlotView.SetShield(state.Shield);
             formationSlotView.SetStatusEffects(state.Statuses);
             formationSlotView.SetSelected(state.Selected);
             formationSlotView.SetInteractable(state.Interactable);

@@ -42,6 +42,7 @@ namespace SlotRogue.UI.Tests.GameFlow
                 hudText: "Enemy\n8/10",
                 hp: 8,
                 maxHp: 10,
+                shield: 3,
                 selected: true,
                 interactable: false,
                 statuses: new[]
@@ -58,6 +59,7 @@ namespace SlotRogue.UI.Tests.GameFlow
             Assert.That(shown.HudText, Is.EqualTo("Enemy\n8/10"));
             Assert.That(shown.Hp, Is.EqualTo(8));
             Assert.That(shown.MaxHp, Is.EqualTo(10));
+            Assert.That(shown.Shield, Is.EqualTo(3));
             Assert.That(shown.Selected, Is.True);
             Assert.That(shown.Interactable, Is.False);
             Assert.That(shown.Statuses, Has.Length.EqualTo(1));
@@ -86,6 +88,7 @@ namespace SlotRogue.UI.Tests.GameFlow
                 hudText: "Enemy",
                 hp: 10,
                 maxHp: 10,
+                shield: 0,
                 selected: false,
                 interactable: true,
                 statuses: new[]

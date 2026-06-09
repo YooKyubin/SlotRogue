@@ -142,6 +142,7 @@ namespace SlotRogue.UI.GameFlow
             string hudText,
             int hp,
             int maxHp,
+            int shield,
             bool selected,
             bool interactable,
             StatusEffectViewData[] statuses = null)
@@ -158,6 +159,7 @@ namespace SlotRogue.UI.GameFlow
                 hudText ?? string.Empty,
                 Math.Max(0, hp),
                 Math.Max(1, maxHp),
+                Math.Max(0, shield),
                 selected,
                 interactable,
                 statuses);
@@ -316,6 +318,7 @@ namespace SlotRogue.UI.GameFlow
             string hudText,
             int hp,
             int maxHp,
+            int shield,
             bool selected,
             bool interactable,
             StatusEffectViewData[] statuses = null)
@@ -326,6 +329,7 @@ namespace SlotRogue.UI.GameFlow
             HudText = hudText ?? string.Empty;
             Hp = hp;
             MaxHp = maxHp;
+            Shield = shield;
             Selected = selected;
             Interactable = interactable;
             _statuses = Clone(statuses);
@@ -343,6 +347,8 @@ namespace SlotRogue.UI.GameFlow
 
         public int MaxHp { get; }
 
+        public int Shield { get; }
+
         public bool Selected { get; }
 
         public bool Interactable { get; }
@@ -358,6 +364,7 @@ namespace SlotRogue.UI.GameFlow
                 string.Empty,
                 hp: 0,
                 maxHp: 1,
+                shield: 0,
                 selected: false,
                 interactable: false,
                 statuses: null);

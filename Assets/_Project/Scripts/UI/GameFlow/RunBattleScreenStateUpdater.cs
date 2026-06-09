@@ -96,7 +96,7 @@ namespace SlotRogue.UI.GameFlow
         internal void UpdatePlayerHud(CombatParticipant player, CombatViewModel combatViewModel)
         {
             _vm.SetPlayerHud(
-                $"{combatViewModel.PlayerHp}/{player.MaxHp}\n{combatViewModel.PlayerShield}",
+                $"{combatViewModel.PlayerHp}/{player.MaxHp}",
                 combatViewModel.PlayerHp,
                 player.MaxHp,
                 combatViewModel.PlayerShield,
@@ -148,9 +148,10 @@ namespace SlotRogue.UI.GameFlow
                     _vm.SetEnemySlot(
                         slotIndex,
                         enemy.Id,
-                        $"{encounterDisplayName} #{index + 1}{deadSuffix}\n{snapshot.Hp}/{enemy.MaxHp}  SH {snapshot.Shield}",
+                        $"{encounterDisplayName} #{index + 1}{deadSuffix}\n{snapshot.Hp}/{enemy.MaxHp}",
                         snapshot.Hp,
                         enemy.MaxHp,
+                        snapshot.Shield,
                         selected,
                         !enemy.IsDead && !isBusy && !isSpinRunning,
                         BuildStatusViewData(enemy.StatusEffects));
