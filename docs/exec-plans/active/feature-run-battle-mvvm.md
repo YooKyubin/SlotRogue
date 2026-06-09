@@ -15,10 +15,10 @@
 - [x] 순수 C# `RunBattleScreenViewModel` 추가
 - [x] `RunBattleView.Render(state)` 경로 추가로 기존 화면을 ViewModel 갱신 중심으로 조정
 - [x] `RunBattleScreenView`, `RunBattlePlayerHudView`, `RunBattleStatusView`, `RunBattleSlotBoardView`, `RunBattleActionView`, `RunBattlePresentationOverlayView`, `RunBattleWorldView` 분리
-- [x] `EnemyFormationView` / `MonsterView`로 몬스터 단위 View 분리
+- [x] `EnemyFormationView` / `EnemyFormationSlotView`로 몬스터 formation slot View 분리
 - [x] `RunBattleCompositionRoot` 추가, 새 구조에서 `RunBattleController` 없이 전투 흐름 시작
 - [x] Builder의 RunBattle 생성 기준을 기존 화면 배치 유지 + `RunBattleCompositionRoot` wiring 방식으로 조정
-- [x] Builder가 `MonsterView.prefab`과 `FloatingDamageTextView.prefab`을 생성하도록 준비
+- [x] Builder가 `EnemyFormationSlot.prefab`과 `FloatingDamageTextView.prefab`을 생성하도록 준비
 - [x] 새 `RunBattleScreenView` / `RunBattleCompositionRoot` 전용 Inspector 추가
 - [x] ViewModel EditMode 테스트 추가
 - [x] `dotnet build SlotRogue.slnx` 검증
@@ -44,11 +44,12 @@
 - 2026-06-08: `FloatingCombatTextLayerView`에서 turn banner 생성을 제거하고 `TurnBannerView`로 분리했다. `ICombatPresentationCommands`는 floating damage와 turn banner 요청만 남겼고, enemy damage anchor resolve는 `ICombatDamageAnchorRegistry` / `RunBattleScreenView` / `EnemyFormationView` 흐름으로 옮겼다.
 - 2026-06-08: 사용자가 RunGame 씬을 수동 wiring하기로 결정해, `RunBattleCompositionRoot`의 런타임 `AddComponent`와 임시 damage anchor 생성 코드를 제거했다. 이제 전투 연출 View 참조와 floating text prefab/root/anchor registry는 Inspector에서 명시적으로 연결해야 한다.
 - 2026-06-09: damage anchor fallback을 제거했다. 적 participantId에 대응하는 slot anchor를 찾지 못하면 floating damage를 표시하지 않고 에러 로그로 세팅 문제를 드러낸다.
+- 2026-06-09: `MonsterView` fallback 경로를 제거하고 enemy 렌더링을 `EnemyFormationSlotView`로 통일했다. `RunBattleWorldView`는 formation slot child만 바인딩하고, `EnemyFormationView`는 slot view 렌더링만 담당한다. formation slot / damage anchor 누락은 로그로 드러내고, enemy damage anchor 매핑 실패 시 대체 anchor 없이 `null`을 반환한다.
 
 - 엄격한 MVVM 기준은 “ViewModel이 UnityEngine과 화면 오브젝트를 모르는 것”으로 둔다. Unity 씬 생명주기와 입력 연결은 `CompositionRoot`가 담당한다.
 - 카메라 셰이크는 world root를 기준으로 적용한다. 배경/몬스터를 함께 흔들지, 몬스터만 흔들지는 기존 화면 유지가 끝난 뒤 별도 migration으로 다시 판단한다.
 - 새 Builder 기준으로 생성되는 씬에는 `RunBattleController`를 붙이지 않는다. 기존 `RunBattleController`와 구 `RunBattleView` 스크립트는 strict MVVM 전환 후 삭제했다.
-- `MonsterView`는 독립 prefab 후보로 분리했다. 이후 실제 아트가 들어오면 몬스터 prefab 안에 portrait, world HUD, DamageAnchor, collider를 함께 두면 된다.
+- 몬스터 표시 경로는 `EnemyFormationSlotView` 단일 View로 유지한다. 이후 실제 아트가 들어와도 portrait, world HUD, DamageAnchor, collider는 formation slot prefab 안에서 명시적으로 연결한다.
 - 2026-06-05: `dotnet build SlotRogue.slnx` 경고 0개, 오류 0개로 통과.
 - 2026-06-05: 전체 `Rebuild Scene UI Prefabs` 실행으로 여러 UI prefab/scene의 외형이 크게 바뀌는 문제가 확인되어, 생성 자산은 원복했다.
 - 2026-06-05: Builder 기본 rebuild는 기존 생성 자산을 덮어쓰지 않도록 막고, RunBattle은 기존 prefab이 있으면 새로 만들지 않고 hierarchy migration만 수행하도록 바꿨다. 진짜 덮어쓰기는 `Danger` 메뉴로 분리했다.

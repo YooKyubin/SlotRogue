@@ -8,30 +8,21 @@ namespace SlotRogue.UI.GameFlow
     public sealed class EnemyFormationView : MonoBehaviour
     {
         private readonly Dictionary<int, int> _slotIndexByParticipantId = new();
+        private readonly EnemyFormationViewWarnings _warnings = new();
 
-        [SerializeField] private MonsterView[] _monsterViews = Array.Empty<MonsterView>();
         [SerializeField] private EnemyFormationSlotView[] _formationSlotViews = Array.Empty<EnemyFormationSlotView>();
 
         public int SlotCount
         {
             get
             {
-                int monsterCount = _monsterViews != null ? _monsterViews.Length : 0;
-                int formationSlotCount = _formationSlotViews != null ? _formationSlotViews.Length : 0;
-                return Mathf.Max(monsterCount, formationSlotCount);
+                return _formationSlotViews != null ? _formationSlotViews.Length : 0;
             }
-        }
-
-        public void Bind(MonsterView[] monsterViews)
-        {
-            _monsterViews = monsterViews ?? Array.Empty<MonsterView>();
-            _formationSlotViews = Array.Empty<EnemyFormationSlotView>();
         }
 
         public void Bind(EnemyFormationSlotView[] formationSlotViews)
         {
             _formationSlotViews = formationSlotViews ?? Array.Empty<EnemyFormationSlotView>();
-            _monsterViews = Array.Empty<MonsterView>();
         }
 
         public void Render(RunBattleEnemySlotState[] enemySlots)
@@ -55,12 +46,6 @@ namespace SlotRogue.UI.GameFlow
                     _slotIndexByParticipantId[state.ParticipantId.Value] = state.SlotIndex;
                 }
 
-                if (TryGetMonsterView(index, out MonsterView monsterView))
-                {
-                    monsterView.Render(state);
-                    continue;
-                }
-
                 if (TryGetFormationSlotView(index, out EnemyFormationSlotView formationSlotView))
                 {
                     RenderFormationSlot(formationSlotView, state);
@@ -70,12 +55,6 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetPortrait(int slotIndex, Sprite portrait)
         {
-            if (TryGetMonsterView(slotIndex, out MonsterView monsterView))
-            {
-                monsterView.SetPortrait(portrait);
-                return;
-            }
-
             if (TryGetFormationSlotView(slotIndex, out EnemyFormationSlotView formationSlotView))
             {
                 formationSlotView.SetPortrait(portrait);
@@ -84,12 +63,6 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetClickHandler(int slotIndex, Action action)
         {
-            if (TryGetMonsterView(slotIndex, out MonsterView monsterView))
-            {
-                monsterView.SetClickHandler(action);
-                return;
-            }
-
             if (TryGetFormationSlotView(slotIndex, out EnemyFormationSlotView formationSlotView))
             {
                 UnityEngine.Events.UnityAction unityAction = null;
@@ -104,11 +77,6 @@ namespace SlotRogue.UI.GameFlow
 
         public RectTransform GetDamageAnchor(int slotIndex)
         {
-            if (TryGetMonsterView(slotIndex, out MonsterView monsterView))
-            {
-                return monsterView.DamageAnchor;
-            }
-
             return TryGetFormationSlotView(slotIndex, out EnemyFormationSlotView formationSlotView)
                 ? formationSlotView.DamageAnchor
                 : null;
@@ -138,10 +106,17 @@ namespace SlotRogue.UI.GameFlow
             if (participantId.IsValid &&
                 _slotIndexByParticipantId.TryGetValue(participantId.Value, out int slotIndex))
             {
-                return GetDamageAnchor(slotIndex);
+                RectTransform anchor = GetDamageAnchor(slotIndex);
+                if (anchor == null)
+                {
+                    _warnings.MissingSlotDamageAnchor(slotIndex, participantId);
+                }
+
+                return anchor;
             }
 
-            return GetDamageAnchor(Mathf.Min(1, Mathf.Max(0, SlotCount - 1)));
+            _warnings.MissingDamageAnchor(participantId);
+            return null;
         }
 
         private static void RenderFormationSlot(
@@ -161,18 +136,6 @@ namespace SlotRogue.UI.GameFlow
             formationSlotView.SetInteractable(state.Interactable);
         }
 
-        private bool TryGetMonsterView(int slotIndex, out MonsterView monsterView)
-        {
-            monsterView = null;
-            if (_monsterViews == null || slotIndex < 0 || slotIndex >= _monsterViews.Length)
-            {
-                return false;
-            }
-
-            monsterView = _monsterViews[slotIndex];
-            return monsterView != null;
-        }
-
         private bool TryGetFormationSlotView(
             int slotIndex,
             out EnemyFormationSlotView formationSlotView)
@@ -180,11 +143,18 @@ namespace SlotRogue.UI.GameFlow
             formationSlotView = null;
             if (_formationSlotViews == null || slotIndex < 0 || slotIndex >= _formationSlotViews.Length)
             {
+                _warnings.MissingFormationSlot(slotIndex);
                 return false;
             }
 
             formationSlotView = _formationSlotViews[slotIndex];
-            return formationSlotView != null;
+            if (formationSlotView == null)
+            {
+                _warnings.MissingFormationSlot(slotIndex);
+                return false;
+            }
+
+            return true;
         }
     }
 }

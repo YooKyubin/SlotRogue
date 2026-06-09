@@ -83,10 +83,13 @@ namespace SlotRogue.Editor.GameFlow
                 serializedObject.FindProperty("_worldView"),
                 root != null && root.GetComponentInChildren<RunBattleWorldView>(true) != null);
 
-            int monsterCount = root != null
-                ? root.GetComponentsInChildren<MonsterView>(true).Length
+            int formationSlotCount = root != null
+                ? root.GetComponentsInChildren<EnemyFormationSlotView>(true).Length
                 : 0;
-            DrawStatus("Monster views", monsterCount >= 3 ? $"{monsterCount}/3" : $"{monsterCount}/3 missing", monsterCount >= 3);
+            DrawStatus(
+                "Formation slots",
+                formationSlotCount >= 3 ? $"{formationSlotCount}/3" : $"{formationSlotCount}/3 missing",
+                formationSlotCount >= 3);
         }
 
         private void RefreshReferences()

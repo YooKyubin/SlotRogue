@@ -9,6 +9,8 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private Transform _battleShakeRoot;
         [SerializeField] private EnemyFormationView _enemyFormationView;
 
+        private bool _missingFormationSlotWarningLogged;
+
         public Transform BattleShakeRoot => _battleShakeRoot;
 
         public EnemyFormationView EnemyFormationView => _enemyFormationView;
@@ -29,7 +31,16 @@ namespace SlotRogue.UI.GameFlow
                 BindFormationChildren(_enemyFormationView);
             }
 
-            return _enemyFormationView.SlotCount > 0;
+            bool hasFormationSlots = _enemyFormationView.SlotCount > 0;
+            if (!hasFormationSlots && !_missingFormationSlotWarningLogged)
+            {
+                _missingFormationSlotWarningLogged = true;
+                Debug.LogError(
+                    "[RunBattleWorldView] EnemyFormationSlotView children are missing. " +
+                    "Configure formation slot children explicitly under the battle world view.");
+            }
+
+            return hasFormationSlots;
         }
 
         public void Bind(Transform battleShakeRoot, EnemyFormationView enemyFormationView)
@@ -101,25 +112,11 @@ namespace SlotRogue.UI.GameFlow
 
         private void BindFormationChildren(EnemyFormationView formationView)
         {
-            MonsterView[] monsterViews = ResolveMonsterViews();
-            if (monsterViews.Length > 0)
-            {
-                formationView.Bind(monsterViews);
-                return;
-            }
-
             EnemyFormationSlotView[] formationSlotViews = ResolveFormationSlotViews();
             if (formationSlotViews.Length > 0)
             {
                 formationView.Bind(formationSlotViews);
             }
-        }
-
-        private MonsterView[] ResolveMonsterViews()
-        {
-            MonsterView[] views = GetComponentsInChildren<MonsterView>(true);
-            SortByHierarchyName(views);
-            return views;
         }
 
         private EnemyFormationSlotView[] ResolveFormationSlotViews()
