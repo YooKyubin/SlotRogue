@@ -31,7 +31,8 @@
 - [x] 전투 연출 후속 정리 — `TurnBannerView` 분리, presentation command에서 enemy damage anchor 등록 제거, anchor resolve를 View registry 흐름으로 이동
 - [x] 전투 연출 View 자동 wiring 제거 — `FloatingCombatTextLayerView` / `TurnBannerView` / fallback anchor를 RunGame 씬 Inspector 수동 연결 대상으로 전환
 - [x] damage anchor fallback 제거 — 적 anchor 조회 실패 시 대체 anchor를 쓰지 않고 에러로 노출
-- [ ] Unity Editor에서 `SlotRogue > Game Flow > Migrate Run Battle Hierarchy In Place (Preserve UI)` 실행해 prefab/scene strict MVVM 적용과 기존 배치 리소스 유지 확인
+- [x] 몬스터 shield 표시/생명주기 연출을 `ShieldGaugeView`와 presentation command 경로로 분리
+- [x] Unity Editor에서 `SlotRogue > Game Flow > Migrate Run Battle Hierarchy In Place (Preserve UI)` 실행해 prefab/scene strict MVVM 적용과 기존 배치 리소스 유지 확인
 - [ ] RunBattle 수동 플레이테스트로 스핀, 타겟 선택, 승리/패배 전환 확인
 
 ## Notes
@@ -45,15 +46,12 @@
 - 2026-06-08: 사용자가 RunGame 씬을 수동 wiring하기로 결정해, `RunBattleCompositionRoot`의 런타임 `AddComponent`와 임시 damage anchor 생성 코드를 제거했다. 이제 전투 연출 View 참조와 floating text prefab/root/anchor registry는 Inspector에서 명시적으로 연결해야 한다.
 - 2026-06-09: damage anchor fallback을 제거했다. 적 participantId에 대응하는 slot anchor를 찾지 못하면 floating damage를 표시하지 않고 에러 로그로 세팅 문제를 드러낸다.
 - 2026-06-09: `MonsterView` fallback 경로를 제거하고 enemy 렌더링을 `EnemyFormationSlotView`로 통일했다. `RunBattleWorldView`는 formation slot child만 바인딩하고, `EnemyFormationView`는 slot view 렌더링만 담당한다. formation slot / damage anchor 누락은 로그로 드러내고, enemy damage anchor 매핑 실패 시 대체 anchor 없이 `null`을 반환한다.
-- 2026-06-09: 플레이어/몬스터 shield 표시 책임을 `ShieldGaugeView`로 분리했다. `ShieldPresenter`는 계속 `CombatViewModel` snapshot 갱신만 담당하고, `RunBattlePlayerHudView` / `EnemyFormationSlotView`는 shield 값을 gauge에 전달한다. 현재 gauge는 숫자 표시와 0일 때 숨김만 담당하며, bar/보간/이펙트 기획은 확정하지 않았다.
-- 2026-06-10: shield 생명주기 연출 명령 구조를 추가했다. `ShieldPresenter`는 gain, `DamagePresenter`는 shield hit/break, `ShieldResetPresenter`는 expire 명령을 요청하고, `RunBattleScreenView`가 대상 `ShieldGaugeView`를 찾아 no-op 연출 메서드로 위임한다. 실제 bar/흔들림/사운드/이펙트 구현은 아직 넣지 않았다.
-- 2026-06-10: `ShieldGaugeView.PlayGainAsync`에 최소 생성 연출을 추가했다. `_shieldImage`가 연결되어 있으면 alpha 0에서 불투명으로, 살짝 아래 위치에서 원래 위치로 올라오며 표시된다. hit/break/expire 연출은 아직 no-op이다.
-- 2026-06-10: `ShieldGaugeView.PlayExpireAsync`에 최소 만료 연출을 추가했다. `_shieldImage`가 연결되어 있으면 현재 위치에서 아래로 내려가며 투명해지고, 완료 후 위치를 복구한 뒤 gauge를 숨긴다. hit/break 연출은 아직 no-op이다.
-- 2026-06-10: shield reset은 이전 shield 값이 0보다 클 때만 expire 연출을 요청하도록 조정했다. 이미 꺼져 있는 `ShieldGaugeView`는 expire 때문에 다시 켜지지 않는다.
-- 2026-06-10: `ShieldReset` 이벤트가 reset 전/후 snapshot을 포함하도록 수정했다. UI presenter가 `TargetBefore.Shield`로 실제 만료 연출 여부를 판단할 수 있고, 이미 shield가 0인 대상은 연출하지 않는다.
-- 2026-06-10: `ShieldGaugeView.PlayBreakAsync`에 최소 파괴 연출을 추가했다. 데미지로 shield가 0이 되면 snapshot 반영 전에 shield image가 살짝 커지며 투명해지고, 완료 후 gauge를 숨긴다.
-- 2026-06-10: `ShieldGaugeView.PlayHitAsync`에 최소 피격 연출을 추가했다. shield image는 좌우로 흔들리고, shield text는 빨간색과 확대 상태에서 원래 색/크기로 복귀한다.
-- 2026-06-10: `ShieldGaugeView.PlayHitAsync`는 피격 연출 시작 시점에 현재 표시 shield 값에서 consumed amount를 차감해 변경된 shield 값을 먼저 보여준다. 이후 snapshot `Render`가 최종 상태를 다시 동기화한다.
+- 2026-06-09~10: 몬스터 shield 표시는 `EnemyFormationSlotView`가 `ShieldGaugeView.Render(shield)`에 위임한다. `RunBattlePlayerHudView`는 기존 shield fill 구현을 유지하고, 현재 shield gauge registry는 플레이어 대상 요청을 no-op으로 처리한다.
+- 2026-06-10: shield 생명주기 연출 명령 구조를 추가했다. `ShieldPresenter`는 gain, `DamagePresenter`는 hit/break, `ShieldResetPresenter`는 expire 명령을 요청하고, `RunBattleScreenView`가 enemy participantId로 대상 `ShieldGaugeView`를 찾아 위임한다. Presenter는 `ShieldGaugeView`, DOTween, Image/Text를 직접 참조하지 않는다.
+- 2026-06-10: `ShieldGaugeView`는 최소 연출을 담당한다. gain은 아래에서 올라오며 fade in, hit은 image 좌우 shake와 text 빨간색/확대 후 복귀, break는 image scale up + fade out, expire는 아래로 내려가며 fade out으로 처리한다. bar/사운드/복잡한 이펙트는 아직 구현하지 않았다.
+- 2026-06-10: 데미지로 shield가 소모될 때는 `DamagePresenter`가 최종 snapshot 반영 전에 hit/break 연출을 요청한다. hit 시작 시 현재 표시 shield 값에서 consumed amount를 차감해 변경된 값을 먼저 보여주고, 이후 snapshot `Render`가 최종 상태를 다시 동기화한다.
+- 2026-06-10: 턴 종료 shield reset은 reset 전/후 snapshot을 `ShieldReset` 이벤트에 포함한다. `ShieldResetPresenter`는 `TargetBefore.Shield > 0`일 때만 expire 연출을 요청하고, 이미 shield가 0이거나 gauge가 꺼져 있으면 다시 켜서 연출하지 않는다.
+- 2026-06-10: Unity Editor에서 보존형 migration과 RunBattle prefab/scene strict MVVM 적용 상태를 확인했다. 기존 배치 리소스 유지 확인 항목은 완료 처리했다.
 
 - 엄격한 MVVM 기준은 “ViewModel이 UnityEngine과 화면 오브젝트를 모르는 것”으로 둔다. Unity 씬 생명주기와 입력 연결은 `CompositionRoot`가 담당한다.
 - 카메라 셰이크는 world root를 기준으로 적용한다. 배경/몬스터를 함께 흔들지, 몬스터만 흔들지는 기존 화면 유지가 끝난 뒤 별도 migration으로 다시 판단한다.

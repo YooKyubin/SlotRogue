@@ -1,6 +1,6 @@
 ﻿# 프로젝트 상태
 
-_Last updated: 2026-06-05_
+_Last updated: 2026-06-10_
 
 ---
 
@@ -22,7 +22,7 @@ _Last updated: 2026-06-05_
 
 **다인전 플레이·UI (RunBattle)** — [`feature-multi-participant-play-ui`](./exec-plans/completed/feature-multi-participant-play-ui.md) **완료** (2026-06-04): 2/3몹 인카운터 hint, 몬스터별 HUD·타겟 선택·연출 anchor.
 
-**RunBattle MVVM 정리** — [`feature-run-battle-mvvm`](./exec-plans/active/feature-run-battle-mvvm.md): 기존 RunBattle 화면 배치를 유지하면서 `CompositionRoot` + 세분화 View + 순수 ViewModel 구조로 전환 중. legacy `RunBattleController` / 구 `RunBattleView` 스크립트는 삭제했고, 보존형 migration은 strict MVVM wiring만 수행한다. 실제 Unity asset 적용은 Editor에서 safe migration 실행 필요.
+**RunBattle MVVM 정리** — [`feature-run-battle-mvvm`](./exec-plans/active/feature-run-battle-mvvm.md): 기존 RunBattle 화면 배치를 유지하면서 `CompositionRoot` + 세분화 View + 순수 ViewModel 구조로 전환 중. legacy `RunBattleController` / 구 `RunBattleView` 스크립트는 삭제했고, 보존형 migration과 strict MVVM wiring의 Editor 확인을 완료했다. 남은 항목은 RunBattle 수동 플레이테스트다.
 
 **몬스터 패턴 SO** — [`feature-monster-pattern-so`](./exec-plans/completed/feature-monster-pattern-so.md) 완료.
 
