@@ -211,7 +211,6 @@ namespace SlotRogue.UI.GameFlow
 
         private void StartBattle()
         {
-            RunMapNodeDefinition encounterNode = GameFlowSession.IsInfiniteMode ? null : GetEncounterNode();
             CombatParticipant player = RunCombatParticipantFactory.CreatePlayer(
                 GameFlowSession.PlayerMaxHp,
                 GameFlowSession.PlayerCurrentHp);
@@ -222,7 +221,6 @@ namespace SlotRogue.UI.GameFlow
                 _battle,
                 _view,
                 _encounterRoster,
-                encounterNode,
                 () => _flowController.IsBusy,
                 () => _spinRoutineRunning,
                 RefreshStatusText);
@@ -599,11 +597,10 @@ namespace SlotRogue.UI.GameFlow
                 $"ENEMY INTENT: {RunBattleScreenStateUpdater.FormatUpcomingEnemyAction(_battle)}\n" +
                 $"TARGET: {selectedTargetId}";
 
-            int[] enemySlotIndices = null;
             _screenViewModel.Batch(() =>
             {
                 _stateUpdater.UpdatePlayerHud(_battle.Player, _combatViewModel);
-                enemySlotIndices = _stateUpdater.UpdateEnemySlots(
+                _stateUpdater.UpdateEnemySlots(
                     _battle,
                     _combatViewModel,
                     GetEncounterTitle(),
@@ -615,36 +612,20 @@ namespace SlotRogue.UI.GameFlow
                 _stateUpdater.UpdateBattleTextMeta(statusText, enemyIntentText);
             });
 
-            _enemySelectionBinder?.UpdateEnemyPortraits(enemySlotIndices);
             UpdateSpinButtonState();
         }
 
-        private static RunMapNodeDefinition GetEncounterNode()
-        {
-            return GameFlowSession.CurrentEncounterNode ?? GameFlowSession.CurrentMapNode;
-        }
-
-        // 무한모드는 맵 노드 없이 등급(Tier) 기반으로, 스토리모드는 기존 맵 경로로 적을 구성합니다.
+        // 무한모드는 맵 노드 없이 등급(Tier) 기반으로 적을 구성합니다.
         private RunEncounterRoster BuildEncounterRoster()
         {
-            if (GameFlowSession.IsInfiniteMode)
-            {
-                return RunEncounterRosterBuilder.BuildForTier(
-                    GameFlowSession.CurrentTier,
-                    GameFlowSession.CurrentBattleNumber,
-                    fallback: null);
-            }
-
-            RunMapNodeDefinition encounterNode = GetEncounterNode();
-            int floor = Mathf.Max(1, encounterNode.Floor);
-            return RunEncounterRosterBuilder.Build(encounterNode, floor);
+            return RunEncounterRosterBuilder.BuildForTier(
+                GameFlowSession.CurrentTier,
+                GameFlowSession.CurrentBattleNumber);
         }
 
         private static string GetEncounterTitle()
         {
-            return GameFlowSession.IsInfiniteMode
-                ? GameFlowSession.CurrentEncounterTitle
-                : GetEncounterNode().DisplayName;
+            return GameFlowSession.CurrentEncounterTitle;
         }
 
         private void NavigateToReward()

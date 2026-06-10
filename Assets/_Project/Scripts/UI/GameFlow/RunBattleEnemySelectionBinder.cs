@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using SlotRogue.Core.Combat;
-using SlotRogue.Data.Combat;
-using SlotRogue.Data.GameFlow;
 using UnityEngine;
 
 namespace SlotRogue.UI.GameFlow
@@ -12,7 +10,6 @@ namespace SlotRogue.UI.GameFlow
         private readonly BattleSystem _battle;
         private readonly RunBattleScreenView _view;
         private readonly RunEncounterRoster _encounterRoster;
-        private readonly RunMapNodeDefinition _encounterNode;
         private readonly Func<bool> _isBusy;
         private readonly Func<bool> _isSpinRunning;
         private readonly Action _refreshStatusText;
@@ -23,7 +20,6 @@ namespace SlotRogue.UI.GameFlow
             BattleSystem battle,
             RunBattleScreenView view,
             RunEncounterRoster encounterRoster,
-            RunMapNodeDefinition encounterNode,
             Func<bool> isBusy,
             Func<bool> isSpinRunning,
             Action refreshStatusText)
@@ -31,7 +27,6 @@ namespace SlotRogue.UI.GameFlow
             _battle = battle ?? throw new ArgumentNullException(nameof(battle));
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _encounterRoster = encounterRoster ?? throw new ArgumentNullException(nameof(encounterRoster));
-            _encounterNode = encounterNode;
             _isBusy = isBusy ?? throw new ArgumentNullException(nameof(isBusy));
             _isSpinRunning = isSpinRunning ?? throw new ArgumentNullException(nameof(isSpinRunning));
             _refreshStatusText = refreshStatusText ?? throw new ArgumentNullException(nameof(refreshStatusText));
@@ -64,19 +59,6 @@ namespace SlotRogue.UI.GameFlow
             }
         }
 
-        internal void UpdateEnemyPortraits(int[] slotIndices)
-        {
-            if (slotIndices == null)
-            {
-                return;
-            }
-
-            for (int rosterIndex = 0; rosterIndex < slotIndices.Length; rosterIndex++)
-            {
-                _view.SetEnemyPortrait(slotIndices[rosterIndex], ResolveEncounterMonster(rosterIndex)?.portrait);
-            }
-        }
-
         internal CombatParticipantId ResolveSelectedEnemyId()
         {
             if (_selectedEnemyId.IsValid)
@@ -103,19 +85,6 @@ namespace SlotRogue.UI.GameFlow
 
             _selectedEnemyId = default;
             return default;
-        }
-
-        private MonsterDefinition ResolveEncounterMonster(int rosterIndex)
-        {
-            RunEncounterDefinition encounter = _encounterNode?.Encounter;
-            if (encounter?.entries == null ||
-                rosterIndex < 0 ||
-                rosterIndex >= encounter.entries.Length)
-            {
-                return null;
-            }
-
-            return encounter.entries[rosterIndex].monster;
         }
 
         private void HandleEnemySelected(CombatParticipantId enemyId)
