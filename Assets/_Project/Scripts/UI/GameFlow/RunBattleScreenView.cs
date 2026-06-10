@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
 using SlotRogue.UI.Combat.Presentation;
 using UnityEngine;
@@ -6,7 +8,7 @@ using UnityEngine.UI;
 
 namespace SlotRogue.UI.GameFlow
 {
-    public sealed class RunBattleScreenView : MonoBehaviour, ICombatDamageAnchorRegistry
+    public sealed class RunBattleScreenView : MonoBehaviour, ICombatDamageAnchorRegistry, ICombatShieldGaugeRegistry
     {
         [SerializeField] private RunBattlePlayerHudView _playerHudView;
         [SerializeField] private RunBattleStatusView _statusView;
@@ -128,6 +130,58 @@ namespace SlotRogue.UI.GameFlow
                 ? _worldView.ResolveEnemyDamageAnchor(participantId)
                 : null;
             return enemyAnchor;
+        }
+
+        public UniTask ShowShieldGainAsync(
+            ShieldPresentationRequest request,
+            CancellationToken cancellationToken)
+        {
+            ShieldGaugeView shieldGauge = ResolveShieldGauge(request);
+            return shieldGauge != null
+                ? shieldGauge.PlayGainAsync(request.Amount, cancellationToken)
+                : UniTask.CompletedTask;
+        }
+
+        public UniTask ShowShieldHitAsync(
+            ShieldPresentationRequest request,
+            CancellationToken cancellationToken)
+        {
+            ShieldGaugeView shieldGauge = ResolveShieldGauge(request);
+            return shieldGauge != null
+                ? shieldGauge.PlayHitAsync(request.Amount, cancellationToken)
+                : UniTask.CompletedTask;
+        }
+
+        public UniTask ShowShieldBreakAsync(
+            ShieldPresentationRequest request,
+            CancellationToken cancellationToken)
+        {
+            ShieldGaugeView shieldGauge = ResolveShieldGauge(request);
+            return shieldGauge != null
+                ? shieldGauge.PlayBreakAsync(cancellationToken)
+                : UniTask.CompletedTask;
+        }
+
+        public UniTask ShowShieldExpireAsync(
+            ShieldPresentationRequest request,
+            CancellationToken cancellationToken)
+        {
+            ShieldGaugeView shieldGauge = ResolveShieldGauge(request);
+            return shieldGauge != null
+                ? shieldGauge.PlayExpireAsync(cancellationToken)
+                : UniTask.CompletedTask;
+        }
+
+        private ShieldGaugeView ResolveShieldGauge(ShieldPresentationRequest request)
+        {
+            if (request.IsPlayerTarget)
+            {
+                return null;
+            }
+
+            return _worldView != null
+                ? _worldView.ResolveEnemyShieldGauge(request.TargetParticipantId)
+                : null;
         }
 
         private void SubscribeActions()

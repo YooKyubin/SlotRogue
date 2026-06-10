@@ -246,7 +246,7 @@ namespace SlotRogue.UI.GameFlow
                 Debug.LogError("[RunBattleCompositionRoot] TurnBannerView is not assigned.");
             }
 
-            var commands = new CombatPresentationCommandDispatcher(_floatingTextLayerView, _turnBannerView);
+            var commands = new CombatPresentationCommandDispatcher(_floatingTextLayerView, _turnBannerView, _view);
             _presentationHost = new CombatPresentationHost(gameObject, commands);
             CombatPresentationPipeline pipeline = CombatPresentationPipeline.CreateDefault(_presentationHost);
             _flowController = new BattleFlowController(pipeline, _combatViewModel);

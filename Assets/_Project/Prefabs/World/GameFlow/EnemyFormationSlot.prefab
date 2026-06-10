@@ -1104,6 +1104,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.ShieldGaugeView
   _shieldText: {fileID: 3692295025671379695}
+  _shieldImage: {fileID: 7784914484349776955}
+  _gainDuration: 1
+  _gainStartYOffset: -24
 --- !u!222 &4466930471712364571
 CanvasRenderer:
   m_ObjectHideFlags: 0

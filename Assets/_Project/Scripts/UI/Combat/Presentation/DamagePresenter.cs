@@ -28,6 +28,20 @@ namespace SlotRogue.UI.Combat.Presentation
                 combatEvent.TargetAfter,
                 combatEvent.IsPlayerParticipant);
 
+            if (combatEvent.ApplyResult.ShieldConsumed > 0)
+            {
+                var shieldRequest = new ShieldPresentationRequest(
+                    combatEvent.ApplyResult.ShieldConsumed,
+                    combatEvent.IsPlayerParticipant,
+                    combatEvent.TargetParticipantId);
+                await Host.Commands.ShowShieldHitAsync(shieldRequest, cancellationToken);
+
+                if (combatEvent.TargetBefore.Shield > 0 && combatEvent.TargetAfter.Shield == 0)
+                {
+                    await Host.Commands.ShowShieldBreakAsync(shieldRequest, cancellationToken);
+                }
+            }
+
             var request = new FloatingDamageRequest(
                 combatEvent.ApplyResult.DamageDealt,
                 context.IsCritical,

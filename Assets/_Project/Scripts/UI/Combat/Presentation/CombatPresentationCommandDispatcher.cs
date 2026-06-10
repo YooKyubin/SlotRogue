@@ -7,13 +7,16 @@ namespace SlotRogue.UI.Combat.Presentation
     {
         private readonly FloatingCombatTextLayerView _floatingTextLayerView;
         private readonly TurnBannerView _turnBannerView;
+        private readonly ICombatShieldGaugeRegistry _shieldGaugeRegistry;
 
         public CombatPresentationCommandDispatcher(
             FloatingCombatTextLayerView floatingTextLayerView,
-            TurnBannerView turnBannerView)
+            TurnBannerView turnBannerView,
+            ICombatShieldGaugeRegistry shieldGaugeRegistry)
         {
             _floatingTextLayerView = floatingTextLayerView;
             _turnBannerView = turnBannerView;
+            _shieldGaugeRegistry = shieldGaugeRegistry;
         }
 
         public UniTask ShowFloatingDamageAsync(
@@ -22,6 +25,42 @@ namespace SlotRogue.UI.Combat.Presentation
         {
             return _floatingTextLayerView != null
                 ? _floatingTextLayerView.ShowFloatingDamageAsync(request, cancellationToken)
+                : UniTask.CompletedTask;
+        }
+
+        public UniTask ShowShieldGainAsync(
+            ShieldPresentationRequest request,
+            CancellationToken cancellationToken)
+        {
+            return _shieldGaugeRegistry != null
+                ? _shieldGaugeRegistry.ShowShieldGainAsync(request, cancellationToken)
+                : UniTask.CompletedTask;
+        }
+
+        public UniTask ShowShieldHitAsync(
+            ShieldPresentationRequest request,
+            CancellationToken cancellationToken)
+        {
+            return _shieldGaugeRegistry != null
+                ? _shieldGaugeRegistry.ShowShieldHitAsync(request, cancellationToken)
+                : UniTask.CompletedTask;
+        }
+
+        public UniTask ShowShieldBreakAsync(
+            ShieldPresentationRequest request,
+            CancellationToken cancellationToken)
+        {
+            return _shieldGaugeRegistry != null
+                ? _shieldGaugeRegistry.ShowShieldBreakAsync(request, cancellationToken)
+                : UniTask.CompletedTask;
+        }
+
+        public UniTask ShowShieldExpireAsync(
+            ShieldPresentationRequest request,
+            CancellationToken cancellationToken)
+        {
+            return _shieldGaugeRegistry != null
+                ? _shieldGaugeRegistry.ShowShieldExpireAsync(request, cancellationToken)
                 : UniTask.CompletedTask;
         }
 

@@ -119,6 +119,18 @@ namespace SlotRogue.UI.GameFlow
             return null;
         }
 
+        public ShieldGaugeView ResolveShieldGauge(CombatParticipantId participantId)
+        {
+            if (participantId.IsValid &&
+                _slotIndexByParticipantId.TryGetValue(participantId.Value, out int slotIndex) &&
+                TryGetFormationSlotView(slotIndex, out EnemyFormationSlotView formationSlotView))
+            {
+                return formationSlotView.ShieldGauge;
+            }
+
+            return null;
+        }
+
         private static void RenderFormationSlot(
             EnemyFormationSlotView formationSlotView,
             RunBattleEnemySlotState state)

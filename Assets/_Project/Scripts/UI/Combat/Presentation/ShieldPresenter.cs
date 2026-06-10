@@ -11,7 +11,7 @@ namespace SlotRogue.UI.Combat.Presentation
         {
         }
 
-        public override UniTask PresentAsync(
+        public override async UniTask PresentAsync(
             CombatEvent combatEvent,
             CombatViewModel viewModel,
             PresentationContext context,
@@ -20,14 +20,19 @@ namespace SlotRogue.UI.Combat.Presentation
             if (combatEvent.Kind != CombatEventKind.EffectApplied ||
                 combatEvent.Effect.Kind != CombatEffectKind.Shield)
             {
-                return UniTask.CompletedTask;
+                return;
             }
 
             viewModel.ApplyParticipantSnapshot(
                 combatEvent.TargetParticipantId,
                 combatEvent.TargetAfter,
                 combatEvent.IsPlayerParticipant);
-            return UniTask.CompletedTask;
+
+            var request = new ShieldPresentationRequest(
+                combatEvent.ApplyResult.ShieldGained,
+                combatEvent.IsPlayerParticipant,
+                combatEvent.TargetParticipantId);
+            await Host.Commands.ShowShieldGainAsync(request, cancellationToken);
         }
     }
 }

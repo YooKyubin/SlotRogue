@@ -46,6 +46,8 @@
 - 2026-06-09: damage anchor fallback을 제거했다. 적 participantId에 대응하는 slot anchor를 찾지 못하면 floating damage를 표시하지 않고 에러 로그로 세팅 문제를 드러낸다.
 - 2026-06-09: `MonsterView` fallback 경로를 제거하고 enemy 렌더링을 `EnemyFormationSlotView`로 통일했다. `RunBattleWorldView`는 formation slot child만 바인딩하고, `EnemyFormationView`는 slot view 렌더링만 담당한다. formation slot / damage anchor 누락은 로그로 드러내고, enemy damage anchor 매핑 실패 시 대체 anchor 없이 `null`을 반환한다.
 - 2026-06-09: 플레이어/몬스터 shield 표시 책임을 `ShieldGaugeView`로 분리했다. `ShieldPresenter`는 계속 `CombatViewModel` snapshot 갱신만 담당하고, `RunBattlePlayerHudView` / `EnemyFormationSlotView`는 shield 값을 gauge에 전달한다. 현재 gauge는 숫자 표시와 0일 때 숨김만 담당하며, bar/보간/이펙트 기획은 확정하지 않았다.
+- 2026-06-10: shield 생명주기 연출 명령 구조를 추가했다. `ShieldPresenter`는 gain, `DamagePresenter`는 shield hit/break, `ShieldResetPresenter`는 expire 명령을 요청하고, `RunBattleScreenView`가 대상 `ShieldGaugeView`를 찾아 no-op 연출 메서드로 위임한다. 실제 bar/흔들림/사운드/이펙트 구현은 아직 넣지 않았다.
+- 2026-06-10: `ShieldGaugeView.PlayGainAsync`에 최소 생성 연출을 추가했다. `_shieldImage`가 연결되어 있으면 alpha 0에서 불투명으로, 살짝 아래 위치에서 원래 위치로 올라오며 표시된다. hit/break/expire 연출은 아직 no-op이다.
 
 - 엄격한 MVVM 기준은 “ViewModel이 UnityEngine과 화면 오브젝트를 모르는 것”으로 둔다. Unity 씬 생명주기와 입력 연결은 `CompositionRoot`가 담당한다.
 - 카메라 셰이크는 world root를 기준으로 적용한다. 배경/몬스터를 함께 흔들지, 몬스터만 흔들지는 기존 화면 유지가 끝난 뒤 별도 migration으로 다시 판단한다.

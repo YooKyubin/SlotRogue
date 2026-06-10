@@ -47,6 +47,8 @@ namespace SlotRogue.UI.GameFlow
 
         public RectTransform DamageAnchor => _damageAnchor;
 
+        public ShieldGaugeView ShieldGauge => _shieldGauge;
+
         public void Bind(
             Transform root,
             Transform shakeGroup,

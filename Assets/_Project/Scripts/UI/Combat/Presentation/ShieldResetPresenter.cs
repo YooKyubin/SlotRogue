@@ -6,8 +6,6 @@ namespace SlotRogue.UI.Combat.Presentation
 {
     public sealed class ShieldResetPresenter : CombatPresenterBase
     {
-        private const float BlinkDuration = 0.1f;
-
         public ShieldResetPresenter(CombatPresentationHost host)
             : base(host)
         {
@@ -29,7 +27,11 @@ namespace SlotRogue.UI.Combat.Presentation
                 0,
                 combatEvent.IsPlayerParticipant);
 
-            await CombatPresentationTweens.DelayAsync(BlinkDuration, Host.LinkTarget, cancellationToken);
+            var request = new ShieldPresentationRequest(
+                combatEvent.TargetBefore.Shield,
+                combatEvent.IsPlayerParticipant,
+                combatEvent.TargetParticipantId);
+            await Host.Commands.ShowShieldExpireAsync(request, cancellationToken);
         }
     }
 }

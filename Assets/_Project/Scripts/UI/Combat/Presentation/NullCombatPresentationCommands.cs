@@ -25,5 +25,33 @@ namespace SlotRogue.UI.Combat.Presentation
         {
             return UniTask.CompletedTask;
         }
+
+        public UniTask ShowShieldGainAsync(
+            ShieldPresentationRequest request,
+            CancellationToken cancellationToken)
+        {
+            return UniTask.CompletedTask;
+        }
+
+        public UniTask ShowShieldHitAsync(
+            ShieldPresentationRequest request,
+            CancellationToken cancellationToken)
+        {
+            return UniTask.CompletedTask;
+        }
+
+        public UniTask ShowShieldBreakAsync(
+            ShieldPresentationRequest request,
+            CancellationToken cancellationToken)
+        {
+            return UniTask.CompletedTask;
+        }
+
+        public UniTask ShowShieldExpireAsync(
+            ShieldPresentationRequest request,
+            CancellationToken cancellationToken)
+        {
+            return UniTask.CompletedTask;
+        }
     }
 }

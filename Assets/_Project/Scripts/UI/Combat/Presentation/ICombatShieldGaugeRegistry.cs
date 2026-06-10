@@ -3,12 +3,8 @@ using Cysharp.Threading.Tasks;
 
 namespace SlotRogue.UI.Combat.Presentation
 {
-    public interface ICombatPresentationCommands
+    public interface ICombatShieldGaugeRegistry
     {
-        UniTask ShowFloatingDamageAsync(
-            FloatingDamageRequest request,
-            CancellationToken cancellationToken);
-
         UniTask ShowShieldGainAsync(
             ShieldPresentationRequest request,
             CancellationToken cancellationToken);
@@ -23,11 +19,6 @@ namespace SlotRogue.UI.Combat.Presentation
 
         UniTask ShowShieldExpireAsync(
             ShieldPresentationRequest request,
-            CancellationToken cancellationToken);
-
-        UniTask ShowTurnBannerAsync(
-            string message,
-            float duration,
             CancellationToken cancellationToken);
     }
 }

@@ -1219,6 +1219,18 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 794632825434143915, guid: 68271b1500239e547bf995972e95c27a, type: 3}
+      propertyPath: _shieldImage
+      value: 
+      objectReference: {fileID: 2132299104}
+    - target: {fileID: 794632825434143915, guid: 68271b1500239e547bf995972e95c27a, type: 3}
+      propertyPath: _gainDuration
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 794632825434143915, guid: 68271b1500239e547bf995972e95c27a, type: 3}
+      propertyPath: _gainStartYOffset
+      value: -10
+      objectReference: {fileID: 0}
     - target: {fileID: 839243408642433856, guid: 68271b1500239e547bf995972e95c27a, type: 3}
       propertyPath: m_Layer
       value: 0
@@ -1874,6 +1886,17 @@ MonoBehaviour:
   _spinLeverView: {fileID: 1309101483}
   _slotMachineFrameView: {fileID: 1900000001}
   _slotPresentationManager: {fileID: 228715807}
+--- !u!114 &2132299104 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4944794592139840934, guid: 68271b1500239e547bf995972e95c27a, type: 3}
+  m_PrefabInstance: {fileID: 1479776058}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
 --- !u!114 &2477338205436084518 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 5557242895821056558, guid: 8c6e1a80fcd81b1448c8b8a0ac1efb12, type: 3}
