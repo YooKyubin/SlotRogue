@@ -14,11 +14,11 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private float _gainDuration = 1f;
         [SerializeField] private float _gainStartYOffset = -10f;
 
-        private Tween _gainTween;
+        private Tween _shieldTween;
 
         private void OnDisable()
         {
-            _gainTween?.Kill();
+            _shieldTween?.Kill();
         }
 
         public void Bind(Text shieldText)
@@ -62,7 +62,7 @@ namespace SlotRogue.UI.GameFlow
             imageTransform.anchoredPosition = startPosition;
             shieldImage.color = startColor;
 
-            _gainTween?.Kill();
+            _shieldTween?.Kill();
 
             Sequence sequence = CreateGainSequence(
                 shieldImage,
@@ -70,7 +70,7 @@ namespace SlotRogue.UI.GameFlow
                 targetPosition,
                 targetColor.a);
 
-            _gainTween = sequence;
+            _shieldTween = sequence;
 
             await SlotRogue.UI.Combat.Presentation.CombatPresentationTweens.AwaitTweenAsync(sequence, cancellationToken);
 
@@ -91,9 +91,44 @@ namespace SlotRogue.UI.GameFlow
             return UniTask.CompletedTask;
         }
 
-        public UniTask PlayExpireAsync(CancellationToken cancellationToken)
+        public async UniTask PlayExpireAsync(CancellationToken cancellationToken)
         {
-            return UniTask.CompletedTask;
+            if (!gameObject.activeSelf)
+            {
+                return;
+            }
+
+            Image shieldImage = _shieldImage;
+            if (shieldImage == null)
+            {
+                return;
+            }
+
+            RectTransform imageTransform = shieldImage.rectTransform;
+            Vector2 targetPosition = imageTransform.anchoredPosition;
+            Vector2 endPosition = targetPosition + new Vector2(0f, _gainStartYOffset);
+            Color targetColor = shieldImage.color;
+            targetColor.a = 0f;
+
+            _shieldTween?.Kill();
+
+            Sequence sequence = CreateExpireSequence(
+                shieldImage,
+                imageTransform,
+                endPosition,
+                targetColor.a);
+
+            _shieldTween = sequence;
+
+            await SlotRogue.UI.Combat.Presentation.CombatPresentationTweens.AwaitTweenAsync(sequence, cancellationToken);
+
+            if (shieldImage != null && imageTransform != null)
+            {
+                shieldImage.color = targetColor;
+                imageTransform.anchoredPosition = targetPosition;
+            }
+
+            gameObject.SetActive(false);
         }
 
         private Sequence CreateGainSequence(
@@ -109,6 +144,22 @@ namespace SlotRogue.UI.GameFlow
                 .Join(fadeTween)
                 .Join(moveTween)
                 .SetEase(Ease.OutQuad)
+                .SetLink(gameObject);
+        }
+
+        private Sequence CreateExpireSequence(
+            Image shieldImage,
+            RectTransform imageTransform,
+            Vector2 endPosition,
+            float targetAlpha)
+        {
+            Tween fadeTween = CreateImageAlphaTween(shieldImage, targetAlpha, _gainDuration);
+            Tween moveTween = CreateAnchoredPositionTween(imageTransform, endPosition, _gainDuration);
+
+            return DOTween.Sequence()
+                .Join(fadeTween)
+                .Join(moveTween)
+                .SetEase(Ease.InQuad)
                 .SetLink(gameObject);
         }
 

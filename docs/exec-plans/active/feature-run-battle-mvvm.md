@@ -48,6 +48,9 @@
 - 2026-06-09: 플레이어/몬스터 shield 표시 책임을 `ShieldGaugeView`로 분리했다. `ShieldPresenter`는 계속 `CombatViewModel` snapshot 갱신만 담당하고, `RunBattlePlayerHudView` / `EnemyFormationSlotView`는 shield 값을 gauge에 전달한다. 현재 gauge는 숫자 표시와 0일 때 숨김만 담당하며, bar/보간/이펙트 기획은 확정하지 않았다.
 - 2026-06-10: shield 생명주기 연출 명령 구조를 추가했다. `ShieldPresenter`는 gain, `DamagePresenter`는 shield hit/break, `ShieldResetPresenter`는 expire 명령을 요청하고, `RunBattleScreenView`가 대상 `ShieldGaugeView`를 찾아 no-op 연출 메서드로 위임한다. 실제 bar/흔들림/사운드/이펙트 구현은 아직 넣지 않았다.
 - 2026-06-10: `ShieldGaugeView.PlayGainAsync`에 최소 생성 연출을 추가했다. `_shieldImage`가 연결되어 있으면 alpha 0에서 불투명으로, 살짝 아래 위치에서 원래 위치로 올라오며 표시된다. hit/break/expire 연출은 아직 no-op이다.
+- 2026-06-10: `ShieldGaugeView.PlayExpireAsync`에 최소 만료 연출을 추가했다. `_shieldImage`가 연결되어 있으면 현재 위치에서 아래로 내려가며 투명해지고, 완료 후 위치를 복구한 뒤 gauge를 숨긴다. hit/break 연출은 아직 no-op이다.
+- 2026-06-10: shield reset은 이전 shield 값이 0보다 클 때만 expire 연출을 요청하도록 조정했다. 이미 꺼져 있는 `ShieldGaugeView`는 expire 때문에 다시 켜지지 않는다.
+- 2026-06-10: `ShieldReset` 이벤트가 reset 전/후 snapshot을 포함하도록 수정했다. UI presenter가 `TargetBefore.Shield`로 실제 만료 연출 여부를 판단할 수 있고, 이미 shield가 0인 대상은 연출하지 않는다.
 
 - 엄격한 MVVM 기준은 “ViewModel이 UnityEngine과 화면 오브젝트를 모르는 것”으로 둔다. Unity 씬 생명주기와 입력 연결은 `CompositionRoot`가 담당한다.
 - 카메라 셰이크는 world root를 기준으로 적용한다. 배경/몬스터를 함께 흔들지, 몬스터만 흔들지는 기존 화면 유지가 끝난 뒤 별도 migration으로 다시 판단한다.

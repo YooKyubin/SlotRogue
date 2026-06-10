@@ -22,16 +22,19 @@ namespace SlotRogue.UI.Combat.Presentation
                 return;
             }
 
+            if (combatEvent.TargetBefore.Shield > 0)
+            {
+                var request = new ShieldPresentationRequest(
+                    combatEvent.TargetBefore.Shield,
+                    combatEvent.IsPlayerParticipant,
+                    combatEvent.TargetParticipantId);
+                await Host.Commands.ShowShieldExpireAsync(request, cancellationToken);
+            }
+
             viewModel.SetParticipantShield(
                 combatEvent.TargetParticipantId,
                 0,
                 combatEvent.IsPlayerParticipant);
-
-            var request = new ShieldPresentationRequest(
-                combatEvent.TargetBefore.Shield,
-                combatEvent.IsPlayerParticipant,
-                combatEvent.TargetParticipantId);
-            await Host.Commands.ShowShieldExpireAsync(request, cancellationToken);
         }
     }
 }

@@ -166,6 +166,25 @@ namespace SlotRogue.Core.Tests.Combat
         }
 
         [Test]
+        public void ApplyPlayerTurn_ShieldResetEvent_IncludesTargetSnapshots()
+        {
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30);
+            CombatParticipant monster = CombatParticipantFactory.CreateEnemy(maxHp: 20, shield: 4);
+            _battle.StartBattle(player, monster, System.Array.Empty<CombatEffect>());
+
+            _battle.ApplyPlayerTurn(System.Array.Empty<CombatEffect>());
+
+            CombatEvent shieldResetEvent = _battle.Events.First(e =>
+                e.Kind == CombatEventKind.ShieldReset &&
+                !e.IsPlayerParticipant);
+
+            Assert.That(shieldResetEvent.TargetBefore.Hp, Is.EqualTo(20));
+            Assert.That(shieldResetEvent.TargetBefore.Shield, Is.EqualTo(4));
+            Assert.That(shieldResetEvent.TargetAfter.Hp, Is.EqualTo(20));
+            Assert.That(shieldResetEvent.TargetAfter.Shield, Is.Zero);
+        }
+
+        [Test]
         public void ApplyPlayerTurn_ResetsPlayerShieldAfterEnemyTurn()
         {
             CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30);

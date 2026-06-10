@@ -310,12 +310,16 @@ namespace SlotRogue.Core.Combat
 
         private void ResetShield(CombatParticipant participant)
         {
+            CombatParticipantSnapshot targetBefore = participant.CaptureSnapshot();
             participant.ResetShield();
+            CombatParticipantSnapshot targetAfter = participant.CaptureSnapshot();
             _events.Add(new CombatEvent(
                 CombatEventKind.ShieldReset,
                 CurrentPhase,
                 isPlayerParticipant: participant.Team == CombatTeam.Player,
-                targetParticipantId: participant.Id));
+                targetParticipantId: participant.Id,
+                targetBefore: targetBefore,
+                targetAfter: targetAfter));
         }
 
         private IReadOnlyList<CombatParticipant> ResolveTargets(
