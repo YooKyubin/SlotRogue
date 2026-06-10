@@ -13,6 +13,8 @@ namespace SlotRogue.UI.GameFlow
 
         [SerializeField] private float _gainDuration = 1f;
         [SerializeField] private float _gainStartYOffset = -10f;
+        [SerializeField] private float _breakDuration = 0.18f;
+        [SerializeField] private float _breakScaleMultiplier = 1.18f;
 
         private Tween _shieldTween;
 
@@ -86,9 +88,44 @@ namespace SlotRogue.UI.GameFlow
             return UniTask.CompletedTask;
         }
 
-        public UniTask PlayBreakAsync(CancellationToken cancellationToken)
+        public async UniTask PlayBreakAsync(CancellationToken cancellationToken)
         {
-            return UniTask.CompletedTask;
+            if (!gameObject.activeSelf)
+            {
+                return;
+            }
+
+            Image shieldImage = _shieldImage;
+            if (shieldImage == null)
+            {
+                return;
+            }
+
+            RectTransform imageTransform = shieldImage.rectTransform;
+            Vector3 targetScale = imageTransform.localScale;
+            Vector3 endScale = targetScale * _breakScaleMultiplier;
+            Color targetColor = shieldImage.color;
+            targetColor.a = 0f;
+
+            _shieldTween?.Kill();
+
+            Sequence sequence = CreateBreakSequence(
+                shieldImage,
+                imageTransform,
+                endScale,
+                targetColor.a);
+
+            _shieldTween = sequence;
+
+            await SlotRogue.UI.Combat.Presentation.CombatPresentationTweens.AwaitTweenAsync(sequence, cancellationToken);
+
+            if (shieldImage != null && imageTransform != null)
+            {
+                shieldImage.color = targetColor;
+                imageTransform.localScale = targetScale;
+            }
+
+            gameObject.SetActive(false);
         }
 
         public async UniTask PlayExpireAsync(CancellationToken cancellationToken)
@@ -163,6 +200,22 @@ namespace SlotRogue.UI.GameFlow
                 .SetLink(gameObject);
         }
 
+        private Sequence CreateBreakSequence(
+            Image shieldImage,
+            RectTransform imageTransform,
+            Vector3 endScale,
+            float targetAlpha)
+        {
+            Tween fadeTween = CreateImageAlphaTween(shieldImage, targetAlpha, _breakDuration);
+            Tween scaleTween = CreateLocalScaleTween(imageTransform, endScale, _breakDuration);
+
+            return DOTween.Sequence()
+                .Join(fadeTween)
+                .Join(scaleTween)
+                .SetEase(Ease.OutQuad)
+                .SetLink(gameObject);
+        }
+
         private static Tween CreateImageAlphaTween(Image image, float targetAlpha, float duration)
         {
             return DOTween.To(
@@ -185,6 +238,15 @@ namespace SlotRogue.UI.GameFlow
                 () => target.anchoredPosition,
                 position => target.anchoredPosition = position,
                 targetPosition,
+                duration);
+        }
+
+        private static Tween CreateLocalScaleTween(RectTransform target, Vector3 targetScale, float duration)
+        {
+            return DOTween.To(
+                () => target.localScale,
+                scale => target.localScale = scale,
+                targetScale,
                 duration);
         }
     }

@@ -23,11 +23,6 @@ namespace SlotRogue.UI.Combat.Presentation
                 return;
             }
 
-            viewModel.ApplyParticipantSnapshot(
-                combatEvent.TargetParticipantId,
-                combatEvent.TargetAfter,
-                combatEvent.IsPlayerParticipant);
-
             if (combatEvent.ApplyResult.ShieldConsumed > 0)
             {
                 var shieldRequest = new ShieldPresentationRequest(
@@ -41,6 +36,11 @@ namespace SlotRogue.UI.Combat.Presentation
                     await Host.Commands.ShowShieldBreakAsync(shieldRequest, cancellationToken);
                 }
             }
+
+            viewModel.ApplyParticipantSnapshot(
+                combatEvent.TargetParticipantId,
+                combatEvent.TargetAfter,
+                combatEvent.IsPlayerParticipant);
 
             var request = new FloatingDamageRequest(
                 combatEvent.ApplyResult.DamageDealt,
