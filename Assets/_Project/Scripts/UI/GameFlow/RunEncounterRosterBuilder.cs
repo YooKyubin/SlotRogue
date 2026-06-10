@@ -157,7 +157,7 @@ namespace SlotRogue.UI.GameFlow
 
             return new MonsterTurnSchedule(
                 new[] { new CombatEffect(CombatEffectKind.Damage, 3 + lv, CombatEffectTarget.Enemy) },
-                new[] { new CombatEffect(CombatEffectKind.Shield, 2 + lv, CombatEffectTarget.Self) },
+                new[] { new CombatEffect(CombatEffectKind.Shield, 40 + lv, CombatEffectTarget.Self) },
                 new[] { new CombatEffect(CombatEffectKind.Damage, 5 + lv, CombatEffectTarget.Enemy) });
         }
     }

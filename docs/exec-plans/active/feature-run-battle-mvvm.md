@@ -51,7 +51,9 @@
 - 2026-06-10: `ShieldGaugeView.PlayExpireAsync`에 최소 만료 연출을 추가했다. `_shieldImage`가 연결되어 있으면 현재 위치에서 아래로 내려가며 투명해지고, 완료 후 위치를 복구한 뒤 gauge를 숨긴다. hit/break 연출은 아직 no-op이다.
 - 2026-06-10: shield reset은 이전 shield 값이 0보다 클 때만 expire 연출을 요청하도록 조정했다. 이미 꺼져 있는 `ShieldGaugeView`는 expire 때문에 다시 켜지지 않는다.
 - 2026-06-10: `ShieldReset` 이벤트가 reset 전/후 snapshot을 포함하도록 수정했다. UI presenter가 `TargetBefore.Shield`로 실제 만료 연출 여부를 판단할 수 있고, 이미 shield가 0인 대상은 연출하지 않는다.
-- 2026-06-10: `ShieldGaugeView.PlayBreakAsync`에 최소 파괴 연출을 추가했다. 데미지로 shield가 0이 되면 snapshot 반영 전에 shield image가 살짝 커지며 투명해지고, 완료 후 gauge를 숨긴다. hit 연출은 아직 no-op이다.
+- 2026-06-10: `ShieldGaugeView.PlayBreakAsync`에 최소 파괴 연출을 추가했다. 데미지로 shield가 0이 되면 snapshot 반영 전에 shield image가 살짝 커지며 투명해지고, 완료 후 gauge를 숨긴다.
+- 2026-06-10: `ShieldGaugeView.PlayHitAsync`에 최소 피격 연출을 추가했다. shield image는 좌우로 흔들리고, shield text는 빨간색과 확대 상태에서 원래 색/크기로 복귀한다.
+- 2026-06-10: `ShieldGaugeView.PlayHitAsync`는 피격 연출 시작 시점에 현재 표시 shield 값에서 consumed amount를 차감해 변경된 shield 값을 먼저 보여준다. 이후 snapshot `Render`가 최종 상태를 다시 동기화한다.
 
 - 엄격한 MVVM 기준은 “ViewModel이 UnityEngine과 화면 오브젝트를 모르는 것”으로 둔다. Unity 씬 생명주기와 입력 연결은 `CompositionRoot`가 담당한다.
 - 카메라 셰이크는 world root를 기준으로 적용한다. 배경/몬스터를 함께 흔들지, 몬스터만 흔들지는 기존 화면 유지가 끝난 뒤 별도 migration으로 다시 판단한다.
