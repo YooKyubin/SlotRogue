@@ -1,0 +1,767 @@
+diff --git a/.codex/outputs/combat-presentation-refactor.diff b/.codex/outputs/combat-presentation-refactor.diff
+index 8db0dd8..e69de29 100644
+--- a/.codex/outputs/combat-presentation-refactor.diff
++++ b/.codex/outputs/combat-presentation-refactor.diff
+@@ -1,671 +0,0 @@
+-diff --git a/Assets/_Project/Scripts/Tests/UI/GameFlow/RunBattleScreenViewModelTests.cs b/Assets/_Project/Scripts/Tests/UI/GameFlow/RunBattleScreenViewModelTests.cs
+-index 6d0e561..187dc3e 100644
+---- a/Assets/_Project/Scripts/Tests/UI/GameFlow/RunBattleScreenViewModelTests.cs
+-+++ b/Assets/_Project/Scripts/Tests/UI/GameFlow/RunBattleScreenViewModelTests.cs
+-@@ -38,6 +38,7 @@ namespace SlotRogue.UI.Tests.GameFlow
+- 
+-             viewModel.SetEnemySlot(
+-                 slotIndex: 1,
+-+                participantId: new CombatParticipantId(101),
+-                 hudText: "Enemy\n8/10",
+-                 hp: 8,
+-                 maxHp: 10,
+-@@ -53,6 +54,7 @@ namespace SlotRogue.UI.Tests.GameFlow
+- 
+-             Assert.That(hidden.Active, Is.False);
+-             Assert.That(shown.Active, Is.True);
+-+            Assert.That(shown.ParticipantId.Value, Is.EqualTo(101));
+-             Assert.That(shown.HudText, Is.EqualTo("Enemy\n8/10"));
+-             Assert.That(shown.Hp, Is.EqualTo(8));
+-             Assert.That(shown.MaxHp, Is.EqualTo(10));
+-@@ -80,6 +82,7 @@ namespace SlotRogue.UI.Tests.GameFlow
+-             var viewModel = new RunBattleScreenViewModel(slotCellCount: 0, enemySlotCount: 1);
+-             viewModel.SetEnemySlot(
+-                 slotIndex: 0,
+-+                participantId: new CombatParticipantId(102),
+-                 hudText: "Enemy",
+-                 hp: 10,
+-                 maxHp: 10,
+-diff --git a/Assets/_Project/Scripts/UI/Combat/Presentation/CombatPresentationHost.cs b/Assets/_Project/Scripts/UI/Combat/Presentation/CombatPresentationHost.cs
+-index 62e80f7..3b2464c 100644
+---- a/Assets/_Project/Scripts/UI/Combat/Presentation/CombatPresentationHost.cs
+-+++ b/Assets/_Project/Scripts/UI/Combat/Presentation/CombatPresentationHost.cs
+-@@ -1,4 +1,3 @@
+--using SlotRogue.Core.Combat;
+- using UnityEngine;
+- 
+- namespace SlotRogue.UI.Combat.Presentation
+-@@ -16,12 +15,5 @@ namespace SlotRogue.UI.Combat.Presentation
+-         public GameObject LinkTarget { get; }
+- 
+-         public ICombatPresentationCommands Commands { get; }
+--
+--        public void SetEnemyDamageAnchor(
+--            CombatParticipantId participantId,
+--            RectTransform anchor)
+--        {
+--            Commands.SetEnemyDamageAnchor(participantId, anchor);
+--        }
+-     }
+- }
+-diff --git a/Assets/_Project/Scripts/UI/Combat/Presentation/FloatingCombatTextLayerView.cs b/Assets/_Project/Scripts/UI/Combat/Presentation/FloatingCombatTextLayerView.cs
+-index 4b1bb68..fbb4f5d 100644
+---- a/Assets/_Project/Scripts/UI/Combat/Presentation/FloatingCombatTextLayerView.cs
+-+++ b/Assets/_Project/Scripts/UI/Combat/Presentation/FloatingCombatTextLayerView.cs
+-@@ -1,49 +1,24 @@
+--using System.Collections.Generic;
+- using System.Threading;
+- using Cysharp.Threading.Tasks;
+--using SlotRogue.Core.Combat;
+- using UnityEngine;
+--using UnityEngine.UI;
+- 
+- namespace SlotRogue.UI.Combat.Presentation
+- {
+--    public sealed class FloatingCombatTextLayerView : MonoBehaviour, ICombatPresentationCommands
+-+    public sealed class FloatingCombatTextLayerView : MonoBehaviour
+-     {
+--        private readonly Dictionary<int, RectTransform> _enemyDamageAnchors = new();
+--
+-         [SerializeField] private RectTransform _floatingTextRoot;
+-         [SerializeField] private FloatingDamageTextView _floatingDamageTextPrefab;
+--        [SerializeField] private RectTransform _playerDamageAnchor;
+--        [SerializeField] private RectTransform _fallbackMonsterDamageAnchor;
+--        [SerializeField] private Font _defaultFont;
+--        [SerializeField] private GameObject _linkTarget;
+-+
+-+        private ICombatDamageAnchorRegistry _damageAnchorRegistry;
+- 
+-         public void Bind(
+-             Transform floatingTextRoot,
+-             FloatingDamageTextView floatingDamageTextPrefab,
+--            RectTransform playerDamageAnchor,
+--            RectTransform fallbackMonsterDamageAnchor,
+--            Font defaultFont,
+--            GameObject linkTarget)
+-+            ICombatDamageAnchorRegistry damageAnchorRegistry)
+-         {
+-             _floatingTextRoot = floatingTextRoot as RectTransform;
+-             _floatingDamageTextPrefab = floatingDamageTextPrefab;
+--            _playerDamageAnchor = playerDamageAnchor;
+--            _fallbackMonsterDamageAnchor = fallbackMonsterDamageAnchor;
+--            _defaultFont = defaultFont;
+--            _linkTarget = linkTarget;
+--        }
+--
+--        public void SetEnemyDamageAnchor(
+--            CombatParticipantId participantId,
+--            RectTransform anchor)
+--        {
+--            if (!participantId.IsValid || anchor == null)
+--            {
+--                return;
+--            }
+--
+--            _enemyDamageAnchors[participantId.Value] = anchor;
+-+            _damageAnchorRegistry = damageAnchorRegistry;
+-         }
+- 
+-         public async UniTask ShowFloatingDamageAsync(
+-@@ -67,7 +42,9 @@ namespace SlotRogue.UI.Combat.Presentation
+-                 return;
+-             }
+- 
+--            RectTransform anchor = ResolveDamageAnchor(request.TargetParticipantId, request.IsPlayerTarget);
+-+            RectTransform anchor = _damageAnchorRegistry != null
+-+                ? _damageAnchorRegistry.ResolveDamageAnchor(request.TargetParticipantId, request.IsPlayerTarget)
+-+                : null;
+-             if (anchor == null)
+-             {
+-                 Debug.LogWarning($"[Presentation] Missing {(request.IsPlayerTarget ? "player" : "monster")} damage anchor.");
+-@@ -88,74 +65,6 @@ namespace SlotRogue.UI.Combat.Presentation
+-             await damageText.Play(request.Amount, request.IsCritical, anchorKind, cancellationToken);
+-         }
+- 
+--        public async UniTask ShowTurnBannerAsync(
+--            string message,
+--            float duration,
+--            CancellationToken cancellationToken)
+--        {
+--            if (string.IsNullOrEmpty(message))
+--            {
+--                return;
+--            }
+--
+--            if (_floatingTextRoot == null)
+--            {
+--                await CombatPresentationTweens.DelayAsync(duration, ResolveLinkTarget(), cancellationToken);
+--                return;
+--            }
+--
+--            var bannerObject = new GameObject("Turn Banner", typeof(RectTransform));
+--            RectTransform rectTransform = bannerObject.GetComponent<RectTransform>();
+--            rectTransform.SetParent(_floatingTextRoot, false);
+--            rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+--            rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+--            rectTransform.pivot = new Vector2(0.5f, 0.5f);
+--            rectTransform.anchoredPosition = new Vector2(0f, 180f);
+--            rectTransform.sizeDelta = new Vector2(700f, 80f);
+--
+--            var text = bannerObject.AddComponent<Text>();
+--            text.font = _defaultFont;
+--            text.fontSize = 40;
+--            text.alignment = TextAnchor.MiddleCenter;
+--            text.color = new Color32(255, 230, 140, 255);
+--            text.text = message;
+--
+--            try
+--            {
+--                await CombatPresentationTweens.DelayAsync(duration, ResolveLinkTarget(), cancellationToken);
+--            }
+--            finally
+--            {
+--                if (bannerObject != null)
+--                {
+--                    Destroy(bannerObject);
+--                }
+--            }
+--        }
+--
+--        private RectTransform ResolveDamageAnchor(
+--            CombatParticipantId participantId,
+--            bool isPlayerTarget)
+--        {
+--            if (isPlayerTarget)
+--            {
+--                return _playerDamageAnchor;
+--            }
+--
+--            if (participantId.IsValid &&
+--                _enemyDamageAnchors.TryGetValue(participantId.Value, out RectTransform anchor))
+--            {
+--                return anchor;
+--            }
+--
+--            return _fallbackMonsterDamageAnchor;
+--        }
+--
+--        private GameObject ResolveLinkTarget()
+--        {
+--            return _linkTarget != null ? _linkTarget : gameObject;
+--        }
+--
+-         private static void AlignFloatingTextToAnchor(
+-             RectTransform floatingText,
+-             RectTransform anchor,
+-diff --git a/Assets/_Project/Scripts/UI/Combat/Presentation/FloatingDamageRequest.cs b/Assets/_Project/Scripts/UI/Combat/Presentation/FloatingDamageRequest.cs
+-new file mode 100644
+-index 0000000..ae26000
+---- /dev/null
+-+++ b/Assets/_Project/Scripts/UI/Combat/Presentation/FloatingDamageRequest.cs
+-@@ -0,0 +1,27 @@
+-+using SlotRogue.Core.Combat;
+-+
+-+namespace SlotRogue.UI.Combat.Presentation
+-+{
+-+    public readonly struct FloatingDamageRequest
+-+    {
+-+        public FloatingDamageRequest(
+-+            int amount,
+-+            bool isCritical,
+-+            bool isPlayerTarget,
+-+            CombatParticipantId targetParticipantId)
+-+        {
+-+            Amount = amount;
+-+            IsCritical = isCritical;
+-+            IsPlayerTarget = isPlayerTarget;
+-+            TargetParticipantId = targetParticipantId;
+-+        }
+-+
+-+        public int Amount { get; }
+-+
+-+        public bool IsCritical { get; }
+-+
+-+        public bool IsPlayerTarget { get; }
+-+
+-+        public CombatParticipantId TargetParticipantId { get; }
+-+    }
+-+}
+-diff --git a/Assets/_Project/Scripts/UI/Combat/Presentation/ICombatPresentationCommands.cs b/Assets/_Project/Scripts/UI/Combat/Presentation/ICombatPresentationCommands.cs
+-new file mode 100644
+-index 0000000..0ea985f
+---- /dev/null
+-+++ b/Assets/_Project/Scripts/UI/Combat/Presentation/ICombatPresentationCommands.cs
+-@@ -0,0 +1,17 @@
+-+using System.Threading;
+-+using Cysharp.Threading.Tasks;
+-+
+-+namespace SlotRogue.UI.Combat.Presentation
+-+{
+-+    public interface ICombatPresentationCommands
+-+    {
+-+        UniTask ShowFloatingDamageAsync(
+-+            FloatingDamageRequest request,
+-+            CancellationToken cancellationToken);
+-+
+-+        UniTask ShowTurnBannerAsync(
+-+            string message,
+-+            float duration,
+-+            CancellationToken cancellationToken);
+-+    }
+-+}
+-diff --git a/Assets/_Project/Scripts/UI/Combat/Presentation/NullCombatPresentationCommands.cs b/Assets/_Project/Scripts/UI/Combat/Presentation/NullCombatPresentationCommands.cs
+-new file mode 100644
+-index 0000000..439f082
+---- /dev/null
+-+++ b/Assets/_Project/Scripts/UI/Combat/Presentation/NullCombatPresentationCommands.cs
+-@@ -0,0 +1,29 @@
+-+using System.Threading;
+-+using Cysharp.Threading.Tasks;
+-+
+-+namespace SlotRogue.UI.Combat.Presentation
+-+{
+-+    public sealed class NullCombatPresentationCommands : ICombatPresentationCommands
+-+    {
+-+        public static readonly NullCombatPresentationCommands Instance = new();
+-+
+-+        private NullCombatPresentationCommands()
+-+        {
+-+        }
+-+
+-+        public UniTask ShowFloatingDamageAsync(
+-+            FloatingDamageRequest request,
+-+            CancellationToken cancellationToken)
+-+        {
+-+            return UniTask.CompletedTask;
+-+        }
+-+
+-+        public UniTask ShowTurnBannerAsync(
+-+            string message,
+-+            float duration,
+-+            CancellationToken cancellationToken)
+-+        {
+-+            return UniTask.CompletedTask;
+-+        }
+-+    }
+-+}
+-diff --git a/Assets/_Project/Scripts/UI/GameFlow/EnemyFormationView.cs b/Assets/_Project/Scripts/UI/GameFlow/EnemyFormationView.cs
+-index 1586ebe..335ce11 100644
+---- a/Assets/_Project/Scripts/UI/GameFlow/EnemyFormationView.cs
+-+++ b/Assets/_Project/Scripts/UI/GameFlow/EnemyFormationView.cs
+-@@ -1,10 +1,14 @@
+- using System;
+-+using System.Collections.Generic;
+-+using SlotRogue.Core.Combat;
+- using UnityEngine;
+- 
+- namespace SlotRogue.UI.GameFlow
+- {
+-     public sealed class EnemyFormationView : MonoBehaviour
+-     {
+-+        private readonly Dictionary<int, int> _slotIndexByParticipantId = new();
+-+
+-         [SerializeField] private MonsterView[] _monsterViews = Array.Empty<MonsterView>();
+-         [SerializeField] private EnemyFormationSlotView[] _formationSlotViews = Array.Empty<EnemyFormationSlotView>();
+- 
+-@@ -38,6 +42,7 @@ namespace SlotRogue.UI.GameFlow
+-                 return;
+-             }
+- 
+-+            _slotIndexByParticipantId.Clear();
+-             for (int index = 0; index < slotCount; index++)
+-             {
+-                 bool hasState = enemySlots != null && index < enemySlots.Length;
+-@@ -45,6 +50,11 @@ namespace SlotRogue.UI.GameFlow
+-                     ? enemySlots[index]
+-                     : RunBattleEnemySlotState.Hidden(index);
+- 
+-+                if (state.Active && state.ParticipantId.IsValid)
+-+                {
+-+                    _slotIndexByParticipantId[state.ParticipantId.Value] = state.SlotIndex;
+-+                }
+-+
+-                 if (TryGetMonsterView(index, out MonsterView monsterView))
+-                 {
+-                     monsterView.Render(state);
+-@@ -104,6 +114,36 @@ namespace SlotRogue.UI.GameFlow
+-                 : null;
+-         }
+- 
+-+        public void SetEnemyDamageAnchor(
+-+            CombatParticipantId participantId,
+-+            RectTransform anchor)
+-+        {
+-+            if (!participantId.IsValid || anchor == null)
+-+            {
+-+                return;
+-+            }
+-+
+-+            for (int index = 0; index < SlotCount; index++)
+-+            {
+-+                if (GetDamageAnchor(index) == anchor)
+-+                {
+-+                    _slotIndexByParticipantId[participantId.Value] = index;
+-+                    return;
+-+                }
+-+            }
+-+        }
+-+
+-+        public RectTransform ResolveDamageAnchor(CombatParticipantId participantId)
+-+        {
+-+            if (participantId.IsValid &&
+-+                _slotIndexByParticipantId.TryGetValue(participantId.Value, out int slotIndex))
+-+            {
+-+                return GetDamageAnchor(slotIndex);
+-+            }
+-+
+-+            return GetDamageAnchor(Mathf.Min(1, Mathf.Max(0, SlotCount - 1)));
+-+        }
+-+
+-         private static void RenderFormationSlot(
+-             EnemyFormationSlotView formationSlotView,
+-             RunBattleEnemySlotState state)
+-diff --git a/Assets/_Project/Scripts/UI/GameFlow/RunBattleCompositionRoot.cs b/Assets/_Project/Scripts/UI/GameFlow/RunBattleCompositionRoot.cs
+-index 08ad427..971ccc1 100644
+---- a/Assets/_Project/Scripts/UI/GameFlow/RunBattleCompositionRoot.cs
+-+++ b/Assets/_Project/Scripts/UI/GameFlow/RunBattleCompositionRoot.cs
+-@@ -222,7 +222,6 @@ namespace SlotRogue.UI.GameFlow
+-                 _battle,
+-                 _view,
+-                 _encounterRoster,
+--                _presentationHost,
+-                 encounterNode,
+-                 () => _flowController.IsBusy,
+-                 () => _spinRoutineRunning,
+-@@ -250,15 +249,19 @@ namespace SlotRogue.UI.GameFlow
+-             }
+- 
+-             FloatingCombatTextLayerView floatingTextLayer = EnsureFloatingTextLayerView(floatingTextRoot);
+-+            TurnBannerView turnBannerView = EnsureTurnBannerView(floatingTextRoot);
+-+            _view.BindDamageAnchors(playerDamageAnchor, monsterDamageAnchor);
+-             floatingTextLayer.Bind(
+-                 floatingTextRoot,
+-                 _floatingDamageTextPrefab,
+--                playerDamageAnchor,
+--                monsterDamageAnchor,
+-+                _view);
+-+            turnBannerView.Bind(
+-+                floatingTextRoot,
+-                 GetDefaultFont(),
+-                 gameObject);
+- 
+--            _presentationHost = new CombatPresentationHost(gameObject, floatingTextLayer);
+-+            var commands = new CombatPresentationCommandDispatcher(floatingTextLayer, turnBannerView);
+-+            _presentationHost = new CombatPresentationHost(gameObject, commands);
+-             CombatPresentationPipeline pipeline = CombatPresentationPipeline.CreateDefault(_presentationHost);
+-             _flowController = new BattleFlowController(pipeline, _combatViewModel);
+-         }
+-@@ -276,6 +279,19 @@ namespace SlotRogue.UI.GameFlow
+-             return layerObject.AddComponent<FloatingCombatTextLayerView>();
+-         }
+- 
+-+        private static TurnBannerView EnsureTurnBannerView(Transform floatingTextRoot)
+-+        {
+-+            Transform target = floatingTextRoot != null ? floatingTextRoot : null;
+-+            if (target != null &&
+-+                target.TryGetComponent(out TurnBannerView existing))
+-+            {
+-+                return existing;
+-+            }
+-+
+-+            GameObject viewObject = target != null ? target.gameObject : new GameObject("Turn Banner View");
+-+            return viewObject.AddComponent<TurnBannerView>();
+-+        }
+-+
+-         private static RectTransform ResolveDamageAnchor(
+-             Transform overlayRoot,
+-             string anchorName,
+-diff --git a/Assets/_Project/Scripts/UI/GameFlow/RunBattleEnemySelectionBinder.cs b/Assets/_Project/Scripts/UI/GameFlow/RunBattleEnemySelectionBinder.cs
+-index a05b96e..1264c71 100644
+---- a/Assets/_Project/Scripts/UI/GameFlow/RunBattleEnemySelectionBinder.cs
+-+++ b/Assets/_Project/Scripts/UI/GameFlow/RunBattleEnemySelectionBinder.cs
+-@@ -3,7 +3,6 @@ using System.Collections.Generic;
+- using SlotRogue.Core.Combat;
+- using SlotRogue.Data.Combat;
+- using SlotRogue.Data.GameFlow;
+--using SlotRogue.UI.Combat.Presentation;
+- using UnityEngine;
+- 
+- namespace SlotRogue.UI.GameFlow
+-@@ -13,7 +12,6 @@ namespace SlotRogue.UI.GameFlow
+-         private readonly BattleSystem _battle;
+-         private readonly RunBattleScreenView _view;
+-         private readonly RunEncounterRoster _encounterRoster;
+--        private readonly CombatPresentationHost _presentationHost;
+-         private readonly RunMapNodeDefinition _encounterNode;
+-         private readonly Func<bool> _isBusy;
+-         private readonly Func<bool> _isSpinRunning;
+-@@ -25,7 +23,6 @@ namespace SlotRogue.UI.GameFlow
+-             BattleSystem battle,
+-             RunBattleScreenView view,
+-             RunEncounterRoster encounterRoster,
+--            CombatPresentationHost presentationHost,
+-             RunMapNodeDefinition encounterNode,
+-             Func<bool> isBusy,
+-             Func<bool> isSpinRunning,
+-@@ -34,7 +31,6 @@ namespace SlotRogue.UI.GameFlow
+-             _battle = battle ?? throw new ArgumentNullException(nameof(battle));
+-             _view = view ?? throw new ArgumentNullException(nameof(view));
+-             _encounterRoster = encounterRoster ?? throw new ArgumentNullException(nameof(encounterRoster));
+--            _presentationHost = presentationHost ?? throw new ArgumentNullException(nameof(presentationHost));
+-             _encounterNode = encounterNode;
+-             _isBusy = isBusy ?? throw new ArgumentNullException(nameof(isBusy));
+-             _isSpinRunning = isSpinRunning ?? throw new ArgumentNullException(nameof(isSpinRunning));
+-@@ -59,8 +55,6 @@ namespace SlotRogue.UI.GameFlow
+-                 int slotIndex = RunBattleScreenStateUpdater.ResolveHudSlotIndex(
+-                     _encounterRoster, rosterIndex, slotCount, usedFormationSlots);
+-                 _view.SetEnemySlotClickHandler(slotIndex, () => HandleEnemySelected(enemyId));
+--                RectTransform anchor = ResolveEnemyDamageAnchor(slotIndex);
+--                _presentationHost.SetEnemyDamageAnchor(enemyId, anchor);
+-             }
+- 
+-             if (_battle.Enemies.Count > slotCount)
+-@@ -111,19 +105,6 @@ namespace SlotRogue.UI.GameFlow
+-             return default;
+-         }
+- 
+--        private RectTransform ResolveEnemyDamageAnchor(int slotIndex)
+--        {
+--            RectTransform anchor = _view.GetEnemyDamageAnchor(slotIndex);
+--            if (anchor == null)
+--            {
+--                Debug.LogError(
+--                    $"[RunBattleCompositionRoot] Damage anchor missing for formation slot {slotIndex}. " +
+--                    "Run menu: SlotRogue > Game Flow > Rebuild Scene UI Prefabs.");
+--            }
+--
+--            return anchor;
+--        }
+--
+-         private MonsterDefinition ResolveEncounterMonster(int rosterIndex)
+-         {
+-             RunEncounterDefinition encounter = _encounterNode?.Encounter;
+-diff --git a/Assets/_Project/Scripts/UI/GameFlow/RunBattleScreenStateUpdater.cs b/Assets/_Project/Scripts/UI/GameFlow/RunBattleScreenStateUpdater.cs
+-index 7f13044..42d8bc7 100644
+---- a/Assets/_Project/Scripts/UI/GameFlow/RunBattleScreenStateUpdater.cs
+-+++ b/Assets/_Project/Scripts/UI/GameFlow/RunBattleScreenStateUpdater.cs
+-@@ -147,6 +147,7 @@ namespace SlotRogue.UI.GameFlow
+-                     string deadSuffix = enemy.IsDead ? " [DOWN]" : string.Empty;
+-                     _vm.SetEnemySlot(
+-                         slotIndex,
+-+                        enemy.Id,
+-                         $"{encounterDisplayName} #{index + 1}{deadSuffix}\n{snapshot.Hp}/{enemy.MaxHp}  SH {snapshot.Shield}",
+-                         snapshot.Hp,
+-                         enemy.MaxHp,
+-diff --git a/Assets/_Project/Scripts/UI/GameFlow/RunBattleScreenView.cs b/Assets/_Project/Scripts/UI/GameFlow/RunBattleScreenView.cs
+-index 8184e73..73badd5 100644
+---- a/Assets/_Project/Scripts/UI/GameFlow/RunBattleScreenView.cs
+-+++ b/Assets/_Project/Scripts/UI/GameFlow/RunBattleScreenView.cs
+-@@ -1,10 +1,12 @@
+- using System;
+-+using SlotRogue.Core.Combat;
+-+using SlotRogue.UI.Combat.Presentation;
+- using UnityEngine;
+- using UnityEngine.UI;
+- 
+- namespace SlotRogue.UI.GameFlow
+- {
+--    public sealed class RunBattleScreenView : MonoBehaviour
+-+    public sealed class RunBattleScreenView : MonoBehaviour, ICombatDamageAnchorRegistry
+-     {
+-         [SerializeField] private RunBattlePlayerHudView _playerHudView;
+-         [SerializeField] private RunBattleStatusView _statusView;
+-@@ -13,6 +15,9 @@ namespace SlotRogue.UI.GameFlow
+-         [SerializeField] private RunBattlePresentationOverlayView _presentationOverlayView;
+-         [SerializeField] private RunBattleWorldView _worldView;
+- 
+-+        private RectTransform _runtimePlayerDamageAnchor;
+-+        private RectTransform _runtimeFallbackMonsterDamageAnchor;
+-+
+-         public event Action SpinRequested;
+-         public event Action ContinueRequested;
+-         public event Action RestartRequested;
+-@@ -110,6 +115,38 @@ namespace SlotRogue.UI.GameFlow
+-             return _worldView != null ? _worldView.GetEnemyDamageAnchor(slotIndex) : null;
+-         }
+- 
+-+        public void BindDamageAnchors(
+-+            RectTransform playerDamageAnchor,
+-+            RectTransform fallbackMonsterDamageAnchor)
+-+        {
+-+            _runtimePlayerDamageAnchor = playerDamageAnchor;
+-+            _runtimeFallbackMonsterDamageAnchor = fallbackMonsterDamageAnchor;
+-+        }
+-+
+-+        public void SetEnemyDamageAnchor(
+-+            CombatParticipantId participantId,
+-+            RectTransform anchor)
+-+        {
+-+            _worldView?.SetEnemyDamageAnchor(participantId, anchor);
+-+        }
+-+
+-+        public RectTransform ResolveDamageAnchor(
+-+            CombatParticipantId participantId,
+-+            bool isPlayerTarget)
+-+        {
+-+            if (isPlayerTarget)
+-+            {
+-+                return _runtimePlayerDamageAnchor != null
+-+                    ? _runtimePlayerDamageAnchor
+-+                    : PlayerDamageAnchor;
+-+            }
+-+
+-+            RectTransform enemyAnchor = _worldView != null
+-+                ? _worldView.ResolveEnemyDamageAnchor(participantId)
+-+                : null;
+-+            return enemyAnchor != null ? enemyAnchor : _runtimeFallbackMonsterDamageAnchor;
+-+        }
+-+
+-         private void SubscribeActions()
+-         {
+-             if (_actionView == null)
+-diff --git a/Assets/_Project/Scripts/UI/GameFlow/RunBattleScreenViewModel.cs b/Assets/_Project/Scripts/UI/GameFlow/RunBattleScreenViewModel.cs
+-index 9713d6c..83dcc74 100644
+---- a/Assets/_Project/Scripts/UI/GameFlow/RunBattleScreenViewModel.cs
+-+++ b/Assets/_Project/Scripts/UI/GameFlow/RunBattleScreenViewModel.cs
+-@@ -1,4 +1,5 @@
+- using System;
+-+using SlotRogue.Core.Combat;
+- 
+- namespace SlotRogue.UI.GameFlow
+- {
+-@@ -137,6 +138,7 @@ namespace SlotRogue.UI.GameFlow
+- 
+-         public void SetEnemySlot(
+-             int slotIndex,
+-+            CombatParticipantId participantId,
+-             string hudText,
+-             int hp,
+-             int maxHp,
+-@@ -151,6 +153,7 @@ namespace SlotRogue.UI.GameFlow
+- 
+-             _enemySlots[slotIndex] = new RunBattleEnemySlotState(
+-                 slotIndex,
+-+                participantId,
+-                 active: true,
+-                 hudText ?? string.Empty,
+-                 Math.Max(0, hp),
+-@@ -308,6 +311,7 @@ namespace SlotRogue.UI.GameFlow
+- 
+-         public RunBattleEnemySlotState(
+-             int slotIndex,
+-+            CombatParticipantId participantId,
+-             bool active,
+-             string hudText,
+-             int hp,
+-@@ -317,6 +321,7 @@ namespace SlotRogue.UI.GameFlow
+-             StatusEffectViewData[] statuses = null)
+-         {
+-             SlotIndex = slotIndex;
+-+            ParticipantId = participantId;
+-             Active = active;
+-             HudText = hudText ?? string.Empty;
+-             Hp = hp;
+-@@ -328,6 +333,8 @@ namespace SlotRogue.UI.GameFlow
+- 
+-         public int SlotIndex { get; }
+- 
+-+        public CombatParticipantId ParticipantId { get; }
+-+
+-         public bool Active { get; }
+- 
+-         public string HudText { get; }
+-@@ -346,6 +353,7 @@ namespace SlotRogue.UI.GameFlow
+-         {
+-             return new RunBattleEnemySlotState(
+-                 slotIndex,
+-+                default,
+-                 active: false,
+-                 string.Empty,
+-                 hp: 0,
+-diff --git a/Assets/_Project/Scripts/UI/GameFlow/RunBattleWorldView.cs b/Assets/_Project/Scripts/UI/GameFlow/RunBattleWorldView.cs
+-index e373a1e..52dd775 100644
+---- a/Assets/_Project/Scripts/UI/GameFlow/RunBattleWorldView.cs
+-+++ b/Assets/_Project/Scripts/UI/GameFlow/RunBattleWorldView.cs
+-@@ -1,4 +1,5 @@
+- using System;
+-+using SlotRogue.Core.Combat;
+- using UnityEngine;
+- 
+- namespace SlotRogue.UI.GameFlow
+-@@ -65,6 +66,20 @@ namespace SlotRogue.UI.GameFlow
+-             return _enemyFormationView != null ? _enemyFormationView.GetDamageAnchor(slotIndex) : null;
+-         }
+- 
+-+        public void SetEnemyDamageAnchor(
+-+            CombatParticipantId participantId,
+-+            RectTransform anchor)
+-+        {
+-+            EnsureReferences();
+-+            _enemyFormationView?.SetEnemyDamageAnchor(participantId, anchor);
+-+        }
+-+
+-+        public RectTransform ResolveEnemyDamageAnchor(CombatParticipantId participantId)
+-+        {
+-+            EnsureReferences();
+-+            return _enemyFormationView != null ? _enemyFormationView.ResolveDamageAnchor(participantId) : null;
+-+        }
+-+
+-         private Transform ResolveBattleShakeRoot()
+-         {
+-             Transform shakeRoot = SceneComponentResolver.FindDeepChild(transform, "BattleShakeRoot");
+-diff --git a/docs/exec-plans/active/feature-run-battle-mvvm.md b/docs/exec-plans/active/feature-run-battle-mvvm.md
+-index 610ca0a..712ae1c 100644
+---- a/docs/exec-plans/active/feature-run-battle-mvvm.md
+-+++ b/docs/exec-plans/active/feature-run-battle-mvvm.md
+-@@ -28,6 +28,7 @@
+- - [x] 플레이어 HP fill 바인딩 복구 및 플레이어/몬스터 HP 바 감소 방향 통일
+- - [x] Sprite 없는 몬스터 HP 바 표시와 최종 공격력 ATK HUD 연결
+- - [x] 전투 연출 1차 MVVM 정리 — `DamagePresenter`의 View 생성/HP tween 제거, floating text 명령 View 분리, HP fill 보간을 View로 이동
+-+- [x] 전투 연출 후속 정리 — `TurnBannerView` 분리, presentation command에서 enemy damage anchor 등록 제거, anchor resolve를 View registry 흐름으로 이동
+- - [ ] Unity Editor에서 `SlotRogue > Game Flow > Migrate Run Battle Hierarchy In Place (Preserve UI)` 실행해 prefab/scene strict MVVM 적용과 기존 배치 리소스 유지 확인
+- - [ ] RunBattle 수동 플레이테스트로 스핀, 타겟 선택, 승리/패배 전환 확인
+- 
+-@@ -38,6 +39,7 @@
+- - 2026-06-06: 플레이어 HP 이미지는 오브젝트 이름 대신 `battle/player-hp-fill` 슬롯 ID로 복구하도록 변경했다. 플레이어/몬스터 HP 바는 `Image.Type.Filled`를 사용해 세로 게이지는 아래에서 위로, 가로 게이지는 왼쪽에서 오른쪽으로 채워지도록 통일했다.
+- - 2026-06-06: Sprite가 없는 몬스터 HP 이미지는 `fillAmount`가 적용되지 않아 왼쪽 pivot 고정 + 캐시된 최대 폭 조절 방식으로 변경했다. `Attack Power Text`는 런타임과 migration에서 자동 연결하고 최종 `Damage × AttackCount`를 `ATK`로 표시한다.
+- - 2026-06-08: 전투 연출 Presenter를 MVVM에 더 가깝게 정리했다. `DamagePresenter`는 최종 스냅샷 반영과 floating damage 요청만 수행하고, `FloatingCombatTextLayerView`가 prefab 생성·anchor 배치·턴 배너 표시를 담당한다. `CombatViewModel.Changed`를 화면 갱신 트리거로 연결하고, 플레이어/몬스터 HP fill 보간은 각 View가 처리한다.
+-+- 2026-06-08: `FloatingCombatTextLayerView`에서 turn banner 생성을 제거하고 `TurnBannerView`로 분리했다. `ICombatPresentationCommands`는 floating damage와 turn banner 요청만 남겼고, enemy damage anchor resolve는 `ICombatDamageAnchorRegistry` / `RunBattleScreenView` / `EnemyFormationView` 흐름으로 옮겼다.
+- 
+- - 엄격한 MVVM 기준은 “ViewModel이 UnityEngine과 화면 오브젝트를 모르는 것”으로 둔다. Unity 씬 생명주기와 입력 연결은 `CompositionRoot`가 담당한다.
+- - 카메라 셰이크는 world root를 기준으로 적용한다. 배경/몬스터를 함께 흔들지, 몬스터만 흔들지는 기존 화면 유지가 끝난 뒤 별도 migration으로 다시 판단한다.
+diff --git a/Assets/_Project/Scripts/UI/Combat/Presentation/FloatingDamageRequest.cs b/Assets/_Project/Scripts/UI/Combat/Presentation/FloatingDamageRequest.cs
+new file mode 100644
+index 0000000..ae26000
+--- /dev/null
++++ b/Assets/_Project/Scripts/UI/Combat/Presentation/FloatingDamageRequest.cs
+@@ -0,0 +1,27 @@
++using SlotRogue.Core.Combat;
++
++namespace SlotRogue.UI.Combat.Presentation
++{
++    public readonly struct FloatingDamageRequest
++    {
++        public FloatingDamageRequest(
++            int amount,
++            bool isCritical,
++            bool isPlayerTarget,
++            CombatParticipantId targetParticipantId)
++        {
++            Amount = amount;
++            IsCritical = isCritical;
++            IsPlayerTarget = isPlayerTarget;
++            TargetParticipantId = targetParticipantId;
++        }
++
++        public int Amount { get; }
++
++        public bool IsCritical { get; }
++
++        public bool IsPlayerTarget { get; }
++
++        public CombatParticipantId TargetParticipantId { get; }
++    }
++}
+diff --git a/Assets/_Project/Scripts/UI/Combat/Presentation/ICombatPresentationCommands.cs b/Assets/_Project/Scripts/UI/Combat/Presentation/ICombatPresentationCommands.cs
+new file mode 100644
+index 0000000..0ea985f
+--- /dev/null
++++ b/Assets/_Project/Scripts/UI/Combat/Presentation/ICombatPresentationCommands.cs
+@@ -0,0 +1,17 @@
++using System.Threading;
++using Cysharp.Threading.Tasks;
++
++namespace SlotRogue.UI.Combat.Presentation
++{
++    public interface ICombatPresentationCommands
++    {
++        UniTask ShowFloatingDamageAsync(
++            FloatingDamageRequest request,
++            CancellationToken cancellationToken);
++
++        UniTask ShowTurnBannerAsync(
++            string message,
++            float duration,
++            CancellationToken cancellationToken);
++    }
++}
+diff --git a/Assets/_Project/Scripts/UI/Combat/Presentation/NullCombatPresentationCommands.cs b/Assets/_Project/Scripts/UI/Combat/Presentation/NullCombatPresentationCommands.cs
+new file mode 100644
+index 0000000..439f082
+--- /dev/null
++++ b/Assets/_Project/Scripts/UI/Combat/Presentation/NullCombatPresentationCommands.cs
+@@ -0,0 +1,29 @@
++using System.Threading;
++using Cysharp.Threading.Tasks;
++
++namespace SlotRogue.UI.Combat.Presentation
++{
++    public sealed class NullCombatPresentationCommands : ICombatPresentationCommands
++    {
++        public static readonly NullCombatPresentationCommands Instance = new();
++
++        private NullCombatPresentationCommands()
++        {
++        }
++
++        public UniTask ShowFloatingDamageAsync(
++            FloatingDamageRequest request,
++            CancellationToken cancellationToken)
++        {
++            return UniTask.CompletedTask;
++        }
++
++        public UniTask ShowTurnBannerAsync(
++            string message,
++            float duration,
++            CancellationToken cancellationToken)
++        {
++            return UniTask.CompletedTask;
++        }
++    }
++}

@@ -1,0 +1,1302 @@
+diff --git a/Assets/_Project/Scenes/RunGame.unity b/Assets/_Project/Scenes/RunGame.unity
+index 58371f8..9692d8d 100644
+--- a/Assets/_Project/Scenes/RunGame.unity
++++ b/Assets/_Project/Scenes/RunGame.unity
+@@ -375,6 +375,108 @@ Canvas:
+   m_SortingLayerID: 1971390959
+   m_SortingOrder: 0
+   m_TargetDisplay: 0
++--- !u!1 &189381850
++GameObject:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  serializedVersion: 6
++  m_Component:
++  - component: {fileID: 189381851}
++  - component: {fileID: 189381854}
++  - component: {fileID: 189381853}
++  - component: {fileID: 189381852}
++  m_Layer: 0
++  m_Name: DebugUI
++  m_TagString: Untagged
++  m_Icon: {fileID: 0}
++  m_NavMeshLayer: 0
++  m_StaticEditorFlags: 0
++  m_IsActive: 1
++--- !u!224 &189381851
++RectTransform:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 189381850}
++  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
++  m_LocalPosition: {x: 0, y: 0, z: 0}
++  m_LocalScale: {x: 0, y: 0, z: 0}
++  m_ConstrainProportionsScale: 0
++  m_Children:
++  - {fileID: 1660457495}
++  m_Father: {fileID: 932663843}
++  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
++  m_AnchorMin: {x: 0, y: 0}
++  m_AnchorMax: {x: 0, y: 0}
++  m_AnchoredPosition: {x: 0, y: 0}
++  m_SizeDelta: {x: 0, y: 0}
++  m_Pivot: {x: 0, y: 0}
++--- !u!114 &189381852
++MonoBehaviour:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 189381850}
++  m_Enabled: 1
++  m_EditorHideFlags: 0
++  m_Script: {fileID: 11500000, guid: dc42784cf147c0c48a680349fa168899, type: 3}
++  m_Name: 
++  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.GraphicRaycaster
++  m_IgnoreReversedGraphics: 1
++  m_BlockingObjects: 0
++  m_BlockingMask:
++    serializedVersion: 2
++    m_Bits: 4294967295
++--- !u!114 &189381853
++MonoBehaviour:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 189381850}
++  m_Enabled: 1
++  m_EditorHideFlags: 0
++  m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
++  m_Name: 
++  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.CanvasScaler
++  m_UiScaleMode: 1
++  m_ReferencePixelsPerUnit: 100
++  m_ScaleFactor: 1
++  m_ReferenceResolution: {x: 1080, y: 1920}
++  m_ScreenMatchMode: 0
++  m_MatchWidthOrHeight: 0
++  m_PhysicalUnit: 3
++  m_FallbackScreenDPI: 96
++  m_DefaultSpriteDPI: 96
++  m_DynamicPixelsPerUnit: 1
++  m_PresetInfoIsWorld: 0
++--- !u!223 &189381854
++Canvas:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 189381850}
++  m_Enabled: 1
++  serializedVersion: 3
++  m_RenderMode: 1
++  m_Camera: {fileID: 69661682}
++  m_PlaneDistance: 1
++  m_PixelPerfect: 0
++  m_ReceivesEvents: 1
++  m_OverrideSorting: 0
++  m_OverridePixelPerfect: 0
++  m_SortingBucketNormalizedSize: 0
++  m_VertexColorAlwaysGammaSpace: 0
++  m_AdditionalShaderChannelsFlag: 0
++  m_UpdateRectTransformForStandalone: 0
++  m_SortingLayerID: -1468278449
++  m_SortingOrder: 1000
++  m_TargetDisplay: 0
+ --- !u!114 &228715807 stripped
+ MonoBehaviour:
+   m_CorrespondingSourceObject: {fileID: 5113706058712284338, guid: 661c42a39f196fe448cd6dc03a619b69, type: 3}
+@@ -755,7 +857,8 @@ Transform:
+   m_LocalPosition: {x: 0, y: 0, z: 0}
+   m_LocalScale: {x: 1, y: 1, z: 1}
+   m_ConstrainProportionsScale: 0
+-  m_Children: []
++  m_Children:
++  - {fileID: 189381851}
+   m_Father: {fileID: 0}
+   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+ --- !u!1 &936107202
+@@ -1464,6 +1567,132 @@ Transform:
+   - {fileID: 1479776062}
+   m_Father: {fileID: 0}
+   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
++--- !u!224 &1660457495 stripped
++RectTransform:
++  m_CorrespondingSourceObject: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++  m_PrefabInstance: {fileID: 1677170380}
++  m_PrefabAsset: {fileID: 0}
++--- !u!1001 &1677170380
++PrefabInstance:
++  m_ObjectHideFlags: 0
++  serializedVersion: 2
++  m_Modification:
++    serializedVersion: 3
++    m_TransformParent: {fileID: 189381851}
++    m_Modifications:
++    - target: {fileID: 3965747767222212447, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: _duration
++      value: 8
++      objectReference: {fileID: 0}
++    - target: {fileID: 3965747767222212447, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: _compositionRoot
++      value: 
++      objectReference: {fileID: 2132137700}
++    - target: {fileID: 3965747767222212447, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: _useRecommendedDefaults
++      value: 0
++      objectReference: {fileID: 0}
++    - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: m_Pivot.x
++      value: 0.5
++      objectReference: {fileID: 0}
++    - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: m_Pivot.y
++      value: 0.5
++      objectReference: {fileID: 0}
++    - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: m_AnchorMax.x
++      value: 0.5
++      objectReference: {fileID: 0}
++    - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: m_AnchorMax.y
++      value: 0.5
++      objectReference: {fileID: 0}
++    - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: m_AnchorMin.x
++      value: 0.5
++      objectReference: {fileID: 0}
++    - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: m_AnchorMin.y
++      value: 0.5
++      objectReference: {fileID: 0}
++    - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: m_SizeDelta.x
++      value: 100
++      objectReference: {fileID: 0}
++    - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: m_SizeDelta.y
++      value: 100
++      objectReference: {fileID: 0}
++    - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: m_LocalScale.x
++      value: 1
++      objectReference: {fileID: 0}
++    - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: m_LocalScale.y
++      value: 1
++      objectReference: {fileID: 0}
++    - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: m_LocalScale.z
++      value: 1
++      objectReference: {fileID: 0}
++    - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: m_LocalPosition.x
++      value: 0
++      objectReference: {fileID: 0}
++    - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: m_LocalPosition.y
++      value: 0
++      objectReference: {fileID: 0}
++    - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: m_LocalPosition.z
++      value: 0
++      objectReference: {fileID: 0}
++    - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: m_LocalRotation.w
++      value: 1
++      objectReference: {fileID: 0}
++    - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: m_LocalRotation.x
++      value: -0
++      objectReference: {fileID: 0}
++    - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: m_LocalRotation.y
++      value: -0
++      objectReference: {fileID: 0}
++    - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: m_LocalRotation.z
++      value: -0
++      objectReference: {fileID: 0}
++    - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: m_AnchoredPosition.x
++      value: 0
++      objectReference: {fileID: 0}
++    - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: m_AnchoredPosition.y
++      value: 0.52082825
++      objectReference: {fileID: 0}
++    - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: m_LocalEulerAnglesHint.x
++      value: 0
++      objectReference: {fileID: 0}
++    - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: m_LocalEulerAnglesHint.y
++      value: 0
++      objectReference: {fileID: 0}
++    - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: m_LocalEulerAnglesHint.z
++      value: 0
++      objectReference: {fileID: 0}
++    - target: {fileID: 7098581119550912913, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
++      propertyPath: m_Name
++      value: DevButtonAttribute
++      objectReference: {fileID: 0}
++    m_RemovedComponents: []
++    m_RemovedGameObjects: []
++    m_AddedGameObjects: []
++    m_AddedComponents: []
++  m_SourcePrefab: {fileID: 100100000, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
+ --- !u!1 &1690936139
+ GameObject:
+   m_ObjectHideFlags: 0
+diff --git a/Assets/_Project/Scripts/Tests/Core/Combat/BattleSystemStatusEffectTests.cs b/Assets/_Project/Scripts/Tests/Core/Combat/BattleSystemStatusEffectTests.cs
+index 80598ad..5424b24 100644
+--- a/Assets/_Project/Scripts/Tests/Core/Combat/BattleSystemStatusEffectTests.cs
++++ b/Assets/_Project/Scripts/Tests/Core/Combat/BattleSystemStatusEffectTests.cs
+@@ -44,24 +44,34 @@ namespace SlotRogue.Core.Tests.Combat
+         {
+             CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30);
+             CombatParticipant monster = CombatParticipantFactory.CreateEnemy(maxHp: 20);
+-            var enemyActions = new[] { new CombatEffect(CombatEffectKind.Damage, 5, CombatEffectTarget.Enemy) };
+-            _battle.StartBattle(player, monster, enemyActions);
++            var schedule = new MonsterTurnSchedule(
++                new[] { new CombatEffect(CombatEffectKind.Damage, 5, CombatEffectTarget.Enemy) },
++                new[] { new CombatEffect(CombatEffectKind.Damage, 7, CombatEffectTarget.Enemy) });
++            _battle.StartBattle(player, monster, schedule);
+ 
+             _battle.ApplyPlayerTurn(new[]
+             {
++                CombatEffect.ApplyStatus(
++                    new StatusEffectSpec(StatusEffectKind.Burn, duration: 3, magnitude: 1, StatusStackMode.Refresh),
++                    CombatEffectTarget.Enemy),
+                 CombatEffect.ApplyStatus(
+                     new StatusEffectSpec(StatusEffectKind.Freeze, duration: 1, magnitude: 0, StatusStackMode.Refresh),
+                     CombatEffectTarget.Enemy),
+             });
+ 
+             Assert.That(_battle.Player.CurrentHp, Is.EqualTo(30));
+-            Assert.That(FirstEnemy.StatusEffects, Is.Empty);
++            Assert.That(_battle.UpcomingMonsterTurnIndex, Is.EqualTo(1));
++            Assert.That(FirstEnemy.StatusEffects.Single().RemainingTurns, Is.EqualTo(2));
+             Assert.That(_battle.Events, Has.Some.Matches<CombatEvent>(e =>
+                 e.Kind == CombatEventKind.ActionSkipped &&
+                 e.StatusEffectKind == StatusEffectKind.Freeze));
+-            Assert.That(_battle.Events, Has.Some.Matches<CombatEvent>(e =>
++            Assert.That(_battle.Events.Count(e =>
+                 e.Kind == CombatEventKind.StatusExpired &&
+-                e.StatusEffectKind == StatusEffectKind.Freeze));
++                e.StatusEffectKind == StatusEffectKind.Freeze), Is.EqualTo(1));
++
++            _battle.ApplyPlayerTurn(System.Array.Empty<CombatEffect>());
++
++            Assert.That(_battle.Player.CurrentHp, Is.EqualTo(23));
+         }
+ 
+         [Test]
+diff --git a/Assets/_Project/Scripts/UI/Combat/Presentation/BattleEndedPresenter.cs b/Assets/_Project/Scripts/UI/Combat/Presentation/BattleEndedPresenter.cs
+index 533fd86..3dfcbc5 100644
+--- a/Assets/_Project/Scripts/UI/Combat/Presentation/BattleEndedPresenter.cs
++++ b/Assets/_Project/Scripts/UI/Combat/Presentation/BattleEndedPresenter.cs
+@@ -27,7 +27,6 @@ namespace SlotRogue.UI.Combat.Presentation
+ 
+             Debug.Log($"[Presentation] Battle ended: {combatEvent.EndReason}");
+             await CombatPresentationTweens.DelayAsync(PauseDuration, Host.LinkTarget, cancellationToken);
+-            RefreshHUD();
+         }
+     }
+ }
+diff --git a/Assets/_Project/Scripts/UI/Combat/Presentation/CombatPresentationHost.cs b/Assets/_Project/Scripts/UI/Combat/Presentation/CombatPresentationHost.cs
+index 3748574..62e80f7 100644
+--- a/Assets/_Project/Scripts/UI/Combat/Presentation/CombatPresentationHost.cs
++++ b/Assets/_Project/Scripts/UI/Combat/Presentation/CombatPresentationHost.cs
+@@ -1,79 +1,27 @@
+-using System;
+-using System.Collections.Generic;
+ using SlotRogue.Core.Combat;
+ using UnityEngine;
+-using UnityEngine.UI;
+ 
+ namespace SlotRogue.UI.Combat.Presentation
+ {
+     public sealed class CombatPresentationHost
+     {
+-        private readonly Dictionary<int, RectTransform> _enemyDamageAnchors = new();
+-
+         public CombatPresentationHost(
+             GameObject linkTarget,
+-            Text statusText,
+-            Transform floatingTextRoot,
+-            FloatingDamageTextView floatingDamageTextPrefab,
+-            RectTransform playerDamageAnchor,
+-            RectTransform monsterDamageAnchor,
+-            Font defaultFont,
+-            Action refreshStatusText)
++            ICombatPresentationCommands commands)
+         {
+             LinkTarget = linkTarget;
+-            StatusText = statusText;
+-            FloatingTextRoot = floatingTextRoot;
+-            FloatingDamageTextPrefab = floatingDamageTextPrefab;
+-            PlayerDamageAnchor = playerDamageAnchor;
+-            MonsterDamageAnchor = monsterDamageAnchor;
+-            DefaultFont = defaultFont;
+-            RefreshStatusText = refreshStatusText;
++            Commands = commands ?? NullCombatPresentationCommands.Instance;
+         }
+ 
+         public GameObject LinkTarget { get; }
+ 
+-        public Text StatusText { get; }
+-
+-        public Transform FloatingTextRoot { get; }
+-
+-        public FloatingDamageTextView FloatingDamageTextPrefab { get; }
+-
+-        public RectTransform PlayerDamageAnchor { get; }
+-
+-        public RectTransform MonsterDamageAnchor { get; }
+-
+-        public Font DefaultFont { get; }
+-
+-        public Action RefreshStatusText { get; }
++        public ICombatPresentationCommands Commands { get; }
+ 
+         public void SetEnemyDamageAnchor(
+             CombatParticipantId participantId,
+             RectTransform anchor)
+         {
+-            if (!participantId.IsValid || anchor == null)
+-            {
+-                return;
+-            }
+-
+-            _enemyDamageAnchors[participantId.Value] = anchor;
+-        }
+-
+-        public RectTransform ResolveDamageAnchor(
+-            CombatParticipantId participantId,
+-            bool isPlayerParticipant)
+-        {
+-            if (isPlayerParticipant)
+-            {
+-                return PlayerDamageAnchor;
+-            }
+-
+-            if (participantId.IsValid &&
+-                _enemyDamageAnchors.TryGetValue(participantId.Value, out RectTransform anchor))
+-            {
+-                return anchor;
+-            }
+-
+-            return MonsterDamageAnchor;
++            Commands.SetEnemyDamageAnchor(participantId, anchor);
+         }
+     }
+ }
+diff --git a/Assets/_Project/Scripts/UI/Combat/Presentation/CombatPresenterBase.cs b/Assets/_Project/Scripts/UI/Combat/Presentation/CombatPresenterBase.cs
+index 971e5c7..58eb4f3 100644
+--- a/Assets/_Project/Scripts/UI/Combat/Presentation/CombatPresenterBase.cs
++++ b/Assets/_Project/Scripts/UI/Combat/Presentation/CombatPresenterBase.cs
+@@ -1,7 +1,6 @@
+ using System.Threading;
+ using Cysharp.Threading.Tasks;
+ using SlotRogue.Core.Combat;
+-using UnityEngine;
+ 
+ namespace SlotRogue.UI.Combat.Presentation
+ {
+@@ -19,97 +18,5 @@ namespace SlotRogue.UI.Combat.Presentation
+             CombatViewModel viewModel,
+             PresentationContext context,
+             CancellationToken cancellationToken);
+-
+-        protected void RefreshHUD() => Host.RefreshStatusText();
+-
+-        protected UniTask TweenTargetHpAsync(
+-            CombatEvent combatEvent,
+-            CombatViewModel viewModel,
+-            float duration,
+-            CancellationToken cancellationToken)
+-        {
+-            CombatParticipantSnapshot before = combatEvent.TargetBefore;
+-            CombatParticipantSnapshot after = combatEvent.TargetAfter;
+-            bool isPlayer = combatEvent.IsPlayerParticipant;
+-
+-            if (isPlayer)
+-            {
+-                viewModel.SetPlayerHp(before.Hp);
+-            }
+-            else
+-            {
+-                viewModel.SetParticipantHp(combatEvent.TargetParticipantId, before.Hp);
+-            }
+-
+-            RefreshHUD();
+-
+-            return CombatPresentationTweens.TweenIntAsync(
+-                before.Hp,
+-                after.Hp,
+-                duration,
+-                value =>
+-                {
+-                    if (isPlayer)
+-                    {
+-                        viewModel.SetPlayerHp(value);
+-                    }
+-                    else
+-                    {
+-                        viewModel.SetParticipantHp(combatEvent.TargetParticipantId, value);
+-                    }
+-
+-                    RefreshHUD();
+-                },
+-                Host.LinkTarget,
+-                cancellationToken);
+-        }
+-
+-        protected UniTask TweenTargetShieldAsync(
+-            CombatEvent combatEvent,
+-            CombatViewModel viewModel,
+-            float duration,
+-            CancellationToken cancellationToken)
+-        {
+-            CombatParticipantSnapshot before = combatEvent.TargetBefore;
+-            CombatParticipantSnapshot after = combatEvent.TargetAfter;
+-            bool isPlayer = combatEvent.IsPlayerParticipant;
+-
+-            if (isPlayer)
+-            {
+-                viewModel.SetPlayerShield(before.Shield);
+-            }
+-            else
+-            {
+-                viewModel.SetParticipantShield(combatEvent.TargetParticipantId, before.Shield);
+-            }
+-
+-            RefreshHUD();
+-
+-            return CombatPresentationTweens.TweenIntAsync(
+-                before.Shield,
+-                after.Shield,
+-                duration,
+-                value =>
+-                {
+-                    if (isPlayer)
+-                    {
+-                        viewModel.SetPlayerShield(value);
+-                    }
+-                    else
+-                    {
+-                        viewModel.SetParticipantShield(combatEvent.TargetParticipantId, value);
+-                    }
+-
+-                    RefreshHUD();
+-                },
+-                Host.LinkTarget,
+-                cancellationToken);
+-        }
+-
+-        protected static UniTask EffectStubDelayAsync(
+-            float seconds,
+-            CombatPresentationHost host,
+-            CancellationToken cancellationToken) =>
+-            CombatPresentationTweens.DelayAsync(seconds, host.LinkTarget, cancellationToken);
+     }
+ }
+diff --git a/Assets/_Project/Scripts/UI/Combat/Presentation/CombatViewModel.cs b/Assets/_Project/Scripts/UI/Combat/Presentation/CombatViewModel.cs
+index bd33fdb..1182f2d 100644
+--- a/Assets/_Project/Scripts/UI/Combat/Presentation/CombatViewModel.cs
++++ b/Assets/_Project/Scripts/UI/Combat/Presentation/CombatViewModel.cs
+@@ -1,4 +1,5 @@
+ using SlotRogue.Core.Combat;
++using System;
+ using System.Collections.Generic;
+ 
+ namespace SlotRogue.UI.Combat.Presentation
+@@ -7,6 +8,8 @@ namespace SlotRogue.UI.Combat.Presentation
+     {
+         private readonly Dictionary<int, CombatParticipantSnapshot> _participants = new();
+ 
++        public event Action Changed;
++
+         public int PlayerHp { get; private set; }
+ 
+         public int PlayerShield { get; private set; }
+@@ -38,6 +41,8 @@ namespace SlotRogue.UI.Combat.Presentation
+                 CombatParticipant enemy = battle.Enemies[index];
+                 _participants[enemy.Id.Value] = new CombatParticipantSnapshot(enemy.CurrentHp, enemy.Shield);
+             }
++
++            PublishChanged();
+         }
+ 
+         public void ApplySnapshot(CombatEvent combatEvent)
+@@ -71,11 +76,21 @@ namespace SlotRogue.UI.Combat.Presentation
+                 PlayerHp = snapshot.Hp;
+                 PlayerShield = snapshot.Shield;
+             }
++
++            PublishChanged();
+         }
+ 
+-        public void SetPlayerHp(int hp) => PlayerHp = hp;
++        public void SetPlayerHp(int hp)
++        {
++            PlayerHp = hp;
++            PublishChanged();
++        }
+ 
+-        public void SetPlayerShield(int shield) => PlayerShield = shield;
++        public void SetPlayerShield(int shield)
++        {
++            PlayerShield = shield;
++            PublishChanged();
++        }
+ 
+         public void SetParticipantHp(
+             CombatParticipantId participantId,
+@@ -91,6 +106,7 @@ namespace SlotRogue.UI.Combat.Presentation
+                     _participants[1] = new CombatParticipantSnapshot(hp, playerSnapshot.Shield);
+                 }
+ 
++                PublishChanged();
+                 return;
+             }
+ 
+@@ -98,6 +114,8 @@ namespace SlotRogue.UI.Combat.Presentation
+             {
+                 _participants[participantId.Value] = new CombatParticipantSnapshot(hp, snapshot.Shield);
+             }
++
++            PublishChanged();
+         }
+ 
+         public void SetParticipantShield(
+@@ -114,6 +132,7 @@ namespace SlotRogue.UI.Combat.Presentation
+                     _participants[1] = new CombatParticipantSnapshot(playerSnapshot.Hp, shield);
+                 }
+ 
++                PublishChanged();
+                 return;
+             }
+ 
+@@ -121,6 +140,13 @@ namespace SlotRogue.UI.Combat.Presentation
+             {
+                 _participants[participantId.Value] = new CombatParticipantSnapshot(snapshot.Hp, shield);
+             }
++
++            PublishChanged();
++        }
++
++        private void PublishChanged()
++        {
++            Changed?.Invoke();
+         }
+     }
+ }
+diff --git a/Assets/_Project/Scripts/UI/Combat/Presentation/DamagePresenter.cs b/Assets/_Project/Scripts/UI/Combat/Presentation/DamagePresenter.cs
+index 7cd67d5..9770236 100644
+--- a/Assets/_Project/Scripts/UI/Combat/Presentation/DamagePresenter.cs
++++ b/Assets/_Project/Scripts/UI/Combat/Presentation/DamagePresenter.cs
+@@ -1,15 +1,11 @@
+ using System.Threading;
+ using Cysharp.Threading.Tasks;
+ using SlotRogue.Core.Combat;
+-using UnityEngine;
+ 
+ namespace SlotRogue.UI.Combat.Presentation
+ {
+     public sealed class DamagePresenter : CombatPresenterBase
+     {
+-        private const float HudTweenDuration = 0.35f;
+-        private const float EffectStubDuration = 0.08f;
+-
+         public DamagePresenter(CombatPresentationHost host)
+             : base(host)
+         {
+@@ -27,122 +23,18 @@ namespace SlotRogue.UI.Combat.Presentation
+                 return;
+             }
+ 
+-            int damageDealt = combatEvent.ApplyResult.DamageDealt;
+-            UniTask hudTween = TweenTargetHpAsync(combatEvent, viewModel, HudTweenDuration, cancellationToken);
+-            UniTask vfxStub = EffectStubDelayAsync(EffectStubDuration, Host, cancellationToken);
+-            UniTask sfxStub = EffectStubDelayAsync(EffectStubDuration, Host, cancellationToken);
+-            UniTask floatingStub = ShowFloatingDamageAsync(
+-                damageDealt,
+-                context.IsCritical,
+-                combatEvent.TargetParticipantId,
+-                combatEvent.IsPlayerParticipant,
+-                cancellationToken);
+-
+-            await UniTask.WhenAll(hudTween, vfxStub, sfxStub, floatingStub);
+-
+             viewModel.ApplyParticipantSnapshot(
+                 combatEvent.TargetParticipantId,
+                 combatEvent.TargetAfter,
+                 combatEvent.IsPlayerParticipant);
+-            RefreshHUD();
+-        }
+-
+-        private async UniTask ShowFloatingDamageAsync(
+-            int amount,
+-            bool isCritical,
+-            CombatParticipantId targetParticipantId,
+-            bool isPlayerTarget,
+-            CancellationToken cancellationToken)
+-        {
+-            string prefix = isCritical ? "[CRIT] " : string.Empty;
+-            string targetLabel = isPlayerTarget ? "Player" : $"Monster#{targetParticipantId.Value}";
+-            Debug.Log($"[Presentation] {prefix}Floating damage {amount} -> {targetLabel}");
+-
+-            if (amount <= 0)
+-            {
+-                return;
+-            }
+-
+-            if (Host.FloatingDamageTextPrefab == null)
+-            {
+-                Debug.LogWarning("[Presentation] FloatingDamageText prefab is not assigned.");
+-                return;
+-            }
+-
+-            if (Host.FloatingTextRoot == null)
+-            {
+-                Debug.LogWarning("[Presentation] FloatingTextRoot is not assigned.");
+-                return;
+-            }
+-
+-            RectTransform anchor = Host.ResolveDamageAnchor(targetParticipantId, isPlayerTarget);
+-            if (anchor == null)
+-            {
+-                Debug.LogWarning($"[Presentation] Missing {(isPlayerTarget ? "player" : "monster")} damage anchor.");
+-                return;
+-            }
+-
+-            FloatingDamageTextView damageText = Object.Instantiate(
+-                Host.FloatingDamageTextPrefab,
+-                Host.FloatingTextRoot);
+-            if (damageText.transform is RectTransform textTransform &&
+-                Host.FloatingTextRoot is RectTransform floatingRoot)
+-            {
+-                AlignFloatingTextToAnchor(textTransform, anchor, floatingRoot);
+-            }
+-
+-            CombatAnchorKind anchorKind = isPlayerTarget ? CombatAnchorKind.Player : CombatAnchorKind.Monster;
+-            await damageText.Play(amount, isCritical, anchorKind, cancellationToken);
+-        }
+-
+-        private static void AlignFloatingTextToAnchor(
+-            RectTransform floatingText,
+-            RectTransform anchor,
+-            RectTransform floatingRoot)
+-        {
+-            Canvas floatingCanvas = floatingRoot.GetComponentInParent<Canvas>();
+-            Camera floatingCamera = null;
+-            if (floatingCanvas != null && floatingCanvas.renderMode != RenderMode.ScreenSpaceOverlay)
+-            {
+-                floatingCamera = floatingCanvas.worldCamera;
+-            }
+-
+-            Vector3[] corners = new Vector3[4];
+-            anchor.GetWorldCorners(corners);
+-            Vector3 worldCenter = (corners[0] + corners[2]) * 0.5f;
+-            Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(
+-                ResolveAnchorCamera(anchor),
+-                worldCenter);
+ 
+-            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
+-                    floatingRoot,
+-                    screenPoint,
+-                    floatingCamera,
+-                    out Vector2 localPoint))
+-            {
+-                return;
+-            }
+-
+-            floatingText.anchorMin = new Vector2(0.5f, 0.5f);
+-            floatingText.anchorMax = new Vector2(0.5f, 0.5f);
+-            floatingText.pivot = new Vector2(0.5f, 0.5f);
+-            floatingText.anchoredPosition = localPoint;
+-        }
+-
+-        private static Camera ResolveAnchorCamera(RectTransform anchor)
+-        {
+-            Canvas anchorCanvas = anchor.GetComponentInParent<Canvas>();
+-            if (anchorCanvas != null)
+-            {
+-                if (anchorCanvas.renderMode == RenderMode.ScreenSpaceOverlay)
+-                {
+-                    return null;
+-                }
+-
+-                return anchorCanvas.worldCamera;
+-            }
++            var request = new FloatingDamageRequest(
++                combatEvent.ApplyResult.DamageDealt,
++                context.IsCritical,
++                combatEvent.IsPlayerParticipant,
++                combatEvent.TargetParticipantId);
+ 
+-            return Camera.main;
++            await Host.Commands.ShowFloatingDamageAsync(request, cancellationToken);
+         }
+     }
+ }
+diff --git a/Assets/_Project/Scripts/UI/Combat/Presentation/FloatingDamageRequest.cs b/Assets/_Project/Scripts/UI/Combat/Presentation/FloatingDamageRequest.cs
+new file mode 100644
+index 0000000..ae26000
+--- /dev/null
++++ b/Assets/_Project/Scripts/UI/Combat/Presentation/FloatingDamageRequest.cs
+@@ -0,0 +1,27 @@
++using SlotRogue.Core.Combat;
++
++namespace SlotRogue.UI.Combat.Presentation
++{
++    public readonly struct FloatingDamageRequest
++    {
++        public FloatingDamageRequest(
++            int amount,
++            bool isCritical,
++            bool isPlayerTarget,
++            CombatParticipantId targetParticipantId)
++        {
++            Amount = amount;
++            IsCritical = isCritical;
++            IsPlayerTarget = isPlayerTarget;
++            TargetParticipantId = targetParticipantId;
++        }
++
++        public int Amount { get; }
++
++        public bool IsCritical { get; }
++
++        public bool IsPlayerTarget { get; }
++
++        public CombatParticipantId TargetParticipantId { get; }
++    }
++}
+diff --git a/Assets/_Project/Scripts/UI/Combat/Presentation/HealPresenter.cs b/Assets/_Project/Scripts/UI/Combat/Presentation/HealPresenter.cs
+index b4be34f..581bf79 100644
+--- a/Assets/_Project/Scripts/UI/Combat/Presentation/HealPresenter.cs
++++ b/Assets/_Project/Scripts/UI/Combat/Presentation/HealPresenter.cs
+@@ -6,14 +6,12 @@ namespace SlotRogue.UI.Combat.Presentation
+ {
+     public sealed class HealPresenter : CombatPresenterBase
+     {
+-        private const float TweenDuration = 0.15f;
+-
+         public HealPresenter(CombatPresentationHost host)
+             : base(host)
+         {
+         }
+ 
+-        public override async UniTask PresentAsync(
++        public override UniTask PresentAsync(
+             CombatEvent combatEvent,
+             CombatViewModel viewModel,
+             PresentationContext context,
+@@ -22,15 +20,14 @@ namespace SlotRogue.UI.Combat.Presentation
+             if (combatEvent.Kind != CombatEventKind.EffectApplied ||
+                 combatEvent.Effect.Kind != CombatEffectKind.Heal)
+             {
+-                return;
++                return UniTask.CompletedTask;
+             }
+ 
+-            await TweenTargetHpAsync(combatEvent, viewModel, TweenDuration, cancellationToken);
+             viewModel.ApplyParticipantSnapshot(
+                 combatEvent.TargetParticipantId,
+                 combatEvent.TargetAfter,
+                 combatEvent.IsPlayerParticipant);
+-            RefreshHUD();
++            return UniTask.CompletedTask;
+         }
+     }
+ }
+diff --git a/Assets/_Project/Scripts/UI/Combat/Presentation/ICombatPresentationCommands.cs b/Assets/_Project/Scripts/UI/Combat/Presentation/ICombatPresentationCommands.cs
+new file mode 100644
+index 0000000..1ca04c7
+--- /dev/null
++++ b/Assets/_Project/Scripts/UI/Combat/Presentation/ICombatPresentationCommands.cs
+@@ -0,0 +1,23 @@
++using System.Threading;
++using Cysharp.Threading.Tasks;
++using SlotRogue.Core.Combat;
++using UnityEngine;
++
++namespace SlotRogue.UI.Combat.Presentation
++{
++    public interface ICombatPresentationCommands
++    {
++        UniTask ShowFloatingDamageAsync(
++            FloatingDamageRequest request,
++            CancellationToken cancellationToken);
++
++        UniTask ShowTurnBannerAsync(
++            string message,
++            float duration,
++            CancellationToken cancellationToken);
++
++        void SetEnemyDamageAnchor(
++            CombatParticipantId participantId,
++            RectTransform anchor);
++    }
++}
+diff --git a/Assets/_Project/Scripts/UI/Combat/Presentation/NullCombatPresentationCommands.cs b/Assets/_Project/Scripts/UI/Combat/Presentation/NullCombatPresentationCommands.cs
+new file mode 100644
+index 0000000..ab3f1e5
+--- /dev/null
++++ b/Assets/_Project/Scripts/UI/Combat/Presentation/NullCombatPresentationCommands.cs
+@@ -0,0 +1,37 @@
++using System.Threading;
++using Cysharp.Threading.Tasks;
++using SlotRogue.Core.Combat;
++using UnityEngine;
++
++namespace SlotRogue.UI.Combat.Presentation
++{
++    public sealed class NullCombatPresentationCommands : ICombatPresentationCommands
++    {
++        public static readonly NullCombatPresentationCommands Instance = new();
++
++        private NullCombatPresentationCommands()
++        {
++        }
++
++        public UniTask ShowFloatingDamageAsync(
++            FloatingDamageRequest request,
++            CancellationToken cancellationToken)
++        {
++            return UniTask.CompletedTask;
++        }
++
++        public UniTask ShowTurnBannerAsync(
++            string message,
++            float duration,
++            CancellationToken cancellationToken)
++        {
++            return UniTask.CompletedTask;
++        }
++
++        public void SetEnemyDamageAnchor(
++            CombatParticipantId participantId,
++            RectTransform anchor)
++        {
++        }
++    }
++}
+diff --git a/Assets/_Project/Scripts/UI/Combat/Presentation/PhaseChangedPresenter.cs b/Assets/_Project/Scripts/UI/Combat/Presentation/PhaseChangedPresenter.cs
+index 47e5468..61d9c31 100644
+--- a/Assets/_Project/Scripts/UI/Combat/Presentation/PhaseChangedPresenter.cs
++++ b/Assets/_Project/Scripts/UI/Combat/Presentation/PhaseChangedPresenter.cs
+@@ -1,8 +1,6 @@
+ using System.Threading;
+ using Cysharp.Threading.Tasks;
+ using SlotRogue.Core.Combat;
+-using UnityEngine;
+-using UnityEngine.UI;
+ 
+ namespace SlotRogue.UI.Combat.Presentation
+ {
+@@ -39,44 +37,7 @@ namespace SlotRogue.UI.Combat.Presentation
+                 return;
+             }
+ 
+-            await ShowTurnBannerAsync(message, cancellationToken);
+-        }
+-
+-        private async UniTask ShowTurnBannerAsync(string message, CancellationToken cancellationToken)
+-        {
+-            if (Host.FloatingTextRoot == null)
+-            {
+-                await CombatPresentationTweens.DelayAsync(BannerDuration, Host.LinkTarget, cancellationToken);
+-                return;
+-            }
+-
+-            var bannerObject = new GameObject("Turn Banner", typeof(RectTransform));
+-            RectTransform rectTransform = bannerObject.GetComponent<RectTransform>();
+-            rectTransform.SetParent(Host.FloatingTextRoot, false);
+-            rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+-            rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+-            rectTransform.pivot = new Vector2(0.5f, 0.5f);
+-            rectTransform.anchoredPosition = new Vector2(0f, 180f);
+-            rectTransform.sizeDelta = new Vector2(700f, 80f);
+-
+-            var text = bannerObject.AddComponent<Text>();
+-            text.font = Host.DefaultFont;
+-            text.fontSize = 40;
+-            text.alignment = TextAnchor.MiddleCenter;
+-            text.color = new Color32(255, 230, 140, 255);
+-            text.text = message;
+-
+-            try
+-            {
+-                await CombatPresentationTweens.DelayAsync(BannerDuration, Host.LinkTarget, cancellationToken);
+-            }
+-            finally
+-            {
+-                if (bannerObject != null)
+-                {
+-                    UnityEngine.Object.Destroy(bannerObject);
+-                }
+-            }
++            await Host.Commands.ShowTurnBannerAsync(message, BannerDuration, cancellationToken);
+         }
+     }
+ }
+diff --git a/Assets/_Project/Scripts/UI/Combat/Presentation/ShieldPresenter.cs b/Assets/_Project/Scripts/UI/Combat/Presentation/ShieldPresenter.cs
+index 0f9f36b..4de5a83 100644
+--- a/Assets/_Project/Scripts/UI/Combat/Presentation/ShieldPresenter.cs
++++ b/Assets/_Project/Scripts/UI/Combat/Presentation/ShieldPresenter.cs
+@@ -6,14 +6,12 @@ namespace SlotRogue.UI.Combat.Presentation
+ {
+     public sealed class ShieldPresenter : CombatPresenterBase
+     {
+-        private const float TweenDuration = 0.15f;
+-
+         public ShieldPresenter(CombatPresentationHost host)
+             : base(host)
+         {
+         }
+ 
+-        public override async UniTask PresentAsync(
++        public override UniTask PresentAsync(
+             CombatEvent combatEvent,
+             CombatViewModel viewModel,
+             PresentationContext context,
+@@ -22,15 +20,14 @@ namespace SlotRogue.UI.Combat.Presentation
+             if (combatEvent.Kind != CombatEventKind.EffectApplied ||
+                 combatEvent.Effect.Kind != CombatEffectKind.Shield)
+             {
+-                return;
++                return UniTask.CompletedTask;
+             }
+ 
+-            await TweenTargetShieldAsync(combatEvent, viewModel, TweenDuration, cancellationToken);
+             viewModel.ApplyParticipantSnapshot(
+                 combatEvent.TargetParticipantId,
+                 combatEvent.TargetAfter,
+                 combatEvent.IsPlayerParticipant);
+-            RefreshHUD();
++            return UniTask.CompletedTask;
+         }
+     }
+ }
+diff --git a/Assets/_Project/Scripts/UI/Combat/Presentation/ShieldResetPresenter.cs b/Assets/_Project/Scripts/UI/Combat/Presentation/ShieldResetPresenter.cs
+index c632065..1cbe624 100644
+--- a/Assets/_Project/Scripts/UI/Combat/Presentation/ShieldResetPresenter.cs
++++ b/Assets/_Project/Scripts/UI/Combat/Presentation/ShieldResetPresenter.cs
+@@ -29,7 +29,6 @@ namespace SlotRogue.UI.Combat.Presentation
+                 0,
+                 combatEvent.IsPlayerParticipant);
+ 
+-            RefreshHUD();
+             await CombatPresentationTweens.DelayAsync(BlinkDuration, Host.LinkTarget, cancellationToken);
+         }
+     }
+diff --git a/Assets/_Project/Scripts/UI/GameFlow/EnemyFormationSlotView.cs b/Assets/_Project/Scripts/UI/GameFlow/EnemyFormationSlotView.cs
+index edb189a..43a8652 100644
+--- a/Assets/_Project/Scripts/UI/GameFlow/EnemyFormationSlotView.cs
++++ b/Assets/_Project/Scripts/UI/GameFlow/EnemyFormationSlotView.cs
+@@ -3,6 +3,9 @@ using UnityEngine.Events;
+ using UnityEngine.EventSystems;
+ using UnityEngine.UI;
+ using System.Collections.Generic;
++#if DOTWEEN
++using DG.Tweening;
++#endif
+ 
+ namespace SlotRogue.UI.GameFlow
+ {
+@@ -30,6 +33,10 @@ namespace SlotRogue.UI.GameFlow
+         private bool _statusEffectMissingReferenceWarningLogged;
+         private float _hpFillMaxWidth;
+         private bool _hpFillLayoutInitialized;
++        private bool _hpFillRendered;
++#if DOTWEEN
++        private Tween _hpFillTween;
++#endif
+ 
+         public Transform Root => _root != null ? _root : transform;
+ 
+@@ -60,6 +67,7 @@ namespace SlotRogue.UI.GameFlow
+             _hudText = hudText;
+             _hpFill = hpFill;
+             _hpFillLayoutInitialized = false;
++            _hpFillRendered = false;
+             _statusBackground = statusBackground;
+             _damageAnchor = damageAnchor;
+             _placeholderText = placeholderText;
+@@ -68,6 +76,13 @@ namespace SlotRogue.UI.GameFlow
+             _statusEffectIconPrefab = statusEffectIconPrefab;
+         }
+ 
++        private void OnDisable()
++        {
++#if DOTWEEN
++            _hpFillTween?.Kill();
++#endif
++        }
++
+         public void SetPortrait(Sprite sprite)
+         {
+             if (_portrait != null)
+@@ -131,9 +146,29 @@ namespace SlotRogue.UI.GameFlow
+             float ratio = max <= 0 ? 0f : Mathf.Clamp01((float)current / max);
+             _hpFill.type = Image.Type.Simple;
+             _hpFill.preserveAspect = false;
++#if DOTWEEN
++            float targetWidth = _hpFillMaxWidth * ratio;
++            if (!_hpFillRendered)
++            {
++                fillRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, targetWidth);
++                _hpFillRendered = true;
++                return;
++            }
++
++            _hpFillTween?.Kill();
++            _hpFillTween = DOTween.To(
++                    () => fillRect.rect.width,
++                    width => fillRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width),
++                    targetWidth,
++                    0.35f)
++                .SetEase(Ease.OutQuad)
++                .SetLink(gameObject);
++#else
+             fillRect.SetSizeWithCurrentAnchors(
+                 RectTransform.Axis.Horizontal,
+                 _hpFillMaxWidth * ratio);
++            _hpFillRendered = true;
++#endif
+         }
+ 
+         public void SetStatusEffects(IReadOnlyList<StatusEffectViewData> statuses)
+diff --git a/Assets/_Project/Scripts/UI/GameFlow/RunBattleCompositionRoot.cs b/Assets/_Project/Scripts/UI/GameFlow/RunBattleCompositionRoot.cs
+index 7d338ef..08ad427 100644
+--- a/Assets/_Project/Scripts/UI/GameFlow/RunBattleCompositionRoot.cs
++++ b/Assets/_Project/Scripts/UI/GameFlow/RunBattleCompositionRoot.cs
+@@ -91,6 +91,7 @@ namespace SlotRogue.UI.GameFlow
+ 
+             // 중복 구독 방지: 재진입 시 기존 구독 제거
+             _screenViewModel.Changed -= HandleScreenStateChanged;
++            _combatViewModel.Changed -= RefreshStatusText;
+             _view.SpinRequested -= HandleSpinClicked;
+             _view.ContinueRequested -= NavigateToReward;
+             _view.RestartRequested -= NavigateToStart;
+@@ -110,6 +111,7 @@ namespace SlotRogue.UI.GameFlow
+             _spinSequence.SetupImmediate();
+ 
+             _screenViewModel.Changed += HandleScreenStateChanged;
++            _combatViewModel.Changed += RefreshStatusText;
+             _view.SpinRequested += HandleSpinClicked;
+             _view.ContinueRequested += NavigateToReward;
+             _view.RestartRequested += NavigateToStart;
+@@ -140,6 +142,7 @@ namespace SlotRogue.UI.GameFlow
+             }
+ 
+             _screenViewModel.Changed -= HandleScreenStateChanged;
++            _combatViewModel.Changed -= RefreshStatusText;
+             _presentationCts?.Cancel();
+             _presentationCts?.Dispose();
+             _presentationCts = null;
+@@ -246,19 +249,33 @@ namespace SlotRogue.UI.GameFlow
+                     "Using a temporary overlay anchor for this play session.");
+             }
+ 
+-            _presentationHost = new CombatPresentationHost(
+-                gameObject,
+-                _view.StatusText,
++            FloatingCombatTextLayerView floatingTextLayer = EnsureFloatingTextLayerView(floatingTextRoot);
++            floatingTextLayer.Bind(
+                 floatingTextRoot,
+                 _floatingDamageTextPrefab,
+                 playerDamageAnchor,
+                 monsterDamageAnchor,
+                 GetDefaultFont(),
+-                RefreshStatusText);
++                gameObject);
++
++            _presentationHost = new CombatPresentationHost(gameObject, floatingTextLayer);
+             CombatPresentationPipeline pipeline = CombatPresentationPipeline.CreateDefault(_presentationHost);
+             _flowController = new BattleFlowController(pipeline, _combatViewModel);
+         }
+ 
++        private static FloatingCombatTextLayerView EnsureFloatingTextLayerView(Transform floatingTextRoot)
++        {
++            Transform target = floatingTextRoot != null ? floatingTextRoot : null;
++            if (target != null &&
++                target.TryGetComponent(out FloatingCombatTextLayerView existing))
++            {
++                return existing;
++            }
++
++            GameObject layerObject = target != null ? target.gameObject : new GameObject("Floating Combat Text Layer");
++            return layerObject.AddComponent<FloatingCombatTextLayerView>();
++        }
++
+         private static RectTransform ResolveDamageAnchor(
+             Transform overlayRoot,
+             string anchorName,
+diff --git a/Assets/_Project/Scripts/UI/GameFlow/RunBattlePlayerHudView.cs b/Assets/_Project/Scripts/UI/GameFlow/RunBattlePlayerHudView.cs
+index 984c2f9..2a9f276 100644
+--- a/Assets/_Project/Scripts/UI/GameFlow/RunBattlePlayerHudView.cs
++++ b/Assets/_Project/Scripts/UI/GameFlow/RunBattlePlayerHudView.cs
+@@ -1,5 +1,8 @@
+ using UnityEngine;
+ using UnityEngine.UI;
++#if DOTWEEN
++using DG.Tweening;
++#endif
+ 
+ namespace SlotRogue.UI.GameFlow
+ {
+@@ -7,16 +10,32 @@ namespace SlotRogue.UI.GameFlow
+     {
+         private const string PlayerHpFillSlotId = "battle/player-hp-fill";
+         private const string PlayerShieldFillSlotId = "battle/player-shield-fill";
++        private const float FillTweenDuration = 0.35f;
+ 
+         [SerializeField] private Text _hudText;
+         [SerializeField] private Image _hpFill;
+         [SerializeField] private Image _shieldFill;
+ 
++        private bool _hpFillRendered;
++        private bool _shieldFillRendered;
++#if DOTWEEN
++        private Tween _hpFillTween;
++        private Tween _shieldFillTween;
++#endif
++
+         private void Awake()
+         {
+             EnsureReferences();
+         }
+ 
++        private void OnDisable()
++        {
++#if DOTWEEN
++            _hpFillTween?.Kill();
++            _shieldFillTween?.Kill();
++#endif
++        }
++
+         public void Bind(Text hudText, Image hpFill, Image shieldFill)
+         {
+             _hudText = hudText;
+@@ -28,8 +47,13 @@ namespace SlotRogue.UI.GameFlow
+         {
+             EnsureReferences();
+             SetText(_hudText, state.PlayerHudText);
+-            SetBarFill(_hpFill, state.PlayerHp, state.PlayerMaxHp);
+-            SetBarFill(_shieldFill, state.PlayerShield, state.PlayerShieldMax);
++#if DOTWEEN
++            SetBarFill(_hpFill, state.PlayerHp, state.PlayerMaxHp, ref _hpFillRendered, ref _hpFillTween);
++            SetBarFill(_shieldFill, state.PlayerShield, state.PlayerShieldMax, ref _shieldFillRendered, ref _shieldFillTween);
++#else
++            SetBarFill(_hpFill, state.PlayerHp, state.PlayerMaxHp, ref _hpFillRendered);
++            SetBarFill(_shieldFill, state.PlayerShield, state.PlayerShieldMax, ref _shieldFillRendered);
++#endif
+         }
+ 
+         private void EnsureReferences()
+@@ -63,7 +87,58 @@ namespace SlotRogue.UI.GameFlow
+             }
+         }
+ 
+-        private static void SetBarFill(Image fill, int current, int max)
++#if DOTWEEN
++        private void SetBarFill(
++            Image fill,
++            int current,
++            int max,
++            ref bool hasRendered,
++            ref Tween tween)
++        {
++            if (fill == null)
++            {
++                return;
++            }
++
++            RectTransform parent = fill.rectTransform.parent as RectTransform;
++            float ratio = max <= 0 ? 0f : Mathf.Clamp01((float)current / max);
++            fill.type = Image.Type.Filled;
++            fill.preserveAspect = false;
++
++            if (parent != null && parent.sizeDelta.y > parent.sizeDelta.x * 1.4f)
++            {
++                fill.fillMethod = Image.FillMethod.Vertical;
++                fill.fillOrigin = (int)Image.OriginVertical.Bottom;
++            }
++            else
++            {
++                fill.fillMethod = Image.FillMethod.Horizontal;
++                fill.fillOrigin = (int)Image.OriginHorizontal.Left;
++            }
++
++            float targetRatio = ratio;
++            if (!hasRendered)
++            {
++                fill.fillAmount = targetRatio;
++                hasRendered = true;
++                return;
++            }
++
++            tween?.Kill();
++            tween = DOTween.To(
++                    () => fill.fillAmount,
++                    value => fill.fillAmount = value,
++                    targetRatio,
++                    FillTweenDuration)
++                .SetEase(Ease.OutQuad)
++                .SetLink(gameObject);
++        }
++#else
++        private static void SetBarFill(
++            Image fill,
++            int current,
++            int max,
++            ref bool hasRendered)
+         {
+             if (fill == null)
+             {
+@@ -75,6 +150,7 @@ namespace SlotRogue.UI.GameFlow
+             fill.type = Image.Type.Filled;
+             fill.fillAmount = ratio;
+             fill.preserveAspect = false;
++            hasRendered = true;
+ 
+             if (parent != null && parent.sizeDelta.y > parent.sizeDelta.x * 1.4f)
+             {
+@@ -86,5 +162,6 @@ namespace SlotRogue.UI.GameFlow
+             fill.fillMethod = Image.FillMethod.Horizontal;
+             fill.fillOrigin = (int)Image.OriginHorizontal.Left;
+         }
++#endif
+     }
+ }
+diff --git a/docs/exec-plans/active/feature-run-battle-mvvm.md b/docs/exec-plans/active/feature-run-battle-mvvm.md
+index 86743d8..610ca0a 100644
+--- a/docs/exec-plans/active/feature-run-battle-mvvm.md
++++ b/docs/exec-plans/active/feature-run-battle-mvvm.md
+@@ -27,6 +27,7 @@
+ - [x] 보존형 migration이 `RunBattleScreenView` / 하위 View / `RunBattleCompositionRoot`를 wiring하고 legacy `RunBattleController` / `RunBattleView`를 제거하도록 전환
+ - [x] 플레이어 HP fill 바인딩 복구 및 플레이어/몬스터 HP 바 감소 방향 통일
+ - [x] Sprite 없는 몬스터 HP 바 표시와 최종 공격력 ATK HUD 연결
++- [x] 전투 연출 1차 MVVM 정리 — `DamagePresenter`의 View 생성/HP tween 제거, floating text 명령 View 분리, HP fill 보간을 View로 이동
+ - [ ] Unity Editor에서 `SlotRogue > Game Flow > Migrate Run Battle Hierarchy In Place (Preserve UI)` 실행해 prefab/scene strict MVVM 적용과 기존 배치 리소스 유지 확인
+ - [ ] RunBattle 수동 플레이테스트로 스핀, 타겟 선택, 승리/패배 전환 확인
+ 
+@@ -36,6 +37,7 @@
+ - 2026-06-05: `Ingame_Slot_ani` 3프레임을 사용하는 `SlotMachineFrameView`를 추가했다. 스핀 중에는 2/3번 프레임을 반복하고, 슬롯 presentation 종료 시 2번에서 1번으로 복귀한다. 기존 scene에 컴포넌트가 없어도 런타임에 `Slot Machine Panel` Image를 찾아 임시 연결하고, safe migration 실행 시에는 영구 wiring된다.
+ - 2026-06-06: 플레이어 HP 이미지는 오브젝트 이름 대신 `battle/player-hp-fill` 슬롯 ID로 복구하도록 변경했다. 플레이어/몬스터 HP 바는 `Image.Type.Filled`를 사용해 세로 게이지는 아래에서 위로, 가로 게이지는 왼쪽에서 오른쪽으로 채워지도록 통일했다.
+ - 2026-06-06: Sprite가 없는 몬스터 HP 이미지는 `fillAmount`가 적용되지 않아 왼쪽 pivot 고정 + 캐시된 최대 폭 조절 방식으로 변경했다. `Attack Power Text`는 런타임과 migration에서 자동 연결하고 최종 `Damage × AttackCount`를 `ATK`로 표시한다.
++- 2026-06-08: 전투 연출 Presenter를 MVVM에 더 가깝게 정리했다. `DamagePresenter`는 최종 스냅샷 반영과 floating damage 요청만 수행하고, `FloatingCombatTextLayerView`가 prefab 생성·anchor 배치·턴 배너 표시를 담당한다. `CombatViewModel.Changed`를 화면 갱신 트리거로 연결하고, 플레이어/몬스터 HP fill 보간은 각 View가 처리한다.
+ 
+ - 엄격한 MVVM 기준은 “ViewModel이 UnityEngine과 화면 오브젝트를 모르는 것”으로 둔다. Unity 씬 생명주기와 입력 연결은 `CompositionRoot`가 담당한다.
+ - 카메라 셰이크는 world root를 기준으로 적용한다. 배경/몬스터를 함께 흔들지, 몬스터만 흔들지는 기존 화면 유지가 끝난 뒤 별도 migration으로 다시 판단한다.

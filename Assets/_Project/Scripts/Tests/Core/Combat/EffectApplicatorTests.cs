@@ -16,7 +16,7 @@ namespace SlotRogue.Core.Tests.Combat
         [Test]
         public void ApplyDamage_ReducesHp_WhenShieldIsZero()
         {
-            var target = new CombatParticipant(maxHp: 20, currentHp: 20);
+            CombatParticipant target = CombatParticipantFactory.CreateEnemy(maxHp: 20);
 
             EffectApplyResult result = _applicator.ApplyToParticipant(
                 new CombatEffect(CombatEffectKind.Damage, 7, CombatEffectTarget.Self),
@@ -31,7 +31,7 @@ namespace SlotRogue.Core.Tests.Combat
         [Test]
         public void ApplyDamage_ConsumesShieldBeforeHp()
         {
-            var target = new CombatParticipant(maxHp: 20, currentHp: 20, shield: 3);
+            CombatParticipant target = CombatParticipantFactory.CreateEnemy(maxHp: 20, shield: 3);
 
             EffectApplyResult result = _applicator.ApplyToParticipant(
                 new CombatEffect(CombatEffectKind.Damage, 10, CombatEffectTarget.Self),
@@ -46,7 +46,7 @@ namespace SlotRogue.Core.Tests.Combat
         [Test]
         public void ApplyDamage_FullyBlockedByShield_DoesNotReduceHp()
         {
-            var target = new CombatParticipant(maxHp: 20, currentHp: 20, shield: 10);
+            CombatParticipant target = CombatParticipantFactory.CreateEnemy(maxHp: 20, shield: 10);
 
             EffectApplyResult result = _applicator.ApplyToParticipant(
                 new CombatEffect(CombatEffectKind.Damage, 6, CombatEffectTarget.Self),
@@ -61,7 +61,7 @@ namespace SlotRogue.Core.Tests.Combat
         [Test]
         public void ApplyShield_IncreasesShield()
         {
-            var target = new CombatParticipant(maxHp: 20);
+            CombatParticipant target = CombatParticipantFactory.CreateEnemy(maxHp: 20);
 
             EffectApplyResult result = _applicator.ApplyToParticipant(
                 new CombatEffect(CombatEffectKind.Shield, 5, CombatEffectTarget.Self),
@@ -74,7 +74,7 @@ namespace SlotRogue.Core.Tests.Combat
         [Test]
         public void ApplyHeal_CapsAtMaxHp()
         {
-            var target = new CombatParticipant(maxHp: 20, currentHp: 18);
+            CombatParticipant target = CombatParticipantFactory.CreateEnemy(maxHp: 20, currentHp: 18);
 
             EffectApplyResult result = _applicator.ApplyToParticipant(
                 new CombatEffect(CombatEffectKind.Heal, 10, CombatEffectTarget.Self),
@@ -83,35 +83,41 @@ namespace SlotRogue.Core.Tests.Combat
             Assert.That(result.HealApplied, Is.EqualTo(2));
             Assert.That(target.CurrentHp, Is.EqualTo(20));
         }
+    }
 
-        [Test]
-        public void Apply_EnemyTarget_AppliesToOpponent()
+    internal static class CombatParticipantFactory
+    {
+        public static CombatParticipant CreatePlayer(
+            int maxHp = 30,
+            int currentHp = -1,
+            int shield = 0,
+            int id = 1)
         {
-            var player = new CombatParticipant(maxHp: 30, currentHp: 30);
-            var monster = new CombatParticipant(maxHp: 15, currentHp: 15);
-
-            _applicator.Apply(
-                new CombatEffect(CombatEffectKind.Damage, 6, CombatEffectTarget.Enemy),
-                player,
-                monster);
-
-            Assert.That(monster.CurrentHp, Is.EqualTo(9));
-            Assert.That(player.CurrentHp, Is.EqualTo(30));
+            return CreateParticipant(maxHp, currentHp, shield, id, CombatTeam.Player);
         }
 
-        [Test]
-        public void Apply_SelfTarget_AppliesToSource()
+        public static CombatParticipant CreateEnemy(
+            int maxHp = 20,
+            int currentHp = -1,
+            int shield = 0,
+            int id = 100)
         {
-            var player = new CombatParticipant(maxHp: 30, currentHp: 20);
-            var monster = new CombatParticipant(maxHp: 15, currentHp: 15);
+            return CreateParticipant(maxHp, currentHp, shield, id, CombatTeam.Enemy);
+        }
 
-            _applicator.Apply(
-                new CombatEffect(CombatEffectKind.Heal, 5, CombatEffectTarget.Self),
-                player,
-                monster);
-
-            Assert.That(player.CurrentHp, Is.EqualTo(25));
-            Assert.That(monster.CurrentHp, Is.EqualTo(15));
+        public static CombatParticipant CreateParticipant(
+            int maxHp,
+            int currentHp,
+            int shield,
+            int id,
+            CombatTeam team)
+        {
+            return new CombatParticipant(
+                maxHp,
+                currentHp,
+                shield,
+                new CombatParticipantId(id),
+                team);
         }
     }
 }

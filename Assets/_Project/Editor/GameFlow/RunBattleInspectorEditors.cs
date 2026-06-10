@@ -1,3 +1,4 @@
+using SlotRogue.UI.Combat.Presentation;
 using SlotRogue.UI.GameFlow;
 using SlotRogue.UI.SlotPresentation;
 using UnityEditor;
@@ -82,10 +83,13 @@ namespace SlotRogue.Editor.GameFlow
                 serializedObject.FindProperty("_worldView"),
                 root != null && root.GetComponentInChildren<RunBattleWorldView>(true) != null);
 
-            int monsterCount = root != null
-                ? root.GetComponentsInChildren<MonsterView>(true).Length
+            int formationSlotCount = root != null
+                ? root.GetComponentsInChildren<EnemyFormationSlotView>(true).Length
                 : 0;
-            DrawStatus("Monster views", monsterCount >= 3 ? $"{monsterCount}/3" : $"{monsterCount}/3 missing", monsterCount >= 3);
+            DrawStatus(
+                "Formation slots",
+                formationSlotCount >= 3 ? $"{formationSlotCount}/3" : $"{formationSlotCount}/3 missing",
+                formationSlotCount >= 3);
         }
 
         private void RefreshReferences()
@@ -134,8 +138,9 @@ namespace SlotRogue.Editor.GameFlow
                 "Composition Root owns scene startup and converts gameplay events into ViewModel updates. Generated references stay in Advanced.",
                 MessageType.Info);
 
-            EditorGUILayout.LabelField("Content Defaults", EditorStyles.boldLabel);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_floatingDamageTextPrefab"));
+            EditorGUILayout.LabelField("Presentation Views", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_floatingTextLayerView"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_turnBannerView"));
 
             EditorGUILayout.Space(6f);
             DrawBindingSummary();
@@ -154,6 +159,8 @@ namespace SlotRogue.Editor.GameFlow
             if (_showAdvancedReferences)
             {
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_view"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("_floatingTextLayerView"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("_turnBannerView"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_spinLeverView"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_slotMachineFrameView"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_slotPresentationManager"));
@@ -170,6 +177,14 @@ namespace SlotRogue.Editor.GameFlow
                 "Screen view",
                 serializedObject.FindProperty("_view"),
                 root != null && root.GetComponentInChildren<RunBattleScreenView>(true) != null);
+            DrawObjectStatus(
+                "Floating text layer",
+                serializedObject.FindProperty("_floatingTextLayerView"),
+                root != null && root.GetComponentInChildren<FloatingCombatTextLayerView>(true) != null);
+            DrawObjectStatus(
+                "Turn banner view",
+                serializedObject.FindProperty("_turnBannerView"),
+                root != null && root.GetComponentInChildren<TurnBannerView>(true) != null);
             DrawObjectStatus(
                 "Spin lever",
                 serializedObject.FindProperty("_spinLeverView"),
@@ -192,12 +207,18 @@ namespace SlotRogue.Editor.GameFlow
             Undo.RecordObject(compositionRoot, "Refresh RunBattleCompositionRoot References");
 
             SerializedProperty view = serializedObject.FindProperty("_view");
+            SerializedProperty floatingTextLayer = serializedObject.FindProperty("_floatingTextLayerView");
+            SerializedProperty turnBanner = serializedObject.FindProperty("_turnBannerView");
             SerializedProperty lever = serializedObject.FindProperty("_spinLeverView");
             SerializedProperty slotMachineFrame = serializedObject.FindProperty("_slotMachineFrameView");
             SerializedProperty slotPresentation = serializedObject.FindProperty("_slotPresentationManager");
 
             view.objectReferenceValue =
                 root != null ? root.GetComponentInChildren<RunBattleScreenView>(true) : null;
+            floatingTextLayer.objectReferenceValue =
+                root != null ? root.GetComponentInChildren<FloatingCombatTextLayerView>(true) : null;
+            turnBanner.objectReferenceValue =
+                root != null ? root.GetComponentInChildren<TurnBannerView>(true) : null;
             lever.objectReferenceValue =
                 root != null ? root.GetComponentInChildren<SlotLeverView>(true) : null;
             slotMachineFrame.objectReferenceValue =

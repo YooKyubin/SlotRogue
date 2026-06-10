@@ -1,4 +1,5 @@
 using System;
+using SlotRogue.Core.Combat;
 
 namespace SlotRogue.UI.GameFlow
 {
@@ -137,11 +138,14 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetEnemySlot(
             int slotIndex,
+            CombatParticipantId participantId,
             string hudText,
             int hp,
             int maxHp,
+            int shield,
             bool selected,
-            bool interactable)
+            bool interactable,
+            StatusEffectViewData[] statuses = null)
         {
             if (slotIndex < 0 || slotIndex >= _enemySlots.Length)
             {
@@ -150,12 +154,15 @@ namespace SlotRogue.UI.GameFlow
 
             _enemySlots[slotIndex] = new RunBattleEnemySlotState(
                 slotIndex,
+                participantId,
                 active: true,
                 hudText ?? string.Empty,
                 Math.Max(0, hp),
                 Math.Max(1, maxHp),
+                Math.Max(0, shield),
                 selected,
-                interactable);
+                interactable,
+                statuses);
             RequestPublish();
         }
 
@@ -302,25 +309,35 @@ namespace SlotRogue.UI.GameFlow
 
     public readonly struct RunBattleEnemySlotState
     {
+        private readonly StatusEffectViewData[] _statuses;
+
         public RunBattleEnemySlotState(
             int slotIndex,
+            CombatParticipantId participantId,
             bool active,
             string hudText,
             int hp,
             int maxHp,
+            int shield,
             bool selected,
-            bool interactable)
+            bool interactable,
+            StatusEffectViewData[] statuses = null)
         {
             SlotIndex = slotIndex;
+            ParticipantId = participantId;
             Active = active;
             HudText = hudText ?? string.Empty;
             Hp = hp;
             MaxHp = maxHp;
+            Shield = shield;
             Selected = selected;
             Interactable = interactable;
+            _statuses = Clone(statuses);
         }
 
         public int SlotIndex { get; }
+
+        public CombatParticipantId ParticipantId { get; }
 
         public bool Active { get; }
 
@@ -330,20 +347,39 @@ namespace SlotRogue.UI.GameFlow
 
         public int MaxHp { get; }
 
+        public int Shield { get; }
+
         public bool Selected { get; }
 
         public bool Interactable { get; }
+
+        public StatusEffectViewData[] Statuses => Clone(_statuses);
 
         public static RunBattleEnemySlotState Hidden(int slotIndex)
         {
             return new RunBattleEnemySlotState(
                 slotIndex,
+                default,
                 active: false,
                 string.Empty,
                 hp: 0,
                 maxHp: 1,
+                shield: 0,
                 selected: false,
-                interactable: false);
+                interactable: false,
+                statuses: null);
+        }
+
+        private static StatusEffectViewData[] Clone(StatusEffectViewData[] source)
+        {
+            if (source == null)
+            {
+                return Array.Empty<StatusEffectViewData>();
+            }
+
+            var copy = new StatusEffectViewData[source.Length];
+            Array.Copy(source, copy, source.Length);
+            return copy;
         }
     }
 

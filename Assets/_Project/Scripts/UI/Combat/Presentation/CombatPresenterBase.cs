@@ -1,7 +1,6 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
-using UnityEngine;
 
 namespace SlotRogue.UI.Combat.Presentation
 {
@@ -19,97 +18,5 @@ namespace SlotRogue.UI.Combat.Presentation
             CombatViewModel viewModel,
             PresentationContext context,
             CancellationToken cancellationToken);
-
-        protected void RefreshHUD() => Host.RefreshStatusText();
-
-        protected UniTask TweenTargetHpAsync(
-            CombatEvent combatEvent,
-            CombatViewModel viewModel,
-            float duration,
-            CancellationToken cancellationToken)
-        {
-            CombatParticipantSnapshot before = combatEvent.TargetBefore;
-            CombatParticipantSnapshot after = combatEvent.TargetAfter;
-            bool isPlayer = combatEvent.IsPlayerParticipant;
-
-            if (isPlayer)
-            {
-                viewModel.SetPlayerHp(before.Hp);
-            }
-            else
-            {
-                viewModel.SetParticipantHp(combatEvent.TargetParticipantId, before.Hp);
-            }
-
-            RefreshHUD();
-
-            return CombatPresentationTweens.TweenIntAsync(
-                before.Hp,
-                after.Hp,
-                duration,
-                value =>
-                {
-                    if (isPlayer)
-                    {
-                        viewModel.SetPlayerHp(value);
-                    }
-                    else
-                    {
-                        viewModel.SetParticipantHp(combatEvent.TargetParticipantId, value);
-                    }
-
-                    RefreshHUD();
-                },
-                Host.LinkTarget,
-                cancellationToken);
-        }
-
-        protected UniTask TweenTargetShieldAsync(
-            CombatEvent combatEvent,
-            CombatViewModel viewModel,
-            float duration,
-            CancellationToken cancellationToken)
-        {
-            CombatParticipantSnapshot before = combatEvent.TargetBefore;
-            CombatParticipantSnapshot after = combatEvent.TargetAfter;
-            bool isPlayer = combatEvent.IsPlayerParticipant;
-
-            if (isPlayer)
-            {
-                viewModel.SetPlayerShield(before.Shield);
-            }
-            else
-            {
-                viewModel.SetParticipantShield(combatEvent.TargetParticipantId, before.Shield);
-            }
-
-            RefreshHUD();
-
-            return CombatPresentationTweens.TweenIntAsync(
-                before.Shield,
-                after.Shield,
-                duration,
-                value =>
-                {
-                    if (isPlayer)
-                    {
-                        viewModel.SetPlayerShield(value);
-                    }
-                    else
-                    {
-                        viewModel.SetParticipantShield(combatEvent.TargetParticipantId, value);
-                    }
-
-                    RefreshHUD();
-                },
-                Host.LinkTarget,
-                cancellationToken);
-        }
-
-        protected static UniTask EffectStubDelayAsync(
-            float seconds,
-            CombatPresentationHost host,
-            CancellationToken cancellationToken) =>
-            CombatPresentationTweens.DelayAsync(seconds, host.LinkTarget, cancellationToken);
     }
 }

@@ -12,7 +12,6 @@ using SlotRogue.UI.Combat.Presentation;
 using SlotRogue.UI.SlotPresentation;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 #if DOTWEEN
 using DG.Tweening;
 #endif
@@ -41,9 +40,11 @@ namespace SlotRogue.UI.GameFlow
         private CancellationTokenSource _presentationCts;
         private RunBattleSpinSequence _spinSequence;
         private RunBattleScreenStateUpdater _stateUpdater;
+        private RunBattleEnemySelectionBinder _enemySelectionBinder;
 
         [SerializeField] private RunBattleScreenView _view;
-        [SerializeField] private FloatingDamageTextView _floatingDamageTextPrefab;
+        [SerializeField] private FloatingCombatTextLayerView _floatingTextLayerView;
+        [SerializeField] private TurnBannerView _turnBannerView;
         [SerializeField] private SlotLeverView _spinLeverView;
         [SerializeField] private SlotMachineFrameView _slotMachineFrameView;
         [SerializeField] private SlotPresentationManager _slotPresentationManager;
@@ -51,7 +52,6 @@ namespace SlotRogue.UI.GameFlow
         private RunCombatRequestResult _lastRequestResult;
         private bool _battleCompleted;
         private bool _spinRoutineRunning;
-        private CombatParticipantId _selectedEnemyId;
         private RunEncounterRoster _encounterRoster;
 
         /// <summary>전투 승리 시 BattleView가 구독합니다.</summary>
@@ -91,6 +91,7 @@ namespace SlotRogue.UI.GameFlow
 
             // 중복 구독 방지: 재진입 시 기존 구독 제거
             _screenViewModel.Changed -= HandleScreenStateChanged;
+            _combatViewModel.Changed -= RefreshStatusText;
             _view.SpinRequested -= HandleSpinClicked;
             _view.ContinueRequested -= NavigateToReward;
             _view.RestartRequested -= NavigateToStart;
@@ -110,6 +111,7 @@ namespace SlotRogue.UI.GameFlow
             _spinSequence.SetupImmediate();
 
             _screenViewModel.Changed += HandleScreenStateChanged;
+            _combatViewModel.Changed += RefreshStatusText;
             _view.SpinRequested += HandleSpinClicked;
             _view.ContinueRequested += NavigateToReward;
             _view.RestartRequested += NavigateToStart;
@@ -140,24 +142,10 @@ namespace SlotRogue.UI.GameFlow
             }
 
             _screenViewModel.Changed -= HandleScreenStateChanged;
+            _combatViewModel.Changed -= RefreshStatusText;
             _presentationCts?.Cancel();
             _presentationCts?.Dispose();
             _presentationCts = null;
-        }
-
-        public void Bind(
-            RunBattleScreenView view,
-            FloatingDamageTextView floatingDamageTextPrefab,
-            MonsterDefinition monsterDefinition,
-            SlotLeverView spinLeverView,
-            SlotMachineFrameView slotMachineFrameView,
-            SlotPresentationManager slotPresentationManager)
-        {
-            _view = view;
-            _floatingDamageTextPrefab = floatingDamageTextPrefab;
-            _spinLeverView = spinLeverView;
-            _slotMachineFrameView = slotMachineFrameView;
-            _slotPresentationManager = slotPresentationManager;
         }
 
         private void ResolveSceneReferences()
@@ -223,81 +211,141 @@ namespace SlotRogue.UI.GameFlow
 
         private void StartBattle()
         {
-            var player = new CombatParticipant(GameFlowSession.PlayerMaxHp, GameFlowSession.PlayerCurrentHp);
+            CombatParticipant player = RunCombatParticipantFactory.CreatePlayer(
+                GameFlowSession.PlayerMaxHp,
+                GameFlowSession.PlayerCurrentHp);
             _encounterRoster = BuildEncounterRoster();
 
             _battle.StartBattle(player, _encounterRoster.Enemies, _encounterRoster.Schedules);
-            _selectedEnemyId = ResolveSelectedEnemyId();
+            _enemySelectionBinder = new RunBattleEnemySelectionBinder(
+                _battle,
+                _view,
+                _encounterRoster,
+                () => _flowController.IsBusy,
+                () => _spinRoutineRunning,
+                RefreshStatusText);
+            _enemySelectionBinder.ResolveSelectedEnemyId();
             _combatViewModel.SyncFrom(_battle);
-            BindEnemySlots();
+            _enemySelectionBinder.Bind();
             _eventLogger.LogEventsSince(_battle, eventCursor: 0);
         }
 
         private void InitializePresentationStack()
         {
             _presentationCts = new CancellationTokenSource();
-            Transform floatingTextRoot = _view.FloatingTextRoot ?? _view.transform;
-            RectTransform playerDamageAnchor = _view.PlayerDamageAnchor
-                ?? ResolveDamageAnchor(floatingTextRoot, "player-damage-anchor", new Vector2(0f, -120f));
-            RectTransform monsterDamageAnchor = _view.GetEnemyDamageAnchor(1);
-            if (monsterDamageAnchor == null)
+
+            if (_floatingTextLayerView == null)
             {
-                monsterDamageAnchor = ResolveDamageAnchor(
-                    floatingTextRoot, "monster-damage-anchor", new Vector2(0f, 140f));
-                Debug.LogWarning(
-                    "[RunBattleCompositionRoot] Center monster damage anchor missing. " +
-                    "Using a temporary overlay anchor for this play session.");
+                Debug.LogError("[RunBattleCompositionRoot] FloatingCombatTextLayerView is not assigned.");
             }
 
-            _presentationHost = new CombatPresentationHost(
-                gameObject,
-                _view.StatusText,
-                floatingTextRoot,
-                _floatingDamageTextPrefab,
-                playerDamageAnchor,
-                monsterDamageAnchor,
-                GetDefaultFont(),
-                RefreshStatusText);
+            if (_turnBannerView == null)
+            {
+                Debug.LogError("[RunBattleCompositionRoot] TurnBannerView is not assigned.");
+            }
+
+            var commands = new CombatPresentationCommandDispatcher(_floatingTextLayerView, _turnBannerView, _view);
+            _presentationHost = new CombatPresentationHost(gameObject, commands);
             CombatPresentationPipeline pipeline = CombatPresentationPipeline.CreateDefault(_presentationHost);
             _flowController = new BattleFlowController(pipeline, _combatViewModel);
-        }
-
-        private static RectTransform ResolveDamageAnchor(
-            Transform overlayRoot,
-            string anchorName,
-            Vector2 defaultPosition)
-        {
-            if (overlayRoot == null)
-            {
-                return null;
-            }
-
-            Transform existing = overlayRoot.Find(anchorName);
-            if (existing is RectTransform existingRect)
-            {
-                return existingRect;
-            }
-
-            var anchorObject = new GameObject(anchorName, typeof(RectTransform));
-            RectTransform anchor = anchorObject.GetComponent<RectTransform>();
-            anchor.SetParent(overlayRoot, false);
-            anchor.anchorMin = new Vector2(0.5f, 0.5f);
-            anchor.anchorMax = new Vector2(0.5f, 0.5f);
-            anchor.pivot = new Vector2(0.5f, 0.5f);
-            anchor.anchoredPosition = defaultPosition;
-            anchor.sizeDelta = Vector2.zero;
-            return anchor;
-        }
-
-        private static Font GetDefaultFont()
-        {
-            Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            return font != null ? font : Resources.GetBuiltinResource<Font>("Arial.ttf");
         }
 
         private void HandleSpinClicked()
         {
             HandleSpinClickedAsync().Forget();
+        }
+
+        public void DevApplyStatusTurn(StatusEffectKind statusEffectKind, int duration, int magnitude,
+            StatusStackMode stackMode, bool includeDamage, int damage, int attackCount)
+        {
+            DevApplyStatusTurnAsync(
+                statusEffectKind,
+                duration,
+                magnitude,
+                stackMode,
+                includeDamage,
+                damage,
+                attackCount).Forget();
+        }
+
+        private async UniTaskVoid DevApplyStatusTurnAsync(
+            StatusEffectKind statusEffectKind,
+            int duration,
+            int magnitude,
+            StatusStackMode stackMode,
+            bool includeDamage,
+            int damage,
+            int attackCount)
+        {
+            if (statusEffectKind == StatusEffectKind.None)
+            {
+                Debug.LogWarning("[RunBattleCompositionRoot] Dev status turn ignored because status kind is None.");
+                return;
+            }
+
+            if (_battleCompleted || _spinRoutineRunning || !_battle.CanApplyPlayerTurn || _flowController.IsBusy)
+            {
+                RefreshStatusText();
+                return;
+            }
+
+            CombatParticipantId selectedTargetId = _enemySelectionBinder != null
+                ? _enemySelectionBinder.ResolveSelectedEnemyId()
+                : default;
+            if (!selectedTargetId.IsValid)
+            {
+                Debug.LogWarning("[RunBattleCompositionRoot] Dev status turn ignored because no selected enemy target was found.");
+                return;
+            }
+
+            SetSpinInteractable(false);
+            _spinRoutineRunning = true;
+
+            try
+            {
+                var statusEffect = new StatusEffectSpec(
+                    statusEffectKind,
+                    Mathf.Max(0, duration),
+                    Mathf.Max(0, magnitude),
+                    stackMode);
+                var request = new SlotCombatRequest(
+                    includeDamage ? Mathf.Max(0, damage) : 0,
+                    0,
+                    Mathf.Max(1, attackCount),
+                    0,
+                    false,
+                    $"DEV {statusEffectKind}");
+                _lastRequestResult = new RunCombatRequestResult(
+                    request,
+                    request,
+                    StarterArtifactActivation.None,
+                    $"DEV {statusEffectKind}",
+                    statusEffect);
+                RefreshSlotResultText();
+
+                CombatEffect[] playerEffects = _converter.Convert(request, selectedTargetId, statusEffect);
+                var context = new PresentationContext(isCritical: false, request.PatternName);
+                int eventCursor = _eventLogger.CaptureEventCursor(_battle);
+
+                BattleApplyResult result = await _flowController.RunTurnAsync(
+                    _battle,
+                    playerEffects,
+                    selectedTargetId,
+                    context,
+                    _presentationCts != null ? _presentationCts.Token : CancellationToken.None);
+
+                if (result.Accepted)
+                {
+                    _eventLogger.LogEventsSince(_battle, eventCursor, request);
+                }
+            }
+            finally
+            {
+                _spinRoutineRunning = false;
+                RefreshStatusText();
+                HandleBattleEndIfNeeded();
+                UpdateSpinButtonState();
+            }
         }
 
         private async UniTaskVoid HandleSpinClickedAsync()
@@ -335,7 +383,9 @@ namespace SlotRogue.UI.GameFlow
                 RefreshSlotResultText();
 
                 SlotCombatRequest request = _lastRequestResult.FinalRequest;
-                CombatParticipantId selectedTargetId = ResolveSelectedEnemyId();
+                CombatParticipantId selectedTargetId = _enemySelectionBinder != null
+                    ? _enemySelectionBinder.ResolveSelectedEnemyId()
+                    : default;
                 CombatEffect[] playerEffects = _converter.Convert(
                     request,
                     selectedTargetId,
@@ -533,21 +583,24 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
-            CombatParticipantId selectedTargetId = ResolveSelectedEnemyId();
+            CombatParticipantId selectedTargetId = _enemySelectionBinder != null
+                ? _enemySelectionBinder.ResolveSelectedEnemyId()
+                : default;
+
             string statusText =
                 $"{_battle.CurrentPhase}\n" +
                 $"Turn {_battle.UpcomingMonsterTurnIndex}\n" +
                 $"Enemies {_battle.Enemies.Count}\n" +
                 $"Bonus D+{GameFlowSession.DamageBonus} / S+{GameFlowSession.DefenseBonus}";
+
             string enemyIntentText =
                 $"ENEMY INTENT: {RunBattleScreenStateUpdater.FormatUpcomingEnemyAction(_battle)}\n" +
                 $"TARGET: {selectedTargetId}";
 
-            int[] enemySlotIndices = null;
             _screenViewModel.Batch(() =>
             {
                 _stateUpdater.UpdatePlayerHud(_battle.Player, _combatViewModel);
-                enemySlotIndices = _stateUpdater.UpdateEnemySlots(
+                _stateUpdater.UpdateEnemySlots(
                     _battle,
                     _combatViewModel,
                     GetEncounterTitle(),
@@ -559,124 +612,15 @@ namespace SlotRogue.UI.GameFlow
                 _stateUpdater.UpdateBattleTextMeta(statusText, enemyIntentText);
             });
 
-            UpdateEnemyPortraits(enemySlotIndices);
             UpdateSpinButtonState();
         }
 
-        private void BindEnemySlots()
-        {
-            int slotCount = _view.EnemySlotCount;
-            for (int index = 0; index < slotCount; index++)
-            {
-                _view.SetEnemySlotClickHandler(index, null);
-                _view.SetEnemyPortrait(index, null);
-            }
-
-            int bindCount = Mathf.Min(slotCount, _battle.Enemies.Count);
-            var usedFormationSlots = new HashSet<int>();
-            for (int rosterIndex = 0; rosterIndex < bindCount; rosterIndex++)
-            {
-                CombatParticipant enemy = _battle.Enemies[rosterIndex];
-                CombatParticipantId enemyId = enemy.Id;
-                int slotIndex = RunBattleScreenStateUpdater.ResolveHudSlotIndex(
-                    _encounterRoster, rosterIndex, slotCount, usedFormationSlots);
-                _view.SetEnemySlotClickHandler(slotIndex, () => HandleEnemySelected(enemyId));
-                RectTransform anchor = ResolveEnemyDamageAnchor(slotIndex);
-                _presentationHost.SetEnemyDamageAnchor(enemyId, anchor);
-            }
-
-            if (_battle.Enemies.Count > slotCount)
-            {
-                Debug.LogWarning(
-                    $"[RunBattleCompositionRoot] Enemy count {_battle.Enemies.Count} exceeds configured slots {slotCount}.");
-            }
-        }
-
-        private void UpdateEnemyPortraits(int[] slotIndices)
-        {
-            if (slotIndices == null)
-            {
-                return;
-            }
-
-            for (int rosterIndex = 0; rosterIndex < slotIndices.Length; rosterIndex++)
-            {
-                _view.SetEnemyPortrait(slotIndices[rosterIndex], ResolveEncounterMonster(rosterIndex)?.portrait);
-            }
-        }
-
-        private RectTransform ResolveEnemyDamageAnchor(int slotIndex)
-        {
-            RectTransform anchor = _view.GetEnemyDamageAnchor(slotIndex);
-            if (anchor == null)
-            {
-                Debug.LogError(
-                    $"[RunBattleCompositionRoot] Damage anchor missing for formation slot {slotIndex}. " +
-                    "Run menu: SlotRogue > Game Flow > Rebuild Scene UI Prefabs.");
-            }
-
-            return anchor;
-        }
-
-        private MonsterDefinition ResolveEncounterMonster(int rosterIndex)
-        {
-            return null;
-        }
-
-        private void HandleEnemySelected(CombatParticipantId enemyId)
-        {
-            if (_flowController.IsBusy || _spinRoutineRunning)
-            {
-                return;
-            }
-
-            for (int index = 0; index < _battle.Enemies.Count; index++)
-            {
-                CombatParticipant enemy = _battle.Enemies[index];
-                if (enemy.Id.Value == enemyId.Value && !enemy.IsDead)
-                {
-                    _selectedEnemyId = enemyId;
-                    RefreshStatusText();
-                    return;
-                }
-            }
-        }
-
-        private CombatParticipantId ResolveSelectedEnemyId()
-        {
-            if (_selectedEnemyId.IsValid)
-            {
-                for (int index = 0; index < _battle.Enemies.Count; index++)
-                {
-                    CombatParticipant enemy = _battle.Enemies[index];
-                    if (enemy.Id.Value == _selectedEnemyId.Value && !enemy.IsDead)
-                    {
-                        return _selectedEnemyId;
-                    }
-                }
-            }
-
-            for (int index = 0; index < _battle.Enemies.Count; index++)
-            {
-                CombatParticipant enemy = _battle.Enemies[index];
-                if (!enemy.IsDead)
-                {
-                    _selectedEnemyId = enemy.Id;
-                    return _selectedEnemyId;
-                }
-            }
-
-            _selectedEnemyId = default;
-            return default;
-        }
-
-        // 무한모드는 맵 노드 없이 등급(Tier) 기반으로, 스토리모드는 기존 맵 경로로 적을 구성합니다.
+        // 무한모드는 맵 노드 없이 등급(Tier) 기반으로 적을 구성합니다.
         private RunEncounterRoster BuildEncounterRoster()
         {
             return RunEncounterRosterBuilder.BuildForTier(
                 GameFlowSession.CurrentTier,
-                GameFlowSession.CurrentBattleNumber,
-                fallback: null);
+                GameFlowSession.CurrentBattleNumber);
         }
 
         private static string GetEncounterTitle()

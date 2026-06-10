@@ -6,8 +6,6 @@ namespace SlotRogue.UI.Combat.Presentation
 {
     public sealed class ShieldResetPresenter : CombatPresenterBase
     {
-        private const float BlinkDuration = 0.1f;
-
         public ShieldResetPresenter(CombatPresentationHost host)
             : base(host)
         {
@@ -24,13 +22,19 @@ namespace SlotRogue.UI.Combat.Presentation
                 return;
             }
 
+            if (combatEvent.TargetBefore.Shield > 0)
+            {
+                var request = new ShieldPresentationRequest(
+                    combatEvent.TargetBefore.Shield,
+                    combatEvent.IsPlayerParticipant,
+                    combatEvent.TargetParticipantId);
+                await Host.Commands.ShowShieldExpireAsync(request, cancellationToken);
+            }
+
             viewModel.SetParticipantShield(
                 combatEvent.TargetParticipantId,
                 0,
                 combatEvent.IsPlayerParticipant);
-
-            RefreshHUD();
-            await CombatPresentationTweens.DelayAsync(BlinkDuration, Host.LinkTarget, cancellationToken);
         }
     }
 }
