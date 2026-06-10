@@ -1,4 +1,5 @@
 using System;
+using SlotRogue.Core.Combat;
 using UnityEngine;
 
 namespace SlotRogue.UI.GameFlow
@@ -7,6 +8,8 @@ namespace SlotRogue.UI.GameFlow
     {
         [SerializeField] private Transform _battleShakeRoot;
         [SerializeField] private EnemyFormationView _enemyFormationView;
+
+        private bool _missingFormationSlotWarningLogged;
 
         public Transform BattleShakeRoot => _battleShakeRoot;
 
@@ -28,7 +31,16 @@ namespace SlotRogue.UI.GameFlow
                 BindFormationChildren(_enemyFormationView);
             }
 
-            return _enemyFormationView.SlotCount > 0;
+            bool hasFormationSlots = _enemyFormationView.SlotCount > 0;
+            if (!hasFormationSlots && !_missingFormationSlotWarningLogged)
+            {
+                _missingFormationSlotWarningLogged = true;
+                Debug.LogError(
+                    "[RunBattleWorldView] EnemyFormationSlotView children are missing. " +
+                    "Configure formation slot children explicitly under the battle world view.");
+            }
+
+            return hasFormationSlots;
         }
 
         public void Bind(Transform battleShakeRoot, EnemyFormationView enemyFormationView)
@@ -65,6 +77,26 @@ namespace SlotRogue.UI.GameFlow
             return _enemyFormationView != null ? _enemyFormationView.GetDamageAnchor(slotIndex) : null;
         }
 
+        public void SetEnemyDamageAnchor(
+            CombatParticipantId participantId,
+            RectTransform anchor)
+        {
+            EnsureReferences();
+            _enemyFormationView?.SetEnemyDamageAnchor(participantId, anchor);
+        }
+
+        public RectTransform ResolveEnemyDamageAnchor(CombatParticipantId participantId)
+        {
+            EnsureReferences();
+            return _enemyFormationView != null ? _enemyFormationView.ResolveDamageAnchor(participantId) : null;
+        }
+
+        public ShieldGaugeView ResolveEnemyShieldGauge(CombatParticipantId participantId)
+        {
+            EnsureReferences();
+            return _enemyFormationView != null ? _enemyFormationView.ResolveShieldGauge(participantId) : null;
+        }
+
         private Transform ResolveBattleShakeRoot()
         {
             Transform shakeRoot = SceneComponentResolver.FindDeepChild(transform, "BattleShakeRoot");
@@ -86,25 +118,11 @@ namespace SlotRogue.UI.GameFlow
 
         private void BindFormationChildren(EnemyFormationView formationView)
         {
-            MonsterView[] monsterViews = ResolveMonsterViews();
-            if (monsterViews.Length > 0)
-            {
-                formationView.Bind(monsterViews);
-                return;
-            }
-
             EnemyFormationSlotView[] formationSlotViews = ResolveFormationSlotViews();
             if (formationSlotViews.Length > 0)
             {
                 formationView.Bind(formationSlotViews);
             }
-        }
-
-        private MonsterView[] ResolveMonsterViews()
-        {
-            MonsterView[] views = GetComponentsInChildren<MonsterView>(true);
-            SortByHierarchyName(views);
-            return views;
         }
 
         private EnemyFormationSlotView[] ResolveFormationSlotViews()

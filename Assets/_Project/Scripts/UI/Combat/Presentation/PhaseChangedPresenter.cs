@@ -1,8 +1,6 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
-using UnityEngine;
-using UnityEngine.UI;
 
 namespace SlotRogue.UI.Combat.Presentation
 {
@@ -39,44 +37,7 @@ namespace SlotRogue.UI.Combat.Presentation
                 return;
             }
 
-            await ShowTurnBannerAsync(message, cancellationToken);
-        }
-
-        private async UniTask ShowTurnBannerAsync(string message, CancellationToken cancellationToken)
-        {
-            if (Host.FloatingTextRoot == null)
-            {
-                await CombatPresentationTweens.DelayAsync(BannerDuration, Host.LinkTarget, cancellationToken);
-                return;
-            }
-
-            var bannerObject = new GameObject("Turn Banner", typeof(RectTransform));
-            RectTransform rectTransform = bannerObject.GetComponent<RectTransform>();
-            rectTransform.SetParent(Host.FloatingTextRoot, false);
-            rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-            rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-            rectTransform.pivot = new Vector2(0.5f, 0.5f);
-            rectTransform.anchoredPosition = new Vector2(0f, 180f);
-            rectTransform.sizeDelta = new Vector2(700f, 80f);
-
-            var text = bannerObject.AddComponent<Text>();
-            text.font = Host.DefaultFont;
-            text.fontSize = 40;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.color = new Color32(255, 230, 140, 255);
-            text.text = message;
-
-            try
-            {
-                await CombatPresentationTweens.DelayAsync(BannerDuration, Host.LinkTarget, cancellationToken);
-            }
-            finally
-            {
-                if (bannerObject != null)
-                {
-                    UnityEngine.Object.Destroy(bannerObject);
-                }
-            }
+            await Host.Commands.ShowTurnBannerAsync(message, BannerDuration, cancellationToken);
         }
     }
 }

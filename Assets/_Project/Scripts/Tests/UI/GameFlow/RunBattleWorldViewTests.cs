@@ -35,7 +35,8 @@ namespace SlotRogue.UI.Tests.GameFlow
                         hudText: null,
                         hpFill: null,
                         statusBackground: null,
-                        damageAnchor,
+                        shieldGauge: null,
+                        damageAnchor: damageAnchor,
                         placeholderText: null,
                         clickCollider: null);
                 }
@@ -120,8 +121,9 @@ namespace SlotRogue.UI.Tests.GameFlow
                     portrait: null,
                     hudRoot: null,
                     hudText: null,
-                    fill,
+                    hpFill: fill,
                     statusBackground: null,
+                    shieldGauge: null,
                     damageAnchor: null,
                     placeholderText: null,
                     clickCollider: null);

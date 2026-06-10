@@ -1,4 +1,3 @@
-using System;
 using SlotRogue.Core.Combat;
 using SlotRogue.Data.Combat;
 using SlotRogue.Data.GameFlow;
@@ -33,26 +32,20 @@ namespace SlotRogue.UI.GameFlow
         }
 
         // ── 등급(Tier) 기반 생성 (무한모드) ──────────────────────────────
-        // RunMapNodeDefinition 없이 등급 + 레벨만으로 적 한 마리를 구성합니다.
-        // 적 패턴은 fallback 몬스터가 있으면 그 패턴을, 없으면 등급 기본 패턴을 씁니다.
+        // 등급 + 레벨만으로 적 한 마리를 구성합니다.
         // HP는 항상 등급/레벨 스케일이 결정하여 난이도 곡선을 보장합니다.
 
         public static RunEncounterRoster BuildForTier(
             EncounterTier tier,
-            int level,
-            MonsterDefinition fallback)
+            int level)
         {
             int maxHp = TierMaxHp(tier, level);
             var enemies = new[]
             {
-                new CombatParticipant(maxHp, id: new CombatParticipantId(100), team: CombatTeam.Enemy),
+                RunCombatParticipantFactory.CreateEnemy(rosterIndex: 0, maxHp),
             };
 
-            MonsterTurnSchedule schedule =
-                fallback != null && fallback.turnPattern != null
-                    ? MonsterTurnScheduleFactory.FromPattern(fallback.turnPattern)
-                    : TierTurnSchedule(tier, level);
-
+            MonsterTurnSchedule schedule = TierTurnSchedule(tier, level);
             return new RunEncounterRoster(enemies, new[] { schedule }, new[] { 0 });
         }
 
@@ -90,7 +83,7 @@ namespace SlotRogue.UI.GameFlow
 
             return new MonsterTurnSchedule(
                 new[] { new CombatEffect(CombatEffectKind.Damage, 3 + lv, CombatEffectTarget.Enemy) },
-                new[] { new CombatEffect(CombatEffectKind.Shield, 2 + lv, CombatEffectTarget.Self) },
+                new[] { new CombatEffect(CombatEffectKind.Shield, 40 + lv, CombatEffectTarget.Self) },
                 new[] { new CombatEffect(CombatEffectKind.Damage, 5 + lv, CombatEffectTarget.Enemy) });
         }
     }

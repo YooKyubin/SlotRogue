@@ -1,4 +1,5 @@
 using SlotRogue.Core.Combat;
+using System;
 using System.Collections.Generic;
 
 namespace SlotRogue.UI.Combat.Presentation
@@ -6,6 +7,8 @@ namespace SlotRogue.UI.Combat.Presentation
     public sealed class CombatViewModel
     {
         private readonly Dictionary<int, CombatParticipantSnapshot> _participants = new();
+
+        public event Action Changed;
 
         public int PlayerHp { get; private set; }
 
@@ -38,6 +41,8 @@ namespace SlotRogue.UI.Combat.Presentation
                 CombatParticipant enemy = battle.Enemies[index];
                 _participants[enemy.Id.Value] = new CombatParticipantSnapshot(enemy.CurrentHp, enemy.Shield);
             }
+
+            PublishChanged();
         }
 
         public void ApplySnapshot(CombatEvent combatEvent)
@@ -71,11 +76,21 @@ namespace SlotRogue.UI.Combat.Presentation
                 PlayerHp = snapshot.Hp;
                 PlayerShield = snapshot.Shield;
             }
+
+            PublishChanged();
         }
 
-        public void SetPlayerHp(int hp) => PlayerHp = hp;
+        public void SetPlayerHp(int hp)
+        {
+            PlayerHp = hp;
+            PublishChanged();
+        }
 
-        public void SetPlayerShield(int shield) => PlayerShield = shield;
+        public void SetPlayerShield(int shield)
+        {
+            PlayerShield = shield;
+            PublishChanged();
+        }
 
         public void SetParticipantHp(
             CombatParticipantId participantId,
@@ -91,6 +106,7 @@ namespace SlotRogue.UI.Combat.Presentation
                     _participants[1] = new CombatParticipantSnapshot(hp, playerSnapshot.Shield);
                 }
 
+                PublishChanged();
                 return;
             }
 
@@ -98,6 +114,8 @@ namespace SlotRogue.UI.Combat.Presentation
             {
                 _participants[participantId.Value] = new CombatParticipantSnapshot(hp, snapshot.Shield);
             }
+
+            PublishChanged();
         }
 
         public void SetParticipantShield(
@@ -114,6 +132,7 @@ namespace SlotRogue.UI.Combat.Presentation
                     _participants[1] = new CombatParticipantSnapshot(playerSnapshot.Hp, shield);
                 }
 
+                PublishChanged();
                 return;
             }
 
@@ -121,6 +140,13 @@ namespace SlotRogue.UI.Combat.Presentation
             {
                 _participants[participantId.Value] = new CombatParticipantSnapshot(snapshot.Hp, shield);
             }
+
+            PublishChanged();
+        }
+
+        private void PublishChanged()
+        {
+            Changed?.Invoke();
         }
     }
 }

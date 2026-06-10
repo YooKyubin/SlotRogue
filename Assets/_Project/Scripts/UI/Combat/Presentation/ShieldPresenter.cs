@@ -6,8 +6,6 @@ namespace SlotRogue.UI.Combat.Presentation
 {
     public sealed class ShieldPresenter : CombatPresenterBase
     {
-        private const float TweenDuration = 0.15f;
-
         public ShieldPresenter(CombatPresentationHost host)
             : base(host)
         {
@@ -25,12 +23,16 @@ namespace SlotRogue.UI.Combat.Presentation
                 return;
             }
 
-            await TweenTargetShieldAsync(combatEvent, viewModel, TweenDuration, cancellationToken);
             viewModel.ApplyParticipantSnapshot(
                 combatEvent.TargetParticipantId,
                 combatEvent.TargetAfter,
                 combatEvent.IsPlayerParticipant);
-            RefreshHUD();
+
+            var request = new ShieldPresentationRequest(
+                combatEvent.ApplyResult.ShieldGained,
+                combatEvent.IsPlayerParticipant,
+                combatEvent.TargetParticipantId);
+            await Host.Commands.ShowShieldGainAsync(request, cancellationToken);
         }
     }
 }
