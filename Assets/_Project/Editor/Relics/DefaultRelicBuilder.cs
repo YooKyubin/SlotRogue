@@ -135,11 +135,11 @@ namespace SlotRogue.Editor.Relics
 
             Build("sharp_diamond", "날카로운 다이아", "다이아 족보 1개당 추가 피해 +5.",
                 RelicRarity.Common, RelicTriggerTiming.OnPatternResolved, RelicApplyMode.PerMatchedPattern,
-                CondSymbol(SlotSymbolType.Grape), Eff(RelicEffectType.AddFlatDamage, amount: 5));
+                CondSymbol(SlotSymbolType.Diamond), Eff(RelicEffectType.AddFlatDamage, amount: 5));
 
             Build("frozen_diamond", "얼어붙은 다이아", "다이아 족보 발동 시 30% 확률로 빙결 부여.",
                 RelicRarity.Rare, RelicTriggerTiming.OnPatternResolved, RelicApplyMode.Once,
-                CondSymbol(SlotSymbolType.Grape), Eff(RelicEffectType.ApplyFreeze, chance: 0.3f));
+                CondSymbol(SlotSymbolType.Diamond), Eff(RelicEffectType.ApplyFreeze, chance: 0.3f));
         }
 
         // ---- B. 그룹 ----
@@ -277,7 +277,7 @@ namespace SlotRogue.Editor.Relics
 
             Build("gem_armor", "보석 갑옷", "다이아 족보 1개당 방어도 +4.",
                 RelicRarity.Uncommon, RelicTriggerTiming.OnPatternResolved, RelicApplyMode.PerMatchedPattern,
-                CondSymbol(SlotSymbolType.Grape), Eff(RelicEffectType.AddShield, amount: 4));
+                CondSymbol(SlotSymbolType.Diamond), Eff(RelicEffectType.AddShield, amount: 4));
 
             Build("fruit_first_aid", "과일 응급상자", "한 턴에 과일 족보 2개 이상이면 HP 5 회복.",
                 RelicRarity.Uncommon, RelicTriggerTiming.OnPatternResolved, RelicApplyMode.Once,
@@ -313,7 +313,7 @@ namespace SlotRogue.Editor.Relics
 
             Build("gem_pouch", "보석 주머니", "다이아 족보 1개당 골드 +12.",
                 RelicRarity.Common, RelicTriggerTiming.OnPatternResolved, RelicApplyMode.PerMatchedPattern,
-                CondSymbol(SlotSymbolType.Grape), Eff(RelicEffectType.AddGold, amount: 12));
+                CondSymbol(SlotSymbolType.Diamond), Eff(RelicEffectType.AddGold, amount: 12));
 
             Build("diagonal_luck", "대각선의 행운", "대각 족보 1개당 골드 +10.",
                 RelicRarity.Uncommon, RelicTriggerTiming.OnPatternResolved, RelicApplyMode.PerMatchedPattern,
@@ -329,7 +329,7 @@ namespace SlotRogue.Editor.Relics
 
             Build("kings_vault", "왕의 금고", "같은 턴 종·다이아 족보 모두 발동 시 골드 +25.",
                 RelicRarity.Rare, RelicTriggerTiming.OnPatternResolved, RelicApplyMode.Once,
-                CondMulti(SlotSymbolType.Bell, SlotSymbolType.Grape), Eff(RelicEffectType.AddGold, amount: 25));
+                CondMulti(SlotSymbolType.Bell, SlotSymbolType.Diamond), Eff(RelicEffectType.AddGold, amount: 25));
 
             Build("lucky_chain", "럭키 체인", "같은 턴 7·클로버 족보 모두 발동 시 재스핀 티켓 1개 획득.",
                 RelicRarity.Rare, RelicTriggerTiming.OnPatternResolved, RelicApplyMode.Once,
@@ -365,7 +365,7 @@ namespace SlotRogue.Editor.Relics
 
             Build("broken_diamond", "깨진 다이아", "다이아 족보 1개당 추가 피해 +15. (다이아 골드 효과 비활성 — 단순화)",
                 RelicRarity.Cursed, RelicTriggerTiming.OnPatternResolved, RelicApplyMode.PerMatchedPattern,
-                CondSymbol(SlotSymbolType.Grape), Eff(RelicEffectType.AddFlatDamage, amount: 15));
+                CondSymbol(SlotSymbolType.Diamond), Eff(RelicEffectType.AddFlatDamage, amount: 15));
 
             Build("rotten_fruit_basket", "썩은 과일바구니", "과일 족보 피해 40% 증가. 과일 족보 1개당 플레이어 HP 1 감소.",
                 RelicRarity.Cursed, RelicTriggerTiming.OnPatternResolved, RelicApplyMode.PerMatchedPattern,

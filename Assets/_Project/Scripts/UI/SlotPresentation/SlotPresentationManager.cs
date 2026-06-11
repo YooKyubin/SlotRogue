@@ -1,5 +1,7 @@
 using System;
 using System.Collections;
+using SlotRogue.Slot.Data;
+using SlotRogue.UI.SlotPresentation.Reel;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -9,6 +11,7 @@ namespace SlotRogue.UI.SlotPresentation
     public sealed class SlotPresentationManager : MonoBehaviour, IPointerClickHandler
     {
         [SerializeField] private SlotCellSpinView _slotCellSpinView;
+        [SerializeField] private SlotMachineSpinPresenter _spinPresenter;
         [SerializeField] private PatternPresentationView _patternView;
         [SerializeField] private RelicPresentationView _relicView;
         [SerializeField] private FinalResultView _finalResultView;
@@ -124,9 +127,10 @@ namespace SlotRogue.UI.SlotPresentation
             HideAllViews();
             SetTapSkipEnabled(true);
 
-            if (_slotCellSpinView != null && result.SpinResult != null)
+            IEnumerator spinRoutine = ResolveSpinRoutine(result.SpinResult);
+            if (spinRoutine != null)
             {
-                yield return _slotCellSpinView.Play(result.SpinResult, IsSkipRequested);
+                yield return spinRoutine;
                 _skipRequested = false;
             }
 
@@ -216,9 +220,59 @@ namespace SlotRogue.UI.SlotPresentation
             return _skipRequested || _skipAllRequested;
         }
 
+        private IEnumerator ResolveSpinRoutine(SlotSpinResult spinResult)
+        {
+            if (spinResult == null)
+            {
+                return null;
+            }
+
+            SlotMachineSpinPresenter presenter = EnsureSpinPresenter();
+            if (presenter != null)
+            {
+                return presenter.Play(spinResult, IsSkipRequested);
+            }
+
+            if (_slotCellSpinView != null)
+            {
+                return _slotCellSpinView.Play(spinResult, IsSkipRequested);
+            }
+
+            return null;
+        }
+
+        private SlotMachineSpinPresenter EnsureSpinPresenter()
+        {
+            if (_slotCellSpinView == null ||
+                !_slotCellSpinView.TryGetReelBindings(out Image[] cellIcons, out Sprite[] symbolSprites, out Sprite[] spinSprites))
+            {
+                return _spinPresenter;
+            }
+
+            // Prefer a presenter authored in the prefab/scene, then one already on the spin view,
+            // otherwise add one at runtime (which builds its reel overlay over the cells).
+            if (_spinPresenter == null)
+            {
+                _spinPresenter = _slotCellSpinView.GetComponent<SlotMachineSpinPresenter>();
+            }
+
+            if (_spinPresenter == null)
+            {
+                _spinPresenter = _slotCellSpinView.gameObject.AddComponent<SlotMachineSpinPresenter>();
+            }
+
+            // Cell icons and sprite tables are runtime data, so (re)initialize every time.
+            _spinPresenter.Initialize(cellIcons, symbolSprites, spinSprites);
+            return _spinPresenter;
+        }
+
         private void HideAllViews()
         {
-            if (_slotCellSpinView != null)
+            if (_spinPresenter != null)
+            {
+                _spinPresenter.StopImmediate();
+            }
+            else if (_slotCellSpinView != null)
             {
                 _slotCellSpinView.StopImmediate();
             }

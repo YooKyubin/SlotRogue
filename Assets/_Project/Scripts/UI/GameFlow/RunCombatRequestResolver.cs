@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text;
 using SlotRogue.Core.Combat;
 using SlotRogue.Slot.Data;
@@ -6,8 +7,9 @@ namespace SlotRogue.UI.GameFlow
 {
     public sealed class RunCombatRequestResolver
     {
+        // 유물 조건은 대표 패턴 하나가 아니라 ResolveAll 결과 전체(CurrentPatternMatches)를 기준으로 본다.
         public RunCombatRequestResult Resolve(
-            SlotPatternResult patternResult,
+            IReadOnlyList<SlotPatternMatch> patternMatches,
             SlotCombatRequest baseRequest,
             ArtifactDefinitionSO artifact,
             int runDamageBonus,
@@ -15,7 +17,7 @@ namespace SlotRogue.UI.GameFlow
         {
             SlotCombatRequest normalizedRequest = NormalizeBlankTurn(baseRequest);
             StarterArtifactActivation artifactActivation = TryApplyArtifact(
-                patternResult, artifact, normalizedRequest,
+                patternMatches, artifact, normalizedRequest,
                 out SlotCombatRequest artifactRequest,
                 out StatusEffectSpec statusEffectToApply);
 
@@ -59,7 +61,7 @@ namespace SlotRogue.UI.GameFlow
             request.HealAmount <= 0;
 
         private static StarterArtifactActivation TryApplyArtifact(
-            SlotPatternResult patternResult,
+            IReadOnlyList<SlotPatternMatch> patternMatches,
             ArtifactDefinitionSO artifact,
             SlotCombatRequest request,
             out SlotCombatRequest artifactRequest,
@@ -68,11 +70,7 @@ namespace SlotRogue.UI.GameFlow
             artifactRequest = request;
             statusEffectToApply = StatusEffectSpec.None;
 
-            if (artifact == null ||
-                patternResult == null ||
-                !patternResult.HasMatch ||
-                patternResult.Symbol != artifact.TargetSymbol ||
-                patternResult.MatchLength < artifact.MinimumMatchLength)
+            if (artifact == null || !AnyMatchSatisfiesArtifact(patternMatches, artifact))
             {
                 return StarterArtifactActivation.None;
             }
@@ -130,6 +128,34 @@ namespace SlotRogue.UI.GameFlow
             }
 
             return new StarterArtifactActivation(true, artifact.DisplayName, artifact.Description);
+        }
+
+        // 전체 패턴 목록 중 하나라도 유물의 대상 심볼 + 최소 매치 길이를 만족하면 발동한다.
+        private static bool AnyMatchSatisfiesArtifact(
+            IReadOnlyList<SlotPatternMatch> patternMatches,
+            ArtifactDefinitionSO artifact)
+        {
+            if (patternMatches == null)
+            {
+                return false;
+            }
+
+            for (int index = 0; index < patternMatches.Count; index++)
+            {
+                SlotPatternMatch match = patternMatches[index];
+                if (match == null || match.MatchedCells == null)
+                {
+                    continue;
+                }
+
+                if (match.Symbol == artifact.TargetSymbol &&
+                    match.MatchedCells.Count >= artifact.MinimumMatchLength)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static StatusStackMode ToStatusStackMode(StatusStackBehavior behavior) =>

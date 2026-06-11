@@ -58,6 +58,22 @@ namespace SlotRogue.UI.SlotPresentation
             return HasUsableCellIcons();
         }
 
+        /// <summary>
+        /// Exposes the bound cell icons and sprite tables so the reel-based presenter can reuse the
+        /// same wiring without duplicating serialized references in the prefab.
+        /// </summary>
+        public bool TryGetReelBindings(out Image[] cellIcons, out Sprite[] symbolSprites, out Sprite[] spinSprites)
+        {
+            EnsureReferences();
+            cellIcons = _cellIcons;
+            symbolSprites = _symbolSprites;
+            spinSprites = GetSpinSprites();
+
+            // Cells are optional: when the reels are authored in the scene they are the slot face and
+            // the legacy 5x3 cell grid can be removed. Only the symbol sprite table is required.
+            return _symbolSprites != null && _symbolSprites.Length > 0;
+        }
+
         public IEnumerator Play(SlotSpinResult spinResult, Func<bool> shouldSkip)
         {
             if (!CanPlay(spinResult))

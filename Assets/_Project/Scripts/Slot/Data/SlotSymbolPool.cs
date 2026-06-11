@@ -19,7 +19,7 @@ namespace SlotRogue.Slot.Data
         {
             SlotSymbolType.Cherry,
             SlotSymbolType.Seven,
-            SlotSymbolType.Grape,
+            SlotSymbolType.Diamond,
             SlotSymbolType.Bell,
             SlotSymbolType.Clover,
             SlotSymbolType.Lemon,

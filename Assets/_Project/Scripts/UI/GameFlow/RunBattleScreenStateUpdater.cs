@@ -223,7 +223,7 @@ namespace SlotRogue.UI.GameFlow
             {
                 case SlotSymbolType.Cherry: return "CHERRY";
                 case SlotSymbolType.Seven: return "SEVEN";
-                case SlotSymbolType.Grape: return "GRAPE";
+                case SlotSymbolType.Diamond: return "DIAMOND";
                 case SlotSymbolType.Bell: return "BELL";
                 case SlotSymbolType.Clover: return "CLOVER";
                 case SlotSymbolType.Lemon: return "LEMON";

@@ -87,9 +87,9 @@ namespace SlotRogue.UI.SlotPresentation
         {
             SlotSymbolType[] symbols =
             {
-                SlotSymbolType.Bell, SlotSymbolType.Clover, SlotSymbolType.Grape, SlotSymbolType.Clover, SlotSymbolType.Bell,
+                SlotSymbolType.Bell, SlotSymbolType.Clover, SlotSymbolType.Diamond, SlotSymbolType.Clover, SlotSymbolType.Bell,
                 SlotSymbolType.Cherry, SlotSymbolType.Cherry, SlotSymbolType.Cherry, SlotSymbolType.Cherry, SlotSymbolType.Cherry,
-                SlotSymbolType.Bell, SlotSymbolType.Clover, SlotSymbolType.Grape, SlotSymbolType.Clover, SlotSymbolType.Bell
+                SlotSymbolType.Bell, SlotSymbolType.Clover, SlotSymbolType.Diamond, SlotSymbolType.Clover, SlotSymbolType.Bell
             };
 
             PlayDemo(

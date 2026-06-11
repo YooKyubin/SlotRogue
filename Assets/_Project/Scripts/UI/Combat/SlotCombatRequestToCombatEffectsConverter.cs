@@ -62,5 +62,38 @@ namespace SlotRogue.UI.Combat
 
             return effects.ToArray();
         }
+
+        /// <summary>
+        /// 여러 상태이상을 한 번에 적용하는 오버로드. 유물 다수가 각자 상태이상을 부여할 때 사용한다.
+        /// 피해/방어/회복은 단일 경로와 동일하며, 유효한 상태이상마다 ApplyStatus 효과를 추가한다.
+        /// </summary>
+        public CombatEffect[] Convert(
+            SlotCombatRequest request,
+            CombatParticipantId selectedTargetId,
+            IReadOnlyList<StatusEffectSpec> statusEffects)
+        {
+            CombatEffect[] baseEffects = Convert(request, selectedTargetId, StatusEffectSpec.None);
+
+            if (statusEffects == null || statusEffects.Count == 0)
+            {
+                return baseEffects;
+            }
+
+            CombatEffectTarget target = selectedTargetId.IsValid
+                ? CombatEffectTarget.SelectedEnemy(selectedTargetId)
+                : CombatEffectTarget.Enemy;
+
+            var effects = new List<CombatEffect>(baseEffects);
+            for (int index = 0; index < statusEffects.Count; index++)
+            {
+                StatusEffectSpec spec = statusEffects[index];
+                if (spec.IsValid)
+                {
+                    effects.Add(CombatEffect.ApplyStatus(spec, target));
+                }
+            }
+
+            return effects.ToArray();
+        }
     }
 }

@@ -1,4 +1,6 @@
 using SlotRogue.Data.GameFlow;
+using SlotRogue.Relics.Data;
+using SlotRogue.Relics.Pool;
 using SlotRogue.Slot.Data;
 using System;
 using System.Collections.Generic;
@@ -102,6 +104,43 @@ namespace SlotRogue.UI.GameFlow
 
         public static bool HasStarterArtifact => !string.IsNullOrEmpty(SelectedArtifactId);
 
+        // ── 유물(Relic) 인벤토리 (Artifact → Relic 통합 발판) ───────────────
+        // 최종 목표는 시작 유물·전투 효과를 RelicDataSO / RelicSystem 중심으로 통합하는 것이다.
+        // 현재는 RelicDataSO 에셋과 선택 UI가 아직 없어(에디터 작업 필요) 비어 있으며,
+        // 기존 ArtifactDefinitionSO 경로(SelectedArtifactId)가 그대로 전투 효과를 담당한다.
+        // 향후: 선택 UI가 RelicDataSO를 여기에 추가 → 전투에서 RelicSystem이 이 목록을 소비.
+        private static readonly List<RelicDataSO> _relicInventory = new();
+
+        /// <summary>[레거시] 구 RelicDataSO 인벤토리. v20.3 풀에서는 사용하지 않음(보존용).</summary>
+        public static IReadOnlyList<RelicDataSO> SelectedRelics => _relicInventory;
+
+        /// <summary>[레거시] 유물을 인벤토리에 추가합니다(중복 무시).</summary>
+        public static void AddRelic(RelicDataSO relic)
+        {
+            EnsureRunStarted();
+            if (relic != null && !_relicInventory.Contains(relic))
+            {
+                _relicInventory.Add(relic);
+            }
+        }
+
+        // ── v20.3 유물 인벤토리(RelicDefinition) ─────────────────────────
+        // 시작 유물 + 보상으로 획득한 유물을 누적한다. 전투마다 RelicEffectRunner가 소비한다.
+        private static readonly List<RelicDefinition> _ownedRelics = new();
+
+        /// <summary>이 런에서 보유한 v20.3 유물 목록(시작 유물 포함).</summary>
+        public static IReadOnlyList<RelicDefinition> OwnedRelics => _ownedRelics;
+
+        /// <summary>v20.3 유물을 보유 목록에 추가합니다(중복 허용 — 동일 유물 누적 가능).</summary>
+        public static void AddRelic(RelicDefinition relic)
+        {
+            EnsureRunStarted();
+            if (relic != null)
+            {
+                _ownedRelics.Add(relic);
+            }
+        }
+
         public static void StartNewRun()
         {
             HasRun = true;
@@ -115,6 +154,8 @@ namespace SlotRogue.UI.GameFlow
             DamageBonus = 0;
             DefenseBonus = 0;
             SelectedArtifactId = string.Empty;
+            _relicInventory.Clear();
+            _ownedRelics.Clear();
             SlotPool.Reset();
         }
 
@@ -132,9 +173,13 @@ namespace SlotRogue.UI.GameFlow
             SelectedArtifactId = artifactId ?? string.Empty;
         }
 
+        /// <summary>[레거시] 구 시작 유물 선택. 런타임 미사용(시작 유물은 AddRelic 사용).</summary>
+        [Obsolete("v20.3 레거시. 런타임 미사용 — 시작 유물은 RelicCatalog.Starters + AddRelic 사용.", false)]
         public static void SelectStarterArtifact(StarterArtifactId artifactId)
         {
+#pragma warning disable CS0618 // 레거시 StarterArtifactCatalog 의도적 사용(보존용)
             ArtifactDefinitionSO so = StarterArtifactCatalog.Get(artifactId);
+#pragma warning restore CS0618
             SelectArtifact(so?.ArtifactId ?? string.Empty);
         }
 
@@ -196,10 +241,15 @@ namespace SlotRogue.UI.GameFlow
             RewardsClaimed++;
         }
 
+        /// <summary>유물 보상 선택을 보상 카운트에 반영합니다(유물 추가는 AddRelic이 담당).</summary>
+        public static void MarkRewardClaimed()
+        {
+            EnsureRunStarted();
+            RewardsClaimed++;
+        }
+
         public static string BuildSummary()
         {
-            ArtifactDefinitionSO artifact = StarterArtifactCatalog.GetById(SelectedArtifactId);
-
             return
                 $"HP {PlayerCurrentHp}/{PlayerMaxHp}\n" +
                 $"진입 전투: {BattleIndex}\n" +
@@ -207,9 +257,29 @@ namespace SlotRogue.UI.GameFlow
                 $"보상: {RewardsClaimed}\n" +
                 $"현재 전투: {CurrentBattleNumber}\n" +
                 $"전투 등급: {CurrentTier}\n" +
-                $"시작 유물: {artifact?.DisplayName ?? "없음"}\n" +
-                $"런 보너스: 피해 +{DamageBonus}, 방어 +{DefenseBonus}\n" +
+                $"보유 유물: {BuildRelicSummary()}\n" +
                 $"슬롯 풀: {SlotPool.BuildSummary()}";
+        }
+
+        private static string BuildRelicSummary()
+        {
+            if (_ownedRelics.Count == 0)
+            {
+                return "없음";
+            }
+
+            var builder = new System.Text.StringBuilder();
+            for (int index = 0; index < _ownedRelics.Count; index++)
+            {
+                if (index > 0)
+                {
+                    builder.Append(", ");
+                }
+
+                builder.Append(_ownedRelics[index].Name);
+            }
+
+            return builder.ToString();
         }
     }
 }

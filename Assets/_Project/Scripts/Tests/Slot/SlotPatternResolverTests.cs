@@ -6,6 +6,8 @@ using UnityEngine;
 
 namespace SlotRogue.Slot.Tests
 {
+    // 일부 회귀 테스트는 레거시(Obsolete) Resolve() 단일 패턴 동작을 의도적으로 검증한다.
+#pragma warning disable CS0618
     public sealed class SlotPatternResolverTests
     {
         [Test]
@@ -396,9 +398,10 @@ namespace SlotRogue.Slot.Tests
 
         private const SlotSymbolType S = SlotSymbolType.Cherry;
         private const SlotSymbolType H = SlotSymbolType.Seven;
-        private const SlotSymbolType E = SlotSymbolType.Grape;
+        private const SlotSymbolType E = SlotSymbolType.Diamond;
         private const SlotSymbolType C = SlotSymbolType.Bell;
         private const SlotSymbolType G = SlotSymbolType.Clover;
         private const SlotSymbolType K = SlotSymbolType.Lemon;
     }
+#pragma warning restore CS0618
 }

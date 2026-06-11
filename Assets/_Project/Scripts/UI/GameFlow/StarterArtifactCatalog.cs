@@ -3,6 +3,12 @@ using SlotRogue.Slot.Data;
 
 namespace SlotRogue.UI.GameFlow
 {
+    /// <summary>
+    /// [레거시] 구 시작 유물(Artifact) 카탈로그. <b>런타임 미사용</b>.
+    /// v20.3에서 시작 유물은 <c>SlotRogue.Relics.Pool.RelicCatalog.Starters</c>로 대체되었다.
+    /// 컴파일 유지를 위해 보존하며, 신규 코드에서 호출하지 말 것.
+    /// </summary>
+    [System.Obsolete("v20.3 레거시. 런타임 미사용 — 시작 유물은 RelicCatalog.Starters 사용.", false)]
     public static class StarterArtifactCatalog
     {
         public static IReadOnlyList<ArtifactDefinitionSO> All => GetStarterArtifacts();
@@ -103,7 +109,7 @@ namespace SlotRogue.UI.GameFlow
             StarterArtifactId.Grape => ArtifactDefinitionSO.Create(
                 "grape", "포도",
                 "포도 아이콘 3개 이상 매치 시 회복 +4.",
-                ArtifactCategory.Starter, SlotSymbolType.Grape, 3,
+                ArtifactCategory.Starter, SlotSymbolType.Diamond, 3,
                 ArtifactEffectKind.BonusHeal, bonusAmount: 4),
             StarterArtifactId.Seven => ArtifactDefinitionSO.Create(
                 "seven", "세븐",

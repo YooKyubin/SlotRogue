@@ -48,12 +48,25 @@ namespace SlotRogue.UI.RunGame
 
             Instance = this;
 
-            GameFlowSession.StartNewRun();
+            // 런 보장은 ViewModel 생성·View 바인딩·Navigator.GoTo 이전에 실행되어야 합니다.
+            // BootScene → GameStart → RunGame 경로에서는 GameStart에서 이미 새 런을 시작했으므로
+            // 여기서는 그대로 이어가고, RunGame 단독 Play 경로에서는 여기서 새 런을 시작합니다.
+            EnsureRunStarted();
 
             CreateViewModels();
             BindViews();
             RegisterViews();
             SubscribeEvents();
+        }
+
+        // RunGame 단독 실행 방어: 진행 중인 런이 없으면 새 런을 시작합니다.
+        // 진행 중인 런이 있으면(=GameStart에서 시작) 덮어쓰지 않습니다.
+        private static void EnsureRunStarted()
+        {
+            if (!GameFlowSession.HasRun)
+            {
+                GameFlowSession.StartNewRun();
+            }
         }
 
         private void Start()
@@ -106,7 +119,7 @@ namespace SlotRogue.UI.RunGame
         private void SubscribeEvents()
         {
             // 시작 유물 선택 완료 → 첫 전투로 (무한모드는 맵을 건너뜀)
-            _startRelicSelectVM.ArtifactSelected += _ =>
+            _startRelicSelectVM.RelicSelected += _ =>
             {
                 _hudVM.Refresh();
                 _navigator.GoTo(RunGameState.Battle);
