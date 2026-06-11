@@ -18,7 +18,7 @@ MonoBehaviour:
     _includeInForcedPatternPool: 0
     _matchKind: 1
     _patternId: horizontal-sm
-    _displayName: 가로 3칸
+    _displayName: "\uAC00\uB85C 3\uCE78"
     _orderIndex: 0
     _multiplier: 1
     _rank: 0
@@ -30,7 +30,7 @@ MonoBehaviour:
     _includeInForcedPatternPool: 0
     _matchKind: 1
     _patternId: horizontal-lg
-    _displayName: 가로 4칸
+    _displayName: "\uAC00\uB85C 4\uCE78"
     _orderIndex: 3
     _multiplier: 2
     _rank: 3
@@ -42,7 +42,7 @@ MonoBehaviour:
     _includeInForcedPatternPool: 0
     _matchKind: 1
     _patternId: horizontal-xl
-    _displayName: 가로 5칸
+    _displayName: "\uAC00\uB85C 5\uCE78"
     _orderIndex: 4
     _multiplier: 3
     _rank: 4
@@ -54,7 +54,7 @@ MonoBehaviour:
     _includeInForcedPatternPool: 1
     _matchKind: 0
     _patternId: vertical-col0
-    _displayName: 1열 세로
+    _displayName: "1\uC5F4 \uC138\uB85C"
     _orderIndex: 1
     _multiplier: 1
     _rank: 1
@@ -72,7 +72,7 @@ MonoBehaviour:
     _includeInForcedPatternPool: 1
     _matchKind: 0
     _patternId: vertical-col1
-    _displayName: 2열 세로
+    _displayName: "2\uC5F4 \uC138\uB85C"
     _orderIndex: 1
     _multiplier: 1
     _rank: 1
@@ -90,7 +90,7 @@ MonoBehaviour:
     _includeInForcedPatternPool: 1
     _matchKind: 0
     _patternId: vertical-col2
-    _displayName: 3열 세로
+    _displayName: "3\uC5F4 \uC138\uB85C"
     _orderIndex: 1
     _multiplier: 1
     _rank: 1
@@ -108,7 +108,7 @@ MonoBehaviour:
     _includeInForcedPatternPool: 1
     _matchKind: 0
     _patternId: vertical-col3
-    _displayName: 4열 세로
+    _displayName: "4\uC5F4 \uC138\uB85C"
     _orderIndex: 1
     _multiplier: 1
     _rank: 1
@@ -126,7 +126,7 @@ MonoBehaviour:
     _includeInForcedPatternPool: 1
     _matchKind: 0
     _patternId: vertical-col4
-    _displayName: 5열 세로
+    _displayName: "5\uC5F4 \uC138\uB85C"
     _orderIndex: 1
     _multiplier: 1
     _rank: 1
@@ -144,7 +144,7 @@ MonoBehaviour:
     _includeInForcedPatternPool: 1
     _matchKind: 0
     _patternId: diag-bs0
-    _displayName: 역대각 1
+    _displayName: "\uC5ED\uB300\uAC01 1"
     _orderIndex: 2
     _multiplier: 1
     _rank: 2
@@ -162,7 +162,7 @@ MonoBehaviour:
     _includeInForcedPatternPool: 1
     _matchKind: 0
     _patternId: diag-bs1
-    _displayName: 역대각 2
+    _displayName: "\uC5ED\uB300\uAC01 2"
     _orderIndex: 2
     _multiplier: 1
     _rank: 2
@@ -180,7 +180,7 @@ MonoBehaviour:
     _includeInForcedPatternPool: 1
     _matchKind: 0
     _patternId: diag-bs2
-    _displayName: 역대각 3
+    _displayName: "\uC5ED\uB300\uAC01 3"
     _orderIndex: 2
     _multiplier: 1
     _rank: 2
@@ -198,7 +198,7 @@ MonoBehaviour:
     _includeInForcedPatternPool: 1
     _matchKind: 0
     _patternId: diag-s0
-    _displayName: 정대각 1
+    _displayName: "\uC815\uB300\uAC01 1"
     _orderIndex: 2
     _multiplier: 1
     _rank: 2
@@ -216,7 +216,7 @@ MonoBehaviour:
     _includeInForcedPatternPool: 1
     _matchKind: 0
     _patternId: diag-s1
-    _displayName: 정대각 2
+    _displayName: "\uC815\uB300\uAC01 2"
     _orderIndex: 2
     _multiplier: 1
     _rank: 2
@@ -234,7 +234,7 @@ MonoBehaviour:
     _includeInForcedPatternPool: 1
     _matchKind: 0
     _patternId: diag-s2
-    _displayName: 정대각 3
+    _displayName: "\uC815\uB300\uAC01 3"
     _orderIndex: 2
     _multiplier: 1
     _rank: 2
@@ -252,7 +252,7 @@ MonoBehaviour:
     _includeInForcedPatternPool: 1
     _matchKind: 0
     _patternId: zig
-    _displayName: 지그재그
+    _displayName: "\uC9C0\uADF8\uC7AC\uADF8"
     _orderIndex: 5
     _multiplier: 4
     _rank: 5
@@ -274,7 +274,7 @@ MonoBehaviour:
     _includeInForcedPatternPool: 1
     _matchKind: 0
     _patternId: zag
-    _displayName: 역지그재그
+    _displayName: "\uC5ED\uC9C0\uADF8\uC7AC\uADF8"
     _orderIndex: 6
     _multiplier: 4
     _rank: 6
@@ -296,7 +296,7 @@ MonoBehaviour:
     _includeInForcedPatternPool: 1
     _matchKind: 0
     _patternId: ground
-    _displayName: 대지
+    _displayName: "\uB300\uC9C0"
     _orderIndex: 7
     _multiplier: 7
     _rank: 7
@@ -324,7 +324,7 @@ MonoBehaviour:
     _includeInForcedPatternPool: 1
     _matchKind: 0
     _patternId: heaven
-    _displayName: 천상
+    _displayName: "\uCC9C\uC0C1"
     _orderIndex: 8
     _multiplier: 7
     _rank: 8
@@ -352,7 +352,7 @@ MonoBehaviour:
     _includeInForcedPatternPool: 1
     _matchKind: 0
     _patternId: eye
-    _displayName: 눈
+    _displayName: "\uB208"
     _orderIndex: 9
     _multiplier: 8
     _rank: 9
@@ -384,7 +384,7 @@ MonoBehaviour:
     _includeInForcedPatternPool: 0
     _matchKind: 0
     _patternId: jackpot
-    _displayName: 잭팟
+    _displayName: "\uC7AD\uD31F"
     _orderIndex: 10
     _multiplier: 10
     _rank: 10
@@ -426,7 +426,7 @@ MonoBehaviour:
     _includeInForcedPatternPool: 1
     _matchKind: 0
     _patternId: forced-horizontal-xl-row1
-    _displayName: 가로 5칸
+    _displayName: "\uAC00\uB85C 5\uCE78"
     _orderIndex: 4
     _multiplier: 3
     _rank: 4

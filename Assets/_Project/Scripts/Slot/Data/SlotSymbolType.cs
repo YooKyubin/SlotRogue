@@ -4,7 +4,7 @@ namespace SlotRogue.Slot.Data
     {
         Cherry,
         Seven,
-        Grape,
+        Diamond,
         Bell,
         Clover,
         Lemon

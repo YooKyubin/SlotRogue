@@ -1,7 +1,12 @@
+using System;
+using System.Collections.Generic;
 using NUnit.Framework;
 using SlotRogue.Core.Combat;
 using SlotRogue.Slot.Data;
 using SlotRogue.UI.GameFlow;
+
+// 이 테스트는 의도적으로 레거시 StarterArtifactCatalog 경로(보존된 dead code)를 검증한다.
+#pragma warning disable CS0618
 
 namespace SlotRogue.UI.Tests.GameFlow
 {
@@ -19,7 +24,7 @@ namespace SlotRogue.UI.Tests.GameFlow
         public void Resolve_BlankRequest_AddsBaseAttack()
         {
             RunCombatRequestResult result = _resolver.Resolve(
-                SlotPatternResult.NoMatch,
+                NoMatches,
                 SlotCombatRequest.Empty,
                 StarterArtifactCatalog.Get(StarterArtifactId.None),
                 runDamageBonus: 0,
@@ -33,18 +38,10 @@ namespace SlotRogue.UI.Tests.GameFlow
         [Test]
         public void Resolve_MatchingStarterArtifact_AppliesArtifactBonus()
         {
-            var pattern = new SlotPatternResult(
-                true,
-                "Cherry x3",
-                SlotSymbolType.Cherry,
-                row: 0,
-                startColumn: 0,
-                matchLength: 3,
-                score: 30);
             var request = new SlotCombatRequest(18, 0, 1, 0, false, "Cherry x3");
 
             RunCombatRequestResult result = _resolver.Resolve(
-                pattern,
+                Matches(SlotSymbolType.Cherry, 3),
                 request,
                 StarterArtifactCatalog.Get(StarterArtifactId.Cherry),
                 runDamageBonus: 0,
@@ -57,18 +54,10 @@ namespace SlotRogue.UI.Tests.GameFlow
         [Test]
         public void Resolve_NonMatchingStarterArtifact_DoesNotApplyArtifactBonus()
         {
-            var pattern = new SlotPatternResult(
-                true,
-                "Clover x3",
-                SlotSymbolType.Clover,
-                row: 0,
-                startColumn: 0,
-                matchLength: 3,
-                score: 30);
             var request = new SlotCombatRequest(15, 0, 1, 0, false, "Clover x3");
 
             RunCombatRequestResult result = _resolver.Resolve(
-                pattern,
+                Matches(SlotSymbolType.Clover, 3),
                 request,
                 StarterArtifactCatalog.Get(StarterArtifactId.Cherry),
                 runDamageBonus: 0,
@@ -79,20 +68,34 @@ namespace SlotRogue.UI.Tests.GameFlow
         }
 
         [Test]
-        public void Resolve_RunBonuses_AdjustFinalRequest()
+        public void Resolve_ArtifactSymbolInAnyPattern_Activates()
         {
-            var pattern = new SlotPatternResult(
-                true,
-                "Grape x3",
-                SlotSymbolType.Grape,
-                row: 1,
-                startColumn: 0,
-                matchLength: 3,
-                score: 30);
-            var request = new SlotCombatRequest(6, 0, 1, 12, false, "Grape x3");
+            // 대표 패턴이 아니더라도 전체 목록 중 하나가 조건을 만족하면 발동해야 한다.
+            var request = new SlotCombatRequest(15, 0, 1, 0, false, "Mixed");
+            var matches = new List<SlotPatternMatch>
+            {
+                Single(SlotSymbolType.Clover, 5), // 대표(가장 큰) 패턴
+                Single(SlotSymbolType.Cherry, 3), // 유물 조건을 만족하는 다른 패턴
+            };
 
             RunCombatRequestResult result = _resolver.Resolve(
-                pattern,
+                matches,
+                request,
+                StarterArtifactCatalog.Get(StarterArtifactId.Cherry),
+                runDamageBonus: 0,
+                runDefenseBonus: 0);
+
+            Assert.That(result.StarterArtifactActivation.Activated, Is.True);
+            Assert.That(result.FinalRequest.Damage, Is.EqualTo(20));
+        }
+
+        [Test]
+        public void Resolve_RunBonuses_AdjustFinalRequest()
+        {
+            var request = new SlotCombatRequest(6, 0, 1, 12, false, "Diamond x3");
+
+            RunCombatRequestResult result = _resolver.Resolve(
+                Matches(SlotSymbolType.Diamond, 3),
                 request,
                 StarterArtifactCatalog.Get(StarterArtifactId.Grape),
                 runDamageBonus: 2,
@@ -107,18 +110,10 @@ namespace SlotRogue.UI.Tests.GameFlow
         [Test]
         public void Resolve_MatchingAttributeArtifact_ReturnsStatusEffectToApply()
         {
-            var pattern = new SlotPatternResult(
-                true,
-                "Lemon x3",
-                SlotSymbolType.Lemon,
-                row: 0,
-                startColumn: 0,
-                matchLength: 3,
-                score: 30);
             var request = new SlotCombatRequest(6, 0, 1, 0, false, "Lemon x3");
 
             RunCombatRequestResult result = _resolver.Resolve(
-                pattern,
+                Matches(SlotSymbolType.Lemon, 3),
                 request,
                 StarterArtifactCatalog.Get(StarterArtifactId.Lemon),
                 runDamageBonus: 0,
@@ -137,7 +132,7 @@ namespace SlotRogue.UI.Tests.GameFlow
             var request = new SlotCombatRequest(6, 0, 3, 0, false, "Multi Hit");
 
             RunCombatRequestResult result = _resolver.Resolve(
-                SlotPatternResult.NoMatch,
+                NoMatches,
                 request,
                 StarterArtifactCatalog.Get(StarterArtifactId.None),
                 runDamageBonus: 2,
@@ -146,6 +141,26 @@ namespace SlotRogue.UI.Tests.GameFlow
             Assert.That(result.FinalRequest.Damage, Is.EqualTo(8));
             Assert.That(result.FinalRequest.AttackCount, Is.EqualTo(3));
             Assert.That(result.AttackPower, Is.EqualTo(24));
+        }
+
+        private static readonly IReadOnlyList<SlotPatternMatch> NoMatches = Array.Empty<SlotPatternMatch>();
+
+        private static IReadOnlyList<SlotPatternMatch> Matches(SlotSymbolType symbol, int cellCount)
+        {
+            return new[] { Single(symbol, cellCount) };
+        }
+
+        private static SlotPatternMatch Single(SlotSymbolType symbol, int cellCount)
+        {
+            var cells = new List<SlotCell>(cellCount);
+            for (int i = 0; i < cellCount; i++)
+            {
+                cells.Add(new SlotCell(i, 0));
+            }
+
+            var definition = new SlotPatternDefinition(
+                "test", "Test", 0, 1f, SlotPatternRank.HorizontalSm, false, cells);
+            return new SlotPatternMatch(definition, symbol, cells, cellCount, 0);
         }
     }
 }

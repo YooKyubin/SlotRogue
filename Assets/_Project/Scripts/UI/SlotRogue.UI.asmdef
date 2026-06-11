@@ -5,6 +5,7 @@
         "SlotRogue.Core",
         "SlotRogue.Data",
         "SlotRogue.Slot",
+        "SlotRogue.Relics",
         "UniTask",
         "UnityEngine.UI",
         "DOTween.Modules"

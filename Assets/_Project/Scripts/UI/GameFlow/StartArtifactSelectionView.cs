@@ -1,3 +1,4 @@
+using SlotRogue.Relics.Pool;
 using SlotRogue.UI.RunGame;
 using SlotRogue.UI.RunGame.ViewModels;
 using UnityEngine;
@@ -56,8 +57,8 @@ namespace SlotRogue.UI.GameFlow
         {
             if (_viewModel == null || _artifactOptions == null) return;
 
-            var artifacts = _viewModel.Artifacts;
-            int visibleCount = Mathf.Min(_artifactOptions.Length, artifacts.Count);
+            var relics = _viewModel.Relics;
+            int visibleCount = Mathf.Min(_artifactOptions.Length, relics.Count);
 
             for (int i = 0; i < _artifactOptions.Length; i++)
             {
@@ -65,12 +66,12 @@ namespace SlotRogue.UI.GameFlow
                 option.gameObject.SetActive(i < visibleCount);
                 if (i >= visibleCount) continue;
 
-                ArtifactDefinitionSO artifact = artifacts[i];
-                option.SetText(artifact.DisplayName, artifact.Description);
+                RelicDefinition relic = relics[i];
+                option.SetText(relic.Name, RelicDisplay.BuildDescription(relic));
                 option.Button.onClick.RemoveAllListeners();
 
-                string artifactId = artifact.ArtifactId;
-                option.Button.onClick.AddListener(() => _viewModel.SelectArtifact(artifactId));
+                string relicId = relic.Id;
+                option.Button.onClick.AddListener(() => _viewModel.SelectRelic(relicId));
             }
         }
     }

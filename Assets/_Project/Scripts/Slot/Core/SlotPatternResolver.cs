@@ -8,6 +8,7 @@ namespace SlotRogue.Slot.Core
     {
         private const int MinimumMatchLength = 3;
 
+        [Obsolete("Main calculation/combat flow now uses ResolveAll(SlotSpinResult) (SO 족보 기준). Kept for legacy single-pattern tests only.")]
         public SlotPatternResult Resolve(SlotSpinResult spinResult)
         {
             if (spinResult == null)
@@ -179,11 +180,14 @@ namespace SlotRogue.Slot.Core
 
         private static SlotPatternMatch ToMatch(PatternCandidate candidate, int repeatIndex)
         {
+            // 패턴 가치(baseValue)는 심볼 종류가 아니라 패턴 크기(칸 수)를 기준으로 한다.
+            // 심볼 자체는 아무 효과/가치를 가지지 않으며, 심볼에 의미를 부여하는 것은 유물(Relic)이다.
+            // 최종 패턴 가치 = baseValue(칸 수) * Definition.Multiplier(족보 배율).
             return new SlotPatternMatch(
                 candidate.Definition,
                 candidate.Symbol,
                 candidate.Cells,
-                GetSymbolBaseScore(candidate.Symbol),
+                candidate.Cells.Count,
                 repeatIndex);
         }
 
@@ -230,7 +234,7 @@ namespace SlotRogue.Slot.Core
         {
             SlotSymbolType.Cherry => "체리",
             SlotSymbolType.Seven => "세븐",
-            SlotSymbolType.Grape => "포도",
+            SlotSymbolType.Diamond => "다이아",
             SlotSymbolType.Bell => "종",
             SlotSymbolType.Clover => "네잎클로버",
             SlotSymbolType.Lemon => "레몬",
@@ -245,7 +249,7 @@ namespace SlotRogue.Slot.Core
                     return 6;
                 case SlotSymbolType.Seven:
                     return 5;
-                case SlotSymbolType.Grape:
+                case SlotSymbolType.Diamond:
                     return 4;
                 case SlotSymbolType.Bell:
                     return 3;
@@ -256,11 +260,6 @@ namespace SlotRogue.Slot.Core
                 default:
                     return 1;
             }
-        }
-
-        public static int GetSymbolBaseScore(SlotSymbolType symbol)
-        {
-            return GetSymbolScore(symbol);
         }
     }
 }

@@ -24,6 +24,7 @@ namespace SlotRogue.Slot.Tests
 
             Assert.That(wasRaised, Is.True);
             Assert.That(viewModel.CurrentSpinResult, Is.Not.Null);
+            Assert.That(viewModel.CurrentPatternMatches, Is.Not.Null);
             Assert.That(viewModel.CurrentPatternResult, Is.Not.Null);
             Assert.That(viewModel.CurrentCalculationResult, Is.Not.Null);
             Assert.That(viewModel.CurrentCombatRequest, Is.Not.Null);

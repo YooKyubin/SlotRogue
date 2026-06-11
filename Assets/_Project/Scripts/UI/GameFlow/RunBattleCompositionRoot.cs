@@ -371,9 +371,13 @@ namespace SlotRogue.UI.GameFlow
                 _spinSequence.StartSpin();
 
                 _slotViewModel.Spin();
+                // RelicEffectRunner가 아직 전투에 연결되지 않아(전투연결 TODO), 시작 유물의 전투 효과는
+                // 여전히 이 레거시 ArtifactDefinitionSO 경로가 담당한다. 연결 완료 시 제거 예정.
+#pragma warning disable CS0618 // StarterArtifactCatalog 레거시 — 위 사유로 의도적 사용
                 ArtifactDefinitionSO artifact = StarterArtifactCatalog.GetById(GameFlowSession.SelectedArtifactId);
+#pragma warning restore CS0618
                 _lastRequestResult = _requestResolver.Resolve(
-                    _slotViewModel.CurrentPatternResult,
+                    _slotViewModel.CurrentPatternMatches,
                     _slotViewModel.CurrentCombatRequest,
                     artifact,
                     GameFlowSession.DamageBonus,

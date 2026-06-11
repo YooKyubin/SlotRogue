@@ -1,68 +1,68 @@
+using System.Collections.Generic;
 using SlotRogue.Slot.Data;
 
 namespace SlotRogue.Slot.Core
 {
+    /// <summary>
+    /// 슬롯 기본 전투 계산기. <b>심볼 종류는 전혀 보지 않는다.</b>
+    /// 기본 피해는 오직 SO 족보가 잡아낸 패턴들의 "패턴 가치"(칸 수 * 족보 배율) 합으로 결정된다.
+    /// <para>
+    /// 회복 / 방어 / 상태이상 / 치명타 / 다단히트처럼 "심볼에 의미를 부여하는" 효과는
+    /// 여기서 만들지 않는다. 그런 효과는 유물(Relic) / 아티팩트가 패턴 조건에 반응해 추가한다.
+    /// </para>
+    /// </summary>
     public sealed class SlotResultCalculator
     {
-        public SlotCalculationResult Calculate(SlotPatternResult patternResult)
+        // 패턴 가치 1당 기본 피해량(임시 밸런스값). 심볼과 무관하며, 족보 가치만 스케일한다.
+        private const int DamagePerPatternValue = 2;
+
+        /// <summary>
+        /// ResolveAll 결과(모든 패턴)를 받아 패턴 가치 기반의 기본 피해를 누적 산출한다.
+        /// 패턴이 하나도 없으면 약한 기본 공격으로 처리한다.
+        /// </summary>
+        public SlotCalculationResult Calculate(IReadOnlyList<SlotPatternMatch> matches)
         {
-            if (patternResult == null || !patternResult.HasMatch)
+            int totalPatternValue = 0;
+
+            if (matches != null)
             {
-                return new SlotCalculationResult(
-                    SlotCombatRequest.BaseAttackDamage,
-                    0,
-                    SlotCombatRequest.BaseAttackCount,
-                    0,
-                    false);
+                for (int index = 0; index < matches.Count; index++)
+                {
+                    SlotPatternMatch match = matches[index];
+                    if (match == null)
+                    {
+                        continue;
+                    }
+
+                    // CalculatedValue = 칸 수 * 족보 배율 (심볼 독립적인 패턴 가치).
+                    totalPatternValue += match.CalculatedValue;
+                }
             }
 
-            int matchLength = patternResult.MatchLength;
-            int damage = 0;
-            int defense = 0;
-            int attackCount = 0;
-            int healAmount = 0;
-            bool isCritical = false;
-
-            switch (patternResult.Symbol)
+            if (totalPatternValue <= 0)
             {
-                case SlotSymbolType.Cherry:
-                    damage = matchLength * 6;
-                    attackCount = 1 + (matchLength - 3);
-                    isCritical = matchLength >= 5;
-                    break;
-                case SlotSymbolType.Seven:
-                    damage = matchLength * 2;
-                    defense = matchLength * 5;
-                    attackCount = 1;
-                    break;
-                case SlotSymbolType.Grape:
-                    damage = matchLength * 2;
-                    healAmount = matchLength * 4;
-                    attackCount = 1;
-                    break;
-                case SlotSymbolType.Bell:
-                    damage = matchLength * 3;
-                    defense = matchLength;
-                    attackCount = 1;
-                    break;
-                case SlotSymbolType.Clover:
-                    damage = matchLength * 5;
-                    attackCount = 1;
-                    isCritical = matchLength >= 4;
-                    break;
-                case SlotSymbolType.Lemon:
-                    damage = matchLength * 4;
-                    attackCount = matchLength - 2;
-                    isCritical = matchLength >= 5;
-                    break;
+                return BaseAttackResult();
             }
 
-            if (isCritical)
-            {
-                damage *= 2;
-            }
+            int damage = totalPatternValue * DamagePerPatternValue;
 
-            return new SlotCalculationResult(damage, defense, attackCount, healAmount, isCritical);
+            // 기본 계산은 단일 타격 피해만 만든다. 방어/회복/치명타/다단히트/상태이상은 유물 몫.
+            return new SlotCalculationResult(
+                damage,
+                defense: 0,
+                attackCount: 1,
+                healAmount: 0,
+                isCritical: false);
+        }
+
+        private static SlotCalculationResult BaseAttackResult()
+        {
+            return new SlotCalculationResult(
+                SlotCombatRequest.BaseAttackDamage,
+                0,
+                SlotCombatRequest.BaseAttackCount,
+                0,
+                false);
         }
     }
 }

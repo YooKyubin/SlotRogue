@@ -38,7 +38,7 @@ namespace SlotRogue.Editor.GameFlow
             ArtifactDefinitionSO grape = CreateOrReplace(
                 "grape", "포도",
                 "포도 아이콘 3개 이상 매치 시 회복 +4.",
-                ArtifactCategory.Starter, SlotSymbolType.Grape, 3,
+                ArtifactCategory.Starter, SlotSymbolType.Diamond, 3,
                 ArtifactEffectKind.BonusHeal, bonusAmount: 4);
 
             ArtifactDefinitionSO seven = CreateOrReplace(

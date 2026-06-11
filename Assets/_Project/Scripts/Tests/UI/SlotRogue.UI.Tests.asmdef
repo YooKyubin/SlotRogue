@@ -6,6 +6,7 @@
         "SlotRogue.Data",
         "SlotRogue.Core",
         "SlotRogue.Slot",
+        "SlotRogue.Relics",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "UnityEditor"

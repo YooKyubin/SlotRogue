@@ -27,9 +27,9 @@ namespace SlotRogue.UI.RunGame.ViewModels
         /// <summary>현재 전투가 엘리트/보스인가 (큰 보상 화면 여부).</summary>
         public bool IsBigReward => GameFlowSession.CurrentBattleGrantsArtifact;
 
-        /// <summary>현재 등급에 맞는 보상 풀.</summary>
+        /// <summary>현재 전투 등급에 맞는 유물 보상 풀.</summary>
         private IReadOnlyList<RunRewardDefinition> SourcePool =>
-            IsBigReward ? RunRewardCatalog.BigRewards : RunRewardCatalog.NormalRewards;
+            RunRewardCatalog.ForTier(GameFlowSession.CurrentTier);
 
         // ── 이벤트 ──────────────────────────────────────────────────────
 
@@ -53,13 +53,18 @@ namespace SlotRogue.UI.RunGame.ViewModels
         {
             if (reward == null) return;
 
-            if (reward.Kind == RunRewardKind.Symbol)
+            switch (reward.Kind)
             {
-                GameFlowSession.ApplySymbolReward(reward.Symbol, reward.Amount);
-            }
-            else
-            {
-                GameFlowSession.ApplyReward(reward.Type);
+                case RunRewardKind.Relic:
+                    GameFlowSession.AddRelic(reward.Relic);
+                    GameFlowSession.MarkRewardClaimed();
+                    break;
+                case RunRewardKind.Symbol:
+                    GameFlowSession.ApplySymbolReward(reward.Symbol, reward.Amount);
+                    break;
+                default:
+                    GameFlowSession.ApplyReward(reward.Type);
+                    break;
             }
 
             RewardClaimed?.Invoke();
