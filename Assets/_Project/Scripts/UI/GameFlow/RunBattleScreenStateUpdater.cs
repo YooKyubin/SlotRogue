@@ -201,14 +201,15 @@ namespace SlotRogue.UI.GameFlow
             return slotIndex;
         }
 
-        internal static string FormatUpcomingEnemyAction(BattleSystem battle)
+        internal static string FormatUpcomingEnemyAction(BattleSystem battle, CombatParticipantId participantId)
         {
-            if (battle.UpcomingEnemyActions.Count == 0)
+            if (!battle.TryGetUpcomingEnemyTurn(participantId, out EnemyUpcomingTurn upcomingTurn) ||
+                upcomingTurn.Actions.Count == 0)
             {
                 return "none";
             }
 
-            CombatEffect effect = battle.UpcomingEnemyActions[0];
+            CombatEffect effect = upcomingTurn.Actions[0];
             return $"{effect.Kind} {effect.Amount}";
         }
 

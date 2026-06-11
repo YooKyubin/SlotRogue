@@ -238,16 +238,22 @@ namespace SlotRogue.UI.Combat
 
 //            CombatParticipant player = _battle.Player;
 //            CombatParticipant monster = _battle.Enemies[0];
-//            IReadOnlyList<CombatEffect> upcoming = _battle.UpcomingEnemyActions;
+//            bool hasUpcomingTurn = _battle.TryGetUpcomingEnemyTurn(
+//                monster.Id,
+//                out EnemyUpcomingTurn upcomingTurn);
+//            IReadOnlyList<CombatEffect> upcoming = hasUpcomingTurn
+//                ? upcomingTurn.Actions
+//                : System.Array.Empty<CombatEffect>();
 //            string upcomingSummary = upcoming.Count == 0
 //                ? "none"
 //                : $"{upcoming[0].Kind} {upcoming[0].Amount}";
+//            string upcomingTurnIndex = hasUpcomingTurn ? upcomingTurn.TurnIndex.ToString() : "-";
 
 //            _statusText.text =
 //                $"Phase: {_battle.CurrentPhase}\n" +
 //                $"EndReason: {_battle.EndReason}\n" +
 //                $"Monster: {GetMonsterSourceLabel()}\n" +
-//                $"Upcoming monster turn #{_battle.UpcomingMonsterTurnIndex}: {upcomingSummary}\n" +
+//                $"Upcoming monster turn #{upcomingTurnIndex}: {upcomingSummary}\n" +
 //                $"Player: HP {_combatViewModel.PlayerHp}/{player.MaxHp}, " +
 //                $"Shield {_combatViewModel.PlayerShield}\n" +
 //                $"Monster: HP {monster.CurrentHp}/{monster.MaxHp}, " +

@@ -33,7 +33,7 @@
 | **AGENTS.md §6** | asmdef 단방향, `.meta` 동커밋, `SlotRogue.Data` 네임스페이스 | Data→Core, UI→Data 추가만. Core·Slot 역참조 없음 |
 | **ADR-0001** | Effect 목록 파이프라인, Slot→Combat 참조 금지, Participant·CombatEvent | **변경 없음.** SO는 `CombatEffect` step 직렬화 + Factory만 추가 |
 | **ADR-0001 Decision L24** | MVP 당시 “고정 1세트” 문구 | Q2(`MonsterTurnSchedule`)로 이미 구현됨. **ADR amend 없음** — design-doc Q2 follow-up(SO)으로 흡수 |
-| **combat-core Q2** | `MonsterTurnSchedule` + 순환 index **닫음**; “패턴 SO·RNG는 Later” | 본 plan = Q2 Later 항목. `UpcomingMonsterTurnIndex`·API 재사용 |
+| **combat-core Q2** | `MonsterTurnSchedule` + 순환 index **닫음**; “패턴 SO·RNG는 Later” | 본 plan = Q2 Later 항목. 적 턴 미리보기 API 재사용 |
 | **SlotRogue.Slot asmdef** | `SlotRogue.Core` / Combat 참조 **없음** (현재 `UnityEngine.UI`만) | Out of scope 준수 — Slot 변경 금지 |
 | **BattleSystem (코드)** | `StartBattle(..., MonsterTurnSchedule)` + 내부 `Reset()` | Core 변경 최소 — Factory가 schedule만 생성 |
 

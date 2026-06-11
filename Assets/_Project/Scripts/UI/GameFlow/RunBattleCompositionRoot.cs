@@ -573,7 +573,10 @@ namespace SlotRogue.UI.GameFlow
 
         private void RefreshSlotResultText()
         {
-            string enemyActionText = RunBattleScreenStateUpdater.FormatUpcomingEnemyAction(_battle);
+            CombatParticipantId selectedTargetId = _enemySelectionBinder != null
+                ? _enemySelectionBinder.ResolveSelectedEnemyId()
+                : default;
+            string enemyActionText = RunBattleScreenStateUpdater.FormatUpcomingEnemyAction(_battle, selectedTargetId);
             _stateUpdater.UpdateSlotResult(
                 _lastRequestResult,
                 _slotViewModel.CurrentPatternResult,
@@ -588,17 +591,23 @@ namespace SlotRogue.UI.GameFlow
             }
 
             CombatParticipantId selectedTargetId = _enemySelectionBinder != null
-                ? _enemySelectionBinder.ResolveSelectedEnemyId()
-                : default;
+                                                   ? _enemySelectionBinder.ResolveSelectedEnemyId()
+                                                   : default;
+
+            string upcomingTurnText = _battle.TryGetUpcomingEnemyTurn(
+                selectedTargetId,
+                out EnemyUpcomingTurn upcomingTurn)
+                ? upcomingTurn.TurnIndex.ToString()
+                : "-";
 
             string statusText =
                 $"{_battle.CurrentPhase}\n" +
-                $"Turn {_battle.UpcomingMonsterTurnIndex}\n" +
+                $"Turn {upcomingTurnText}\n" +
                 $"Enemies {_battle.Enemies.Count}\n" +
                 $"Bonus D+{GameFlowSession.DamageBonus} / S+{GameFlowSession.DefenseBonus}";
 
             string enemyIntentText =
-                $"ENEMY INTENT: {RunBattleScreenStateUpdater.FormatUpcomingEnemyAction(_battle)}\n" +
+                $"ENEMY INTENT: {RunBattleScreenStateUpdater.FormatUpcomingEnemyAction(_battle, selectedTargetId)}\n" +
                 $"TARGET: {selectedTargetId}";
 
             _screenViewModel.Batch(() =>
