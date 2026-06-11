@@ -52,6 +52,7 @@
 - 2026-06-10: 데미지로 shield가 소모될 때는 `DamagePresenter`가 최종 snapshot 반영 전에 hit/break 연출을 요청한다. hit 시작 시 현재 표시 shield 값에서 consumed amount를 차감해 변경된 값을 먼저 보여주고, 이후 snapshot `Render`가 최종 상태를 다시 동기화한다.
 - 2026-06-10: 턴 종료 shield reset은 reset 전/후 snapshot을 `ShieldReset` 이벤트에 포함한다. `ShieldResetPresenter`는 `TargetBefore.Shield > 0`일 때만 expire 연출을 요청하고, 이미 shield가 0이거나 gauge가 꺼져 있으면 다시 켜서 연출하지 않는다.
 - 2026-06-10: Unity Editor에서 보존형 migration과 RunBattle prefab/scene strict MVVM 적용 상태를 확인했다. 기존 배치 리소스 유지 확인 항목은 완료 처리했다.
+- 2026-06-11: 몬스터 다음 행동 표시 준비로 `EnemyUpcomingActionViewData`를 추가했다. `RunBattleScreenStateUpdater`가 `BattleSystem.TryGetUpcomingEnemyTurn()` 결과를 몬스터별 ViewData 배열로 변환해 `RunBattleEnemySlotState`까지 전달하며, 실제 `EnemyFormationSlotView` 아이콘 렌더링은 다음 단계로 남겼다.
 
 - 엄격한 MVVM 기준은 “ViewModel이 UnityEngine과 화면 오브젝트를 모르는 것”으로 둔다. Unity 씬 생명주기와 입력 연결은 `CompositionRoot`가 담당한다.
 - 카메라 셰이크는 world root를 기준으로 적용한다. 배경/몬스터를 함께 흔들지, 몬스터만 흔들지는 기존 화면 유지가 끝난 뒤 별도 migration으로 다시 판단한다.
