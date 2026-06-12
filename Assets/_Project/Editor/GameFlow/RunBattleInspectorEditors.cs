@@ -43,7 +43,6 @@ namespace SlotRogue.Editor.GameFlow
             if (_showAdvancedReferences)
             {
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_playerHudView"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("_statusView"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_slotBoardView"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_actionView"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_presentationOverlayView"));
@@ -62,10 +61,6 @@ namespace SlotRogue.Editor.GameFlow
                 "Player HUD view",
                 serializedObject.FindProperty("_playerHudView"),
                 view.GetComponentInChildren<RunBattlePlayerHudView>(true) != null);
-            DrawObjectStatus(
-                "Status view",
-                serializedObject.FindProperty("_statusView"),
-                view.GetComponentInChildren<RunBattleStatusView>(true) != null);
             DrawObjectStatus(
                 "Slot board view",
                 serializedObject.FindProperty("_slotBoardView"),

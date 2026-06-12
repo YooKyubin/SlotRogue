@@ -17,7 +17,6 @@ namespace SlotRogue.UI.GameFlow
     {
         private readonly BattleSystem _battle;
         private readonly SlotCombatRequestToCombatEffectsConverter _converter;
-        private readonly CombatEventConsoleLogger _eventLogger;
         private readonly RelicTurnResolver _relicTurnResolver;
         private readonly CombatTurnRequestBuilder _combatTurnRequestBuilder;
         private readonly SlotTurnController _slotTurnController;
@@ -33,7 +32,6 @@ namespace SlotRogue.UI.GameFlow
         internal BattleFlowController(
             BattleSystem battle,
             SlotCombatRequestToCombatEffectsConverter converter,
-            CombatEventConsoleLogger eventLogger,
             RelicTurnResolver relicTurnResolver,
             CombatTurnRequestBuilder combatTurnRequestBuilder,
             SlotTurnController slotTurnController,
@@ -44,7 +42,6 @@ namespace SlotRogue.UI.GameFlow
         {
             _battle = battle ?? throw new ArgumentNullException(nameof(battle));
             _converter = converter ?? throw new ArgumentNullException(nameof(converter));
-            _eventLogger = eventLogger ?? throw new ArgumentNullException(nameof(eventLogger));
             _relicTurnResolver = relicTurnResolver ?? throw new ArgumentNullException(nameof(relicTurnResolver));
             _combatTurnRequestBuilder = combatTurnRequestBuilder ?? throw new ArgumentNullException(nameof(combatTurnRequestBuilder));
             _slotTurnController = slotTurnController ?? throw new ArgumentNullException(nameof(slotTurnController));
@@ -78,7 +75,6 @@ namespace SlotRogue.UI.GameFlow
                 _context.RunDefenseBonus,
                 () => _battlePresentationController.IsBusy,
                 () => _turnRunning);
-            _eventLogger.LogEventsSince(_battle, eventCursor: 0);
         }
 
         public void DevApplyStatusTurn(
@@ -146,7 +142,7 @@ namespace SlotRogue.UI.GameFlow
                     requestResult.StatusEffectsToApply);
                 var presentationContext =
                     new PresentationContext(request.IsCritical, request.PatternName);
-                int eventCursor = _eventLogger.CaptureEventCursor(_battle);
+                int eventCursor = _battle.Events.Count;
 
                 await _slotTurnController.PlayPresentationAsync(
                     slotTurnResult,
@@ -163,7 +159,6 @@ namespace SlotRogue.UI.GameFlow
                         _presentationCancellationToken,
                         BeforeBattleEventPresentedAsync,
                         AfterBattleEventPresentedAsync);
-                    _eventLogger.LogEventsSince(_battle, eventCursor, request);
                 }
             }
             finally
@@ -224,7 +219,7 @@ namespace SlotRogue.UI.GameFlow
                 CombatEffect[] playerEffects = _converter.Convert(request, selectedTargetId, statusEffect);
                 var presentationContext =
                     new PresentationContext(isCritical: false, request.PatternName);
-                int eventCursor = _eventLogger.CaptureEventCursor(_battle);
+                int eventCursor = _battle.Events.Count;
                 BattleApplyResult result = _battle.ApplyPlayerTurn(playerEffects, selectedTargetId);
 
                 if (result.Accepted)
@@ -236,7 +231,6 @@ namespace SlotRogue.UI.GameFlow
                         _presentationCancellationToken,
                         BeforeBattleEventPresentedAsync,
                         AfterBattleEventPresentedAsync);
-                    _eventLogger.LogEventsSince(_battle, eventCursor, request);
                 }
             }
             finally

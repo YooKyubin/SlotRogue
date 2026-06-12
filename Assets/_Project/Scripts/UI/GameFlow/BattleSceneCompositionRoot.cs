@@ -149,7 +149,6 @@ namespace SlotRogue.UI.GameFlow
             return new BattleFlowController(
                 new BattleSystem(),
                 new SlotCombatRequestToCombatEffectsConverter(),
-                new CombatEventConsoleLogger(),
                 new RelicTurnResolver(),
                 new CombatTurnRequestBuilder(),
                 slotTurnController,

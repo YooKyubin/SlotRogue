@@ -128,16 +128,6 @@ namespace SlotRogue.UI.GameFlow
             }
 
             CombatParticipantId selectedTargetId = SelectedEnemyId;
-            int visibleActionCount = _enemyVisibleIntentState.GetActions(selectedTargetId).Count;
-
-            string statusText =
-                $"{_battle.CurrentPhase}\n" +
-                $"Intent {visibleActionCount}\n" +
-                $"Enemies {_battle.Enemies.Count}\n" +
-                $"Bonus D+{_runDamageBonus} / S+{_runDefenseBonus}";
-            string enemyIntentText =
-                $"ENEMY INTENT: {RunBattleScreenStateUpdater.FormatVisibleEnemyAction(_enemyVisibleIntentState, selectedTargetId)}\n" +
-                $"TARGET: {selectedTargetId}";
 
             _viewModel.Batch(() =>
             {
@@ -152,7 +142,6 @@ namespace SlotRogue.UI.GameFlow
                     selectedTargetId,
                     _isPresentationBusy(),
                     _isTurnRunning());
-                _stateUpdater.UpdateBattleTextMeta(statusText, enemyIntentText);
             });
 
             UpdateSpinButtonState();
@@ -215,14 +204,9 @@ namespace SlotRogue.UI.GameFlow
             SlotTurnResult slotTurnResult,
             RunCombatRequestResult combatRequestResult)
         {
-            CombatParticipantId selectedTargetId = SelectedEnemyId;
-            string enemyActionText = _battle != null
-                ? RunBattleScreenStateUpdater.FormatVisibleEnemyAction(_enemyVisibleIntentState, selectedTargetId)
-                : "none";
             _stateUpdater.UpdateSlotResult(
                 combatRequestResult,
-                slotTurnResult?.PatternResult,
-                enemyActionText);
+                slotTurnResult?.PatternResult);
         }
 
         private void UpdateSpinButtonState()
