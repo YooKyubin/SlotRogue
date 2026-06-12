@@ -10,33 +10,51 @@ namespace SlotRogue.UI.RunGame.ViewModels
     /// </summary>
     public sealed class RunHUDViewModel
     {
-        // ── 상태 ────────────────────────────────────────────────────────
-
-        public int CurrentHp => GameFlowSession.PlayerCurrentHp;
-        public int MaxHp => GameFlowSession.PlayerMaxHp;
-        public int BattleIndex => GameFlowSession.CurrentBattleNumber;
-        public int Victories => GameFlowSession.Victories;
-
-        // ── 이벤트 ──────────────────────────────────────────────────────
-
-        /// <summary>HUD 데이터가 변경되어 View를 다시 렌더링해야 할 때 발행합니다.</summary>
-        public event Action Changed;
-
-        /// <summary>일시정지 버튼 클릭 시 발행합니다.</summary>
-        public event Action PauseRequested;
-
-        // ── 커맨드 ──────────────────────────────────────────────────────
-
-        /// <summary>전투 결과 등 세션 데이터 변경 후 HUD 갱신이 필요할 때 호출합니다.</summary>
-        public void Refresh()
+        public RunHUDViewModel()
         {
-            Changed?.Invoke();
+            State = RunHUDViewState.Empty;
         }
 
-        /// <summary>View의 Pause 버튼이 클릭되었을 때 호출합니다.</summary>
+        public event Action<RunHUDViewState> Changed;
+
+        public event Action PauseRequested;
+
+        public RunHUDViewState State { get; private set; }
+
+        public void Refresh()
+        {
+            State = new RunHUDViewState(
+                GameFlowSession.PlayerCurrentHp,
+                GameFlowSession.PlayerMaxHp,
+                GameFlowSession.CurrentBattleNumber,
+                GameFlowSession.Victories);
+            Changed?.Invoke(State);
+        }
+
         public void RequestPause()
         {
             PauseRequested?.Invoke();
         }
+    }
+
+    public readonly struct RunHUDViewState
+    {
+        public static readonly RunHUDViewState Empty = new(0, 1, 0, 0);
+
+        public RunHUDViewState(int currentHp, int maxHp, int battleIndex, int victories)
+        {
+            CurrentHp = currentHp;
+            MaxHp = maxHp;
+            BattleIndex = battleIndex;
+            Victories = victories;
+        }
+
+        public int CurrentHp { get; }
+
+        public int MaxHp { get; }
+
+        public int BattleIndex { get; }
+
+        public int Victories { get; }
     }
 }

@@ -1,6 +1,6 @@
 namespace SlotRogue.Relics.Pool
 {
-    /// <summary>유물 등급(v20.3). HTML 데이터의 grade(start/common/uncommon/rare/legendary/curse)와 1:1 대응.</summary>
+    /// <summary>유물 등급(v23). HTML 데이터의 grade(start/common/uncommon/rare/legendary/curse)와 1:1 대응.</summary>
     public enum RelicGrade
     {
         Starter = 0,

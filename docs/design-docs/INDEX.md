@@ -13,6 +13,7 @@
 | [`slot-core.md`](./slot-core.md) | draft | 5 x 3 슬롯 MVP, lightweight MVVM, 패턴 판정, 전투 요청 DTO |
 | [`combat-core.md`](./combat-core.md) | draft | 1스핀=1턴, Effect, Participant, shield; 연출 Replay (ADR-0003, [`feature-combat-presentation`](../exec-plans/completed/feature-combat-presentation.md) 완료) |
 | [`game-flow.md`](./game-flow.md) | draft | 게임 시작, 시작 유물, 맵, 전투, 보상 반복 루프 |
+| [`relic-system.md`](./relic-system.md) | draft | v23 유물 80종, Phase 1 풀, 선택·보상·전투 단일 런타임 경로 |
 
 ---
 

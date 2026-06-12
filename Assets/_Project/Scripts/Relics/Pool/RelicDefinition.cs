@@ -4,7 +4,7 @@ using SlotRogue.Slot.Data;
 namespace SlotRogue.Relics.Pool
 {
     /// <summary>
-    /// v20.3 유물 한 개의 정의(코드 카탈로그 데이터). 데이터만 보유하며 실행 로직은 갖지 않는다.
+    /// v23.0 유물 한 개의 정의(코드 카탈로그 데이터). 데이터만 보유하며 실행 로직은 갖지 않는다.
     /// 실행은 <c>RelicEffectRunner</c>(UI.GameFlow)가 <see cref="EffectType"/>로 분기해 처리한다.
     /// </summary>
     public sealed class RelicDefinition
@@ -13,6 +13,7 @@ namespace SlotRogue.Relics.Pool
             string id,
             RelicGrade grade,
             string name,
+            string iconKey,
             RelicRole role,
             RelicTriggerType triggerType,
             RelicEffectType effectType,
@@ -23,7 +24,7 @@ namespace SlotRogue.Relics.Pool
             int effectValue2,
             int enemyHpBelowPercent,
             int playerHpBelowPercentForBonus,
-            bool requiresEnemyStatus,
+            EnemyStatusRequirement enemyStatusRequirement,
             bool isStarter,
             bool phase1,
             string description,
@@ -33,6 +34,7 @@ namespace SlotRogue.Relics.Pool
             Id = id;
             Grade = grade;
             Name = name;
+            IconKey = iconKey;
             Role = role;
             TriggerType = triggerType;
             EffectType = effectType;
@@ -43,7 +45,7 @@ namespace SlotRogue.Relics.Pool
             EffectValue2 = effectValue2;
             EnemyHpBelowPercent = enemyHpBelowPercent;
             PlayerHpBelowPercentForBonus = playerHpBelowPercentForBonus;
-            RequiresEnemyStatus = requiresEnemyStatus;
+            EnemyStatusRequirement = enemyStatusRequirement;
             IsStarter = isStarter;
             Phase1 = phase1;
             Description = description;
@@ -57,6 +59,7 @@ namespace SlotRogue.Relics.Pool
         public string Id { get; }
         public RelicGrade Grade { get; }
         public string Name { get; }
+        public string IconKey { get; }
         public RelicRole Role { get; }
         public RelicTriggerType TriggerType { get; }
         public RelicEffectType EffectType { get; }
@@ -82,8 +85,8 @@ namespace SlotRogue.Relics.Pool
         /// <summary>플레이어 HP가 이 % 이하면 EffectValue2를 추가 적용(0=무시).</summary>
         public int PlayerHpBelowPercentForBonus { get; }
 
-        /// <summary>적이 임의의 상태이상을 가질 때만 발동.</summary>
-        public bool RequiresEnemyStatus { get; }
+        /// <summary>Conditional 트리거가 요구하는 적 상태이상(None=요구 없음).</summary>
+        public EnemyStatusRequirement EnemyStatusRequirement { get; }
 
         /// <summary>시작 유물 여부(런 시작 선택지에만 등장).</summary>
         public bool IsStarter { get; }

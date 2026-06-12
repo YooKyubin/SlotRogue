@@ -62,27 +62,94 @@ namespace SlotRogue.UI.Tests.GameFlow
         }
 
         [Test]
-        public void BurnRelic_ProducesBurnRequest()
+        public void TagRelic_DoesNotDoubleCountOverlappingCells()
         {
-            var owned = new[] { RelicCatalog.GetById("C-07") }; // 붉은 태그 4 → 화상 1 (Burn 지원)
+            var owned = new[] { RelicCatalog.GetById("C-10") };
+            IReadOnlyList<SlotCell> sharedCells = new[]
+            {
+                new SlotCell(0, 0),
+                new SlotCell(1, 0),
+                new SlotCell(2, 0),
+            };
+            var overlappingMatches = new[]
+            {
+                Single(SlotSymbolType.Cherry, sharedCells),
+                Single(SlotSymbolType.Cherry, sharedCells),
+            };
 
-            RelicResolveResult result = _runner.Resolve(Matches(SlotSymbolType.Cherry, 4), owned, FullHp());
+            RelicResolveResult result = _runner.Resolve(overlappingMatches, owned, FullHp());
 
-            Assert.That(result.StatusEffectsToApply.Count, Is.EqualTo(1));
-            Assert.That(result.StatusEffectsToApply[0].Kind, Is.EqualTo(StatusEffectKind.Burn));
-            Assert.That(result.StatusEffectsToApply[0].Stacks, Is.EqualTo(1));
+            Assert.That(result.AdditionalDamage, Is.EqualTo(0));
         }
 
         [Test]
-        public void CorrosionRelic_IsNotPhase1_AndProducesNothing()
+        public void BurnRelic_IsExcludedUntilCombatCoreMatchesV23()
         {
-            RelicDefinition c08 = RelicCatalog.GetById("C-08"); // 부식 — Phase 2
-            Assert.That(c08.Phase1, Is.False, "부식 유물은 Phase 1 미지원이어야 한다");
+            RelicDefinition c07 = RelicCatalog.GetById("C-07");
 
-            var owned = new[] { c08 };
-            RelicResolveResult result = _runner.Resolve(Matches(SlotSymbolType.Clover, 4), owned, FullHp());
+            RelicResolveResult result = _runner.Resolve(
+                Matches(SlotSymbolType.Cherry, 4),
+                new[] { c07 },
+                FullHp());
 
-            Assert.That(result.StatusEffectsToApply.Count, Is.EqualTo(0), "부식은 전투에 넘기지 않는다");
+            Assert.That(c07.Phase1, Is.False);
+            Assert.That(result.StatusEffectsToApply, Is.Empty);
+        }
+
+        [Test]
+        public void InfectRelic_IsExcludedUntilCombatCoreMatchesV23()
+        {
+            RelicDefinition c08 = RelicCatalog.GetById("C-08");
+
+            RelicResolveResult result = _runner.Resolve(
+                Matches(SlotSymbolType.Clover, 4),
+                new[] { c08 },
+                FullHp());
+
+            Assert.That(c08.Phase1, Is.False);
+            Assert.That(result.StatusEffectsToApply, Is.Empty);
+        }
+
+        [Test]
+        public void VulnerableRelic_IsNotPhase1_AndProducesNothing()
+        {
+            RelicDefinition c09 = RelicCatalog.GetById("C-09"); // 취약 — Phase 2
+            Assert.That(c09.Phase1, Is.False, "취약 유물은 Phase 1 미지원이어야 한다");
+
+            var owned = new[] { c09 };
+            RelicResolveResult result = _runner.Resolve(Matches(SlotSymbolType.Lemon, 4), owned, FullHp());
+
+            Assert.That(result.StatusEffectsToApply.Count, Is.EqualTo(0), "취약은 전투에 넘기지 않는다");
+            Assert.That(result.AdditionalDamage, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void BurnChaser_IsExcludedUntilCombatCoreMatchesV23()
+        {
+            RelicDefinition u16 = RelicCatalog.GetById("U-16");
+            var burningEnemy = new RelicBattleContext(30, 30, 40, 40, true, enemyHasBurn: true);
+
+            RelicResolveResult result = _runner.Resolve(
+                Matches(SlotSymbolType.Cherry, 3),
+                new[] { u16 },
+                burningEnemy);
+
+            Assert.That(u16.Phase1, Is.False);
+            Assert.That(result.AdditionalDamage, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void StatusChaser_IsExcludedUntilAllV23StatusesAreQueryable()
+        {
+            RelicDefinition u13 = RelicCatalog.GetById("U-13");
+            var infectedEnemy = new RelicBattleContext(30, 30, 40, 40, true, enemyHasInfect: true);
+
+            RelicResolveResult result = _runner.Resolve(
+                Matches(SlotSymbolType.Cherry, 3),
+                new[] { u13 },
+                infectedEnemy);
+
+            Assert.That(u13.Phase1, Is.False);
             Assert.That(result.AdditionalDamage, Is.EqualTo(0));
         }
 
@@ -118,6 +185,46 @@ namespace SlotRogue.UI.Tests.GameFlow
             Assert.That(result.AdditionalDamage, Is.EqualTo(0));
         }
 
+        [Test]
+        public void MultipleOwnedRelics_AccumulateAcrossMatchedPatterns()
+        {
+            var owned = new[]
+            {
+                RelicCatalog.GetById("S-01"),
+                RelicCatalog.GetById("S-02"),
+                RelicCatalog.GetById("S-03"),
+            };
+            var matches = new[]
+            {
+                Single(SlotSymbolType.Cherry, 3),
+                Single(SlotSymbolType.Clover, 3),
+                Single(SlotSymbolType.Bell, 3),
+            };
+
+            RelicResolveResult result = _runner.Resolve(matches, owned, FullHp());
+
+            Assert.That(result.AdditionalDamage, Is.EqualTo(3));
+            Assert.That(result.AdditionalBlock, Is.EqualTo(3));
+            Assert.That(result.HealAmount, Is.EqualTo(2));
+            Assert.That(result.ActivationSummary, Does.Contain("체리 단검"));
+            Assert.That(result.ActivationSummary, Does.Contain("클로버 방패"));
+            Assert.That(result.ActivationSummary, Does.Contain("종 치료제"));
+        }
+
+        [Test]
+        public void RelicTurnResolver_DelegatesOwnedRelicsPatternsAndBattleContext()
+        {
+            var resolver = new RelicTurnResolver(_runner);
+            var context = new RelicTurnContext(new RelicBattleContext(10, 30, 40, 40, false));
+
+            RelicResolveResult result = resolver.Resolve(
+                new[] { RelicCatalog.GetById("U-03") },
+                Matches(SlotSymbolType.Clover, 3),
+                context);
+
+            Assert.That(result.HealAmount, Is.EqualTo(6));
+        }
+
         // ── helpers ──────────────────────────────────────────────────────
 
         private static IReadOnlyList<SlotPatternMatch> Matches(SlotSymbolType symbol, int cellCount) =>
@@ -131,9 +238,16 @@ namespace SlotRogue.UI.Tests.GameFlow
                 cells.Add(new SlotCell(i, 0));
             }
 
+            return Single(symbol, cells);
+        }
+
+        private static SlotPatternMatch Single(
+            SlotSymbolType symbol,
+            IReadOnlyList<SlotCell> cells)
+        {
             var definition = new SlotPatternDefinition(
                 "test", "Test", 0, 1f, SlotPatternRank.HorizontalSm, false, cells);
-            return new SlotPatternMatch(definition, symbol, cells, cellCount, 0);
+            return new SlotPatternMatch(definition, symbol, cells, cells.Count, 0);
         }
     }
 }

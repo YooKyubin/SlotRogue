@@ -125,8 +125,8 @@ namespace SlotRogue.Editor.GameFlow
         }
     }
 
-    [CustomEditor(typeof(RunBattleCompositionRoot))]
-    internal sealed class RunBattleCompositionRootEditor : UnityEditor.Editor
+    [CustomEditor(typeof(BattleSceneCompositionRoot), true)]
+    internal sealed class BattleSceneCompositionRootEditor : UnityEditor.Editor
     {
         private bool _showAdvancedReferences;
 
@@ -135,7 +135,7 @@ namespace SlotRogue.Editor.GameFlow
             serializedObject.Update();
 
             EditorGUILayout.HelpBox(
-                "Composition Root owns scene startup and converts gameplay events into ViewModel updates. Generated references stay in Advanced.",
+                "BattleSceneCompositionRoot owns scene references and assembles the battle flow. Turn order lives in the pure C# BattleFlowController.",
                 MessageType.Info);
 
             EditorGUILayout.LabelField("Presentation Views", EditorStyles.boldLabel);
@@ -171,7 +171,7 @@ namespace SlotRogue.Editor.GameFlow
 
         private void DrawBindingSummary()
         {
-            var compositionRoot = (RunBattleCompositionRoot)target;
+            var compositionRoot = (BattleSceneCompositionRoot)target;
             Transform root = compositionRoot.transform.root;
             DrawObjectStatus(
                 "Screen view",
@@ -201,10 +201,10 @@ namespace SlotRogue.Editor.GameFlow
 
         private void RefreshReferences()
         {
-            var compositionRoot = (RunBattleCompositionRoot)target;
+            var compositionRoot = (BattleSceneCompositionRoot)target;
             Transform root = compositionRoot.transform.root;
 
-            Undo.RecordObject(compositionRoot, "Refresh RunBattleCompositionRoot References");
+            Undo.RecordObject(compositionRoot, "Refresh BattleSceneCompositionRoot References");
 
             SerializedProperty view = serializedObject.FindProperty("_view");
             SerializedProperty floatingTextLayer = serializedObject.FindProperty("_floatingTextLayerView");

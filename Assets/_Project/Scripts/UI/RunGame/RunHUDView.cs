@@ -1,3 +1,4 @@
+using System;
 using SlotRogue.UI.RunGame.ViewModels;
 using UnityEngine;
 using UnityEngine.UI;
@@ -15,48 +16,43 @@ namespace SlotRogue.UI.RunGame
         [SerializeField] private Text  _battleIndexText;
         [SerializeField] private Button _pauseButton;
 
-        private RunHUDViewModel _viewModel;
+        public event Action PauseRequested;
 
-        // ── IRunHUDView (MVVM) ───────────────────────────────────────────
-
-        public void Bind(RunHUDViewModel viewModel)
+        private void Awake()
         {
-            if (_viewModel != null)
-                _viewModel.Changed -= Render;
-
-            _viewModel = viewModel;
-            _viewModel.Changed += Render;
-
             if (_pauseButton != null)
             {
-                _pauseButton.onClick.RemoveAllListeners();
-                _pauseButton.onClick.AddListener(_viewModel.RequestPause);
+                _pauseButton.onClick.AddListener(HandlePauseClicked);
             }
-
-            Render();
         }
 
-        /// <summary>HUD는 씬 내내 활성 상태. OnEnter/OnExit는 빈 구현입니다.</summary>
         public void OnEnter() { }
         public void OnExit()  { }
 
-        // ── 렌더링 ──────────────────────────────────────────────────────
-
-        private void Render()
+        public void Render(RunHUDViewState state)
         {
-            if (_viewModel == null) return;
-
             if (_hpText != null)
-                _hpText.text = $"{_viewModel.CurrentHp} / {_viewModel.MaxHp}";
+            {
+                _hpText.text = $"{state.CurrentHp} / {state.MaxHp}";
+            }
 
             if (_battleIndexText != null)
-                _battleIndexText.text = $"Battle {_viewModel.BattleIndex}";
+            {
+                _battleIndexText.text = $"Battle {state.BattleIndex}";
+            }
         }
 
         private void OnDestroy()
         {
-            if (_viewModel != null)
-                _viewModel.Changed -= Render;
+            if (_pauseButton != null)
+            {
+                _pauseButton.onClick.RemoveListener(HandlePauseClicked);
+            }
+        }
+
+        private void HandlePauseClicked()
+        {
+            PauseRequested?.Invoke();
         }
     }
 }

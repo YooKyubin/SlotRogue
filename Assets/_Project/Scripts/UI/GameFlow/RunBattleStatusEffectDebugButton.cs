@@ -1,13 +1,16 @@
 // DEV ONLY: This component is for editor/manual combat checks and is not used by the actual in-game flow.
 using SlotRogue.Core.Combat;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace SlotRogue.UI.GameFlow
 {
     public sealed class RunBattleStatusEffectDebugButton : MonoBehaviour
     {
-        [SerializeField] private RunBattleCompositionRoot _compositionRoot;
+        [FormerlySerializedAs("_compositionRoot")]
+        [FormerlySerializedAs("_battleFlowController")]
+        [SerializeField] private BattleSceneCompositionRoot _battleSceneCompositionRoot;
         [SerializeField] private Button _button;
 
         [Header("Status Effect")]
@@ -40,15 +43,14 @@ namespace SlotRogue.UI.GameFlow
 
         public void ApplyStatusTurn()
         {
-            RunBattleCompositionRoot root = ResolveCompositionRoot();
-            if (root == null)
+            BattleSceneCompositionRoot battleSceneCompositionRoot = ResolveBattleSceneCompositionRoot();
+            if (battleSceneCompositionRoot == null)
             {
-                Debug.LogError("[RunBattleStatusEffectDebugButton] RunBattleCompositionRoot is missing.");
+                Debug.LogError("[RunBattleStatusEffectDebugButton] BattleSceneCompositionRoot is missing.");
                 return;
             }
-            Debug.Log("ApplyStatusTurn");
 
-            root.DevApplyStatusTurn(
+            battleSceneCompositionRoot.DevApplyStatusTurn(
                 _statusEffectKind,
                 _duration,
                 _magnitude,
@@ -60,7 +62,7 @@ namespace SlotRogue.UI.GameFlow
 
         private void Reset()
         {
-            _compositionRoot = GetComponentInParent<RunBattleCompositionRoot>();
+            _battleSceneCompositionRoot = GetComponentInParent<BattleSceneCompositionRoot>();
             ApplyRecommendedDefaults();
         }
 
@@ -77,15 +79,15 @@ namespace SlotRogue.UI.GameFlow
             _attackCount = Mathf.Max(1, _attackCount);
         }
 
-        private RunBattleCompositionRoot ResolveCompositionRoot()
+        private BattleSceneCompositionRoot ResolveBattleSceneCompositionRoot()
         {
-            if (_compositionRoot != null)
+            if (_battleSceneCompositionRoot != null)
             {
-                return _compositionRoot;
+                return _battleSceneCompositionRoot;
             }
 
-            _compositionRoot = GetComponentInParent<RunBattleCompositionRoot>();
-            return _compositionRoot;
+            _battleSceneCompositionRoot = GetComponentInParent<BattleSceneCompositionRoot>();
+            return _battleSceneCompositionRoot;
         }
 
         private void ApplyRecommendedDefaults()

@@ -17,7 +17,7 @@
 
 - **SlotRogue** — Unity 6000.3.10f1 기반 슬롯 + 로그라이크 모바일 게임. **1달 스프린트**, 프로그래머 3명 (각자 기획·아트 겸업).
 - C# 네임스페이스: `SlotRogue.*` (예: `SlotRogue.Core`, `SlotRogue.UI`, `SlotRogue.Data`)
-- 핵심 패키지: Addressables, UniTask, DOTween.
+- 핵심 패키지: Addressables 2.9.1, UniTask, DOTween.
 
 ---
 
@@ -30,10 +30,12 @@
 | 전투 연출 (Replay / CombatEvent 타임라인) | [ADR-0003](docs/adr/0003-combat-presentation-replay.md) (proposed) |
 | 슬롯 RNG / 페이아웃 모델 | _미정_ |
 | 세이브 포맷 (JSON / Binary / PlayerPrefs 한계) | _미정_ |
-| Addressables 그룹 / 빌드 전략 | _미정_ |
+| Addressables 로컬 그룹 / 빌드 기준선 | [ADR-0007](docs/adr/0007-addressables-local-runtime-assets.md), [ADR-0009](docs/adr/0009-relic-icon-addressable-keys.md) (accepted) |
+| 런타임 자산 로드 경계 | [ADR-0006](docs/adr/0006-runtime-asset-loading-boundary.md) (accepted) |
 | 광고 / IAP SDK 선택 | _미정_ |
 | 타겟 해상도 / Safe Area 처리 | _미정_ |
 | 브랜치 / PR 워크플로 | _미정 (사용해본 후 박제)_ |
+| 유물 런타임 모델 (v23 RelicCatalog 단일화) | [ADR-0005](docs/adr/0005-relic-v23-runtime-model.md) (accepted) |
 
 전체 결정 목록: [`docs/adr/INDEX.md`](docs/adr/INDEX.md). 시스템별 narrative: `docs/design-docs/` (기획 문서 확정 후 추가). 빌드/툴체인 가이드: [`docs/guides/unity-setup.md`](docs/guides/unity-setup.md).
 

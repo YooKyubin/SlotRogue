@@ -7,7 +7,7 @@ namespace SlotRogue.Slot.Core
 {
     public static class SlotPatternCatalog
     {
-        private const string ResourceCatalogPath = "SlotPatternCatalog";
+        public const string Address = "slot/catalog/patterns";
 
         public static List<PatternCandidate> GenerateCandidates(SlotSpinResult spin)
         {
@@ -31,9 +31,17 @@ namespace SlotRogue.Slot.Core
             _runtimeCatalogOverride = null;
         }
 
+        public static void ClearRuntimeCatalogOverride(SlotPatternCatalogAsset catalog)
+        {
+            if (_runtimeCatalogOverride == catalog)
+            {
+                _runtimeCatalogOverride = null;
+            }
+        }
+
         private static SlotPatternCatalogAsset GetCatalogOrLogError()
         {
-            SlotPatternCatalogAsset asset = LoadCatalogAsset();
+            SlotPatternCatalogAsset asset = _runtimeCatalogOverride;
 
             if (asset != null && asset.HasEntries)
             {
@@ -42,24 +50,13 @@ namespace SlotRogue.Slot.Core
 
             if (!_loggedDefaultCatalogFallback)
             {
-                Debug.LogWarning("[SlotRogue] SlotPatternCatalog asset not found or empty. " +
-                    "Using the in-memory default catalog. Create SlotPatternCatalog.asset under a Resources folder " +
-                    "when pattern tuning needs to be edited in the Inspector.");
+                Debug.LogWarning("[SlotRogue] SlotPatternCatalog was not configured or is empty. " +
+                    "Using the in-memory default catalog. Assign the catalog through the composition root.");
                 _loggedDefaultCatalogFallback = true;
             }
 
             _runtimeDefaultCatalog ??= SlotPatternCatalogAsset.CreateDefaultCatalog();
             return _runtimeDefaultCatalog.HasEntries ? _runtimeDefaultCatalog : null;
-        }
-
-        private static SlotPatternCatalogAsset LoadCatalogAsset()
-        {
-            if (_runtimeCatalogOverride != null)
-            {
-                return _runtimeCatalogOverride;
-            }
-
-            return Resources.Load<SlotPatternCatalogAsset>(ResourceCatalogPath);
         }
 
         private static SlotPatternCatalogAsset _runtimeCatalogOverride;

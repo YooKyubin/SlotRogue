@@ -16,8 +16,6 @@ namespace SlotRogue.UI.GameFlow
         public const float AnimationFrameWidth = 268f;
         public const float AnimationFrameHeight = 145f;
 
-        private const string SlotMachineSpriteResourcePath = "Textures/UI/Ingame_Slot_ani";
-
         [SerializeField, FormerlySerializedAs("_slotMachineImage")] private Image _animationImage;
         [SerializeField] private Sprite[] _slotMachineSprites;
         [SerializeField] private float _cycleInterval = 0.08f;
@@ -29,16 +27,23 @@ namespace SlotRogue.UI.GameFlow
         public void Bind(Image animationImage, Sprite[] slotMachineSprites = null)
         {
             _animationImage = animationImage;
-            _slotMachineSprites = slotMachineSprites;
+
+            if (slotMachineSprites != null && slotMachineSprites.Length > 0)
+            {
+                _slotMachineSprites = slotMachineSprites;
+            }
+
             SetIdleImmediate();
         }
 
         public void PlaySpin()
         {
             EnsureReferences();
-            EnsureSpritesLoaded();
 
-            if (!isActiveAndEnabled || _animationImage == null || _slotMachineSprites.Length < 3)
+            if (!isActiveAndEnabled ||
+                _animationImage == null ||
+                _slotMachineSprites == null ||
+                _slotMachineSprites.Length < 3)
             {
                 return;
             }
@@ -51,7 +56,6 @@ namespace SlotRogue.UI.GameFlow
         public async UniTask StopAtIdleAsync(CancellationToken cancellationToken = default)
         {
             EnsureReferences();
-            EnsureSpritesLoaded();
             StopActiveRoutine();
 
             int animationVersion = ++_animationVersion;
@@ -75,7 +79,6 @@ namespace SlotRogue.UI.GameFlow
         public void SetIdleImmediate()
         {
             EnsureReferences();
-            EnsureSpritesLoaded();
             StopActiveRoutine();
             _animationVersion++;
             ApplyFrame(0);
@@ -119,7 +122,6 @@ namespace SlotRogue.UI.GameFlow
             }
 
             ConfigureAnimationImage(_animationImage);
-            EnsureSpritesLoaded();
             ApplyFrame(0);
         }
 
@@ -158,17 +160,6 @@ namespace SlotRogue.UI.GameFlow
             }
 
             ConfigureAnimationImage(_animationImage);
-        }
-
-        private void EnsureSpritesLoaded()
-        {
-            if (_slotMachineSprites != null && _slotMachineSprites.Length > 0)
-            {
-                return;
-            }
-
-            _slotMachineSprites = Resources.LoadAll<Sprite>(SlotMachineSpriteResourcePath);
-            SortSpritesByFrameName(_slotMachineSprites);
         }
 
         private void ApplyFrame(int frameIndex)
@@ -257,32 +248,5 @@ namespace SlotRogue.UI.GameFlow
             _activeRoutine = null;
         }
 
-        private static void SortSpritesByFrameName(Sprite[] sprites)
-        {
-            if (sprites == null || sprites.Length <= 1)
-            {
-                return;
-            }
-
-            Array.Sort(sprites, (left, right) => GetFrameIndex(left).CompareTo(GetFrameIndex(right)));
-        }
-
-        private static int GetFrameIndex(Sprite sprite)
-        {
-            if (sprite == null || string.IsNullOrEmpty(sprite.name))
-            {
-                return int.MaxValue;
-            }
-
-            int separatorIndex = sprite.name.LastIndexOf('_');
-            if (separatorIndex < 0 || separatorIndex >= sprite.name.Length - 1)
-            {
-                return int.MaxValue;
-            }
-
-            return int.TryParse(sprite.name.Substring(separatorIndex + 1), out int frameIndex)
-                ? frameIndex
-                : int.MaxValue;
-        }
     }
 }

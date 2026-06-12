@@ -6,44 +6,6 @@ namespace SlotRogue.Slot.Core
 {
     public sealed class SlotPatternResolver
     {
-        private const int MinimumMatchLength = 3;
-
-        [Obsolete("Main calculation/combat flow now uses ResolveAll(SlotSpinResult) (SO 족보 기준). Kept for legacy single-pattern tests only.")]
-        public SlotPatternResult Resolve(SlotSpinResult spinResult)
-        {
-            if (spinResult == null)
-            {
-                return SlotPatternResult.NoMatch;
-            }
-
-            SlotPatternResult bestResult = SlotPatternResult.NoMatch;
-
-            for (int row = 0; row < SlotSpinResult.Rows; row++)
-            {
-                int startColumn = 0;
-
-                while (startColumn < SlotSpinResult.Columns)
-                {
-                    SlotSymbolType symbol = spinResult.GetSymbol(startColumn, row);
-                    int matchLength = CountRunLength(spinResult, symbol, startColumn, row);
-
-                    if (matchLength >= MinimumMatchLength)
-                    {
-                        SlotPatternResult candidate = CreateResult(symbol, row, startColumn, matchLength);
-
-                        if (candidate.Score > bestResult.Score)
-                        {
-                            bestResult = candidate;
-                        }
-                    }
-
-                    startColumn += matchLength;
-                }
-            }
-
-            return bestResult;
-        }
-
         public IReadOnlyList<SlotPatternMatch> ResolveAll(
             SlotSpinResult spinResult,
             int jackpotRepeatIndex = 0)
@@ -191,75 +153,5 @@ namespace SlotRogue.Slot.Core
                 repeatIndex);
         }
 
-        private static int CountRunLength(
-            SlotSpinResult spinResult,
-            SlotSymbolType symbol,
-            int startColumn,
-            int row)
-        {
-            int matchLength = 0;
-
-            for (int column = startColumn; column < SlotSpinResult.Columns; column++)
-            {
-                if (spinResult.GetSymbol(column, row) != symbol)
-                {
-                    break;
-                }
-
-                matchLength++;
-            }
-
-            return matchLength;
-        }
-
-        private static SlotPatternResult CreateResult(
-            SlotSymbolType symbol,
-            int row,
-            int startColumn,
-            int matchLength)
-        {
-            int score = GetSymbolScore(symbol) * matchLength;
-
-            return new SlotPatternResult(
-                true,
-                $"{GetKoreanSymbolName(symbol)} {matchLength}칸",
-                symbol,
-                row,
-                startColumn,
-                matchLength,
-                score);
-        }
-
-        private static string GetKoreanSymbolName(SlotSymbolType symbol) => symbol switch
-        {
-            SlotSymbolType.Cherry => "체리",
-            SlotSymbolType.Seven => "세븐",
-            SlotSymbolType.Diamond => "다이아",
-            SlotSymbolType.Bell => "종",
-            SlotSymbolType.Clover => "네잎클로버",
-            SlotSymbolType.Lemon => "레몬",
-            _ => symbol.ToString()
-        };
-
-        private static int GetSymbolScore(SlotSymbolType symbol)
-        {
-            switch (symbol)
-            {
-                case SlotSymbolType.Cherry:
-                    return 6;
-                case SlotSymbolType.Seven:
-                    return 5;
-                case SlotSymbolType.Diamond:
-                    return 4;
-                case SlotSymbolType.Bell:
-                    return 3;
-                case SlotSymbolType.Clover:
-                    return 8;
-                case SlotSymbolType.Lemon:
-                    return 7;
-                default:
-                    return 1;
-            }
-        }
     }
 }

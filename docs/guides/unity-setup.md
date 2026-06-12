@@ -64,12 +64,23 @@ Unity Hub에서 `Open` → 클론한 폴더 선택 → 첫 임포트(수 분 소
 
 UPM (`Window > Package Manager`)으로 설치. `Packages/manifest.json`이 source of truth.
 
+### 런타임 자산 로드
+
+- 게임 코드와 View에서 `Resources.Load*`를 직접 호출하지 않는다 ([ADR-0006](../adr/0006-runtime-asset-loading-boundary.md)).
+- Prefab 종속 자산은 직렬화 참조, 전역 설정 SO는 Composition Root 주입을 사용한다.
+- AssetBundle 후보 자산은 `Resources/` 밖에 두어 Player 상시 포함과 Bundle 중복을 피한다.
+- Addressables 로컬 기준선은 [ADR-0007](../adr/0007-addressables-local-runtime-assets.md)을 따른다.
+
 ### Addressables
 
-- Package Manager에서 `com.unity.addressables` 설치.
+- `Packages/manifest.json`에 `com.unity.addressables` 2.9.1을 고정한다.
 - `Window > Asset Management > Addressables > Groups`로 그룹 관리.
 - **키는 상수 / SO로 관리**하고 문자열 리터럴 산재 금지 (AGENTS.md §6).
-- 빌드 전략(로컬 only vs 원격 호스팅), 그룹 분할은 결정 시 ADR로 박제.
+- 현재 첫 엔트리는 `SlotPatternCatalog.asset`이며 키는 `slot/catalog/patterns`다.
+- Editor Play Mode는 `Use Asset Database (Fast Mode)`, Player 빌드는 `Build Addressables on Player Build`를 사용한다.
+- 설정이 어긋났다면 `SlotRogue > Addressables > Configure Runtime Assets`를 실행한다.
+- Player 콘텐츠만 별도로 검증하려면 `SlotRogue > Addressables > Build Player Content`를 실행한다.
+- 원격 호스팅, 콘텐츠 업데이트, 그룹 세분화는 후속 ADR에서 결정한다.
 
 ### UniTask
 
