@@ -60,7 +60,8 @@ namespace SlotRogue.Core.Tests.Combat
             });
 
             Assert.That(_battle.Player.CurrentHp, Is.EqualTo(30));
-            Assert.That(_battle.UpcomingMonsterTurnIndex, Is.EqualTo(1));
+            Assert.That(_battle.TryGetUpcomingEnemyTurn(monster.Id, out EnemyUpcomingTurn upcomingTurn), Is.True);
+            Assert.That(upcomingTurn.TurnIndex, Is.EqualTo(1));
             Assert.That(FirstEnemy.StatusEffects.Single().RemainingTurns, Is.EqualTo(2));
             Assert.That(_battle.Events, Has.Some.Matches<CombatEvent>(e =>
                 e.Kind == CombatEventKind.ActionSkipped &&

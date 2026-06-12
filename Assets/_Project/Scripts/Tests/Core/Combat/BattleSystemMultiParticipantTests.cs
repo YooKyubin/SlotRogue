@@ -245,6 +245,89 @@ namespace SlotRogue.Core.Tests.Combat
             Assert.That(EnemyWithId(101).IsDead, Is.True);
         }
 
+        [Test]
+        public void TryGetUpcomingEnemyTurn_ExistingEnemy_ReturnsThatEnemySchedule()
+        {
+            CombatParticipant player = CreatePlayer();
+            CombatParticipant enemy0 = CreateEnemy(id: 100, maxHp: 10);
+            CombatParticipant enemy1 = CreateEnemy(id: 101, maxHp: 10);
+            var enemy0Actions = new[]
+            {
+                new CombatEffect(CombatEffectKind.Damage, 1, CombatEffectTarget.Enemy),
+            };
+            var enemy1Actions = new[]
+            {
+                new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy),
+            };
+
+            _battle.StartBattle(
+                player,
+                new[] { enemy0, enemy1 },
+                new[]
+                {
+                    new MonsterTurnSchedule(enemy0Actions),
+                    new MonsterTurnSchedule(
+                        new[] { new CombatEffect(CombatEffectKind.Shield, 3, CombatEffectTarget.Self) },
+                        enemy1Actions),
+                });
+            _battle.ApplyPlayerTurn(System.Array.Empty<CombatEffect>());
+
+            Assert.That(_battle.TryGetUpcomingEnemyTurn(enemy1.Id, out EnemyUpcomingTurn upcomingTurn), Is.True);
+            Assert.That(upcomingTurn.ParticipantId.Value, Is.EqualTo(enemy1.Id.Value));
+            Assert.That(upcomingTurn.TurnIndex, Is.EqualTo(1));
+            Assert.That(upcomingTurn.Actions, Is.EqualTo(enemy1Actions));
+        }
+
+        [Test]
+        public void TryGetUpcomingEnemyTurn_UnknownParticipantId_ReturnsFalse()
+        {
+            StartSingleEnemyBattle(CreatePlayer(), CreateEnemy(id: 100, maxHp: 10));
+
+            bool found = _battle.TryGetUpcomingEnemyTurn(
+                new CombatParticipantId(999),
+                out EnemyUpcomingTurn upcomingTurn);
+
+            Assert.That(found, Is.False);
+            Assert.That(upcomingTurn, Is.EqualTo(default(EnemyUpcomingTurn)));
+        }
+
+        [Test]
+        public void TryGetUpcomingEnemyTurn_DeadEnemy_ReturnsFalse()
+        {
+            CombatParticipant enemy = CreateEnemy(id: 100, maxHp: 5);
+            StartSingleEnemyBattle(CreatePlayer(), enemy);
+
+            _battle.ApplyPlayerTurn(new[]
+            {
+                new CombatEffect(CombatEffectKind.Damage, 5, CombatEffectTarget.Enemy),
+            });
+
+            bool found = _battle.TryGetUpcomingEnemyTurn(enemy.Id, out EnemyUpcomingTurn upcomingTurn);
+
+            Assert.That(found, Is.False);
+            Assert.That(upcomingTurn, Is.EqualTo(default(EnemyUpcomingTurn)));
+        }
+
+        [Test]
+        public void TryGetUpcomingEnemyTurn_MultipleEffects_ReturnsOriginalActionList()
+        {
+            CombatParticipant enemy = CreateEnemy(id: 100, maxHp: 10);
+            var actions = new[]
+            {
+                new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy),
+                new CombatEffect(CombatEffectKind.Shield, 4, CombatEffectTarget.Self),
+            };
+            StartSingleEnemyBattle(CreatePlayer(), enemy, new MonsterTurnSchedule(actions));
+
+            Assert.That(
+                _battle.TryGetUpcomingEnemyTurn(enemy.Id, out EnemyUpcomingTurn upcomingTurn),
+                Is.True);
+            Assert.That(upcomingTurn.Actions, Is.EqualTo(actions));
+            Assert.That(upcomingTurn.Actions.Count, Is.EqualTo(2));
+            Assert.That(upcomingTurn.Actions[0].Kind, Is.EqualTo(CombatEffectKind.Damage));
+            Assert.That(upcomingTurn.Actions[1].Kind, Is.EqualTo(CombatEffectKind.Shield));
+        }
+
         private CombatParticipant EnemyWithId(int id) =>
             _battle.Enemies.First(enemy => enemy.Id.Value == id);
 
@@ -276,7 +359,15 @@ namespace SlotRogue.Core.Tests.Combat
 
         private void StartSingleEnemyBattle(CombatParticipant player, CombatParticipant enemy)
         {
-            _battle.StartBattle(player, enemy, EmptyEnemySchedule());
+            StartSingleEnemyBattle(player, enemy, EmptyEnemySchedule());
+        }
+
+        private void StartSingleEnemyBattle(
+            CombatParticipant player,
+            CombatParticipant enemy,
+            MonsterTurnSchedule schedule)
+        {
+            _battle.StartBattle(player, enemy, schedule);
         }
 
         private static MonsterTurnSchedule EmptyEnemySchedule() =>

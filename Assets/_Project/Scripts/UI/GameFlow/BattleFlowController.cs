@@ -46,11 +46,9 @@ namespace SlotRogue.UI.GameFlow
             _converter = converter ?? throw new ArgumentNullException(nameof(converter));
             _eventLogger = eventLogger ?? throw new ArgumentNullException(nameof(eventLogger));
             _relicTurnResolver = relicTurnResolver ?? throw new ArgumentNullException(nameof(relicTurnResolver));
-            _combatTurnRequestBuilder =
-                combatTurnRequestBuilder ?? throw new ArgumentNullException(nameof(combatTurnRequestBuilder));
+            _combatTurnRequestBuilder = combatTurnRequestBuilder ?? throw new ArgumentNullException(nameof(combatTurnRequestBuilder));
             _slotTurnController = slotTurnController ?? throw new ArgumentNullException(nameof(slotTurnController));
-            _battlePresentationController =
-                battlePresentationController ?? throw new ArgumentNullException(nameof(battlePresentationController));
+            _battlePresentationController = battlePresentationController ?? throw new ArgumentNullException(nameof(battlePresentationController));
             _combatViewModel = combatViewModel ?? throw new ArgumentNullException(nameof(combatViewModel));
             _screenController = screenController ?? throw new ArgumentNullException(nameof(screenController));
             _presentationCancellationToken = presentationCancellationToken;
@@ -163,8 +161,8 @@ namespace SlotRogue.UI.GameFlow
                         eventCursor,
                         presentationContext,
                         _presentationCancellationToken,
-                        _slotTurnController.BeforeBattleEventPresentedAsync,
-                        _slotTurnController.AfterBattleEventPresentedAsync);
+                        BeforeBattleEventPresentedAsync,
+                        AfterBattleEventPresentedAsync);
                     _eventLogger.LogEventsSince(_battle, eventCursor, request);
                 }
             }
@@ -235,7 +233,9 @@ namespace SlotRogue.UI.GameFlow
                         _battle,
                         eventCursor,
                         presentationContext,
-                        _presentationCancellationToken);
+                        _presentationCancellationToken,
+                        BeforeBattleEventPresentedAsync,
+                        AfterBattleEventPresentedAsync);
                     _eventLogger.LogEventsSince(_battle, eventCursor, request);
                 }
             }
@@ -253,6 +253,36 @@ namespace SlotRogue.UI.GameFlow
                 && !_turnRunning
                 && _battle.CanApplyPlayerTurn
                 && !_battlePresentationController.IsBusy;
+        }
+
+        private async UniTask BeforeBattleEventPresentedAsync(
+            CombatEvent combatEvent,
+            int eventIndex,
+            System.Collections.Generic.IReadOnlyList<CombatEvent> events)
+        {
+            await _slotTurnController.BeforeBattleEventPresentedAsync(combatEvent, eventIndex, events);
+        }
+
+        private async UniTask AfterBattleEventPresentedAsync(
+            CombatEvent combatEvent,
+            int eventIndex,
+            System.Collections.Generic.IReadOnlyList<CombatEvent> events)
+        {
+            await _slotTurnController.AfterBattleEventPresentedAsync(combatEvent, eventIndex, events);
+
+            if (combatEvent.Kind == CombatEventKind.ActionCompleted &&
+                combatEvent.Phase == BattlePhase.EnemyTurn &&
+                combatEvent.SourceParticipantId.IsValid)
+            {
+                _screenController.ConsumeEnemyVisibleIntentAction(combatEvent.SourceParticipantId);
+                return;
+            }
+
+            if (combatEvent.Kind == CombatEventKind.PhaseChanged &&
+                combatEvent.Phase == BattlePhase.PlayerTurn)
+            {
+                _screenController.RefreshVisibleIntentsFromBattle();
+            }
         }
 
         private void CompleteBattleIfNeeded()

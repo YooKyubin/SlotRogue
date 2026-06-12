@@ -27,8 +27,12 @@ namespace SlotRogue.Core.Tests.Combat
 
             Assert.That(_battle.CurrentPhase, Is.EqualTo(BattlePhase.PlayerTurn));
             Assert.That(_battle.CanApplyPlayerTurn, Is.True);
-            Assert.That(_battle.UpcomingEnemyActions, Is.EqualTo(enemyActions));
-            Assert.That(_battle.UpcomingMonsterTurnIndex, Is.Zero);
+            Assert.That(
+                _battle.TryGetUpcomingEnemyTurn(monster.Id, out EnemyUpcomingTurn upcomingTurn),
+                Is.True);
+            Assert.That(upcomingTurn.ParticipantId.Value, Is.EqualTo(monster.Id.Value));
+            Assert.That(upcomingTurn.Actions, Is.EqualTo(enemyActions));
+            Assert.That(upcomingTurn.TurnIndex, Is.Zero);
         }
 
         [Test]
@@ -263,6 +267,28 @@ namespace SlotRogue.Core.Tests.Combat
         }
 
         [Test]
+        public void ApplyPlayerTurn_EnemyEffect_EmitsActionCompletedWithSource()
+        {
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30);
+            CombatParticipant monster = CombatParticipantFactory.CreateEnemy(maxHp: 20);
+            var enemyActions = new[]
+            {
+                new CombatEffect(CombatEffectKind.Damage, 4, CombatEffectTarget.Enemy),
+            };
+            _battle.StartBattle(player, monster, enemyActions);
+
+            _battle.ApplyPlayerTurn(System.Array.Empty<CombatEffect>());
+
+            CombatEvent actionCompleted = _battle.Events.First(e =>
+                e.Kind == CombatEventKind.ActionCompleted &&
+                e.Phase == BattlePhase.EnemyTurn);
+
+            Assert.That(actionCompleted.SourceParticipantId.Value, Is.EqualTo(monster.Id.Value));
+            Assert.That(actionCompleted.Effect.Kind, Is.EqualTo(CombatEffectKind.Damage));
+            Assert.That(actionCompleted.Effect.Amount, Is.EqualTo(4));
+        }
+
+        [Test]
         public void ApplyPlayerTurn_PlayerDiesDuringEnemyTurn_EndsDefeat()
         {
             CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30, currentHp: 3);
@@ -409,19 +435,23 @@ namespace SlotRogue.Core.Tests.Combat
                 new[] { new CombatEffect(CombatEffectKind.Damage, 3, CombatEffectTarget.Enemy) });
             _battle.StartBattle(player, monster, schedule);
 
-            Assert.That(_battle.UpcomingMonsterTurnIndex, Is.Zero);
+            Assert.That(_battle.TryGetUpcomingEnemyTurn(monster.Id, out EnemyUpcomingTurn upcomingTurn), Is.True);
+            Assert.That(upcomingTurn.TurnIndex, Is.Zero);
 
             _battle.ApplyPlayerTurn(System.Array.Empty<CombatEffect>());
             Assert.That(_battle.Player.CurrentHp, Is.EqualTo(29));
-            Assert.That(_battle.UpcomingMonsterTurnIndex, Is.EqualTo(1));
+            Assert.That(_battle.TryGetUpcomingEnemyTurn(monster.Id, out upcomingTurn), Is.True);
+            Assert.That(upcomingTurn.TurnIndex, Is.EqualTo(1));
 
             _battle.ApplyPlayerTurn(System.Array.Empty<CombatEffect>());
             Assert.That(_battle.Player.CurrentHp, Is.EqualTo(27));
-            Assert.That(_battle.UpcomingMonsterTurnIndex, Is.EqualTo(2));
+            Assert.That(_battle.TryGetUpcomingEnemyTurn(monster.Id, out upcomingTurn), Is.True);
+            Assert.That(upcomingTurn.TurnIndex, Is.EqualTo(2));
 
             _battle.ApplyPlayerTurn(System.Array.Empty<CombatEffect>());
             Assert.That(_battle.Player.CurrentHp, Is.EqualTo(24));
-            Assert.That(_battle.UpcomingMonsterTurnIndex, Is.Zero);
+            Assert.That(_battle.TryGetUpcomingEnemyTurn(monster.Id, out upcomingTurn), Is.True);
+            Assert.That(upcomingTurn.TurnIndex, Is.Zero);
         }
     }
 }

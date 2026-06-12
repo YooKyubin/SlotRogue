@@ -115,6 +115,7 @@ namespace SlotRogue.UI.GameFlow
         internal int[] UpdateEnemySlots(
             BattleSystem battle,
             CombatViewModel combatViewModel,
+            EnemyVisibleIntentState enemyVisibleIntentState,
             string encounterDisplayName,
             int viewSlotCount,
             RunEncounterRoster encounterRoster,
@@ -139,12 +140,13 @@ namespace SlotRogue.UI.GameFlow
                 {
                     CombatParticipant enemy = battle.Enemies[index];
                     int slotIndex = computedSlotIndices[index];
-                    CombatParticipantSnapshot snapshot = combatViewModel.TryGetParticipantSnapshot(
-                        enemy.Id, out CombatParticipantSnapshot s)
-                        ? s
-                        : new CombatParticipantSnapshot(enemy.CurrentHp, enemy.Shield);
+                    CombatParticipantSnapshot snapshot = combatViewModel.TryGetParticipantSnapshot(enemy.Id, out CombatParticipantSnapshot s)
+                                                       ? s
+                                                       : new CombatParticipantSnapshot(enemy.CurrentHp, enemy.Shield);
                     bool selected = selectedEnemyId.IsValid && selectedEnemyId.Value == enemy.Id.Value;
                     string deadSuffix = enemy.IsDead ? " [DOWN]" : string.Empty;
+                    IReadOnlyList<EnemyUpcomingActionViewData> upcomingActions =
+                        enemyVisibleIntentState?.GetActions(enemy.Id) ?? System.Array.Empty<EnemyUpcomingActionViewData>();
                     _vm.SetEnemySlot(
                         slotIndex,
                         enemy.Id,
@@ -154,7 +156,8 @@ namespace SlotRogue.UI.GameFlow
                         snapshot.Shield,
                         selected,
                         !enemy.IsDead && !isBusy && !isSpinRunning,
-                        BuildStatusViewData(enemy.StatusEffects));
+                        BuildStatusViewData(enemy.StatusEffects),
+                        upcomingActions);
                 }
             });
 
@@ -201,15 +204,20 @@ namespace SlotRogue.UI.GameFlow
             return slotIndex;
         }
 
-        internal static string FormatUpcomingEnemyAction(BattleSystem battle)
+        internal static string FormatVisibleEnemyAction(
+            EnemyVisibleIntentState enemyVisibleIntentState,
+            CombatParticipantId participantId)
         {
-            if (battle.UpcomingEnemyActions.Count == 0)
+            IReadOnlyList<EnemyUpcomingActionViewData> actions =
+                enemyVisibleIntentState?.GetActions(participantId) ??
+                System.Array.Empty<EnemyUpcomingActionViewData>();
+            if (actions.Count == 0)
             {
                 return "none";
             }
 
-            CombatEffect effect = battle.UpcomingEnemyActions[0];
-            return $"{effect.Kind} {effect.Amount}";
+            EnemyUpcomingActionViewData action = actions[0];
+            return $"{action.Kind} {action.Amount}";
         }
 
         internal static string FormatRequest(SlotCombatRequest request)

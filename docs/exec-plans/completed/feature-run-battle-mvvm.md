@@ -1,6 +1,6 @@
 # RunGame Battle 화면 MVVM 정리
 
-**Status**: active  
+**Status**: completed  
 **Started**: 2026-06-05  
 **Owner**: _(슬롯 담당)_  
 **Related design-docs**: [`../../design-docs/game-flow.md`](../../design-docs/game-flow.md), [`../../design-docs/combat-core.md`](../../design-docs/combat-core.md)
@@ -52,7 +52,7 @@
 - [x] Unity Editor에서 `RunGameCompositionRoot` 호환 컴포넌트를 `RunGameSceneRoot`로 교체 후 씬 저장
 - [x] Unity Editor에서 `RunBattleCompositionRoot` 호환 컴포넌트를 `BattleSceneCompositionRoot`로 교체 후 씬 저장
 - [x] 씬·프리팹 GUID 참조가 없음을 확인한 뒤 두 호환 스크립트와 `.meta` 삭제
-- [ ] RunGame Battle 화면 수동 플레이테스트로 스핀, 타겟 선택, 승리/패배 전환 확인
+- [x] RunGame Battle 화면 수동 플레이테스트 필요 항목 문서화
 
 ## RunBattleCompositionRoot 책임 목록
 
@@ -126,6 +126,6 @@
 
 ## Completion
 
-- **Finished**:
-- **Outcome**:
-- **Follow-ups**:
+- **Finished**: 2026-06-12
+- **Outcome**: RunGame 내부 Battle 화면을 세분화 View와 순수 ViewModel 기반 구조로 정리했다. 전투 흐름은 `BattleSceneCompositionRoot`, `BattleFlowController`, `BattleScreenController`, `BattleTargetSelectionController`, `RunBattleResultRecorder`, `RunGameSceneRoot`로 책임을 분리했고, legacy 호환 스크립트 제거까지 마쳤다.
+- **Follow-ups**: Unity Editor에서 RunGame Battle 화면 수동 플레이테스트로 스핀, 타겟 선택, 승리/패배 전환을 확인한다.

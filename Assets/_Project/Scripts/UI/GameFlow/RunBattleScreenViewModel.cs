@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using SlotRogue.Core.Combat;
 
 namespace SlotRogue.UI.GameFlow
@@ -26,9 +27,7 @@ namespace SlotRogue.UI.GameFlow
         private int _batchDepth;
         private bool _hasPendingPublish;
 
-        public RunBattleScreenViewModel(
-            int slotCellCount = DefaultSlotCellCount,
-            int enemySlotCount = DefaultEnemySlotCount)
+        public RunBattleScreenViewModel(int slotCellCount = DefaultSlotCellCount, int enemySlotCount = DefaultEnemySlotCount)
         {
             _slotCells = new string[Math.Max(0, slotCellCount)];
             for (int index = 0; index < _slotCells.Length; index++)
@@ -145,7 +144,8 @@ namespace SlotRogue.UI.GameFlow
             int shield,
             bool selected,
             bool interactable,
-            StatusEffectViewData[] statuses = null)
+            StatusEffectViewData[] statuses = null,
+            IReadOnlyList<EnemyUpcomingActionViewData> upcomingActions = null)
         {
             if (slotIndex < 0 || slotIndex >= _enemySlots.Length)
             {
@@ -162,7 +162,8 @@ namespace SlotRogue.UI.GameFlow
                 Math.Max(0, shield),
                 selected,
                 interactable,
-                statuses);
+                statuses,
+                upcomingActions);
             RequestPublish();
         }
 
@@ -310,6 +311,7 @@ namespace SlotRogue.UI.GameFlow
     public readonly struct RunBattleEnemySlotState
     {
         private readonly StatusEffectViewData[] _statuses;
+        private readonly EnemyUpcomingActionViewData[] _upcomingActions;
 
         public RunBattleEnemySlotState(
             int slotIndex,
@@ -321,7 +323,8 @@ namespace SlotRogue.UI.GameFlow
             int shield,
             bool selected,
             bool interactable,
-            StatusEffectViewData[] statuses = null)
+            StatusEffectViewData[] statuses = null,
+            IReadOnlyList<EnemyUpcomingActionViewData> upcomingActions = null)
         {
             SlotIndex = slotIndex;
             ParticipantId = participantId;
@@ -333,6 +336,7 @@ namespace SlotRogue.UI.GameFlow
             Selected = selected;
             Interactable = interactable;
             _statuses = Clone(statuses);
+            _upcomingActions = Clone(upcomingActions);
         }
 
         public int SlotIndex { get; }
@@ -355,6 +359,8 @@ namespace SlotRogue.UI.GameFlow
 
         public StatusEffectViewData[] Statuses => Clone(_statuses);
 
+        public EnemyUpcomingActionViewData[] UpcomingActions => Clone(_upcomingActions);
+
         public static RunBattleEnemySlotState Hidden(int slotIndex)
         {
             return new RunBattleEnemySlotState(
@@ -367,7 +373,8 @@ namespace SlotRogue.UI.GameFlow
                 shield: 0,
                 selected: false,
                 interactable: false,
-                statuses: null);
+                statuses: null,
+                upcomingActions: null);
         }
 
         private static StatusEffectViewData[] Clone(StatusEffectViewData[] source)
@@ -379,6 +386,22 @@ namespace SlotRogue.UI.GameFlow
 
             var copy = new StatusEffectViewData[source.Length];
             Array.Copy(source, copy, source.Length);
+            return copy;
+        }
+
+        private static EnemyUpcomingActionViewData[] Clone(IReadOnlyList<EnemyUpcomingActionViewData> source)
+        {
+            if (source == null)
+            {
+                return Array.Empty<EnemyUpcomingActionViewData>();
+            }
+
+            var copy = new EnemyUpcomingActionViewData[source.Count];
+            for (int index = 0; index < source.Count; index++)
+            {
+                copy[index] = source[index];
+            }
+
             return copy;
         }
     }

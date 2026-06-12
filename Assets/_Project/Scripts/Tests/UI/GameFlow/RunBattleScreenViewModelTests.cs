@@ -51,6 +51,10 @@ namespace SlotRogue.UI.Tests.GameFlow
                 statuses: new[]
                 {
                     new StatusEffectViewData(StatusEffectKind.Burn, remainingTurns: 2, magnitude: 3, stackCount: 1),
+                },
+                upcomingActions: new[]
+                {
+                    new EnemyUpcomingActionViewData(EnemyUpcomingActionKind.Damage, amount: 4),
                 });
 
             RunBattleEnemySlotState hidden = viewModel.State.EnemySlots[0];
@@ -67,6 +71,9 @@ namespace SlotRogue.UI.Tests.GameFlow
             Assert.That(shown.Interactable, Is.False);
             Assert.That(shown.Statuses, Has.Length.EqualTo(1));
             Assert.That(shown.Statuses[0].Kind, Is.EqualTo(StatusEffectKind.Burn));
+            Assert.That(shown.UpcomingActions, Has.Length.EqualTo(1));
+            Assert.That(shown.UpcomingActions[0].Kind, Is.EqualTo(EnemyUpcomingActionKind.Damage));
+            Assert.That(shown.UpcomingActions[0].Amount, Is.EqualTo(4));
         }
 
         [Test]
@@ -104,6 +111,197 @@ namespace SlotRogue.UI.Tests.GameFlow
 
             Assert.That(viewModel.State.EnemySlots[0].Statuses[0].Kind, Is.EqualTo(StatusEffectKind.Poison));
         }
+
+        [Test]
+        public void EnemySlotState_ReturnsUpcomingActionCopies()
+        {
+            var viewModel = new RunBattleScreenViewModel(slotCellCount: 0, enemySlotCount: 1);
+            viewModel.SetEnemySlot(
+                slotIndex: 0,
+                participantId: new CombatParticipantId(102),
+                hudText: "Enemy",
+                hp: 10,
+                maxHp: 10,
+                shield: 0,
+                selected: false,
+                interactable: true,
+                upcomingActions: new[]
+                {
+                    new EnemyUpcomingActionViewData(EnemyUpcomingActionKind.Shield, amount: 3),
+                });
+
+            EnemyUpcomingActionViewData[] actions = viewModel.State.EnemySlots[0].UpcomingActions;
+            actions[0] = new EnemyUpcomingActionViewData(EnemyUpcomingActionKind.Damage, amount: 9);
+
+            Assert.That(viewModel.State.EnemySlots[0].UpcomingActions[0].Kind, Is.EqualTo(EnemyUpcomingActionKind.Shield));
+            Assert.That(viewModel.State.EnemySlots[0].UpcomingActions[0].Amount, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void EnemyVisibleIntentState_Refresh_PreservesEffectOrderAndDuplicates()
+        {
+            var battle = new BattleSystem();
+            CombatParticipant player = CreatePlayer();
+            CombatParticipant enemy = CreateEnemy(id: 100, maxHp: 20);
+            battle.StartBattle(
+                player,
+                enemy,
+                new MonsterTurnSchedule(new[]
+                {
+                    new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy),
+                    new CombatEffect(CombatEffectKind.Damage, 3, CombatEffectTarget.Enemy),
+                    new CombatEffect(CombatEffectKind.Shield, 4, CombatEffectTarget.Self),
+                }));
+
+            var visibleIntentState = new EnemyVisibleIntentState();
+            visibleIntentState.RefreshFromBattle(battle, battle.Enemies);
+            System.Collections.Generic.IReadOnlyList<EnemyUpcomingActionViewData> actions =
+                visibleIntentState.GetActions(enemy.Id);
+
+            Assert.That(actions, Has.Length.EqualTo(3));
+            Assert.That(actions[0].Kind, Is.EqualTo(EnemyUpcomingActionKind.Damage));
+            Assert.That(actions[0].Amount, Is.EqualTo(2));
+            Assert.That(actions[1].Kind, Is.EqualTo(EnemyUpcomingActionKind.Damage));
+            Assert.That(actions[1].Amount, Is.EqualTo(3));
+            Assert.That(actions[2].Kind, Is.EqualTo(EnemyUpcomingActionKind.Shield));
+            Assert.That(actions[2].Amount, Is.EqualTo(4));
+        }
+
+        [Test]
+        public void EnemyVisibleIntentState_Refresh_MapsSupportedEffectKinds()
+        {
+            var battle = new BattleSystem();
+            CombatParticipant player = CreatePlayer();
+            CombatParticipant enemy = CreateEnemy(id: 100, maxHp: 20);
+            battle.StartBattle(
+                player,
+                enemy,
+                new MonsterTurnSchedule(new[]
+                {
+                    new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy),
+                    new CombatEffect(CombatEffectKind.Shield, 3, CombatEffectTarget.Self),
+                    new CombatEffect(CombatEffectKind.Heal, 4, CombatEffectTarget.Self),
+                    CombatEffect.ApplyStatus(
+                        new StatusEffectSpec(StatusEffectKind.Burn, duration: 2, magnitude: 1, StatusStackMode.Refresh),
+                        CombatEffectTarget.Enemy),
+                }));
+
+            var visibleIntentState = new EnemyVisibleIntentState();
+            visibleIntentState.RefreshFromBattle(battle, battle.Enemies);
+            EnemyUpcomingActionKind[] kinds =
+                System.Array.ConvertAll(
+                    ToArray(visibleIntentState.GetActions(enemy.Id)),
+                    action => action.Kind);
+
+            Assert.That(
+                kinds,
+                Is.EqualTo(new[]
+                {
+                    EnemyUpcomingActionKind.Damage,
+                    EnemyUpcomingActionKind.Shield,
+                    EnemyUpcomingActionKind.Heal,
+                    EnemyUpcomingActionKind.ApplyStatus,
+                }));
+        }
+
+        [Test]
+        public void EnemyVisibleIntentState_Refresh_ReturnsEmptyWhenMissingOrNoActions()
+        {
+            var battle = new BattleSystem();
+            CombatParticipant player = CreatePlayer();
+            CombatParticipant enemy = CreateEnemy(id: 100, maxHp: 20);
+            battle.StartBattle(player, enemy, System.Array.Empty<CombatEffect>());
+
+            var visibleIntentState = new EnemyVisibleIntentState();
+            visibleIntentState.RefreshFromBattle(battle, battle.Enemies);
+
+            Assert.That(
+                visibleIntentState.GetActions(enemy.Id),
+                Is.Empty);
+            Assert.That(
+                visibleIntentState.GetActions(new CombatParticipantId(999)),
+                Is.Empty);
+        }
+
+        [Test]
+        public void EnemyVisibleIntentState_ConsumeFirstAction_RemovesOnlyFirstVisibleAction()
+        {
+            var battle = new BattleSystem();
+            CombatParticipant player = CreatePlayer();
+            CombatParticipant enemy = CreateEnemy(id: 100, maxHp: 20);
+            battle.StartBattle(
+                player,
+                enemy,
+                new MonsterTurnSchedule(new[]
+                {
+                    new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy),
+                    new CombatEffect(CombatEffectKind.Damage, 3, CombatEffectTarget.Enemy),
+                    new CombatEffect(CombatEffectKind.Shield, 4, CombatEffectTarget.Self),
+                }));
+
+            var visibleIntentState = new EnemyVisibleIntentState();
+            visibleIntentState.RefreshFromBattle(battle, battle.Enemies);
+
+            visibleIntentState.ConsumeFirstAction(enemy.Id);
+
+            System.Collections.Generic.IReadOnlyList<EnemyUpcomingActionViewData> actions =
+                visibleIntentState.GetActions(enemy.Id);
+            Assert.That(actions, Has.Length.EqualTo(2));
+            Assert.That(actions[0].Kind, Is.EqualTo(EnemyUpcomingActionKind.Damage));
+            Assert.That(actions[0].Amount, Is.EqualTo(3));
+            Assert.That(actions[1].Kind, Is.EqualTo(EnemyUpcomingActionKind.Shield));
+            Assert.That(actions[1].Amount, Is.EqualTo(4));
+        }
+
+        [Test]
+        public void EnemyVisibleIntentState_DoesNotReadNextScheduleUntilRefresh()
+        {
+            var battle = new BattleSystem();
+            CombatParticipant player = CreatePlayer();
+            CombatParticipant enemy = CreateEnemy(id: 100, maxHp: 20);
+            battle.StartBattle(
+                player,
+                enemy,
+                new MonsterTurnSchedule(
+                    new[] { new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy) },
+                    new[] { new CombatEffect(CombatEffectKind.Shield, 5, CombatEffectTarget.Self) }));
+
+            var visibleIntentState = new EnemyVisibleIntentState();
+            visibleIntentState.RefreshFromBattle(battle, battle.Enemies);
+
+            battle.ApplyPlayerTurn(System.Array.Empty<CombatEffect>());
+
+            System.Collections.Generic.IReadOnlyList<EnemyUpcomingActionViewData> actions =
+                visibleIntentState.GetActions(enemy.Id);
+            Assert.That(actions, Has.Length.EqualTo(1));
+            Assert.That(actions[0].Kind, Is.EqualTo(EnemyUpcomingActionKind.Damage));
+            Assert.That(actions[0].Amount, Is.EqualTo(2));
+
+            visibleIntentState.RefreshFromBattle(battle, battle.Enemies);
+
+            actions = visibleIntentState.GetActions(enemy.Id);
+            Assert.That(actions, Has.Length.EqualTo(1));
+            Assert.That(actions[0].Kind, Is.EqualTo(EnemyUpcomingActionKind.Shield));
+            Assert.That(actions[0].Amount, Is.EqualTo(5));
+        }
+
+        private static EnemyUpcomingActionViewData[] ToArray(
+            System.Collections.Generic.IReadOnlyList<EnemyUpcomingActionViewData> actions)
+        {
+            var array = new EnemyUpcomingActionViewData[actions.Count];
+            for (int index = 0; index < actions.Count; index++)
+            {
+                array[index] = actions[index];
+            }
+
+            return array;
+        }
+
+        private static CombatParticipant CreatePlayer() =>
+            new(30, 30, 0, new CombatParticipantId(1), CombatTeam.Player);
+
+        private static CombatParticipant CreateEnemy(int id, int maxHp) =>
+            new(maxHp, maxHp, 0, new CombatParticipantId(id), CombatTeam.Enemy);
 
         [Test]
         public void StartRelicRefresh_PublishesDisplayOnlyOptions()

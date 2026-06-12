@@ -10,7 +10,7 @@
 
 ## Goal
 
-`combat-core.md` Q2: 적 턴마다 **다른 Effect 목록**을 순환 적용한다. Core에 `MonsterTurnSchedule`(턴 세트 배열 + 인덱스)을 추가하고, `BattleSystem.UpcomingEnemyActions`는 **다음 적 턴** 미리보기를 반환한다. Dev_Battle Harness Inspector에서 3턴 분량 설정·Play Mode 검증.
+`combat-core.md` Q2: 적 턴마다 **다른 Effect 목록**을 순환 적용한다. Core에 `MonsterTurnSchedule`(턴 세트 배열 + 인덱스)을 추가하고, `BattleSystem`이 **다음 적 턴** 미리보기를 반환한다. Dev_Battle Harness Inspector에서 3턴 분량 설정·Play Mode 검증.
 
 ## Phases
 
@@ -18,7 +18,7 @@
 
 - [x] `MonsterTurnSchedule` — 턴 세트 배열, `UpcomingActions`, `ConsumeUpcomingTurn()` (적용 후 인덱스 순환)
 - [x] `BattleSystem` — `StartBattle(..., MonsterTurnSchedule)`, 단일 `CombatEffect[]` 오버로드 유지(1턴 스케줄 래핑)
-- [x] `UpcomingEnemyActions` / `UpcomingMonsterTurnIndex` — UI·테스트용
+- [x] 적 턴 미리보기 API — UI·테스트용 (현재는 `TryGetUpcomingEnemyTurn` 기준)
 - [x] EditMode 테스트 — 3턴 순환, 1턴 스케줄 기존 동작, 빈 스케줄 fallback
 
 **🔍 Review:** 기존 `BattleSystemTests` green + 스케줄 테스트 green.

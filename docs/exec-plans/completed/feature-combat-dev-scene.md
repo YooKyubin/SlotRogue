@@ -36,7 +36,7 @@
 - [x] `BattleDevHarness` — `StartBattle` / `Apply Turn` 버튼, Inspector 전투·Request 필드
 - [x] Harness: Inspector → `new SlotCombatRequest(...)` (슬롯 스핀·`SlotCombatRequestBuilder` 불필요)
 - [x] Harness: 변환 → `ApplyPlayerTurn`, 거부 시(Phase/Ended) Console 한 줄
-- [x] 몬스터 적 턴 — Inspector 고정 `CombatEffect[]` 1세트 (`UpcomingEnemyActions`)
+- [x] 몬스터 적 턴 — Inspector 고정 `CombatEffect[]` 1세트 (적 턴 미리보기 API)
 
 **🔍 Review:** Play Mode에서 Start → Apply 여러 번 → HP/shield·Phase가 Harness가 읽는 Participant와 일치.
 

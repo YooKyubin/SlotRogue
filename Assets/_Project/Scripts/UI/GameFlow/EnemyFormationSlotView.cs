@@ -14,24 +14,39 @@ namespace SlotRogue.UI.GameFlow
         private static readonly Color EnemySlotColor = new Color(0.11f, 0.14f, 0.2f, 0.96f);
         private static readonly Color SelectedEnemySlotColor = new Color(0.45f, 0.26f, 0.12f, 0.96f);
 
+        [Header("Root")]
         [SerializeField] private Transform _root;
         [SerializeField] private Transform _shakeGroup;
+
+        [Header("Portrait")]
         [SerializeField] private SpriteRenderer _portrait;
+        [SerializeField] private Text _placeholderText;
+
+        [Header("HUD")]
         [SerializeField] private Canvas _hudRoot;
         [SerializeField] private Text _hudText;
         [SerializeField] private Image _hpFill;
         [SerializeField] private Image _statusBackground;
         [SerializeField] private ShieldGaugeView _shieldGauge;
+
+        [Header("Combat Anchors")]
         [SerializeField] private RectTransform _damageAnchor;
-        [SerializeField] private Text _placeholderText;
         [SerializeField] private Collider2D _clickCollider;
+
+        [Header("Status Effects")]
         [SerializeField] private RectTransform _statusEffectRoot;
         [SerializeField] private GameObject _statusEffectIconPrefab;
 
+        [Header("Intent")]
+        [SerializeField] private Transform _intentRoot;
+        [SerializeField] private EnemyIntentIconView _intentIconPrefab;
+
         private readonly List<EnemyStatusEffectIconView> _statusEffectIcons = new();
+        private readonly List<EnemyIntentIconView> _intentIcons = new();
         private UnityAction _clickHandler;
         private bool _interactable = true;
         private bool _statusEffectMissingReferenceWarningLogged;
+        private bool _intentMissingReferenceWarningLogged;
         private float _hpFillMaxWidth;
         private bool _hpFillLayoutInitialized;
         private bool _hpFillRendered;
@@ -62,7 +77,9 @@ namespace SlotRogue.UI.GameFlow
             Text placeholderText,
             Collider2D clickCollider,
             RectTransform statusEffectRoot = null,
-            GameObject statusEffectIconPrefab = null)
+            GameObject statusEffectIconPrefab = null,
+            Transform intentRoot = null,
+            EnemyIntentIconView intentIconPrefab = null)
         {
             _root = root;
             _shakeGroup = shakeGroup;
@@ -79,6 +96,8 @@ namespace SlotRogue.UI.GameFlow
             _clickCollider = clickCollider;
             _statusEffectRoot = statusEffectRoot;
             _statusEffectIconPrefab = statusEffectIconPrefab;
+            _intentRoot = intentRoot;
+            _intentIconPrefab = intentIconPrefab;
         }
 
         private void OnDisable()
@@ -214,6 +233,46 @@ namespace SlotRogue.UI.GameFlow
             }
         }
 
+        public void SetUpcomingActions(IReadOnlyList<EnemyUpcomingActionViewData> upcomingActions)
+        {
+            int actionCount = upcomingActions != null ? upcomingActions.Count : 0;
+            if (_intentRoot != null)
+            {
+                _intentRoot.gameObject.SetActive(actionCount > 0);
+            }
+
+            if (actionCount == 0)
+            {
+                HideIntentIcons(startIndex: 0);
+                return;
+            }
+
+            if (_intentRoot == null)
+            {
+                LogMissingIntentReferenceWarning("Intent Root");
+                return;
+            }
+
+            if (_intentIconPrefab == null)
+            {
+                LogMissingIntentReferenceWarning("Intent Icon Prefab");
+                return;
+            }
+
+            EnsureIntentIconCount(actionCount);
+
+            for (int index = 0; index < _intentIcons.Count; index++)
+            {
+                EnemyIntentIconView icon = _intentIcons[index];
+                bool active = index < actionCount;
+                icon.gameObject.SetActive(active);
+                if (active)
+                {
+                    icon.Set(upcomingActions[index]);
+                }
+            }
+        }
+
         public void SetSelected(bool selected)
         {
             if (_statusBackground != null)
@@ -298,6 +357,45 @@ namespace SlotRogue.UI.GameFlow
             return icon;
         }
 
+        private void EnsureIntentIconCount(int count)
+        {
+            while (_intentIcons.Count < count)
+            {
+                EnemyIntentIconView icon = CreateIntentIcon();
+                if (icon == null)
+                {
+                    return;
+                }
+
+                _intentIcons.Add(icon);
+            }
+        }
+
+        private EnemyIntentIconView CreateIntentIcon()
+        {
+            if (_intentIconPrefab == null || _intentRoot == null)
+            {
+                return null;
+            }
+
+            EnemyIntentIconView icon = Instantiate(_intentIconPrefab, _intentRoot);
+            icon.name = $"Intent Icon {_intentIcons.Count}";
+            icon.gameObject.SetActive(false);
+            return icon;
+        }
+
+        private void HideIntentIcons(int startIndex)
+        {
+            for (int index = startIndex; index < _intentIcons.Count; index++)
+            {
+                EnemyIntentIconView icon = _intentIcons[index];
+                if (icon != null)
+                {
+                    icon.gameObject.SetActive(false);
+                }
+            }
+        }
+
         private void LogMissingStatusEffectReferenceWarning(string missingReferenceName)
         {
             if (_statusEffectMissingReferenceWarningLogged)
@@ -309,6 +407,19 @@ namespace SlotRogue.UI.GameFlow
             Debug.LogWarning(
                 $"[EnemyFormationSlotView] {missingReferenceName} is missing. " +
                 "Status effect icons will not be shown for this slot.");
+        }
+
+        private void LogMissingIntentReferenceWarning(string missingReferenceName)
+        {
+            if (_intentMissingReferenceWarningLogged)
+            {
+                return;
+            }
+
+            _intentMissingReferenceWarningLogged = true;
+            Debug.LogWarning(
+                $"[EnemyFormationSlotView] {missingReferenceName} is missing. " +
+                "Enemy intent icons will not be shown for this slot.");
         }
 
         private static Transform FindDeepChild(Transform parent, string childName)

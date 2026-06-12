@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace SlotRogue.Core.Combat
 {
@@ -35,14 +34,44 @@ namespace SlotRogue.Core.Combat
 
         public IReadOnlyList<CombatEvent> Events => _events;
 
-        public IReadOnlyList<CombatEffect> UpcomingEnemyActions =>
-            _enemyTurnStates.FirstOrDefault(state => !state.Participant.IsDead)?.Schedule.UpcomingActions
-            ?? Array.Empty<CombatEffect>();
-
-        public int UpcomingMonsterTurnIndex =>
-            _enemyTurnStates.FirstOrDefault(state => !state.Participant.IsDead)?.Schedule.UpcomingTurnIndex ?? 0;
-
         public bool CanApplyPlayerTurn => CurrentPhase == BattlePhase.PlayerTurn;
+
+        public bool TryGetUpcomingEnemyTurn(
+            CombatParticipantId participantId,
+            out EnemyUpcomingTurn upcomingTurn)
+        {
+            if (!participantId.IsValid)
+            {
+                upcomingTurn = default;
+                return false;
+            }
+
+            for (int index = 0; index < _enemyTurnStates.Count; index++)
+            {
+                EnemyTurnState state = _enemyTurnStates[index];
+
+                if (state.Participant.Id.Value != participantId.Value)
+                {
+                    continue;
+                }
+
+                if (state.Participant.IsDead)
+                {
+                    upcomingTurn = default;
+                    return false;
+                }
+
+                upcomingTurn = new EnemyUpcomingTurn(
+                    state.Participant.Id,
+                    state.Schedule.UpcomingTurnIndex,
+                    state.Schedule.UpcomingActions);
+
+                return true;
+            }
+
+            upcomingTurn = default;
+            return false;
+        }
 
         public void StartBattle(CombatParticipant player, CombatParticipant monster, IReadOnlyList<CombatEffect> monsterTurnActions)
         {
@@ -213,13 +242,20 @@ namespace SlotRogue.Core.Combat
                         isPlayerParticipant: isPlayerTarget,
                         targetParticipantId: target.Id,
                         targetBefore: targetBefore,
-                        targetAfter: targetAfter));
+                        targetAfter: targetAfter,
+                        sourceParticipantId: source.Id));
 
                     if (TryEndBattle())
                     {
                         return true;
                     }
                 }
+
+                _events.Add(new CombatEvent(
+                    CombatEventKind.ActionCompleted,
+                    CurrentPhase,
+                    effect,
+                    sourceParticipantId: source.Id));
             }
 
             return false;

@@ -162,11 +162,11 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 3904002063679712515}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
+  m_AnchorMin: {x: 0.5, y: 0}
+  m_AnchorMax: {x: 0.5, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
-  m_Pivot: {x: 0, y: 1}
+  m_Pivot: {x: 0.5, y: 0}
 --- !u!114 &6606743081689003816
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -309,6 +309,83 @@ MonoBehaviour:
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.GameFlowImageSlot
   _slotId: game-flow/frame/HP Bar/Left
   _image: {fileID: 1502309748294717983}
+--- !u!1 &1554179762781672551
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 429236092112441516}
+  - component: {fileID: 8800461222521236412}
+  - component: {fileID: 5275451658065394593}
+  m_Layer: 0
+  m_Name: IntentRoot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &429236092112441516
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1554179762781672551}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3904002063679712515}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 100, y: 100}
+  m_Pivot: {x: 0, y: 1}
+--- !u!114 &8800461222521236412
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1554179762781672551}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 30649d3a9faa99c48a7b1166b86bf2a0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.HorizontalLayoutGroup
+  m_Padding:
+    m_Left: 0
+    m_Right: 0
+    m_Top: 0
+    m_Bottom: 0
+  m_ChildAlignment: 1
+  m_Spacing: 0
+  m_ChildForceExpandWidth: 0
+  m_ChildForceExpandHeight: 0
+  m_ChildControlWidth: 0
+  m_ChildControlHeight: 0
+  m_ChildScaleWidth: 0
+  m_ChildScaleHeight: 0
+  m_ReverseArrangement: 0
+--- !u!114 &5275451658065394593
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1554179762781672551}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3245ec927659c4140ac4f8d17403cc18, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.ContentSizeFitter
+  m_HorizontalFit: 0
+  m_VerticalFit: 0
 --- !u!1 &2337309137484765667
 GameObject:
   m_ObjectHideFlags: 0
@@ -1007,16 +1084,18 @@ MonoBehaviour:
   _root: {fileID: 7734689118347477723}
   _shakeGroup: {fileID: 5544154377086351525}
   _portrait: {fileID: 3739380269821333535}
+  _placeholderText: {fileID: 5830150025322420425}
   _hudRoot: {fileID: 7007034043896490227}
   _hudText: {fileID: 5201997253535934838}
   _hpFill: {fileID: 2146629859500977907}
   _statusBackground: {fileID: 3921066274606767964}
   _shieldGauge: {fileID: 2563102726358517046}
   _damageAnchor: {fileID: 7453423559490118063}
-  _placeholderText: {fileID: 5830150025322420425}
   _clickCollider: {fileID: 4201644066975238051}
   _statusEffectRoot: {fileID: 728450995424023123}
   _statusEffectIconPrefab: {fileID: 2479965767819659198, guid: 74f263931e0f2d94896a68498b746ebe, type: 3}
+  _intentRoot: {fileID: 429236092112441516}
+  _intentIconPrefab: {fileID: 7975852844219345148, guid: 59fabc5a6746e704691aa1eb07411abe, type: 3}
 --- !u!1 &5233817760683525268
 GameObject:
   m_ObjectHideFlags: 0
@@ -1275,12 +1354,13 @@ RectTransform:
   - {fileID: 2196566125196473623}
   - {fileID: 7616402410386701772}
   - {fileID: 728450995424023123}
+  - {fileID: 429236092112441516}
   m_Father: {fileID: 5544154377086351525}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: -0.0596}
-  m_SizeDelta: {x: 150, y: 310.803}
+  m_SizeDelta: {x: 150, y: 250}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!223 &7007034043896490227
 Canvas:
@@ -1300,7 +1380,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
-  m_AdditionalShaderChannelsFlag: 0
+  m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 796154759
   m_SortingOrder: 20
