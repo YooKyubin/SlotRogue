@@ -23,7 +23,7 @@ namespace SlotRogue.UI.Tests.GameFlow
             viewModel.Batch(() =>
             {
                 viewModel.SetSlotCells(new[] { "A", "B", "C" });
-                viewModel.SetBattleText("status", "slot", "attack", "intent");
+                viewModel.SetBattleText("slot", "attack");
                 viewModel.SetActionMode(RunBattleActionMode.Spin, spinInteractable: false);
             });
 

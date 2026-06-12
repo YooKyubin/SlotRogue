@@ -42,10 +42,8 @@ namespace SlotRogue.UI.GameFlow
                 _vm.Batch(() =>
                 {
                     _vm.SetBattleText(
-                        _vm.State.StatusText,
                         string.Empty,
-                        "ATK 0",
-                        _vm.State.EnemyIntentText);
+                        "ATK 0");
                     _vm.SetSlotOutcome(hasPattern: false, row: -1, startColumn: -1, matchLength: 0);
                 });
                 return;
@@ -80,10 +78,8 @@ namespace SlotRogue.UI.GameFlow
             _vm.Batch(() =>
             {
                 _vm.SetBattleText(
-                    _vm.State.StatusText,
                     builder.ToString(),
-                    $"ATK {lastRequestResult.AttackPower}",
-                    _vm.State.EnemyIntentText);
+                    $"ATK {lastRequestResult.AttackPower}");
                 _vm.SetSlotOutcome(
                     hasPattern,
                     patternResult != null ? patternResult.Row : -1,

@@ -348,7 +348,6 @@ GameObject:
   - component: {fileID: 2930278658962823506}
   - component: {fileID: 1853089119825161304}
   - component: {fileID: 9189578650716397107}
-  - component: {fileID: 366488112201603369}
   - component: {fileID: 5647838038998904444}
   - component: {fileID: 7702046598925816247}
   m_Layer: 0
@@ -393,7 +392,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RunBattleScreenView
   _playerHudView: {fileID: 9189578650716397107}
-  _statusView: {fileID: 366488112201603369}
   _slotBoardView: {fileID: 8966092587041993770}
   _actionView: {fileID: 5647838038998904444}
   _presentationOverlayView: {fileID: 7752947610108748584}
@@ -413,20 +411,6 @@ MonoBehaviour:
   _hudText: {fileID: 0}
   _hpFill: {fileID: 0}
   _shieldFill: {fileID: 0}
---- !u!114 &366488112201603369
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1304181870810774184}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fbe81d21248944b3b9a8c8fa054bffd7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RunBattleStatusView
-  _statusText: {fileID: 0}
-  _enemyIntentText: {fileID: 0}
 --- !u!114 &5647838038998904444
 MonoBehaviour:
   m_ObjectHideFlags: 0

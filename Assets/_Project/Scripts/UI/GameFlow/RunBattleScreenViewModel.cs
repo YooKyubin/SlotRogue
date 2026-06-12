@@ -12,11 +12,9 @@ namespace SlotRogue.UI.GameFlow
         private readonly string[] _slotCells;
         private readonly RunBattleEnemySlotState[] _enemySlots;
 
-        private string _statusText = string.Empty;
         private string _slotResultText = string.Empty;
         private string _attackResultText = string.Empty;
         private string _playerHudText = string.Empty;
-        private string _enemyIntentText = string.Empty;
         private int _playerHp;
         private int _playerMaxHp = 1;
         private int _playerShield;
@@ -84,15 +82,11 @@ namespace SlotRogue.UI.GameFlow
         }
 
         public void SetBattleText(
-            string statusText,
             string slotResultText,
-            string attackResultText,
-            string enemyIntentText)
+            string attackResultText)
         {
-            _statusText = statusText ?? string.Empty;
             _slotResultText = slotResultText ?? string.Empty;
             _attackResultText = attackResultText ?? string.Empty;
-            _enemyIntentText = enemyIntentText ?? string.Empty;
             RequestPublish();
         }
 
@@ -203,11 +197,9 @@ namespace SlotRogue.UI.GameFlow
             return new RunBattleScreenState(
                 _slotCells,
                 _enemySlots,
-                _statusText,
                 _slotResultText,
                 _attackResultText,
                 _playerHudText,
-                _enemyIntentText,
                 _playerHp,
                 _playerMaxHp,
                 _playerShield,
@@ -226,11 +218,9 @@ namespace SlotRogue.UI.GameFlow
         internal RunBattleScreenState(
             string[] slotCells,
             RunBattleEnemySlotState[] enemySlots,
-            string statusText,
             string slotResultText,
             string attackResultText,
             string playerHudText,
-            string enemyIntentText,
             int playerHp,
             int playerMaxHp,
             int playerShield,
@@ -241,11 +231,9 @@ namespace SlotRogue.UI.GameFlow
         {
             _slotCells = Clone(slotCells);
             _enemySlots = Clone(enemySlots);
-            StatusText = statusText ?? string.Empty;
             SlotResultText = slotResultText ?? string.Empty;
             AttackResultText = attackResultText ?? string.Empty;
             PlayerHudText = playerHudText ?? string.Empty;
-            EnemyIntentText = enemyIntentText ?? string.Empty;
             PlayerHp = playerHp;
             PlayerMaxHp = playerMaxHp;
             PlayerShield = playerShield;
@@ -259,15 +247,11 @@ namespace SlotRogue.UI.GameFlow
 
         public RunBattleEnemySlotState[] EnemySlots => Clone(_enemySlots);
 
-        public string StatusText { get; }
-
         public string SlotResultText { get; }
 
         public string AttackResultText { get; }
 
         public string PlayerHudText { get; }
-
-        public string EnemyIntentText { get; }
 
         public int PlayerHp { get; }
 

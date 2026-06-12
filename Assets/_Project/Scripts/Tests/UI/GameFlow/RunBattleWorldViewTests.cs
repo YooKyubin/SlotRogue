@@ -164,7 +164,7 @@ namespace SlotRogue.UI.Tests.GameFlow
                 Text attackPowerText = textObject.GetComponent<Text>();
 
                 var viewModel = new RunBattleScreenViewModel(slotCellCount: 0, enemySlotCount: 0);
-                viewModel.SetBattleText("status", "slot", "ATK 18", "intent");
+                viewModel.SetBattleText("slot", "ATK 18");
 
                 view.Render(viewModel.State);
 

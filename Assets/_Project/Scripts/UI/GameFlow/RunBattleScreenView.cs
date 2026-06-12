@@ -4,22 +4,18 @@ using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
 using SlotRogue.UI.Combat.Presentation;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace SlotRogue.UI.GameFlow
 {
     public sealed class RunBattleScreenView : MonoBehaviour, ICombatDamageAnchorRegistry, ICombatShieldGaugeRegistry
     {
         [SerializeField] private RunBattlePlayerHudView _playerHudView;
-        [SerializeField] private RunBattleStatusView _statusView;
         [SerializeField] private RunBattleSlotBoardView _slotBoardView;
         [SerializeField] private RunBattleActionView _actionView;
         [SerializeField] private RunBattlePresentationOverlayView _presentationOverlayView;
         [SerializeField] private RunBattleWorldView _worldView;
 
         public event Action SpinRequested;
-
-        public Text StatusText => _statusView != null ? _statusView.StatusText : null;
 
         public Transform FloatingTextRoot =>
             _presentationOverlayView != null ? _presentationOverlayView.FloatingTextRoot : null;
@@ -45,14 +41,12 @@ namespace SlotRogue.UI.GameFlow
 
         public void Bind(
             RunBattlePlayerHudView playerHudView,
-            RunBattleStatusView statusView,
             RunBattleSlotBoardView slotBoardView,
             RunBattleActionView actionView,
             RunBattlePresentationOverlayView presentationOverlayView,
             RunBattleWorldView worldView)
         {
             _playerHudView = playerHudView;
-            _statusView = statusView;
             _slotBoardView = slotBoardView;
             _actionView = actionView;
             _presentationOverlayView = presentationOverlayView;
@@ -62,7 +56,6 @@ namespace SlotRogue.UI.GameFlow
         public bool EnsureReferences()
         {
             _playerHudView ??= GetComponentInChildren<RunBattlePlayerHudView>(true);
-            _statusView ??= GetComponentInChildren<RunBattleStatusView>(true);
             _slotBoardView ??= GetComponentInChildren<RunBattleSlotBoardView>(true);
             _actionView ??= GetComponentInChildren<RunBattleActionView>(true);
             _presentationOverlayView ??= GetComponentInChildren<RunBattlePresentationOverlayView>(true);
@@ -70,7 +63,6 @@ namespace SlotRogue.UI.GameFlow
             _worldView?.EnsureReferences();
 
             return _playerHudView != null &&
-                _statusView != null &&
                 _slotBoardView != null &&
                 _actionView != null &&
                 _presentationOverlayView != null &&
@@ -91,7 +83,6 @@ namespace SlotRogue.UI.GameFlow
             }
 
             _playerHudView?.Render(state);
-            _statusView?.Render(state);
             _slotBoardView?.Render(state);
             _actionView?.Render(state);
             _worldView?.Render(state);

@@ -12,7 +12,7 @@ namespace SlotRogue.UI.GameFlow
         private readonly RunEncounterRoster _encounterRoster;
         private readonly Func<bool> _isBusy;
         private readonly Func<bool> _isSpinRunning;
-        private readonly Action _refreshStatusText;
+        private readonly Action _refreshView;
 
         private CombatParticipantId _selectedEnemyId;
 
@@ -22,14 +22,14 @@ namespace SlotRogue.UI.GameFlow
             RunEncounterRoster encounterRoster,
             Func<bool> isBusy,
             Func<bool> isSpinRunning,
-            Action refreshStatusText)
+            Action refreshView)
         {
             _battle = battle ?? throw new ArgumentNullException(nameof(battle));
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _encounterRoster = encounterRoster ?? throw new ArgumentNullException(nameof(encounterRoster));
             _isBusy = isBusy ?? throw new ArgumentNullException(nameof(isBusy));
             _isSpinRunning = isSpinRunning ?? throw new ArgumentNullException(nameof(isSpinRunning));
-            _refreshStatusText = refreshStatusText ?? throw new ArgumentNullException(nameof(refreshStatusText));
+            _refreshView = refreshView ?? throw new ArgumentNullException(nameof(refreshView));
         }
 
         internal void Bind()
@@ -109,7 +109,7 @@ namespace SlotRogue.UI.GameFlow
                 if (enemy.Id.Value == enemyId.Value && !enemy.IsDead)
                 {
                     _selectedEnemyId = enemyId;
-                    _refreshStatusText();
+                    _refreshView();
                     return;
                 }
             }
