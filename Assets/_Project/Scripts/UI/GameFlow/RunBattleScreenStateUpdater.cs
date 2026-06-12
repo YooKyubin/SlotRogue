@@ -35,8 +35,7 @@ namespace SlotRogue.UI.GameFlow
 
         internal void UpdateSlotResult(
             RunCombatRequestResult lastRequestResult,
-            SlotPatternResult patternResult,
-            string upcomingEnemyActionText)
+            SlotPatternResult patternResult)
         {
             if (lastRequestResult == null)
             {
@@ -44,7 +43,7 @@ namespace SlotRogue.UI.GameFlow
                 {
                     _vm.SetBattleText(
                         _vm.State.StatusText,
-                        "NEXT ATTACK\n" + upcomingEnemyActionText,
+                        string.Empty,
                         "ATK 0",
                         _vm.State.EnemyIntentText);
                     _vm.SetSlotOutcome(hasPattern: false, row: -1, startColumn: -1, matchLength: 0);
@@ -101,15 +100,6 @@ namespace SlotRogue.UI.GameFlow
                 player.MaxHp,
                 combatViewModel.PlayerShield,
                 Mathf.Max(1, player.MaxHp));
-        }
-
-        internal void UpdateBattleTextMeta(string statusText, string enemyIntentText)
-        {
-            _vm.SetBattleText(
-                statusText,
-                _vm.State.SlotResultText,
-                _vm.State.AttackResultText,
-                enemyIntentText);
         }
 
         internal int[] UpdateEnemySlots(
@@ -202,22 +192,6 @@ namespace SlotRogue.UI.GameFlow
             }
 
             return slotIndex;
-        }
-
-        internal static string FormatVisibleEnemyAction(
-            EnemyVisibleIntentState enemyVisibleIntentState,
-            CombatParticipantId participantId)
-        {
-            IReadOnlyList<EnemyUpcomingActionViewData> actions =
-                enemyVisibleIntentState?.GetActions(participantId) ??
-                System.Array.Empty<EnemyUpcomingActionViewData>();
-            if (actions.Count == 0)
-            {
-                return "none";
-            }
-
-            EnemyUpcomingActionViewData action = actions[0];
-            return $"{action.Kind} {action.Amount}";
         }
 
         internal static string FormatRequest(SlotCombatRequest request)

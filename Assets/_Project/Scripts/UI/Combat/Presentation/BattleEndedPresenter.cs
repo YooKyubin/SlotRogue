@@ -1,7 +1,6 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
-using UnityEngine;
 
 namespace SlotRogue.UI.Combat.Presentation
 {
@@ -25,7 +24,6 @@ namespace SlotRogue.UI.Combat.Presentation
                 return;
             }
 
-            Debug.Log($"[Presentation] Battle ended: {combatEvent.EndReason}");
             await CombatPresentationTweens.DelayAsync(PauseDuration, Host.LinkTarget, cancellationToken);
         }
     }
