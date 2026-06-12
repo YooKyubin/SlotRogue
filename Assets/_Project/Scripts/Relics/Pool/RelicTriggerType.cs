@@ -1,6 +1,6 @@
 namespace SlotRogue.Relics.Pool
 {
-    /// <summary>유물이 언제/어떻게 발동하는지(v20.3).</summary>
+    /// <summary>유물이 언제/어떻게 발동하는지(v23).</summary>
     public enum RelicTriggerType
     {
         /// <summary>특정 심볼 족보가 requiredCount개 이상일 때.</summary>

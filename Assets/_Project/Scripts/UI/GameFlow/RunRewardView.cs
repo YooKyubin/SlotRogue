@@ -1,3 +1,4 @@
+using System;
 using SlotRogue.UI.RunGame;
 using SlotRogue.UI.RunGame.ViewModels;
 using UnityEngine;
@@ -18,9 +19,13 @@ namespace SlotRogue.UI.GameFlow
 
         public GameFlowOptionView[] RewardOptions => _rewardOptions;
 
-        private RunRewardViewModel _viewModel;
+        public event Action Entered;
 
-        // ── 기존 Editor 빌더용 Bind (유지) ──────────────────────────────
+        public event Action<int> RewardSelectionRequested;
+
+        public event Action RerollRequested;
+
+        public event Action ExtraRewardRequested;
 
         public void Bind(Text summaryText, GameFlowOptionView[] rewardOptions)
         {
@@ -28,26 +33,15 @@ namespace SlotRogue.UI.GameFlow
             _rewardOptions = rewardOptions;
         }
 
-        // ── IRunRewardView (MVVM) ────────────────────────────────────────
-
-        public void Bind(RunRewardViewModel viewModel)
+        private void Awake()
         {
-            if (_viewModel != null) _viewModel.Changed -= OnViewModelChanged;
-            _viewModel = viewModel;
-            if (_viewModel != null) _viewModel.Changed += OnViewModelChanged;
-
             WireAdButtons();
         }
 
         public void OnEnter()
         {
             gameObject.SetActive(true);
-            if (_viewModel == null) return;
-
-            _viewModel.Refresh();
-            SetSummary(_viewModel.Summary);
-            RebindOptions();
-            UpdateAdButtonVisibility();
+            Entered?.Invoke();
         }
 
         public void OnExit()
@@ -55,12 +49,21 @@ namespace SlotRogue.UI.GameFlow
             gameObject.SetActive(false);
         }
 
-        private void OnDestroy()
+        public void Render(RunRewardViewState state)
         {
-            if (_viewModel != null) _viewModel.Changed -= OnViewModelChanged;
-        }
+            if (state == null)
+            {
+                return;
+            }
 
-        // ── 광고 버튼 (스텁) ─────────────────────────────────────────────
+            if (_summaryText != null)
+            {
+                _summaryText.text = state.Summary;
+            }
+
+            RenderOptions(state.Options);
+            UpdateAdButtonVisibility(state.IsBigReward);
+        }
 
         private void WireAdButtons()
         {
@@ -77,52 +80,56 @@ namespace SlotRogue.UI.GameFlow
             }
         }
 
-        private void OnRerollClicked() => _viewModel?.RerollRewards();
-
-        private void OnAddRewardClicked() => _viewModel?.AddExtraReward();
-
-        private void OnViewModelChanged()
+        private void OnRerollClicked()
         {
-            if (_viewModel == null) return;
-            SetSummary(_viewModel.Summary);
-            RebindOptions();
-            UpdateAdButtonVisibility();
+            RerollRequested?.Invoke();
         }
 
-        private void UpdateAdButtonVisibility()
+        private void OnAddRewardClicked()
         {
-            // 리롤 버튼은 모든 보상 화면에 표시, 추가 버튼은 큰 보상(엘리트/보스)에서만 표시.
+            ExtraRewardRequested?.Invoke();
+        }
+
+        private void UpdateAdButtonVisibility(bool isBigReward)
+        {
             if (_addRewardButton != null)
-                _addRewardButton.gameObject.SetActive(_viewModel != null && _viewModel.IsBigReward);
-        }
-
-        // ── 내부 ────────────────────────────────────────────────────────
-
-        public void SetSummary(string value)
-        {
-            if (_summaryText != null)
-                _summaryText.text = value;
-        }
-
-        private void RebindOptions()
-        {
-            if (_viewModel == null || _rewardOptions == null) return;
-
-            var rewards      = _viewModel.Rewards;
-            int visibleCount = Mathf.Min(_rewardOptions.Length, rewards.Count);
-
-            for (int i = 0; i < _rewardOptions.Length; i++)
             {
-                GameFlowOptionView option = _rewardOptions[i];
-                if (option == null) continue; // 인스펙터 미연결 슬롯은 건너뜀
-                option.gameObject.SetActive(i < visibleCount);
-                if (i >= visibleCount) continue;
+                _addRewardButton.gameObject.SetActive(isBigReward);
+            }
+        }
 
-                RunRewardDefinition reward = rewards[i];
-                option.SetText(reward.DisplayName, reward.Description);
-                option.Button.onClick.RemoveAllListeners();
+        private void RenderOptions(
+            System.Collections.Generic.IReadOnlyList<RunRewardOptionViewState> options)
+        {
+            if (_rewardOptions == null)
+            {
+                return;
+            }
 
-                option.Button.onClick.AddListener(() => _viewModel.ClaimReward(reward));
+            int optionCount = options != null ? options.Count : 0;
+            int visibleCount = Mathf.Min(_rewardOptions.Length, optionCount);
+
+            for (int index = 0; index < _rewardOptions.Length; index++)
+            {
+                GameFlowOptionView optionView = _rewardOptions[index];
+                if (optionView == null)
+                {
+                    continue;
+                }
+
+                optionView.gameObject.SetActive(index < visibleCount);
+                if (index >= visibleCount)
+                {
+                    continue;
+                }
+
+                RunRewardOptionViewState option = options[index];
+                optionView.SetText(option.Title, option.Description);
+                optionView.Button.onClick.RemoveAllListeners();
+
+                int optionIndex = option.Index;
+                optionView.Button.onClick.AddListener(
+                    () => RewardSelectionRequested?.Invoke(optionIndex));
             }
         }
     }

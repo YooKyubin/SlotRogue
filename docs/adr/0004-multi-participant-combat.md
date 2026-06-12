@@ -48,7 +48,7 @@
 - `TargetMode.SelectedEnemy` 경로에는 UI 선택 상태와 `TargetParticipantId` 유효성 검증(생존 여부, Enemy team 여부)이 필요하다.
 - 멀티히트 처리 시 "중간 사망 -> 남은 타수 재타겟" 규칙과 "대체 대상 없음 -> 잔여타 소멸" 규칙을 테스트로 고정해야 한다.
 - 적 턴은 왼쪽→오른쪽 순차 적용과 "사망 participant schedule skip, 생존 participant index 유지" 동작을 테스트로 고정해야 한다.
-- `CombatViewModel`, `RunBattleView`, `BattleDevHarness`, `RunBattleController`, `CombatEventConsoleLogger`는 `IsPlayerParticipant` bool과 player/monster 고정 HUD 필드에 의존하지 않도록 바뀐다.
+- 당시 `CombatViewModel`, `RunBattleView`, `BattleDevHarness`, `RunBattleController`, `CombatEventConsoleLogger`의 player/monster 고정 HUD 의존을 제거했다. 이후 구 View/Controller/DevHarness는 본편 구조 전환 과정에서 삭제됐다.
 - 구현 기록: [`feature-multi-participant-combat`](../exec-plans/completed/feature-multi-participant-combat.md) (2026-06-03 완료).
 
 ## Notes

@@ -12,8 +12,9 @@
 |------|---------|
 | [`feature-game-flow-loop.md`](./feature-game-flow-loop.md) | 2026-05-31 |
 | [`feature-slot-core.md`](./feature-slot-core.md) | 2026-05-28 |
-| [`feature-attribute-artifacts.md`](./feature-attribute-artifacts.md) | 2026-06-04 |
+| [`feature-attribute-combat-link.md`](./feature-attribute-combat-link.md) | 2026-06-05 |
 | [`feature-run-battle-mvvm.md`](./feature-run-battle-mvvm.md) | 2026-06-05 |
+| [`feature-ui-strict-mvvm.md`](./feature-ui-strict-mvvm.md) | 2026-06-11 |
 
 새 plan을 시작하면 같은 커밋에서 [`../../STATUS.md`](../../STATUS.md)의 "Active exec-plans" 표에도 등록한다.
 

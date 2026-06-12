@@ -1,38 +1,20 @@
-using SlotRogue.UI.GameFlow;
+using System;
 using UnityEngine;
 
 namespace SlotRogue.UI.RunGame
 {
     /// <summary>
     /// 전투 화면 전체를 감싸는 View입니다.
-    /// IRunGameView 계약을 구현하며, 실제 전투 로직은
-    /// RunBattleCompositionRoot에 위임합니다.
+    /// 실제 전투 시작과 결과 처리는 SceneRoot가 전투 Flow Controller에 연결합니다.
     /// </summary>
     public sealed class BattleView : MonoBehaviour, IRunGameView
     {
-        [SerializeField] private RunBattleCompositionRoot _compositionRoot;
-
-        /// <summary>RunGameCompositionRoot가 결과 콜백을 받기 위해 구독합니다.</summary>
-        public event System.Action BattleWon;
-
-        /// <summary>RunGameCompositionRoot가 결과 콜백을 받기 위해 구독합니다.</summary>
-        public event System.Action BattleLost;
-
-        private void Awake()
-        {
-            if (_compositionRoot != null)
-            {
-                _compositionRoot.BattleVictory += () => BattleWon?.Invoke();
-                _compositionRoot.BattleDefeat  += () => BattleLost?.Invoke();
-            }
-        }
-
-        // ── IRunGameView ─────────────────────────────────────────────────
+        public event Action Entered;
 
         public void OnEnter()
         {
             gameObject.SetActive(true);
-            _compositionRoot?.BeginBattle();
+            Entered?.Invoke();
         }
 
         public void OnExit()

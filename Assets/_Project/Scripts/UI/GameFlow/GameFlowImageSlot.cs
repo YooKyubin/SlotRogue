@@ -32,6 +32,7 @@ namespace SlotRogue.UI.GameFlow
 
             _image.sprite = sprite;
             _image.preserveAspect = true;
+            _image.enabled = sprite != null;
         }
     }
 }

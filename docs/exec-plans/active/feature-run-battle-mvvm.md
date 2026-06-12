@@ -1,4 +1,4 @@
-# RunBattle MVVM 정리
+# RunGame Battle 화면 MVVM 정리
 
 **Status**: active  
 **Started**: 2026-06-05  
@@ -7,7 +7,7 @@
 
 ## Goal
 
-`RunBattle` 씬의 하이어라키, Inspector, View/ViewModel 경계를 Unity식 MVVM 구조로 정리한다. `ViewModel`은 Unity 타입을 모르고 화면 상태만 보유한다. `View`는 입력 이벤트와 렌더링만 담당한다. 전투 진행과 씬 조립은 `RunBattleCompositionRoot`가 맡고, 씬은 큰 단일 오브젝트가 아니라 작은 View 단위로 분리한다.
+별도 `RunBattle` 씬은 없다. `RunGame` 씬 내부 `BattleView`의 하이어라키, Inspector, View/ViewModel 경계를 Unity식 MVVM 구조로 정리한다. `ViewModel`은 Unity 타입을 모르고 화면 상태만 보유한다. `View`는 입력 이벤트와 렌더링만 담당한다. `BattleSceneCompositionRoot`에는 씬 조립과 Unity 생명주기만 두고, 전투 계산·연출 순서는 순수 C# Controller로 분리한다.
 
 ## Checklist
 
@@ -33,7 +33,51 @@
 - [x] damage anchor fallback 제거 — 적 anchor 조회 실패 시 대체 anchor를 쓰지 않고 에러로 노출
 - [x] 몬스터 shield 표시/생명주기 연출을 `ShieldGaugeView`와 presentation command 경로로 분리
 - [x] Unity Editor에서 `SlotRogue > Game Flow > Migrate Run Battle Hierarchy In Place (Preserve UI)` 실행해 prefab/scene strict MVVM 적용과 기존 배치 리소스 유지 확인
-- [ ] RunBattle 수동 플레이테스트로 스핀, 타겟 선택, 승리/패배 전환 확인
+- [x] `RunBattleCompositionRoot` 현재 책임을 메서드 단위로 목록화
+- [x] 유물 턴 계산을 `RelicTurnResolver`로 추출
+- [x] 슬롯 계산·슬롯 연출을 `SlotTurnController`와 `SlotTurnResult`로 추출
+- [x] 기본 슬롯 요청·유물 결과·런 보너스 합산을 `CombatTurnRequestBuilder`로 명명 정리
+- [x] 전투 이벤트 Replay 책임을 `BattlePresentationController`로 명명 정리
+- [x] `RunBattleCompositionRoot`를 전투 턴 순서 중심으로 축소
+- [x] 씬 참조·Addressables 수명·Controller 생성을 `BattleSceneCompositionRoot`로 분리
+- [x] 전투 턴 순서를 MonoBehaviour가 아닌 순수 C# `BattleFlowController`로 이동
+- [x] HUD·화면 상태·입력 연결을 `BattleScreenController`로 분리
+- [x] 적 선택 상태와 slot click 바인딩을 `BattleTargetSelectionController`로 분리
+- [x] 전투 시작 입력을 `BattleFlowContext`, 완료 출력을 `BattleFlowResult`로 명시
+- [x] 승패의 `GameFlowSession` 반영을 `RunBattleResultRecorder`로 분리
+- [x] `BattleFlowController`의 `GameFlowSession`, View, ViewModel, UnityEngine 직접 참조 제거
+- [x] RunGame 화면 조립·전환 책임을 `RunGameSceneRoot`로 이동
+- [x] RunGame Hierarchy의 전투 조립 오브젝트를 `BattleSceneCompositionRoot`로 명명 정리
+- [x] 사용되지 않는 legacy 전투 종료 버튼 직렬화 필드 제거
+- [x] Unity Editor에서 `RunGameCompositionRoot` 호환 컴포넌트를 `RunGameSceneRoot`로 교체 후 씬 저장
+- [x] Unity Editor에서 `RunBattleCompositionRoot` 호환 컴포넌트를 `BattleSceneCompositionRoot`로 교체 후 씬 저장
+- [x] 씬·프리팹 GUID 참조가 없음을 확인한 뒤 두 호환 스크립트와 `.meta` 삭제
+- [ ] RunGame Battle 화면 수동 플레이테스트로 스핀, 타겟 선택, 승리/패배 전환 확인
+
+## RunBattleCompositionRoot 책임 목록
+
+2026-06-11 책임 분리 전 정적 코드 기준이다.
+
+| 메서드 | 현재 책임 | 분리 대상 |
+|--------|-----------|-----------|
+| `Awake` | 씬 참조 탐색 | Composition Root 유지 |
+| `BeginBattle` / `BeginBattleAsync` | 재진입 취소, Addressable 준비, 전투 시작 순서 | 전투 시작 순서 유지 |
+| `BeginBattleConfigured` | View 검증, 이벤트 구독, 상태 초기화, 하위 객체 생성, 전투 시작 | 조립과 순서 경계 후속 정리 |
+| `OnDisable` / `OnDestroy` | 비동기 취소, 이벤트 해제, Addressable 해제 | 생명주기 유지 |
+| `EnsureSlotPatternCatalogAsync` | Addressable 카탈로그 로드·주입 | 자산 공급 서비스 후보 |
+| `ResolveSceneReferences` / `CreateRuntimeSlotMachineFrameView` / `ResolveTransformInSceneRoot` | 씬 참조와 런타임 fallback 조립 | Composition Root 책임 |
+| `HandleScreenStateChanged` | ViewModel 상태를 View에 렌더 | 화면 바인딩 유지 |
+| `StartBattle` / `BuildEncounterRoster` | 전투 참가자·적 roster 생성과 타겟 바인딩 | 전투 시작 순서 유지 |
+| `InitializePresentationStack` | 전투 연출 명령·Pipeline·Controller 조립 | Composition Root 책임 |
+| `HandleSpinClickedAsync` | 레버, 슬롯 계산, 유물 계산, 요청 합산, 슬롯 연출, 전투 적용·Replay 전체 순서 | 각 Controller로 분리 후 순서만 유지 |
+| `DevApplyStatusTurnAsync` | 개발용 전투 요청 생성과 적용·Replay | 전투 순서 유지 |
+| `ShouldRaiseLeverBeforeEvent` / `IsLastPlayerAttackPresentation` / `IsPlayerAttackPresentation` | CombatEvent에 따른 슬롯 레버 복귀 시점 계산 | `SlotTurnController` |
+| `SetSpinInteractable` / `UpdateSpinButtonState` | 입력 잠금과 화면 액션 상태 | 화면 상태 유지 |
+| `HandleBattleEndIfNeeded` | 승패 런 상태 반영과 화면 액션 전환 | 전투 종료 순서 유지 |
+| `RefreshSlotResultText` / `RefreshStatusText` | 화면용 상태 스냅샷 생성 | ViewModel 갱신 유지 |
+| `BuildRelicBattleContext` / `FindEnemy` | 유물 조건용 전투 스냅샷 생성 | `RelicTurnResolver` |
+| `NavigateToReward` / `NavigateToStart` | 상위 RunGame에 결과 이벤트 전달 | 화면 경계 유지 |
+| `BuildSlotPresentationResult` | 슬롯 패턴·최종 요청을 연출 DTO로 변환 | `SlotTurnController` |
 
 ## Notes
 
@@ -53,8 +97,25 @@
 - 2026-06-10: 턴 종료 shield reset은 reset 전/후 snapshot을 `ShieldReset` 이벤트에 포함한다. `ShieldResetPresenter`는 `TargetBefore.Shield > 0`일 때만 expire 연출을 요청하고, 이미 shield가 0이거나 gauge가 꺼져 있으면 다시 켜서 연출하지 않는다.
 - 2026-06-10: Unity Editor에서 보존형 migration과 RunBattle prefab/scene strict MVVM 적용 상태를 확인했다. 기존 배치 리소스 유지 확인 항목은 완료 처리했다.
 - 2026-06-11: 몬스터 다음 행동 표시 준비로 `EnemyUpcomingActionViewData`를 추가했다. `RunBattleScreenStateUpdater`가 `BattleSystem.TryGetUpcomingEnemyTurn()` 결과를 몬스터별 ViewData 배열로 변환해 `RunBattleEnemySlotState`까지 전달하며, 실제 `EnemyFormationSlotView` 아이콘 렌더링은 다음 단계로 남겼다.
+- 2026-06-11: `RelicTurnResolver`, `SlotTurnController`, `CombatTurnRequestBuilder`, `BattlePresentationController`로 턴 세부 책임을 분리했다. `RunBattleCompositionRoot.HandleSpinClickedAsync`는 각 결과를 다음 단계로 전달하는 순서만 관리한다. `dotnet build SlotRogue.slnx --no-restore`는 경고·오류 0개로 통과했다.
+- 2026-06-11: production `BattleView`의 전투 Controller 직접 참조를 제거했다. View는 `Entered` 이벤트만 발행하고 현재 `RunGameSceneRoot`가 `BattleSceneCompositionRoot.BeginBattle`에 전달한다. `RunBattleStatusEffectDebugButton`은 production UI 경계 밖의 개발 전용 harness로 유지한다.
+- 2026-06-12: `RunBattleCompositionRoot`의 구현을 씬 조립 전용 `BattleSceneCompositionRoot`와 순수 C# `BattleFlowController`로 완전히 분리했다. `RunGameCompositionRoot` 구현은 `RunGameSceneRoot`로 이동했다. 기존 두 MonoBehaviour는 현재 씬 script GUID를 유지하기 위한 추가 동작 없는 상속 호환 컴포넌트다.
+- 2026-06-12: RunGame Hierarchy의 전투 오브젝트 이름을 `BattleSceneCompositionRoot`로 변경했다. 순수 C# `BattleFlowController`는 Hierarchy에 존재하지 않는다. Unity Editor에서 실제 컴포넌트를 새 타입으로 교체하고 씬을 저장한 뒤에만 호환 스크립트와 기존 `.meta`를 삭제한다.
+- 2026-06-12: `BattleSceneCompositionRoot`는 Inspector 참조 누락 시 실패하도록 바꾸고 런타임 `AddComponent` fallback을 제거했다. 정적 검증은 `dotnet build SlotRogue.slnx --no-restore` 경고·오류 0개로 통과했다.
+- 2026-06-12: `BattleFlowController`에 남아 있던 HUD 갱신, View 입력 구독, 적 선택, 승패 세션 반영을 각각 `BattleScreenController`, `BattleTargetSelectionController`, `RunBattleResultRecorder`로 이동했다. Flow의 입력은 `BattleFlowContext`, 출력은 `BattleFlowResult`이며, Flow는 슬롯 → 유물 → 요청 합산 → 전투 적용 → Replay 순서만 조정한다.
+- 2026-06-12: `BattleFlowController`에서 `GameFlowSession`, `RunBattleScreenView`, `RunBattleScreenViewModel`, `UnityEngine` 직접 참조가 없는 것을 정적 검색으로 확인했다. 전체 솔루션 빌드는 경고·오류 0개다.
+- 2026-06-12: 승패 후 자동 화면 전환으로 더 이상 사용하지 않는 `RunBattleActionView`의 Continue/Restart 직렬화 필드와 프리팹 YAML 항목을 제거했다.
+- 2026-06-12: `RunGame.unity`가 새 `RunGameSceneRoot`와 `BattleSceneCompositionRoot`를 직접 참조하고 구 script GUID 참조가 0건임을 확인해 두 호환 MonoBehaviour와 `.meta`를 삭제했다.
+- 2026-06-11: 현재 씬은 `BootScene`, `GameStart`, `RunGame` 세 개다. 문서와 타입의 `RunBattle*`은 삭제된 씬이 아니라 `RunGame` 내부 Battle 화면에서 유래한 legacy 역할명이다.
+- 2026-06-11: 전투 종료 후 `Continue`/`Restart` 버튼을 기다리던 경로를 제거했다. 승패 연출이 끝나면 Flow Controller가 결과 event를 즉시 발행하고, RunGame SceneRoot가 승리는 `Reward`, 패배는 `Defeat` View로 자동 전환한다.
 
-- 엄격한 MVVM 기준은 “ViewModel이 UnityEngine과 화면 오브젝트를 모르는 것”으로 둔다. Unity 씬 생명주기와 입력 연결은 `CompositionRoot`가 담당한다.
+## MonoBehaviour 마이그레이션
+
+코드 책임 분리는 완료했다. 다음 항목은 Unity 직렬화 자산을 새 MonoBehaviour 타입으로 저장하기 위한 Editor 작업이다.
+
+`RunGame.unity`의 두 컴포넌트 교체와 저장은 완료됐다. 현재 씬은 `RunGameSceneRoot`와 `BattleSceneCompositionRoot`를 직접 참조하며, 구 호환 script GUID 참조는 없다. 남은 작업은 수동 플레이테스트에서 Inspector 참조와 동작을 확인하는 것이다.
+
+- 엄격한 MVVM 기준은 “ViewModel이 UnityEngine과 화면 오브젝트를 모르는 것”으로 둔다. Unity 씬 생명주기와 입력 연결은 SceneRoot 또는 씬 조립 전용 `CompositionRoot`가 담당한다.
 - 카메라 셰이크는 world root를 기준으로 적용한다. 배경/몬스터를 함께 흔들지, 몬스터만 흔들지는 기존 화면 유지가 끝난 뒤 별도 migration으로 다시 판단한다.
 - 새 Builder 기준으로 생성되는 씬에는 `RunBattleController`를 붙이지 않는다. 기존 `RunBattleController`와 구 `RunBattleView` 스크립트는 strict MVVM 전환 후 삭제했다.
 - 몬스터 표시 경로는 `EnemyFormationSlotView` 단일 View로 유지한다. 이후 실제 아트가 들어와도 portrait, world HUD, DamageAnchor, collider는 formation slot prefab 안에서 명시적으로 연결한다.

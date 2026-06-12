@@ -1,5 +1,4 @@
 using SlotRogue.Data.GameFlow;
-using SlotRogue.Relics.Data;
 using SlotRogue.Relics.Pool;
 using SlotRogue.Slot.Data;
 using System;
@@ -100,38 +99,51 @@ namespace SlotRogue.UI.GameFlow
 
         public static int DefenseBonus { get; private set; }
 
-        public static string SelectedArtifactId { get; private set; } = string.Empty;
+        // ── v23 유물 인벤토리 ────────────────────────────────────────────
+        // 시작 유물 + 보상으로 획득한 유물을 누적한다. 전투마다 RelicTurnResolver가 소비한다.
+        private static readonly List<RelicDefinition> _ownedRelics = new();
 
-        public static bool HasStarterArtifact => !string.IsNullOrEmpty(SelectedArtifactId);
+        /// <summary>이 런에서 보유한 v23 유물 목록(시작 유물 포함).</summary>
+        public static IReadOnlyList<RelicDefinition> OwnedRelics => _ownedRelics;
 
-        // ── 유물(Relic) 인벤토리 (Artifact → Relic 통합 발판) ───────────────
-        // 최종 목표는 시작 유물·전투 효과를 RelicDataSO / RelicSystem 중심으로 통합하는 것이다.
-        // 현재는 RelicDataSO 에셋과 선택 UI가 아직 없어(에디터 작업 필요) 비어 있으며,
-        // 기존 ArtifactDefinitionSO 경로(SelectedArtifactId)가 그대로 전투 효과를 담당한다.
-        // 향후: 선택 UI가 RelicDataSO를 여기에 추가 → 전투에서 RelicSystem이 이 목록을 소비.
-        private static readonly List<RelicDataSO> _relicInventory = new();
-
-        /// <summary>[레거시] 구 RelicDataSO 인벤토리. v20.3 풀에서는 사용하지 않음(보존용).</summary>
-        public static IReadOnlyList<RelicDataSO> SelectedRelics => _relicInventory;
-
-        /// <summary>[레거시] 유물을 인벤토리에 추가합니다(중복 무시).</summary>
-        public static void AddRelic(RelicDataSO relic)
+        public static bool HasStarterRelic
         {
-            EnsureRunStarted();
-            if (relic != null && !_relicInventory.Contains(relic))
+            get
             {
-                _relicInventory.Add(relic);
+                for (int index = 0; index < _ownedRelics.Count; index++)
+                {
+                    if (_ownedRelics[index].IsStarter)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
             }
         }
 
-        // ── v20.3 유물 인벤토리(RelicDefinition) ─────────────────────────
-        // 시작 유물 + 보상으로 획득한 유물을 누적한다. 전투마다 RelicEffectRunner가 소비한다.
-        private static readonly List<RelicDefinition> _ownedRelics = new();
+        /// <summary>시작 유물은 런에 하나만 유지합니다.</summary>
+        public static bool SelectStarterRelic(RelicDefinition relic)
+        {
+            EnsureRunStarted();
+            if (relic == null || !relic.IsStarter || !relic.Phase1)
+            {
+                return false;
+            }
 
-        /// <summary>이 런에서 보유한 v20.3 유물 목록(시작 유물 포함).</summary>
-        public static IReadOnlyList<RelicDefinition> OwnedRelics => _ownedRelics;
+            for (int index = _ownedRelics.Count - 1; index >= 0; index--)
+            {
+                if (_ownedRelics[index].IsStarter)
+                {
+                    _ownedRelics.RemoveAt(index);
+                }
+            }
 
-        /// <summary>v20.3 유물을 보유 목록에 추가합니다(중복 허용 — 동일 유물 누적 가능).</summary>
+            _ownedRelics.Insert(0, relic);
+            return true;
+        }
+
+        /// <summary>v23 유물을 보유 목록에 추가합니다(중복 허용 — 동일 유물 누적 가능).</summary>
         public static void AddRelic(RelicDefinition relic)
         {
             EnsureRunStarted();
@@ -153,8 +165,6 @@ namespace SlotRogue.UI.GameFlow
             RewardsClaimed = 0;
             DamageBonus = 0;
             DefenseBonus = 0;
-            SelectedArtifactId = string.Empty;
-            _relicInventory.Clear();
             _ownedRelics.Clear();
             SlotPool.Reset();
         }
@@ -165,22 +175,6 @@ namespace SlotRogue.UI.GameFlow
             {
                 StartNewRun();
             }
-        }
-
-        public static void SelectArtifact(string artifactId)
-        {
-            EnsureRunStarted();
-            SelectedArtifactId = artifactId ?? string.Empty;
-        }
-
-        /// <summary>[레거시] 구 시작 유물 선택. 런타임 미사용(시작 유물은 AddRelic 사용).</summary>
-        [Obsolete("v20.3 레거시. 런타임 미사용 — 시작 유물은 RelicCatalog.Starters + AddRelic 사용.", false)]
-        public static void SelectStarterArtifact(StarterArtifactId artifactId)
-        {
-#pragma warning disable CS0618 // 레거시 StarterArtifactCatalog 의도적 사용(보존용)
-            ArtifactDefinitionSO so = StarterArtifactCatalog.Get(artifactId);
-#pragma warning restore CS0618
-            SelectArtifact(so?.ArtifactId ?? string.Empty);
         }
 
         public static void CompleteBattleVictory(int remainingPlayerHp)

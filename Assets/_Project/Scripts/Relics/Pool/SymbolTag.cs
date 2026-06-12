@@ -1,7 +1,7 @@
 namespace SlotRogue.Relics.Pool
 {
     /// <summary>
-    /// 심볼 태그(v20.3). 심볼 계열(과일/행운/보물)과 색상 계열(붉은/노란/푸른).
+    /// 심볼 태그(v23). 심볼 계열(과일/행운/보물)과 색상 계열(붉은/노란/푸른).
     /// 태그 4개 이상 조건(MatchTag)에서 사용한다.
     /// </summary>
     public enum SymbolTag

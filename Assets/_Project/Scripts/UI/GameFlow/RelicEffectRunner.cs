@@ -12,8 +12,8 @@ namespace SlotRogue.UI.GameFlow
     /// 전투를 직접 실행하지 않으며, 전투 코어(BattleSystem/StatusEffectEngine)도 건드리지 않는다.
     /// 효과 분기는 문자열이 아니라 <see cref="RelicEffectType"/>로만 처리한다.
     ///
-    /// Phase 1 계산 대상: AddDamage / AddBlock / Heal / ApplyBurn(→ 기존 Burn).
-    /// 부식/감전(ApplyCorrosion/ApplyShock)은 기존 전투 미지원이라 계산하지 않고 로깅만 한다
+    /// Phase 1 계산 대상: AddDamage / AddBlock / Heal.
+    /// 화상/감염/취약/약화/가시/흡혈은 v23 전투 규칙이 코어에 갖춰질 때까지 계산하지 않는다
     /// (해당 유물은 카탈로그에서 Phase1=false라 보상풀에도 등장하지 않는다).
     /// </summary>
     public sealed class RelicEffectRunner
@@ -85,8 +85,8 @@ namespace SlotRogue.UI.GameFlow
                     break;
 
                 case RelicTriggerType.Conditional:
-                    // Phase 1에서 지원하는 조건부는 "상태이상 적 + 피해 족보"(U-13)뿐.
-                    if (relic.RequiresEnemyStatus && !context.EnemyHasAnyStatus)
+                    // Phase 1에서 지원하는 조건부는 "상태이상 적 + 피해 족보"(U-13/U-16/U-17)뿐.
+                    if (!MeetsEnemyStatusRequirement(relic.EnemyStatusRequirement, context))
                     {
                         return false;
                     }
@@ -125,6 +125,15 @@ namespace SlotRogue.UI.GameFlow
             {
                 case RelicEffectType.AddDamage:
                     additionalDamage += relic.EffectValue;
+
+                    // U-13 상태 추격자: 적이 화상/감염 상태면 보조 수치를 추가한다.
+                    if (relic.EffectValue2 > 0 &&
+                        relic.EnemyStatusRequirement == EnemyStatusRequirement.Any &&
+                        (context.EnemyHasBurn || context.EnemyHasInfect))
+                    {
+                        additionalDamage += relic.EffectValue2;
+                    }
+
                     return true;
 
                 case RelicEffectType.AddBlock:
@@ -142,13 +151,11 @@ namespace SlotRogue.UI.GameFlow
                     return true;
 
                 case RelicEffectType.ApplyBurn:
-                    // 화상은 기존 전투가 지원한다 → 그대로 넘긴다.
-                    statuses.Add(new StatusEffectRequest(StatusEffectKind.Burn, relic.EffectValue));
-                    return true;
-
-                case RelicEffectType.ApplyCorrosion:
-                case RelicEffectType.ApplyShock:
-                    // 부식/감전은 Phase 1 전투 미지원 → 계산하지 않는다(Phase 2로 분리).
+                case RelicEffectType.ApplyInfect:
+                case RelicEffectType.ApplyVulnerable:
+                case RelicEffectType.ApplyWeak:
+                case RelicEffectType.GainThorns:
+                    // 상태이상 계열은 전투 코어의 v23 동작이 준비될 때까지 실행하지 않는다.
                     Debug.LogWarning(
                         $"[Relic] Unsupported status effect in Phase 1: {relic.EffectType} ({relic.Id}). Skipped.");
                     return false;
@@ -160,6 +167,23 @@ namespace SlotRogue.UI.GameFlow
         }
 
         // ── 헬퍼 ─────────────────────────────────────────────────────────
+
+        private static bool MeetsEnemyStatusRequirement(
+            EnemyStatusRequirement requirement, RelicBattleContext context)
+        {
+            switch (requirement)
+            {
+                case EnemyStatusRequirement.Any:
+                    // v23 U-13은 화상/감염/취약/약화만 대상으로 하며 Freeze는 포함하지 않는다.
+                    return context.EnemyHasBurn || context.EnemyHasInfect;
+                case EnemyStatusRequirement.Burn:
+                    return context.EnemyHasBurn;
+                case EnemyStatusRequirement.Infect:
+                    return context.EnemyHasInfect;
+                default:
+                    return true;
+            }
+        }
 
         private static bool AnyPatternOfSymbol(
             IReadOnlyList<SlotPatternMatch> matches, SlotSymbolType symbol, int requiredCount)
@@ -187,7 +211,7 @@ namespace SlotRogue.UI.GameFlow
             return false;
         }
 
-        // 태그 조건은 해당 태그를 가진 심볼 족보들의 매치 칸 수 합으로 본다.
+        // 겹치는 족보가 같은 칸을 공유해도 태그 심볼 한 칸은 한 번만 센다.
         private static int TagCellCount(IReadOnlyList<SlotPatternMatch> matches, SymbolTag tag)
         {
             if (matches == null)
@@ -195,7 +219,7 @@ namespace SlotRogue.UI.GameFlow
                 return 0;
             }
 
-            int total = 0;
+            var matchedCells = new HashSet<SlotCell>();
             for (int index = 0; index < matches.Count; index++)
             {
                 SlotPatternMatch match = matches[index];
@@ -206,11 +230,14 @@ namespace SlotRogue.UI.GameFlow
 
                 if (SymbolTagMap.HasTag(match.Symbol, tag))
                 {
-                    total += match.MatchedCells.Count;
+                    for (int cellIndex = 0; cellIndex < match.MatchedCells.Count; cellIndex++)
+                    {
+                        matchedCells.Add(match.MatchedCells[cellIndex]);
+                    }
                 }
             }
 
-            return total;
+            return matchedCells.Count;
         }
 
         private static int PatternCount(IReadOnlyList<SlotPatternMatch> matches) => matches?.Count ?? 0;
@@ -255,13 +282,17 @@ namespace SlotRogue.UI.GameFlow
             int playerMaxHp,
             int enemyCurrentHp,
             int enemyMaxHp,
-            bool enemyHasAnyStatus)
+            bool enemyHasAnyStatus,
+            bool enemyHasBurn = false,
+            bool enemyHasInfect = false)
         {
             PlayerCurrentHp = playerCurrentHp;
             PlayerMaxHp = playerMaxHp;
             EnemyCurrentHp = enemyCurrentHp;
             EnemyMaxHp = enemyMaxHp;
             EnemyHasAnyStatus = enemyHasAnyStatus;
+            EnemyHasBurn = enemyHasBurn;
+            EnemyHasInfect = enemyHasInfect;
         }
 
         public int PlayerCurrentHp { get; }
@@ -269,5 +300,11 @@ namespace SlotRogue.UI.GameFlow
         public int EnemyCurrentHp { get; }
         public int EnemyMaxHp { get; }
         public bool EnemyHasAnyStatus { get; }
+
+        /// <summary>적이 화상(Burn) 상태인지(U-13/U-16용).</summary>
+        public bool EnemyHasBurn { get; }
+
+        /// <summary>적이 감염(전투에서는 Poison) 상태인지(U-13/U-17용).</summary>
+        public bool EnemyHasInfect { get; }
     }
 }

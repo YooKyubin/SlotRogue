@@ -1,4 +1,4 @@
-using SlotRogue.Relics.Pool;
+using System;
 using SlotRogue.UI.RunGame;
 using SlotRogue.UI.RunGame.ViewModels;
 using UnityEngine;
@@ -13,9 +13,9 @@ namespace SlotRogue.UI.GameFlow
 
         public GameFlowOptionView[] ArtifactOptions => _artifactOptions;
 
-        private StartRelicSelectViewModel _viewModel;
+        public event Action Entered;
 
-        // ── 기존 Editor 빌더용 Bind (유지) ──────────────────────────────
+        public event Action<string> RelicSelectionRequested;
 
         public void Bind(Text summaryText, GameFlowOptionView[] artifactOptions)
         {
@@ -23,21 +23,10 @@ namespace SlotRogue.UI.GameFlow
             _artifactOptions = artifactOptions;
         }
 
-        // ── IStartRelicSelectView (MVVM) ─────────────────────────────────
-
-        public void Bind(StartRelicSelectViewModel viewModel)
-        {
-            _viewModel = viewModel;
-        }
-
         public void OnEnter()
         {
             gameObject.SetActive(true);
-            if (_viewModel == null) return;
-
-            _viewModel.Refresh();
-            SetSummary(_viewModel.Summary);
-            RebindOptions();
+            Entered?.Invoke();
         }
 
         public void OnExit()
@@ -45,33 +34,53 @@ namespace SlotRogue.UI.GameFlow
             gameObject.SetActive(false);
         }
 
-        // ── 내부 ────────────────────────────────────────────────────────
-
-        public void SetSummary(string value)
+        public void Render(StartRelicSelectViewState state)
         {
+            if (state == null)
+            {
+                return;
+            }
+
             if (_summaryText != null)
-                _summaryText.text = value;
+            {
+                _summaryText.text = state.Summary;
+            }
+
+            RenderOptions(state.Options);
         }
 
-        private void RebindOptions()
+        private void RenderOptions(
+            System.Collections.Generic.IReadOnlyList<StartRelicOptionViewState> options)
         {
-            if (_viewModel == null || _artifactOptions == null) return;
-
-            var relics = _viewModel.Relics;
-            int visibleCount = Mathf.Min(_artifactOptions.Length, relics.Count);
-
-            for (int i = 0; i < _artifactOptions.Length; i++)
+            if (_artifactOptions == null)
             {
-                GameFlowOptionView option = _artifactOptions[i];
-                option.gameObject.SetActive(i < visibleCount);
-                if (i >= visibleCount) continue;
+                return;
+            }
 
-                RelicDefinition relic = relics[i];
-                option.SetText(relic.Name, RelicDisplay.BuildDescription(relic));
-                option.Button.onClick.RemoveAllListeners();
+            int optionCount = options != null ? options.Count : 0;
+            int visibleCount = Mathf.Min(_artifactOptions.Length, optionCount);
 
-                string relicId = relic.Id;
-                option.Button.onClick.AddListener(() => _viewModel.SelectRelic(relicId));
+            for (int index = 0; index < _artifactOptions.Length; index++)
+            {
+                GameFlowOptionView optionView = _artifactOptions[index];
+                if (optionView == null)
+                {
+                    continue;
+                }
+
+                optionView.gameObject.SetActive(index < visibleCount);
+                if (index >= visibleCount)
+                {
+                    continue;
+                }
+
+                StartRelicOptionViewState option = options[index];
+                optionView.SetText(option.Title, option.Description);
+                optionView.Button.onClick.RemoveAllListeners();
+
+                string relicId = option.Id;
+                optionView.Button.onClick.AddListener(
+                    () => RelicSelectionRequested?.Invoke(relicId));
             }
         }
     }

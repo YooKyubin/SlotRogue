@@ -18,8 +18,6 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private RunBattleWorldView _worldView;
 
         public event Action SpinRequested;
-        public event Action ContinueRequested;
-        public event Action RestartRequested;
 
         public Text StatusText => _statusView != null ? _statusView.StatusText : null;
 
@@ -192,8 +190,6 @@ namespace SlotRogue.UI.GameFlow
             }
 
             _actionView.SpinRequested += HandleSpinRequested;
-            _actionView.ContinueRequested += HandleContinueRequested;
-            _actionView.RestartRequested += HandleRestartRequested;
         }
 
         private void UnsubscribeActions()
@@ -204,23 +200,11 @@ namespace SlotRogue.UI.GameFlow
             }
 
             _actionView.SpinRequested -= HandleSpinRequested;
-            _actionView.ContinueRequested -= HandleContinueRequested;
-            _actionView.RestartRequested -= HandleRestartRequested;
         }
 
         private void HandleSpinRequested()
         {
             SpinRequested?.Invoke();
-        }
-
-        private void HandleContinueRequested()
-        {
-            ContinueRequested?.Invoke();
-        }
-
-        private void HandleRestartRequested()
-        {
-            RestartRequested?.Invoke();
         }
 
     }

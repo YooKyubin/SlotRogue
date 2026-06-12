@@ -5,7 +5,7 @@ using SlotRogue.Relics.Pool;
 namespace SlotRogue.UI.GameFlow
 {
     /// <summary>
-    /// 전투 보상 풀(v20.3). 보상은 유물 획득으로 통일한다.
+    /// 전투 보상 풀(v23). 보상은 유물 획득으로 통일한다.
     /// 등급은 전투 등급(Tier)에 따라 분리한다:
     ///  - 일반: Common
     ///  - 엘리트: Common + Uncommon

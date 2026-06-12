@@ -11,7 +11,6 @@ namespace SlotRogue.UI.RunGame.ViewModels
     /// </summary>
     public sealed class RunRewardViewModel
     {
-        /// <summary>기본 제시 개수(택N). 일반/큰 보상 모두 기본 3택.</summary>
         private const int BaseOptionCount = 3;
 
         private static readonly Random Rng = new();
@@ -19,39 +18,28 @@ namespace SlotRogue.UI.RunGame.ViewModels
         private readonly List<RunRewardDefinition> _options = new();
         private int _optionCount = BaseOptionCount;
 
-        // ── 상태 ────────────────────────────────────────────────────────
-
-        public IReadOnlyList<RunRewardDefinition> Rewards => _options;
-        public string Summary { get; private set; }
-
-        /// <summary>현재 전투가 엘리트/보스인가 (큰 보상 화면 여부).</summary>
-        public bool IsBigReward => GameFlowSession.CurrentBattleGrantsArtifact;
-
-        /// <summary>현재 전투 등급에 맞는 유물 보상 풀.</summary>
         private IReadOnlyList<RunRewardDefinition> SourcePool =>
             RunRewardCatalog.ForTier(GameFlowSession.CurrentTier);
 
-        // ── 이벤트 ──────────────────────────────────────────────────────
-
-        /// <summary>보상이 선택되어 다음 전투로 진행해야 할 때 발행합니다.</summary>
-        public event Action RewardClaimed;
-
-        /// <summary>보상 목록/요약이 갱신되어 View를 다시 렌더링해야 할 때 발행합니다.</summary>
-        public event Action Changed;
-
-        // ── 생성 ────────────────────────────────────────────────────────
-
         public RunRewardViewModel()
         {
-            Refresh();
+            State = RunRewardViewState.Empty;
         }
 
-        // ── 커맨드 ──────────────────────────────────────────────────────
+        public event Action RewardClaimed;
 
-        /// <summary>View가 보상 버튼 클릭 시 호출합니다.</summary>
-        public void ClaimReward(RunRewardDefinition reward)
+        public event Action<RunRewardViewState> Changed;
+
+        public RunRewardViewState State { get; private set; }
+
+        public void ClaimReward(int optionIndex)
         {
-            if (reward == null) return;
+            if (optionIndex < 0 || optionIndex >= _options.Count)
+            {
+                return;
+            }
+
+            RunRewardDefinition reward = _options[optionIndex];
 
             switch (reward.Kind)
             {
@@ -70,38 +58,36 @@ namespace SlotRogue.UI.RunGame.ViewModels
             RewardClaimed?.Invoke();
         }
 
-        /// <summary>화면 진입 시 최신 데이터로 갱신하고 보상을 새로 뽑습니다.</summary>
         public void Refresh()
         {
-            Summary = GameFlowSession.BuildSummary();
             _optionCount = BaseOptionCount;
             RollOptions(_optionCount);
+            PublishChanged();
         }
 
-        // ── 광고 스텁 ────────────────────────────────────────────────────
-        // SDK 미설치 상태라 광고 없이 즉시 동작합니다. 추후 RewardedAd 성공 콜백에서 호출하도록 교체.
-
-        /// <summary>[광고] 보상을 모두 다시 뽑습니다(개수 유지).</summary>
         public void RerollRewards()
         {
             RollOptions(_optionCount);
-            Changed?.Invoke();
+            PublishChanged();
         }
 
-        /// <summary>[광고] 큰 보상에서 선택지를 1개 추가합니다. (엘리트/보스 전용)</summary>
         public void AddExtraReward()
         {
-            if (!IsBigReward) return;
+            if (!GameFlowSession.CurrentBattleGrantsArtifact)
+            {
+                return;
+            }
 
             RunRewardDefinition extra = PickOneExcluding(_options);
-            if (extra == null) return; // 풀 소진
+            if (extra == null)
+            {
+                return;
+            }
 
             _options.Add(extra);
             _optionCount = _options.Count;
-            Changed?.Invoke();
+            PublishChanged();
         }
-
-        // ── 내부 ────────────────────────────────────────────────────────
 
         private void RollOptions(int count)
         {
@@ -128,5 +114,89 @@ namespace SlotRogue.UI.RunGame.ViewModels
 
             return remaining.Count == 0 ? null : remaining[Rng.Next(remaining.Count)];
         }
+
+        private void PublishChanged()
+        {
+            var options = new RunRewardOptionViewState[_options.Count];
+            for (int index = 0; index < _options.Count; index++)
+            {
+                RunRewardDefinition reward = _options[index];
+                options[index] = new RunRewardOptionViewState(
+                    index,
+                    reward.DisplayName,
+                    reward.Description,
+                    reward.IconKey);
+            }
+
+            State = new RunRewardViewState(
+                GameFlowSession.BuildSummary(),
+                GameFlowSession.CurrentBattleGrantsArtifact,
+                options);
+            Changed?.Invoke(State);
+        }
+    }
+
+    public sealed class RunRewardViewState
+    {
+        public static readonly RunRewardViewState Empty =
+            new(string.Empty, false, Array.Empty<RunRewardOptionViewState>());
+
+        private readonly RunRewardOptionViewState[] _options;
+
+        public RunRewardViewState(
+            string summary,
+            bool isBigReward,
+            IReadOnlyList<RunRewardOptionViewState> options)
+        {
+            Summary = summary ?? string.Empty;
+            IsBigReward = isBigReward;
+            _options = Copy(options);
+        }
+
+        public string Summary { get; }
+
+        public bool IsBigReward { get; }
+
+        public IReadOnlyList<RunRewardOptionViewState> Options => _options;
+
+        private static RunRewardOptionViewState[] Copy(
+            IReadOnlyList<RunRewardOptionViewState> source)
+        {
+            if (source == null || source.Count == 0)
+            {
+                return Array.Empty<RunRewardOptionViewState>();
+            }
+
+            var copy = new RunRewardOptionViewState[source.Count];
+            for (int index = 0; index < source.Count; index++)
+            {
+                copy[index] = source[index];
+            }
+
+            return copy;
+        }
+    }
+
+    public readonly struct RunRewardOptionViewState
+    {
+        public RunRewardOptionViewState(
+            int index,
+            string title,
+            string description,
+            string iconKey)
+        {
+            Index = index;
+            Title = title ?? string.Empty;
+            Description = description ?? string.Empty;
+            IconKey = iconKey ?? string.Empty;
+        }
+
+        public int Index { get; }
+
+        public string Title { get; }
+
+        public string Description { get; }
+
+        public string IconKey { get; }
     }
 }

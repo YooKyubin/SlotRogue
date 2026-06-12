@@ -234,7 +234,7 @@ MonoBehaviour:
   m_VolumeLayerMask:
     serializedVersion: 2
     m_Bits: 1
-  m_VolumeTrigger: {fileID: 0}
+  m_VolumeTrigger: {fileID: 2035279911}
   m_VolumeFrameworkUpdateModeOption: 2
   m_RenderPostProcessing: 0
   m_Antialiasing: 0
@@ -519,9 +519,9 @@ Transform:
   m_Children:
   - {fileID: 69661683}
   - {fileID: 731912605}
-  - {fileID: 2132137699}
-  - {fileID: 1690936140}
   - {fileID: 1006740476}
+  - {fileID: 1690936140}
+  - {fileID: 2132137699}
   - {fileID: 101550446}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -829,6 +829,17 @@ MonoBehaviour:
   m_FirstSelected: {fileID: 0}
   m_sendNavigationEvents: 1
   m_DragThreshold: 10
+--- !u!114 &802581893 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7537336205063853319, guid: 68271b1500239e547bf995972e95c27a, type: 3}
+  m_PrefabInstance: {fileID: 1479776058}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a223fef2fa9543f4da06311bddbf9361, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.EnemyFormationSlotView
 --- !u!1 &932663842
 GameObject:
   m_ObjectHideFlags: 0
@@ -965,6 +976,17 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
+--- !u!114 &972916313 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8744763563064292382, guid: 661c42a39f196fe448cd6dc03a619b69, type: 3}
+  m_PrefabInstance: {fileID: 3782469260917267952}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 93b47d3d781a4c5e9cf8b0b09469897e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.SlotLeverView
 --- !u!1 &1006740475
 GameObject:
   m_ObjectHideFlags: 0
@@ -976,7 +998,7 @@ GameObject:
   - component: {fileID: 1006740476}
   - component: {fileID: 1006740477}
   m_Layer: 0
-  m_Name: RunGameCompositionRoot
+  m_Name: RunGameSceneRoot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1006,15 +1028,16 @@ MonoBehaviour:
   m_GameObject: {fileID: 1006740475}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d1ae51ed6721dd64e94c159c6ce7ffe5, type: 3}
+  m_Script: {fileID: 11500000, guid: 35fe2f94040d4dc39294ccb2e2a8f5bb, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.RunGame.RunGameCompositionRoot
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.RunGame.RunGameSceneRoot
   _navigator: {fileID: 1690936141}
   _startRelicSelectView: {fileID: 2477338205436084518}
-  _mapView: {fileID: 0}
   _battleView: {fileID: 1537428644}
   _rewardView: {fileID: 8221322808510567929}
+  _defeatView: {fileID: 0}
   _hudView: {fileID: 0}
+  _battleSceneCompositionRoot: {fileID: 2132137700}
 --- !u!1 &1039850553
 GameObject:
   m_ObjectHideFlags: 0
@@ -1025,7 +1048,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1039850554}
   m_Layer: 0
-  m_Name: GameOverView
+  m_Name: DefeatView
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1081,6 +1104,17 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1198556803 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3086557931404568890, guid: 68271b1500239e547bf995972e95c27a, type: 3}
+  m_PrefabInstance: {fileID: 1479776058}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a223fef2fa9543f4da06311bddbf9361, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.EnemyFormationSlotView
 --- !u!1 &1283477995
 GameObject:
   m_ObjectHideFlags: 0
@@ -1117,17 +1151,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1309101483 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7094177327429000668, guid: 661c42a39f196fe448cd6dc03a619b69, type: 3}
-  m_PrefabInstance: {fileID: 3782469260917267952}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 93b47d3d781a4c5e9cf8b0b09469897e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.SlotLeverView
 --- !u!1 &1367886930
 GameObject:
   m_ObjectHideFlags: 0
@@ -1199,6 +1222,17 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1423512510 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 9091218405555936754, guid: 68271b1500239e547bf995972e95c27a, type: 3}
+  m_PrefabInstance: {fileID: 1479776058}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a223fef2fa9543f4da06311bddbf9361, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.EnemyFormationSlotView
 --- !u!1001 &1479776058
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1502,6 +1536,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 6881164931861365819, guid: 68271b1500239e547bf995972e95c27a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1479776064}
+    - targetCorrespondingSourceObject: {fileID: 9041563704430186484, guid: 68271b1500239e547bf995972e95c27a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1731683266}
   m_SourcePrefab: {fileID: 100100000, guid: 68271b1500239e547bf995972e95c27a, type: 3}
 --- !u!4 &1479776062 stripped
 Transform:
@@ -1526,7 +1563,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RunBattleWorldView
   _battleShakeRoot: {fileID: 1479776062}
-  _enemyFormationView: {fileID: 0}
+  _enemyFormationView: {fileID: 1731683266}
 --- !u!4 &1537428639 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2930278658962823506, guid: 661c42a39f196fe448cd6dc03a619b69, type: 3}
@@ -1607,11 +1644,15 @@ PrefabInstance:
     - target: {fileID: 3965747767222212447, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
       propertyPath: _compositionRoot
       value: 
-      objectReference: {fileID: 2132137700}
+      objectReference: {fileID: 0}
     - target: {fileID: 3965747767222212447, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
       propertyPath: _useRecommendedDefaults
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3965747767222212447, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
+      propertyPath: _battleSceneCompositionRoot
+      value: 
+      objectReference: {fileID: 2132137700}
     - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -1757,7 +1798,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5756a27e235d8042aa357d51e9f44ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.RunGame.RunGameNavigator
---- !u!114 &1900000001 stripped
+--- !u!1 &1731683264 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 9041563704430186484, guid: 68271b1500239e547bf995972e95c27a, type: 3}
+  m_PrefabInstance: {fileID: 1479776058}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1731683266
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1731683264}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 104ffb99edf048ebad0d333a575b2077, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.EnemyFormationView
+  _formationSlotViews:
+  - {fileID: 1198556803}
+  - {fileID: 1423512510}
+  - {fileID: 802581893}
+--- !u!114 &1900000007 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4455620648648201942, guid: 661c42a39f196fe448cd6dc03a619b69, type: 3}
   m_PrefabInstance: {fileID: 3782469260917267952}
@@ -1844,6 +1906,11 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!224 &2035279911 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 3482979143381235213, guid: 661c42a39f196fe448cd6dc03a619b69, type: 3}
+  m_PrefabInstance: {fileID: 3782469260917267952}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &2132137698
 GameObject:
   m_ObjectHideFlags: 0
@@ -1855,7 +1922,7 @@ GameObject:
   - component: {fileID: 2132137699}
   - component: {fileID: 2132137700}
   m_Layer: 0
-  m_Name: RunBattleCompositionRoot
+  m_Name: BattleSceneCompositionRoot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1885,14 +1952,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 2132137698}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8983c55e61f74b91a0ea0b906da1837a, type: 3}
+  m_Script: {fileID: 11500000, guid: 6e104991686d4fdb91228d49a8d5a087, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RunBattleCompositionRoot
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.BattleSceneCompositionRoot
   _view: {fileID: 1537428643}
   _floatingTextLayerView: {fileID: 3782469260917267955}
   _turnBannerView: {fileID: 3782469260917267954}
-  _spinLeverView: {fileID: 1309101483}
-  _slotMachineFrameView: {fileID: 1900000001}
+  _spinLeverView: {fileID: 972916313}
+  _slotMachineFrameView: {fileID: 1900000007}
   _slotPresentationManager: {fileID: 228715807}
 --- !u!114 &2132299104 stripped
 MonoBehaviour:
@@ -1924,6 +1991,22 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1935372054}
     m_Modifications:
+    - target: {fileID: 1635601100344365109, guid: 156a5d44823893d42aec86fe5db73f64, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1635601100344365109, guid: 156a5d44823893d42aec86fe5db73f64, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1635601100344365109, guid: 156a5d44823893d42aec86fe5db73f64, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 118
+      objectReference: {fileID: 0}
+    - target: {fileID: 1635601100344365109, guid: 156a5d44823893d42aec86fe5db73f64, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -126.5
+      objectReference: {fileID: 0}
     - target: {fileID: 2716031693084600746, guid: 156a5d44823893d42aec86fe5db73f64, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -2004,9 +2087,53 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5096372360387640066, guid: 156a5d44823893d42aec86fe5db73f64, type: 3}
+      propertyPath: _rerollButton
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 6207223129459888019, guid: 156a5d44823893d42aec86fe5db73f64, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6207223129459888019, guid: 156a5d44823893d42aec86fe5db73f64, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6207223129459888019, guid: 156a5d44823893d42aec86fe5db73f64, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 190.66666
+      objectReference: {fileID: 0}
+    - target: {fileID: 6207223129459888019, guid: 156a5d44823893d42aec86fe5db73f64, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -126.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8703779937867627671, guid: 156a5d44823893d42aec86fe5db73f64, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8703779937867627671, guid: 156a5d44823893d42aec86fe5db73f64, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8703779937867627671, guid: 156a5d44823893d42aec86fe5db73f64, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 45.33333
+      objectReference: {fileID: 0}
+    - target: {fileID: 8703779937867627671, guid: 156a5d44823893d42aec86fe5db73f64, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -126.5
+      objectReference: {fileID: 0}
     - target: {fileID: 9029241462827004204, guid: 156a5d44823893d42aec86fe5db73f64, type: 3}
       propertyPath: m_Name
       value: 20_RewardView
+      objectReference: {fileID: 0}
+    - target: {fileID: 9029241462827004204, guid: 156a5d44823893d42aec86fe5db73f64, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9036397741531089962, guid: 156a5d44823893d42aec86fe5db73f64, type: 3}
+      propertyPath: _summaryText
+      value: 
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -2075,7 +2202,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1304181870810774184, guid: 661c42a39f196fe448cd6dc03a619b69, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1739562981739331737, guid: 661c42a39f196fe448cd6dc03a619b69, type: 3}
       propertyPath: m_IsActive
@@ -2373,10 +2500,6 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 7702046598925816247, guid: 661c42a39f196fe448cd6dc03a619b69, type: 3}
-      propertyPath: _compositionRoot
-      value: 
-      objectReference: {fileID: 2132137700}
     - target: {fileID: 7785976605171272094, guid: 661c42a39f196fe448cd6dc03a619b69, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
@@ -2518,6 +2641,50 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1935372054}
     m_Modifications:
+    - target: {fileID: 1568988679756159885, guid: 8c6e1a80fcd81b1448c8b8a0ac1efb12, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1568988679756159885, guid: 8c6e1a80fcd81b1448c8b8a0ac1efb12, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1568988679756159885, guid: 8c6e1a80fcd81b1448c8b8a0ac1efb12, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 118
+      objectReference: {fileID: 0}
+    - target: {fileID: 1568988679756159885, guid: 8c6e1a80fcd81b1448c8b8a0ac1efb12, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -126.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2882801845554126984, guid: 8c6e1a80fcd81b1448c8b8a0ac1efb12, type: 3}
+      propertyPath: m_linkedTextComponent
+      value: 
+      objectReference: {fileID: 7859884116642079648}
+    - target: {fileID: 2882801845554126984, guid: 8c6e1a80fcd81b1448c8b8a0ac1efb12, type: 3}
+      propertyPath: parentLinkedComponent
+      value: 
+      objectReference: {fileID: 7859884116642079648}
+    - target: {fileID: 2951827684008189978, guid: 8c6e1a80fcd81b1448c8b8a0ac1efb12, type: 3}
+      propertyPath: m_linkedTextComponent
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 2951827684008189978, guid: 8c6e1a80fcd81b1448c8b8a0ac1efb12, type: 3}
+      propertyPath: parentLinkedComponent
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 3491144218960008527, guid: 8c6e1a80fcd81b1448c8b8a0ac1efb12, type: 3}
+      propertyPath: m_linkedTextComponent
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 3491144218960008527, guid: 8c6e1a80fcd81b1448c8b8a0ac1efb12, type: 3}
+      propertyPath: parentLinkedComponent
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 4445006308051582680, guid: 8c6e1a80fcd81b1448c8b8a0ac1efb12, type: 3}
+      propertyPath: _image
+      value: 
+      objectReference: {fileID: 7859884116642079647}
     - target: {fileID: 5112366592563396167, guid: 8c6e1a80fcd81b1448c8b8a0ac1efb12, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -2598,6 +2765,26 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5557242895821056558, guid: 8c6e1a80fcd81b1448c8b8a0ac1efb12, type: 3}
+      propertyPath: _summaryText
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 6441341883641697613, guid: 8c6e1a80fcd81b1448c8b8a0ac1efb12, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6441341883641697613, guid: 8c6e1a80fcd81b1448c8b8a0ac1efb12, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6441341883641697613, guid: 8c6e1a80fcd81b1448c8b8a0ac1efb12, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 45.333332
+      objectReference: {fileID: 0}
+    - target: {fileID: 6441341883641697613, guid: 8c6e1a80fcd81b1448c8b8a0ac1efb12, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -126.5
+      objectReference: {fileID: 0}
     - target: {fileID: 7786402143015327355, guid: 8c6e1a80fcd81b1448c8b8a0ac1efb12, type: 3}
       propertyPath: m_Name
       value: 00_StartRelicSelectView
@@ -2606,11 +2793,49 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8286419109694859808, guid: 8c6e1a80fcd81b1448c8b8a0ac1efb12, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8286419109694859808, guid: 8c6e1a80fcd81b1448c8b8a0ac1efb12, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8286419109694859808, guid: 8c6e1a80fcd81b1448c8b8a0ac1efb12, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 190.66666
+      objectReference: {fileID: 0}
+    - target: {fileID: 8286419109694859808, guid: 8c6e1a80fcd81b1448c8b8a0ac1efb12, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -126.5
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8c6e1a80fcd81b1448c8b8a0ac1efb12, type: 3}
+--- !u!114 &7859884116642079647 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8518189613979791381, guid: 8c6e1a80fcd81b1448c8b8a0ac1efb12, type: 3}
+  m_PrefabInstance: {fileID: 7859884116642079646}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+--- !u!114 &7859884116642079648 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2882801845554126984, guid: 8c6e1a80fcd81b1448c8b8a0ac1efb12, type: 3}
+  m_PrefabInstance: {fileID: 7859884116642079646}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
 --- !u!114 &8221322808510567929 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 5096372360387640066, guid: 156a5d44823893d42aec86fe5db73f64, type: 3}

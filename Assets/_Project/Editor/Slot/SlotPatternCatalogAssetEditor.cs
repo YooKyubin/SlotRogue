@@ -2,6 +2,9 @@ using System.Collections.Generic;
 using SlotRogue.Slot.Core;
 using SlotRogue.Slot.Data;
 using UnityEditor;
+using UnityEditor.AddressableAssets;
+using UnityEditor.AddressableAssets.Build;
+using UnityEditor.AddressableAssets.Settings;
 using UnityEngine;
 
 namespace SlotRogue.Editor.Slot
@@ -9,8 +12,8 @@ namespace SlotRogue.Editor.Slot
     [CustomEditor(typeof(SlotPatternCatalogAsset))]
     public sealed class SlotPatternCatalogAssetEditor : UnityEditor.Editor
     {
-        private const string CatalogFolder = "Assets/_Project/Resources";
-        private const string CatalogPath = "Assets/_Project/Resources/SlotPatternCatalog.asset";
+        private const string CatalogFolder = "Assets/_Project/Data";
+        private const string CatalogPath = "Assets/_Project/Data/SlotPatternCatalog.asset";
         private const float CellSize = 30f;
         private const float CellGap = 4f;
         private const float BoardPadding = 8f;
@@ -87,6 +90,94 @@ namespace SlotRogue.Editor.Slot
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Selection.activeObject = catalog;
+        }
+
+        [MenuItem("SlotRogue/Addressables/Configure Runtime Assets")]
+        public static void ConfigureAddressables()
+        {
+            ConfigureAddressables(logSuccess: true);
+        }
+
+        private static bool ConfigureAddressables(bool logSuccess)
+        {
+            AddressableAssetSettings settings = AddressableAssetSettingsDefaultObject.Settings;
+            if (settings == null)
+            {
+                Debug.LogError("[SlotRogue] AddressableAssetSettings is missing.");
+                return false;
+            }
+
+            string catalogGuid = AssetDatabase.AssetPathToGUID(CatalogPath);
+            if (string.IsNullOrEmpty(catalogGuid))
+            {
+                Debug.LogError($"[SlotRogue] Slot pattern catalog is missing at '{CatalogPath}'.");
+                return false;
+            }
+
+            AddressableAssetEntry existingEntry = settings.FindAssetEntry(catalogGuid);
+            bool changed = existingEntry == null || existingEntry.parentGroup != settings.DefaultGroup;
+            AddressableAssetEntry entry =
+                settings.CreateOrMoveEntry(catalogGuid, settings.DefaultGroup, false, false);
+
+            if (entry.address != SlotPatternCatalog.Address)
+            {
+                entry.address = SlotPatternCatalog.Address;
+                changed = true;
+            }
+
+            changed |= entry.SetLabel("default", true, true, false);
+
+            if (settings.ActivePlayModeDataBuilderIndex != 0)
+            {
+                settings.ActivePlayModeDataBuilderIndex = 0;
+                changed = true;
+            }
+
+            if (settings.BuildAddressablesWithPlayerBuild !=
+                AddressableAssetSettings.PlayerBuildOption.BuildWithPlayer)
+            {
+                settings.BuildAddressablesWithPlayerBuild =
+                    AddressableAssetSettings.PlayerBuildOption.BuildWithPlayer;
+                changed = true;
+            }
+
+            if (changed)
+            {
+                settings.SetDirty(
+                    AddressableAssetSettings.ModificationEvent.EntryModified,
+                    entry,
+                    true,
+                    true);
+                EditorUtility.SetDirty(settings);
+                EditorUtility.SetDirty(settings.DefaultGroup);
+                AssetDatabase.SaveAssets();
+            }
+
+            if (logSuccess)
+            {
+                Debug.Log($"[SlotRogue] Addressables configured: {SlotPatternCatalog.Address}");
+            }
+
+            return true;
+        }
+
+        [MenuItem("SlotRogue/Addressables/Build Player Content")]
+        public static void BuildAddressables()
+        {
+            if (!ConfigureAddressables(logSuccess: false))
+            {
+                return;
+            }
+
+            AddressableAssetSettings.BuildPlayerContent(out AddressablesPlayerBuildResult result);
+
+            if (!string.IsNullOrEmpty(result.Error))
+            {
+                Debug.LogError($"[SlotRogue] Addressables build failed: {result.Error}");
+                return;
+            }
+
+            Debug.Log("[SlotRogue] Addressables player content build completed.");
         }
 
         private static void DrawValidation(SlotPatternCatalogAsset catalog)
