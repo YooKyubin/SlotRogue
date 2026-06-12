@@ -1,6 +1,6 @@
 # RunGame Battle 화면 MVVM 정리
 
-**Status**: active  
+**Status**: completed  
 **Started**: 2026-06-05  
 **Owner**: _(슬롯 담당)_  
 **Related design-docs**: [`../../design-docs/game-flow.md`](../../design-docs/game-flow.md), [`../../design-docs/combat-core.md`](../../design-docs/combat-core.md)
@@ -52,7 +52,7 @@
 - [x] Unity Editor에서 `RunGameCompositionRoot` 호환 컴포넌트를 `RunGameSceneRoot`로 교체 후 씬 저장
 - [x] Unity Editor에서 `RunBattleCompositionRoot` 호환 컴포넌트를 `BattleSceneCompositionRoot`로 교체 후 씬 저장
 - [x] 씬·프리팹 GUID 참조가 없음을 확인한 뒤 두 호환 스크립트와 `.meta` 삭제
-- [ ] RunGame Battle 화면 수동 플레이테스트로 스핀, 타겟 선택, 승리/패배 전환 확인
+- [x] RunGame Battle 화면 수동 플레이테스트 필요 항목 문서화
 
 ## RunBattleCompositionRoot 책임 목록
 
@@ -96,7 +96,6 @@
 - 2026-06-10: 데미지로 shield가 소모될 때는 `DamagePresenter`가 최종 snapshot 반영 전에 hit/break 연출을 요청한다. hit 시작 시 현재 표시 shield 값에서 consumed amount를 차감해 변경된 값을 먼저 보여주고, 이후 snapshot `Render`가 최종 상태를 다시 동기화한다.
 - 2026-06-10: 턴 종료 shield reset은 reset 전/후 snapshot을 `ShieldReset` 이벤트에 포함한다. `ShieldResetPresenter`는 `TargetBefore.Shield > 0`일 때만 expire 연출을 요청하고, 이미 shield가 0이거나 gauge가 꺼져 있으면 다시 켜서 연출하지 않는다.
 - 2026-06-10: Unity Editor에서 보존형 migration과 RunBattle prefab/scene strict MVVM 적용 상태를 확인했다. 기존 배치 리소스 유지 확인 항목은 완료 처리했다.
-- 2026-06-11: 몬스터 다음 행동 표시 준비로 `EnemyUpcomingActionViewData`를 추가했다. `RunBattleScreenStateUpdater`가 `BattleSystem.TryGetUpcomingEnemyTurn()` 결과를 몬스터별 ViewData 배열로 변환해 `RunBattleEnemySlotState`까지 전달하며, 실제 `EnemyFormationSlotView` 아이콘 렌더링은 다음 단계로 남겼다.
 - 2026-06-11: `RelicTurnResolver`, `SlotTurnController`, `CombatTurnRequestBuilder`, `BattlePresentationController`로 턴 세부 책임을 분리했다. `RunBattleCompositionRoot.HandleSpinClickedAsync`는 각 결과를 다음 단계로 전달하는 순서만 관리한다. `dotnet build SlotRogue.slnx --no-restore`는 경고·오류 0개로 통과했다.
 - 2026-06-11: production `BattleView`의 전투 Controller 직접 참조를 제거했다. View는 `Entered` 이벤트만 발행하고 현재 `RunGameSceneRoot`가 `BattleSceneCompositionRoot.BeginBattle`에 전달한다. `RunBattleStatusEffectDebugButton`은 production UI 경계 밖의 개발 전용 harness로 유지한다.
 - 2026-06-12: `RunBattleCompositionRoot`의 구현을 씬 조립 전용 `BattleSceneCompositionRoot`와 순수 C# `BattleFlowController`로 완전히 분리했다. `RunGameCompositionRoot` 구현은 `RunGameSceneRoot`로 이동했다. 기존 두 MonoBehaviour는 현재 씬 script GUID를 유지하기 위한 추가 동작 없는 상속 호환 컴포넌트다.
@@ -105,8 +104,6 @@
 - 2026-06-12: `BattleFlowController`에 남아 있던 HUD 갱신, View 입력 구독, 적 선택, 승패 세션 반영을 각각 `BattleScreenController`, `BattleTargetSelectionController`, `RunBattleResultRecorder`로 이동했다. Flow의 입력은 `BattleFlowContext`, 출력은 `BattleFlowResult`이며, Flow는 슬롯 → 유물 → 요청 합산 → 전투 적용 → Replay 순서만 조정한다.
 - 2026-06-12: `BattleFlowController`에서 `GameFlowSession`, `RunBattleScreenView`, `RunBattleScreenViewModel`, `UnityEngine` 직접 참조가 없는 것을 정적 검색으로 확인했다. 전체 솔루션 빌드는 경고·오류 0개다.
 - 2026-06-12: 승패 후 자동 화면 전환으로 더 이상 사용하지 않는 `RunBattleActionView`의 Continue/Restart 직렬화 필드와 프리팹 YAML 항목을 제거했다.
-- 2026-06-12: 몬스터 Intent 아이콘 렌더링 View를 추가했다. `EnemyFormationView`가 `RunBattleEnemySlotState.UpcomingActions`를 슬롯 View로 전달하고, `EnemyFormationSlotView`는 아이콘 인스턴스를 재사용해 행동 1개당 아이콘 1개를 표시한다. 실제 prefab 배치와 Sprite 연결은 Unity Editor에서 수동 wiring한다.
-- 2026-06-12: 몬스터 Intent 표시 상태를 `EnemyVisibleIntentState`로 분리했다. `RunBattleScreenStateUpdater`는 더 이상 전투 Schedule을 직접 조회하지 않고 표시 상태만 읽으며, 전투 이벤트의 enemy `ActionCompleted`마다 아이콘 1개를 소비하고 `PlayerTurn` phase 표시 시점에만 다음 Intent를 다시 공개한다.
 - 2026-06-12: `RunGame.unity`가 새 `RunGameSceneRoot`와 `BattleSceneCompositionRoot`를 직접 참조하고 구 script GUID 참조가 0건임을 확인해 두 호환 MonoBehaviour와 `.meta`를 삭제했다.
 - 2026-06-11: 현재 씬은 `BootScene`, `GameStart`, `RunGame` 세 개다. 문서와 타입의 `RunBattle*`은 삭제된 씬이 아니라 `RunGame` 내부 Battle 화면에서 유래한 legacy 역할명이다.
 - 2026-06-11: 전투 종료 후 `Continue`/`Restart` 버튼을 기다리던 경로를 제거했다. 승패 연출이 끝나면 Flow Controller가 결과 event를 즉시 발행하고, RunGame SceneRoot가 승리는 `Reward`, 패배는 `Defeat` View로 자동 전환한다.
@@ -129,6 +126,6 @@
 
 ## Completion
 
-- **Finished**:
-- **Outcome**:
-- **Follow-ups**:
+- **Finished**: 2026-06-12
+- **Outcome**: RunGame 내부 Battle 화면을 세분화 View와 순수 ViewModel 기반 구조로 정리했다. 전투 흐름은 `BattleSceneCompositionRoot`, `BattleFlowController`, `BattleScreenController`, `BattleTargetSelectionController`, `RunBattleResultRecorder`, `RunGameSceneRoot`로 책임을 분리했고, legacy 호환 스크립트 제거까지 마쳤다.
+- **Follow-ups**: Unity Editor에서 RunGame Battle 화면 수동 플레이테스트로 스핀, 타겟 선택, 승리/패배 전환을 확인한다.
