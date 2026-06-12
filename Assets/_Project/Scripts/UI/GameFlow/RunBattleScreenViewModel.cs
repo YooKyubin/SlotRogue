@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using SlotRogue.Core.Combat;
 
 namespace SlotRogue.UI.GameFlow
@@ -144,7 +145,7 @@ namespace SlotRogue.UI.GameFlow
             bool selected,
             bool interactable,
             StatusEffectViewData[] statuses = null,
-            EnemyUpcomingActionViewData[] upcomingActions = null)
+            IReadOnlyList<EnemyUpcomingActionViewData> upcomingActions = null)
         {
             if (slotIndex < 0 || slotIndex >= _enemySlots.Length)
             {
@@ -323,7 +324,7 @@ namespace SlotRogue.UI.GameFlow
             bool selected,
             bool interactable,
             StatusEffectViewData[] statuses = null,
-            EnemyUpcomingActionViewData[] upcomingActions = null)
+            IReadOnlyList<EnemyUpcomingActionViewData> upcomingActions = null)
         {
             SlotIndex = slotIndex;
             ParticipantId = participantId;
@@ -388,15 +389,19 @@ namespace SlotRogue.UI.GameFlow
             return copy;
         }
 
-        private static EnemyUpcomingActionViewData[] Clone(EnemyUpcomingActionViewData[] source)
+        private static EnemyUpcomingActionViewData[] Clone(IReadOnlyList<EnemyUpcomingActionViewData> source)
         {
             if (source == null)
             {
                 return Array.Empty<EnemyUpcomingActionViewData>();
             }
 
-            var copy = new EnemyUpcomingActionViewData[source.Length];
-            Array.Copy(source, copy, source.Length);
+            var copy = new EnemyUpcomingActionViewData[source.Count];
+            for (int index = 0; index < source.Count; index++)
+            {
+                copy[index] = source[index];
+            }
+
             return copy;
         }
     }

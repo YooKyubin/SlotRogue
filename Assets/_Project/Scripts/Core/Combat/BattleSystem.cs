@@ -242,13 +242,20 @@ namespace SlotRogue.Core.Combat
                         isPlayerParticipant: isPlayerTarget,
                         targetParticipantId: target.Id,
                         targetBefore: targetBefore,
-                        targetAfter: targetAfter));
+                        targetAfter: targetAfter,
+                        sourceParticipantId: source.Id));
 
                     if (TryEndBattle())
                     {
                         return true;
                     }
                 }
+
+                _events.Add(new CombatEvent(
+                    CombatEventKind.ActionCompleted,
+                    CurrentPhase,
+                    effect,
+                    sourceParticipantId: source.Id));
             }
 
             return false;

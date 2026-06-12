@@ -15,7 +15,8 @@ namespace SlotRogue.Core.Combat
             StatusEffectKind statusEffectKind = StatusEffectKind.None,
             int statusDuration = 0,
             int statusMagnitude = 0,
-            int statusStackCount = 0)
+            int statusStackCount = 0,
+            CombatParticipantId sourceParticipantId = default)
         {
             Kind = kind;
             Phase = phase;
@@ -30,6 +31,7 @@ namespace SlotRogue.Core.Combat
             StatusDuration = statusDuration;
             StatusMagnitude = statusMagnitude;
             StatusStackCount = statusStackCount;
+            SourceParticipantId = sourceParticipantId;
         }
 
         public CombatEventKind Kind { get; }
@@ -57,6 +59,8 @@ namespace SlotRogue.Core.Combat
         public int StatusMagnitude { get; }
 
         public int StatusStackCount { get; }
+
+        public CombatParticipantId SourceParticipantId { get; }
 
         public bool HasTargetSnapshot =>
             Kind == CombatEventKind.EffectApplied ||

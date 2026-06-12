@@ -161,8 +161,8 @@ namespace SlotRogue.UI.GameFlow
                         eventCursor,
                         presentationContext,
                         _presentationCancellationToken,
-                        _slotTurnController.BeforeBattleEventPresentedAsync,
-                        _slotTurnController.AfterBattleEventPresentedAsync);
+                        BeforeBattleEventPresentedAsync,
+                        AfterBattleEventPresentedAsync);
                     _eventLogger.LogEventsSince(_battle, eventCursor, request);
                 }
             }
@@ -233,7 +233,9 @@ namespace SlotRogue.UI.GameFlow
                         _battle,
                         eventCursor,
                         presentationContext,
-                        _presentationCancellationToken);
+                        _presentationCancellationToken,
+                        BeforeBattleEventPresentedAsync,
+                        AfterBattleEventPresentedAsync);
                     _eventLogger.LogEventsSince(_battle, eventCursor, request);
                 }
             }
@@ -251,6 +253,36 @@ namespace SlotRogue.UI.GameFlow
                 && !_turnRunning
                 && _battle.CanApplyPlayerTurn
                 && !_battlePresentationController.IsBusy;
+        }
+
+        private async UniTask BeforeBattleEventPresentedAsync(
+            CombatEvent combatEvent,
+            int eventIndex,
+            System.Collections.Generic.IReadOnlyList<CombatEvent> events)
+        {
+            await _slotTurnController.BeforeBattleEventPresentedAsync(combatEvent, eventIndex, events);
+        }
+
+        private async UniTask AfterBattleEventPresentedAsync(
+            CombatEvent combatEvent,
+            int eventIndex,
+            System.Collections.Generic.IReadOnlyList<CombatEvent> events)
+        {
+            await _slotTurnController.AfterBattleEventPresentedAsync(combatEvent, eventIndex, events);
+
+            if (combatEvent.Kind == CombatEventKind.ActionCompleted &&
+                combatEvent.Phase == BattlePhase.EnemyTurn &&
+                combatEvent.SourceParticipantId.IsValid)
+            {
+                _screenController.ConsumeEnemyVisibleIntentAction(combatEvent.SourceParticipantId);
+                return;
+            }
+
+            if (combatEvent.Kind == CombatEventKind.PhaseChanged &&
+                combatEvent.Phase == BattlePhase.PlayerTurn)
+            {
+                _screenController.RefreshVisibleIntentsFromBattle();
+            }
         }
 
         private void CompleteBattleIfNeeded()

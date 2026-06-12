@@ -267,6 +267,28 @@ namespace SlotRogue.Core.Tests.Combat
         }
 
         [Test]
+        public void ApplyPlayerTurn_EnemyEffect_EmitsActionCompletedWithSource()
+        {
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30);
+            CombatParticipant monster = CombatParticipantFactory.CreateEnemy(maxHp: 20);
+            var enemyActions = new[]
+            {
+                new CombatEffect(CombatEffectKind.Damage, 4, CombatEffectTarget.Enemy),
+            };
+            _battle.StartBattle(player, monster, enemyActions);
+
+            _battle.ApplyPlayerTurn(System.Array.Empty<CombatEffect>());
+
+            CombatEvent actionCompleted = _battle.Events.First(e =>
+                e.Kind == CombatEventKind.ActionCompleted &&
+                e.Phase == BattlePhase.EnemyTurn);
+
+            Assert.That(actionCompleted.SourceParticipantId.Value, Is.EqualTo(monster.Id.Value));
+            Assert.That(actionCompleted.Effect.Kind, Is.EqualTo(CombatEffectKind.Damage));
+            Assert.That(actionCompleted.Effect.Amount, Is.EqualTo(4));
+        }
+
+        [Test]
         public void ApplyPlayerTurn_PlayerDiesDuringEnemyTurn_EndsDefeat()
         {
             CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30, currentHp: 3);

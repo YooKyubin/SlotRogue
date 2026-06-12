@@ -9,6 +9,7 @@ namespace SlotRogue.UI.GameFlow
         private readonly RunBattleScreenView _view;
         private readonly RunBattleScreenViewModel _viewModel = new();
         private readonly RunBattleScreenStateUpdater _stateUpdater;
+        private readonly EnemyVisibleIntentState _enemyVisibleIntentState = new();
 
         private BattleSystem _battle;
         private CombatViewModel _combatViewModel;
@@ -56,6 +57,7 @@ namespace SlotRogue.UI.GameFlow
             _isPresentationBusy = isPresentationBusy ?? throw new ArgumentNullException(nameof(isPresentationBusy));
             _isTurnRunning = isTurnRunning ?? throw new ArgumentNullException(nameof(isTurnRunning));
             _battleCompleted = false;
+            _enemyVisibleIntentState.Clear();
 
             _targetSelectionController = new BattleTargetSelectionController(
                 _battle,
@@ -65,6 +67,7 @@ namespace SlotRogue.UI.GameFlow
                 _isTurnRunning,
                 Refresh);
             _targetSelectionController.ResolveSelectedEnemyId();
+            _enemyVisibleIntentState.RefreshFromBattle(_battle, _battle.Enemies);
 
             Bind();
             _targetSelectionController.Bind();
@@ -94,7 +97,26 @@ namespace SlotRogue.UI.GameFlow
         internal void CompleteBattle()
         {
             _battleCompleted = true;
+            _enemyVisibleIntentState.Clear();
             _viewModel.SetSpinInteractable(false);
+            Refresh();
+        }
+
+        internal void RefreshVisibleIntentsFromBattle()
+        {
+            if (_battle == null)
+            {
+                _enemyVisibleIntentState.Clear();
+                return;
+            }
+
+            _enemyVisibleIntentState.RefreshFromBattle(_battle, _battle.Enemies);
+            Refresh();
+        }
+
+        internal void ConsumeEnemyVisibleIntentAction(CombatParticipantId enemyId)
+        {
+            _enemyVisibleIntentState.ConsumeFirstAction(enemyId);
             Refresh();
         }
 
@@ -106,19 +128,15 @@ namespace SlotRogue.UI.GameFlow
             }
 
             CombatParticipantId selectedTargetId = SelectedEnemyId;
-            string upcomingTurnText = _battle.TryGetUpcomingEnemyTurn(
-                selectedTargetId,
-                out EnemyUpcomingTurn upcomingTurn)
-                ? upcomingTurn.TurnIndex.ToString()
-                : "-";
+            int visibleActionCount = _enemyVisibleIntentState.GetActions(selectedTargetId).Count;
 
             string statusText =
                 $"{_battle.CurrentPhase}\n" +
-                $"Turn {upcomingTurnText}\n" +
+                $"Intent {visibleActionCount}\n" +
                 $"Enemies {_battle.Enemies.Count}\n" +
                 $"Bonus D+{_runDamageBonus} / S+{_runDefenseBonus}";
             string enemyIntentText =
-                $"ENEMY INTENT: {RunBattleScreenStateUpdater.FormatUpcomingEnemyAction(_battle, selectedTargetId)}\n" +
+                $"ENEMY INTENT: {RunBattleScreenStateUpdater.FormatVisibleEnemyAction(_enemyVisibleIntentState, selectedTargetId)}\n" +
                 $"TARGET: {selectedTargetId}";
 
             _viewModel.Batch(() =>
@@ -127,6 +145,7 @@ namespace SlotRogue.UI.GameFlow
                 _stateUpdater.UpdateEnemySlots(
                     _battle,
                     _combatViewModel,
+                    _enemyVisibleIntentState,
                     _encounterTitle,
                     _view.EnemySlotCount,
                     _encounterRoster,
@@ -145,6 +164,7 @@ namespace SlotRogue.UI.GameFlow
             _battle = null;
             _combatViewModel = null;
             _encounterRoster = null;
+            _enemyVisibleIntentState.Clear();
             _isPresentationBusy = null;
             _isTurnRunning = null;
         }
@@ -197,7 +217,7 @@ namespace SlotRogue.UI.GameFlow
         {
             CombatParticipantId selectedTargetId = SelectedEnemyId;
             string enemyActionText = _battle != null
-                ? RunBattleScreenStateUpdater.FormatUpcomingEnemyAction(_battle, selectedTargetId)
+                ? RunBattleScreenStateUpdater.FormatVisibleEnemyAction(_enemyVisibleIntentState, selectedTargetId)
                 : "none";
             _stateUpdater.UpdateSlotResult(
                 combatRequestResult,

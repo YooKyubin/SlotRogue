@@ -115,6 +115,7 @@ namespace SlotRogue.UI.GameFlow
         internal int[] UpdateEnemySlots(
             BattleSystem battle,
             CombatViewModel combatViewModel,
+            EnemyVisibleIntentState enemyVisibleIntentState,
             string encounterDisplayName,
             int viewSlotCount,
             RunEncounterRoster encounterRoster,
@@ -139,14 +140,13 @@ namespace SlotRogue.UI.GameFlow
                 {
                     CombatParticipant enemy = battle.Enemies[index];
                     int slotIndex = computedSlotIndices[index];
-                    CombatParticipantSnapshot snapshot = combatViewModel.TryGetParticipantSnapshot(
-                        enemy.Id, out CombatParticipantSnapshot s)
-                        ? s
-                        : new CombatParticipantSnapshot(enemy.CurrentHp, enemy.Shield);
+                    CombatParticipantSnapshot snapshot = combatViewModel.TryGetParticipantSnapshot(enemy.Id, out CombatParticipantSnapshot s)
+                                                       ? s
+                                                       : new CombatParticipantSnapshot(enemy.CurrentHp, enemy.Shield);
                     bool selected = selectedEnemyId.IsValid && selectedEnemyId.Value == enemy.Id.Value;
                     string deadSuffix = enemy.IsDead ? " [DOWN]" : string.Empty;
-                    EnemyUpcomingActionViewData[] upcomingActions =
-                        BuildUpcomingEnemyActions(battle, enemy.Id);
+                    IReadOnlyList<EnemyUpcomingActionViewData> upcomingActions =
+                        enemyVisibleIntentState?.GetActions(enemy.Id) ?? System.Array.Empty<EnemyUpcomingActionViewData>();
                     _vm.SetEnemySlot(
                         slotIndex,
                         enemy.Id,
@@ -204,52 +204,20 @@ namespace SlotRogue.UI.GameFlow
             return slotIndex;
         }
 
-        internal static string FormatUpcomingEnemyAction(BattleSystem battle, CombatParticipantId participantId)
+        internal static string FormatVisibleEnemyAction(
+            EnemyVisibleIntentState enemyVisibleIntentState,
+            CombatParticipantId participantId)
         {
-            if (!battle.TryGetUpcomingEnemyTurn(participantId, out EnemyUpcomingTurn upcomingTurn) ||
-                upcomingTurn.Actions.Count == 0)
+            IReadOnlyList<EnemyUpcomingActionViewData> actions =
+                enemyVisibleIntentState?.GetActions(participantId) ??
+                System.Array.Empty<EnemyUpcomingActionViewData>();
+            if (actions.Count == 0)
             {
                 return "none";
             }
 
-            CombatEffect effect = upcomingTurn.Actions[0];
-            return $"{effect.Kind} {effect.Amount}";
-        }
-
-        internal static EnemyUpcomingActionViewData[] BuildUpcomingEnemyActions(
-            BattleSystem battle,
-            CombatParticipantId participantId)
-        {
-            if (!battle.TryGetUpcomingEnemyTurn(participantId, out EnemyUpcomingTurn upcomingTurn) || upcomingTurn.Actions.Count == 0)
-            {
-                return System.Array.Empty<EnemyUpcomingActionViewData>();
-            }
-
-            var actions = new EnemyUpcomingActionViewData[upcomingTurn.Actions.Count];
-            for (int index = 0; index < upcomingTurn.Actions.Count; index++)
-            {
-                CombatEffect effect = upcomingTurn.Actions[index];
-                actions[index] = new EnemyUpcomingActionViewData(ToUpcomingActionKind(effect.Kind), effect.Amount);
-            }
-
-            return actions;
-        }
-
-        private static EnemyUpcomingActionKind ToUpcomingActionKind(CombatEffectKind kind)
-        {
-            switch (kind)
-            {
-                case CombatEffectKind.Damage:
-                    return EnemyUpcomingActionKind.Damage;
-                case CombatEffectKind.Shield:
-                    return EnemyUpcomingActionKind.Shield;
-                case CombatEffectKind.Heal:
-                    return EnemyUpcomingActionKind.Heal;
-                case CombatEffectKind.ApplyStatus:
-                    return EnemyUpcomingActionKind.ApplyStatus;
-                default:
-                    return EnemyUpcomingActionKind.Special;
-            }
+            EnemyUpcomingActionViewData action = actions[0];
+            return $"{action.Kind} {action.Amount}";
         }
 
         internal static string FormatRequest(SlotCombatRequest request)
