@@ -105,6 +105,7 @@
 - 2026-06-12: `BattleFlowController`에 남아 있던 HUD 갱신, View 입력 구독, 적 선택, 승패 세션 반영을 각각 `BattleScreenController`, `BattleTargetSelectionController`, `RunBattleResultRecorder`로 이동했다. Flow의 입력은 `BattleFlowContext`, 출력은 `BattleFlowResult`이며, Flow는 슬롯 → 유물 → 요청 합산 → 전투 적용 → Replay 순서만 조정한다.
 - 2026-06-12: `BattleFlowController`에서 `GameFlowSession`, `RunBattleScreenView`, `RunBattleScreenViewModel`, `UnityEngine` 직접 참조가 없는 것을 정적 검색으로 확인했다. 전체 솔루션 빌드는 경고·오류 0개다.
 - 2026-06-12: 승패 후 자동 화면 전환으로 더 이상 사용하지 않는 `RunBattleActionView`의 Continue/Restart 직렬화 필드와 프리팹 YAML 항목을 제거했다.
+- 2026-06-12: 몬스터 Intent 아이콘 렌더링 View를 추가했다. `EnemyFormationView`가 `RunBattleEnemySlotState.UpcomingActions`를 슬롯 View로 전달하고, `EnemyFormationSlotView`는 아이콘 인스턴스를 재사용해 행동 1개당 아이콘 1개를 표시한다. 실제 prefab 배치와 Sprite 연결은 Unity Editor에서 수동 wiring한다.
 - 2026-06-12: `RunGame.unity`가 새 `RunGameSceneRoot`와 `BattleSceneCompositionRoot`를 직접 참조하고 구 script GUID 참조가 0건임을 확인해 두 호환 MonoBehaviour와 `.meta`를 삭제했다.
 - 2026-06-11: 현재 씬은 `BootScene`, `GameStart`, `RunGame` 세 개다. 문서와 타입의 `RunBattle*`은 삭제된 씬이 아니라 `RunGame` 내부 Battle 화면에서 유래한 legacy 역할명이다.
 - 2026-06-11: 전투 종료 후 `Continue`/`Restart` 버튼을 기다리던 경로를 제거했다. 승패 연출이 끝나면 Flow Controller가 결과 event를 즉시 발행하고, RunGame SceneRoot가 승리는 `Reward`, 패배는 `Defeat` View로 자동 전환한다.
