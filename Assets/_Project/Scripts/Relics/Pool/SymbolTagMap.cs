@@ -4,7 +4,7 @@ using SlotRogue.Slot.Data;
 namespace SlotRogue.Relics.Pool
 {
     /// <summary>
-    /// 심볼 ↔ 태그 매핑의 단일 출처(v20.3 HTML 기준).
+    /// 심볼 ↔ 태그 매핑의 단일 출처(v23 HTML 기준).
     /// 체리=[과일,붉은] 레몬=[과일,노란] 클로버=[행운,푸른] 7=[행운,붉은] 다이아=[보물,푸른] 종=[보물,노란].
     /// </summary>
     public static class SymbolTagMap

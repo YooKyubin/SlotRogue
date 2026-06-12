@@ -6,45 +6,8 @@ using UnityEngine;
 
 namespace SlotRogue.Slot.Tests
 {
-    // 일부 회귀 테스트는 레거시(Obsolete) Resolve() 단일 패턴 동작을 의도적으로 검증한다.
-#pragma warning disable CS0618
     public sealed class SlotPatternResolverTests
     {
-        [Test]
-        public void Resolve_WhenHorizontalRunExists_ReturnsBestPattern()
-        {
-            var spin = MakeSpin(new[]
-            {
-                S, S, S, C, G,
-                G, G, G, G, C,
-                E, C, K, H, E
-            });
-            var resolver = new SlotPatternResolver();
-
-            SlotPatternResult result = resolver.Resolve(spin);
-
-            Assert.That(result.HasMatch, Is.True);
-            Assert.That(result.Symbol, Is.EqualTo(SlotSymbolType.Clover));
-            Assert.That(result.Row, Is.EqualTo(1));
-            Assert.That(result.MatchLength, Is.EqualTo(4));
-        }
-
-        [Test]
-        public void Resolve_WhenNoRunExists_ReturnsNoMatch()
-        {
-            var spin = MakeSpin(new[]
-            {
-                S, H, E, C, G,
-                G, K, S, H, E,
-                E, C, G, K, S
-            });
-            var resolver = new SlotPatternResolver();
-
-            SlotPatternResult result = resolver.Resolve(spin);
-
-            Assert.That(result.HasMatch, Is.False);
-        }
-
         [Test]
         public void ResolveAll_RandomSpin_DoesNotThrow()
         {
@@ -403,5 +366,4 @@ namespace SlotRogue.Slot.Tests
         private const SlotSymbolType G = SlotSymbolType.Clover;
         private const SlotSymbolType K = SlotSymbolType.Lemon;
     }
-#pragma warning restore CS0618
 }

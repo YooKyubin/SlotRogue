@@ -9,8 +9,6 @@ namespace SlotRogue.UI.GameFlow
 {
     public sealed class SlotLeverView : MonoBehaviour
     {
-        private const string LeverSpriteResourcePath = "Textures/UI/Ingame_lever";
-
         private static readonly int[] DownFrameOrder = { 0, 1, 2, 3, 4 };
         private static readonly int[] UpFrameOrder = { 4, 5, 6, 7 };
 
@@ -21,7 +19,12 @@ namespace SlotRogue.UI.GameFlow
         public void Bind(Image leverImage, Sprite[] leverSprites = null)
         {
             _leverImage = leverImage;
-            _leverSprites = leverSprites;
+
+            if (leverSprites != null && leverSprites.Length > 0)
+            {
+                _leverSprites = leverSprites;
+            }
+
             SetUpImmediate();
         }
 
@@ -47,7 +50,6 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetUpImmediate()
         {
-            EnsureSpritesLoaded();
             ApplyFrame(0);
         }
 
@@ -58,8 +60,6 @@ namespace SlotRogue.UI.GameFlow
 
         private void PlayFrames(int[] frameOrder)
         {
-            EnsureSpritesLoaded();
-
             if (!isActiveAndEnabled || frameOrder == null || frameOrder.Length == 0)
             {
                 return;
@@ -95,8 +95,6 @@ namespace SlotRogue.UI.GameFlow
 
         private async UniTask PlayFramesAsync(int[] frameOrder, CancellationToken cancellationToken)
         {
-            EnsureSpritesLoaded();
-
             if (!isActiveAndEnabled || frameOrder == null || frameOrder.Length == 0)
             {
                 return;
@@ -137,46 +135,6 @@ namespace SlotRogue.UI.GameFlow
             _leverImage.sprite = _leverSprites[frameIndex];
             _leverImage.enabled = _leverSprites[frameIndex] != null;
             _leverImage.preserveAspect = true;
-        }
-
-        private void EnsureSpritesLoaded()
-        {
-            if (_leverSprites != null && _leverSprites.Length > 0)
-            {
-                return;
-            }
-
-            _leverSprites = Resources.LoadAll<Sprite>(LeverSpriteResourcePath);
-            SortSpritesByFrameName(_leverSprites);
-        }
-
-        private static void SortSpritesByFrameName(Sprite[] sprites)
-        {
-            if (sprites == null || sprites.Length <= 1)
-            {
-                return;
-            }
-
-            Array.Sort(sprites, (left, right) => GetFrameIndex(left).CompareTo(GetFrameIndex(right)));
-        }
-
-        private static int GetFrameIndex(Sprite sprite)
-        {
-            if (sprite == null || string.IsNullOrEmpty(sprite.name))
-            {
-                return int.MaxValue;
-            }
-
-            int separatorIndex = sprite.name.LastIndexOf('_');
-
-            if (separatorIndex < 0 || separatorIndex >= sprite.name.Length - 1)
-            {
-                return int.MaxValue;
-            }
-
-            return int.TryParse(sprite.name.Substring(separatorIndex + 1), out int frameIndex)
-                ? frameIndex
-                : int.MaxValue;
         }
 
         private void StopActiveRoutine()

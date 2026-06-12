@@ -68,9 +68,9 @@ namespace SlotRogue.UI.GameFlow
 
             builder.AppendLine(FormatRequest(request));
 
-            if (lastRequestResult.StarterArtifactActivation.Activated)
+            if (!string.IsNullOrEmpty(lastRequestResult.RelicActivationSummary))
             {
-                builder.AppendLine(lastRequestResult.StarterArtifactActivation.ArtifactName);
+                builder.AppendLine(lastRequestResult.RelicActivationSummary);
             }
 
             if (!string.IsNullOrEmpty(lastRequestResult.RunBonusSummary))

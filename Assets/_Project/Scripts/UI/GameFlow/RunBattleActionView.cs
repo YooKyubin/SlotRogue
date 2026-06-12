@@ -12,19 +12,13 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private Text _slotResultText;
         [SerializeField] private Text _attackResultText;
         [SerializeField] private Button _spinButton;
-        [SerializeField] private Button _continueButton;
-        [SerializeField] private Button _restartButton;
 
         private Color _slotResultDefaultColor = Color.white;
         private Color _attackResultDefaultColor = Color.white;
         private bool _hasCachedDefaults;
 
         public event Action SpinRequested;
-        public event Action ContinueRequested;
-        public event Action RestartRequested;
-
-        public bool HasRequiredControls =>
-            _spinButton != null && _continueButton != null && _restartButton != null;
+        public bool HasRequiredControls => _spinButton != null;
 
         private void Awake()
         {
@@ -40,15 +34,11 @@ namespace SlotRogue.UI.GameFlow
         public void Bind(
             Text slotResultText,
             Text attackResultText,
-            Button spinButton,
-            Button continueButton,
-            Button restartButton)
+            Button spinButton)
         {
             _slotResultText = slotResultText;
             _attackResultText = attackResultText;
             _spinButton = spinButton;
-            _continueButton = continueButton;
-            _restartButton = restartButton;
             SubscribeButtons();
         }
 
@@ -69,16 +59,6 @@ namespace SlotRogue.UI.GameFlow
             if (_spinButton != null)
             {
                 _spinButton.onClick.AddListener(HandleSpinClicked);
-            }
-
-            if (_continueButton != null)
-            {
-                _continueButton.onClick.AddListener(HandleContinueClicked);
-            }
-
-            if (_restartButton != null)
-            {
-                _restartButton.onClick.AddListener(HandleRestartClicked);
             }
         }
 
@@ -104,22 +84,11 @@ namespace SlotRogue.UI.GameFlow
                 _spinButton.onClick.RemoveListener(HandleSpinClicked);
             }
 
-            if (_continueButton != null)
-            {
-                _continueButton.onClick.RemoveListener(HandleContinueClicked);
-            }
-
-            if (_restartButton != null)
-            {
-                _restartButton.onClick.RemoveListener(HandleRestartClicked);
-            }
         }
 
         private void RenderButtons(RunBattleActionMode mode, bool spinInteractable)
         {
             SetActive(_spinButton, mode == RunBattleActionMode.Spin);
-            SetActive(_continueButton, mode == RunBattleActionMode.Continue);
-            SetActive(_restartButton, mode == RunBattleActionMode.Restart);
 
             if (_spinButton != null)
             {
@@ -160,16 +129,6 @@ namespace SlotRogue.UI.GameFlow
         private void HandleSpinClicked()
         {
             SpinRequested?.Invoke();
-        }
-
-        private void HandleContinueClicked()
-        {
-            ContinueRequested?.Invoke();
-        }
-
-        private void HandleRestartClicked()
-        {
-            RestartRequested?.Invoke();
         }
 
         private static void SetText(Text text, string value)

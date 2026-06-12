@@ -32,6 +32,11 @@
 - [x] `Dev_SlotPresentation` 연출 레이어와 Texture 리소스를 `RunBattle` 생성기에 연결
 - [x] 인게임 캡쳐 기준으로 `RunBattle` HUD/슬롯/인벤토리 배치 정리
 - [x] 현재 `RunBattle` UI 배치를 기준으로 Safe Area/해상도 대응 보정 추가
+- [x] v20.3 `OwnedRelics`를 `RelicEffectRunner`로 전투 턴에 연결
+- [x] 구 `ArtifactDefinitionSO` 전투 경로와 레거시 resolver 테스트 제거
+- [x] v20.3 시작 유물 6종·복수 유물 합산 EditMode 테스트 추가
+- [x] 슬롯 카탈로그와 전투 UI의 `Resources.Load*` fallback 제거 및 직렬화/Composition Root 주입 전환
+- [x] `SlotPatternCatalog` Addressable 엔트리와 `BattleSceneCompositionRoot` 비동기 로드 경로 연결
 - [ ] Unity Editor에서 `GameStart`부터 Play 검증
 
 ## Notes
@@ -57,6 +62,11 @@
 
 - 2026-06-04: `Spin Lever`를 런타임 생성 fallback이 아니라 `RunBattleView` 프리팹에 배치된 UI 오브젝트로 전환. 에디터에서 레버를 직접 확인할 수 있고, 프리팹 재생성 경로도 같은 레버 UI를 만든다.
 - 2026-06-04: 기존 UI를 재생성하지 않고 `RunBattleView`의 레버만 생성/보정하는 `SlotRogue > Game Flow > Patch Run Battle Lever (Keep UI)` 메뉴를 추가.
+- 2026-06-11: 첨부 v20.3 기획과 런타임을 대조한 결과 시작 선택은 `RelicCatalog`, 전투는 구 `ArtifactDefinitionSO`를 사용해 효과가 끊긴 상태를 확인. ADR-0005와 `relic-system.md`를 기준으로 단일화한다.
+- 2026-06-11: `OwnedRelics → RelicTurnResolver → CombatTurnRequestBuilder → CombatEffect[]` 경로를 연결하고 시작 6종 중 3종 무작위 선택으로 변경. `dotnet build SlotRogue.slnx` 경고/오류 0. Unity Editor EditMode 실행과 Play 검증은 보류.
+- 2026-06-11: HTML과 `RelicCatalog`의 63개 ID·이름 일치, 등급별 개수 일치, 활성 씬/프리팹/자산의 `_Legacy` GUID 참조 0건, 구 Artifact/Relic 생성 메뉴 0건을 확인했다.
+- 2026-06-11: ADR-0006에 따라 슬롯 카탈로그와 전투 UI Sprite의 `Resources.Load*` 경로를 제거했다. Prefab 직렬화 참조와 전투 씬 조립 경계 주입을 사용하며 AssetBundle 정책은 후속 ADR로 남긴다.
+- 2026-06-11: ADR-0007에 따라 Addressables 2.9.1 로컬 기준선을 적용했다. `SlotPatternCatalog`을 `slot/catalog/patterns`로 등록하고 현재 `BattleSceneCompositionRoot`에서 UniTask로 로드·해제한다. Editor Fast Mode와 Player 빌드 동반 생성을 설정했으며 `dotnet build SlotRogue.slnx --no-restore`는 경고·오류 0개로 통과했다.
 
 ## Completion
 

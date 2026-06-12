@@ -11,8 +11,6 @@ namespace SlotRogue.UI.SlotPresentation
 {
     public sealed class SlotCellSpinView : MonoBehaviour
     {
-        private const string SpinSpriteResourcePath = "Textures/UI/icon_slot_ani";
-
         [SerializeField] private Image[] _cellIcons;
         [SerializeField] private Sprite[] _symbolSprites;
         [SerializeField] private Sprite[] _spinSymbolSprites;
@@ -38,7 +36,10 @@ namespace SlotRogue.UI.SlotPresentation
         {
             _cellIcons = cellIcons;
             _symbolSprites = symbolSprites;
-            _spinSymbolSprites = spinSymbolSprites;
+            if (spinSymbolSprites != null && spinSymbolSprites.Length > 0)
+            {
+                _spinSymbolSprites = spinSymbolSprites;
+            }
         }
 
         public void StopImmediate(SlotSpinResult spinResult = null)
@@ -333,12 +334,6 @@ namespace SlotRogue.UI.SlotPresentation
 
         private Sprite[] GetSpinSprites()
         {
-            if (_spinSymbolSprites == null || _spinSymbolSprites.Length == 0)
-            {
-                _spinSymbolSprites = Resources.LoadAll<Sprite>(SpinSpriteResourcePath);
-                SortSprites(_spinSymbolSprites);
-            }
-
             return _spinSymbolSprites != null && _spinSymbolSprites.Length > 0
                 ? _spinSymbolSprites
                 : _symbolSprites;
@@ -381,22 +376,6 @@ namespace SlotRogue.UI.SlotPresentation
             {
                 _lockedCells[index] = locked;
             }
-        }
-
-        private static void SortSprites(Sprite[] sprites)
-        {
-            if (sprites == null || sprites.Length <= 1)
-            {
-                return;
-            }
-
-            Array.Sort(
-                sprites,
-                (left, right) =>
-                {
-                    int yCompare = right.rect.y.CompareTo(left.rect.y);
-                    return yCompare != 0 ? yCompare : left.rect.x.CompareTo(right.rect.x);
-                });
         }
 
         private static void NoOp()

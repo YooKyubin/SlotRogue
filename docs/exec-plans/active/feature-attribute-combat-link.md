@@ -42,9 +42,9 @@ flowchart TD
 - [x] Core/Combat: `CombatEventKind`에 `StatusApplied`, `StatusTicked`, `StatusExpired`, `ActionSkipped` 추가
 - [x] Core/Combat: `BattleSystem`에 턴 시작 tick, 행동 skip, 턴 종료 duration/expire 처리 연결
 - [x] UI/GameFlow: `RunCombatRequestResult.StatusEffectToApply` 추가
-- [x] UI/GameFlow: `RunCombatRequestResolver`에서 `ApplyBurn/ApplyFreeze/ApplyPoison`을 `StatusEffectSpec`으로 변환
+- [x] UI/GameFlow: `CombatTurnRequestBuilder`에서 `ApplyBurn/ApplyFreeze/ApplyPoison`을 `StatusEffectSpec`으로 변환
 - [x] UI/Combat: `SlotCombatRequestToCombatEffectsConverter`에서 `ApplyStatus` effect 추가
-- [x] UI/GameFlow: `RunBattleController`에서 `StatusEffectToApply`를 전투 effect 변환에 전달
+- [x] UI/GameFlow: `BattleFlowController`에서 상태이상 목록을 전투 effect 변환에 전달
 - [x] UI/GameFlow: enemy slot에 상태이상 아이콘 prefab 동적 생성/갱신 연결
 - [x] Tests/Core: Burn tick, Freeze skip/expire, Poison stack cap 테스트 추가
 - [x] Tests/UI: 유물 resolver와 converter 연결 테스트 추가
@@ -60,7 +60,7 @@ flowchart TD
 - `Poison`은 duration 없이 유지되는 stack형 상태이상으로 둔다. 해제/정화가 필요해지면 별도 component 또는 effect로 추가한다.
 - `dotnet test ... --no-build`는 종료 코드 0을 반환했지만 Unity Test Runner 결과를 출력하지 않았다. 최종 테스트 권위는 Unity Editor EditMode 테스트다.
 - 2026-06-07: `RunBattleEnemySlotState`에 상태이상 목록을 추가하고 `RunBattleScreenStateUpdater` → `EnemyFormationView` → `EnemyFormationSlotView.SetStatusEffects()` 경로로 전달되도록 연결했다.
-- 2026-06-07: 에디터 수동 검증용 `RunBattleStatusEffectDebugButton`을 추가하고, 선택/formation slot/첫 생존 몬스터에게 상태이상 턴을 실제 전투 턴 경로로 적용하는 dev-only hook을 `RunBattleCompositionRoot`에 열었다.
+- 2026-06-07: 에디터 수동 검증용 `RunBattleStatusEffectDebugButton`을 추가하고, 선택/formation slot/첫 생존 몬스터에게 상태이상 턴을 실제 전투 턴 경로로 적용하는 dev-only hook을 열었다. 해당 hook은 2026-06-12 책임 분리 후 `BattleSceneCompositionRoot`를 통해 `BattleFlowController`에 전달한다.
 
 ## Completion
 

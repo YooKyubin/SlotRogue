@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using SlotRogue.Slot.Data;
 using SlotRogue.Core.Combat;
 
@@ -9,16 +10,16 @@ namespace SlotRogue.UI.GameFlow
         public RunCombatRequestResult(
             SlotCombatRequest baseRequest,
             SlotCombatRequest finalRequest,
-            StarterArtifactActivation starterArtifactActivation,
+            string relicActivationSummary,
             string runBonusSummary,
-            StatusEffectSpec statusEffectToApply = default)
+            IReadOnlyList<StatusEffectSpec> statusEffectsToApply = null)
         {
             BaseRequest = baseRequest;
             FinalRequest = finalRequest;
             AttackPower = CalculateAttackPower(finalRequest);
-            StarterArtifactActivation = starterArtifactActivation;
-            RunBonusSummary = runBonusSummary;
-            StatusEffectToApply = statusEffectToApply;
+            RelicActivationSummary = relicActivationSummary ?? string.Empty;
+            RunBonusSummary = runBonusSummary ?? string.Empty;
+            StatusEffectsToApply = statusEffectsToApply ?? Array.Empty<StatusEffectSpec>();
         }
 
         public SlotCombatRequest BaseRequest { get; }
@@ -27,11 +28,11 @@ namespace SlotRogue.UI.GameFlow
 
         public int AttackPower { get; }
 
-        public StarterArtifactActivation StarterArtifactActivation { get; }
+        public string RelicActivationSummary { get; }
 
         public string RunBonusSummary { get; }
 
-        public StatusEffectSpec StatusEffectToApply { get; }
+        public IReadOnlyList<StatusEffectSpec> StatusEffectsToApply { get; }
 
         private static int CalculateAttackPower(SlotCombatRequest request)
         {

@@ -1,6 +1,8 @@
 using NUnit.Framework;
 using SlotRogue.Core.Combat;
+using SlotRogue.UI.App;
 using SlotRogue.UI.GameFlow;
+using SlotRogue.UI.RunGame.ViewModels;
 
 namespace SlotRogue.UI.Tests.GameFlow
 {
@@ -22,13 +24,14 @@ namespace SlotRogue.UI.Tests.GameFlow
             {
                 viewModel.SetSlotCells(new[] { "A", "B", "C" });
                 viewModel.SetBattleText("status", "slot", "attack", "intent");
-                viewModel.SetActionMode(RunBattleActionMode.Continue, spinInteractable: false);
+                viewModel.SetActionMode(RunBattleActionMode.Spin, spinInteractable: false);
             });
 
             Assert.That(publishCount, Is.EqualTo(1));
             Assert.That(lastState, Is.Not.Null);
             Assert.That(lastState.SlotCells, Is.EqualTo(new[] { "A", "B", "C" }));
-            Assert.That(lastState.ActionMode, Is.EqualTo(RunBattleActionMode.Continue));
+            Assert.That(lastState.ActionMode, Is.EqualTo(RunBattleActionMode.Spin));
+            Assert.That(lastState.SpinInteractable, Is.False);
         }
 
         [Test]
@@ -100,6 +103,86 @@ namespace SlotRogue.UI.Tests.GameFlow
             statuses[0] = new StatusEffectViewData(StatusEffectKind.Freeze, remainingTurns: 1, magnitude: 0, stackCount: 1);
 
             Assert.That(viewModel.State.EnemySlots[0].Statuses[0].Kind, Is.EqualTo(StatusEffectKind.Poison));
+        }
+
+        [Test]
+        public void StartRelicRefresh_PublishesDisplayOnlyOptions()
+        {
+            GameFlowSession.StartNewRun();
+            var viewModel = new StartRelicSelectViewModel(new System.Random(1234));
+            StartRelicSelectViewState publishedState = null;
+            viewModel.Changed += state => publishedState = state;
+
+            viewModel.Refresh();
+
+            Assert.That(publishedState, Is.SameAs(viewModel.State));
+            Assert.That(publishedState.Options, Has.Count.EqualTo(3));
+            Assert.That(publishedState.Options[0].Id, Is.Not.Empty);
+            Assert.That(publishedState.Options[0].Title, Is.Not.Empty);
+            Assert.That(publishedState.Options[0].Description, Is.Not.Empty);
+        }
+
+        [Test]
+        public void RewardRefresh_PublishesSingleScreenSnapshot()
+        {
+            GameFlowSession.StartNewRun();
+            var viewModel = new RunRewardViewModel();
+            int publishCount = 0;
+            viewModel.Changed += _ => publishCount++;
+
+            viewModel.Refresh();
+
+            Assert.That(publishCount, Is.EqualTo(1));
+            Assert.That(viewModel.State.Options, Is.Not.Empty);
+        }
+
+        [Test]
+        public void HudRefresh_PublishesSessionSnapshot()
+        {
+            GameFlowSession.StartNewRun();
+            var viewModel = new RunHUDViewModel();
+            RunHUDViewState publishedState = default;
+            viewModel.Changed += state => publishedState = state;
+
+            viewModel.Refresh();
+
+            Assert.That(publishedState.CurrentHp, Is.EqualTo(GameFlowSession.PlayerCurrentHp));
+            Assert.That(publishedState.MaxHp, Is.EqualTo(GameFlowSession.PlayerMaxHp));
+            Assert.That(publishedState.BattleIndex, Is.EqualTo(GameFlowSession.CurrentBattleNumber));
+        }
+
+        [Test]
+        public void GameStartCommands_PublishIntentWithoutUnityDependency()
+        {
+            var viewModel = new GameStartViewModel();
+            bool startRequested = false;
+            bool quitRequested = false;
+            viewModel.StartGameRequested += () => startRequested = true;
+            viewModel.QuitGameRequested += () => quitRequested = true;
+
+            viewModel.RequestStartGame();
+            viewModel.RequestQuitGame();
+
+            Assert.That(startRequested, Is.True);
+            Assert.That(quitRequested, Is.True);
+        }
+
+        [Test]
+        public void DefeatViewModel_PublishesResultAndNewRunIntent()
+        {
+            var viewModel = new RunDefeatViewModel();
+            RunDefeatViewState publishedState = default;
+            bool newRunRequested = false;
+            viewModel.Changed += state => publishedState = state;
+            viewModel.NewRunRequested += () => newRunRequested = true;
+
+            viewModel.Refresh(battleNumber: 7, victories: 6, rewardsClaimed: 5);
+            viewModel.RequestNewRun();
+
+            Assert.That(publishedState.BattleNumber, Is.EqualTo(7));
+            Assert.That(publishedState.Victories, Is.EqualTo(6));
+            Assert.That(publishedState.RewardsClaimed, Is.EqualTo(5));
+            Assert.That(newRunRequested, Is.True);
         }
     }
 }

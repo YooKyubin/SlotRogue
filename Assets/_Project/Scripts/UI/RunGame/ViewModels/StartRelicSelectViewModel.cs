@@ -7,47 +7,130 @@ namespace SlotRogue.UI.RunGame.ViewModels
 {
     /// <summary>
     /// 시작 유물 선택 화면의 상태와 커맨드.
-    /// v20.3: grade=Starter 유물(6종)만 제시하고, 선택 시 보유 유물에 추가한다.
+    /// v23: grade=Starter 유물(6종)만 제시하고, 선택 시 보유 유물에 추가한다.
     /// MonoBehaviour가 아닌 순수 C# 클래스.
     /// </summary>
     public sealed class StartRelicSelectViewModel
     {
-        // ── 상태 ────────────────────────────────────────────────────────
+        private const int StarterOptionCount = 3;
+        private readonly Random _rng;
+        private RelicDefinition[] _relics = Array.Empty<RelicDefinition>();
 
-        public IReadOnlyList<RelicDefinition> Relics { get; }
-        public string Summary { get; private set; }
-
-        // ── 이벤트 ──────────────────────────────────────────────────────
-
-        /// <summary>유물이 선택되었을 때 발행합니다. (relicId)</summary>
-        public event Action<string> RelicSelected;
-
-        // ── 생성 ────────────────────────────────────────────────────────
-
-        public StartRelicSelectViewModel()
+        public StartRelicSelectViewModel(Random rng = null)
         {
-            Relics = RelicCatalog.Starters;
-            Refresh();
+            _rng = rng ?? new Random();
+            State = StartRelicSelectViewState.Empty;
         }
 
-        // ── 커맨드 ──────────────────────────────────────────────────────
+        public event Action<StartRelicSelectViewState> Changed;
 
-        /// <summary>View가 유물 버튼 클릭 시 호출합니다.</summary>
+        public event Action RelicSelected;
+
+        public StartRelicSelectViewState State { get; private set; }
+
         public void SelectRelic(string relicId)
         {
             RelicDefinition relic = RelicCatalog.GetById(relicId);
-            if (relic != null)
+            if (!GameFlowSession.SelectStarterRelic(relic))
             {
-                GameFlowSession.AddRelic(relic);
+                return;
             }
 
-            RelicSelected?.Invoke(relicId);
+            RelicSelected?.Invoke();
         }
 
-        /// <summary>화면 진입 시 View가 최신 데이터로 갱신하도록 호출합니다.</summary>
         public void Refresh()
         {
-            Summary = GameFlowSession.BuildSummary();
+            _relics = RollStarterOptions();
+            var options = new StartRelicOptionViewState[_relics.Length];
+            for (int index = 0; index < _relics.Length; index++)
+            {
+                RelicDefinition relic = _relics[index];
+                options[index] = new StartRelicOptionViewState(
+                    relic.Id,
+                    relic.Name,
+                    RelicDisplay.BuildDescription(relic),
+                    relic.IconKey);
+            }
+
+            State = new StartRelicSelectViewState(GameFlowSession.BuildSummary(), options);
+            Changed?.Invoke(State);
         }
+
+        private RelicDefinition[] RollStarterOptions()
+        {
+            var pool = new List<RelicDefinition>(RelicCatalog.Starters);
+            int count = Math.Min(StarterOptionCount, pool.Count);
+            var options = new RelicDefinition[count];
+
+            for (int index = 0; index < count; index++)
+            {
+                int selectedIndex = _rng.Next(pool.Count);
+                options[index] = pool[selectedIndex];
+                pool.RemoveAt(selectedIndex);
+            }
+
+            return options;
+        }
+    }
+
+    public sealed class StartRelicSelectViewState
+    {
+        public static readonly StartRelicSelectViewState Empty =
+            new(string.Empty, Array.Empty<StartRelicOptionViewState>());
+
+        private readonly StartRelicOptionViewState[] _options;
+
+        public StartRelicSelectViewState(
+            string summary,
+            IReadOnlyList<StartRelicOptionViewState> options)
+        {
+            Summary = summary ?? string.Empty;
+            _options = Copy(options);
+        }
+
+        public string Summary { get; }
+
+        public IReadOnlyList<StartRelicOptionViewState> Options => _options;
+
+        private static StartRelicOptionViewState[] Copy(
+            IReadOnlyList<StartRelicOptionViewState> source)
+        {
+            if (source == null || source.Count == 0)
+            {
+                return Array.Empty<StartRelicOptionViewState>();
+            }
+
+            var copy = new StartRelicOptionViewState[source.Count];
+            for (int index = 0; index < source.Count; index++)
+            {
+                copy[index] = source[index];
+            }
+
+            return copy;
+        }
+    }
+
+    public readonly struct StartRelicOptionViewState
+    {
+        public StartRelicOptionViewState(
+            string id,
+            string title,
+            string description,
+            string iconKey)
+        {
+            Id = id ?? string.Empty;
+            Title = title ?? string.Empty;
+            Description = description ?? string.Empty;
+            IconKey = iconKey ?? string.Empty;
+        }
+
+        public string Id { get; }
+
+        public string Title { get; }
+
+        public string Description { get; }
+
+        public string IconKey { get; }
     }
 }

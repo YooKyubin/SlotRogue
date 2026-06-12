@@ -18,11 +18,11 @@
 
 ## Decision
 
-- **MVP 연출 모델은 Replay(A)** 이다. `BattleSystem.ApplyPlayerTurn()`은 **동기 API를 유지**한다. UI의 `BattleFlowController`가 호출 전후 `Events` 인덱스로 **새 `CombatEvent`만** 순서대로 `await` 재생한다.
+- **MVP 연출 모델은 Replay(A)** 이다. `BattleSystem.ApplyPlayerTurn()`은 **동기 API를 유지**한다. UI의 전투 순서 관리자가 호출 전 이벤트 인덱스를 캡처하고, `BattlePresentationController`가 해당 인덱스 이후의 **새 `CombatEvent`만** 순서대로 `await` 재생한다.
 - **`CombatEvent`는 디버그 로그가 아니라 Presentation Timeline의 한 스텝**으로 취급한다. `EffectApplied`, `ShieldReset`, `PhaseChanged`, `BattleEnded` 모두 동일 파이프라인에서 순차 `await` 한다.
 - **`EffectApplied` 이벤트는 연출에 필요한 대상 Participant 스냅샷을 포함**한다: 적용 전·후 `Hp` 및 `Shield` (또는 동등한 `ParticipantSnapshot` struct). Presenter가 Core `Participant`를 폴링하거나 delta만으로 HP를 역산하지 않는다.
 - **HUD·연출 표시 상태는 `CombatViewModel`** 을 통해서만 갱신한다. Core `CombatParticipant` HP/Shield에 UI를 직접 바인딩하지 않는다. 턴(또는 이벤트) 연출 종료 시 ViewModel을 Core authoritative state와 sync한다.
-- **슬롯 메타** (`IsCritical`, `PatternName` 등)는 **`CombatEffect` struct를 확장하지 않고**, UI asmdef의 `PresentationContext` (sidecar DTO)로 `BattleFlowController`가 Presenter에 전달한다. Core·Slot asmdef는 슬롯 연출 메타를 모른다.
+- **슬롯 메타** (`IsCritical`, `PatternName` 등)는 **`CombatEffect` struct를 확장하지 않고**, UI asmdef의 `PresentationContext` (sidecar DTO)로 `BattlePresentationController`가 Presenter에 전달한다. Core·Slot asmdef는 슬롯 연출 메타를 모른다.
 - **비동기·트윈은 `SlotRogue.UI.Combat`만** 사용한다. `UniTask` / `DOTween`은 Core asmdef에 참조하지 않는다. `async void` 금지, `CancellationToken`(OnDestroy) 필수.
 - **Effect 1건 내부** VFX·SFX·HUD는 기본 **`UniTask.WhenAll` 병렬**; 투사체→명중→HP처럼 **인과 관계가 있는 연출만 순차** `await` 한다. **Effect·이벤트 간** 순서는 항상 **순차** (`foreach` + `await`).
 - **사망 연출**: 마지막 `EffectApplied`(Damage) 연출 **완료 후** `BattleEnded` Presenter를 재생한다. 즉시 Result UI만 띄우지 않는다.
@@ -40,8 +40,8 @@
 
 - `docs/exec-plans/completed/feature-combat-presentation.md` — 구현 완료 (2026-05-31).
 - Core: `CombatEvent` / `EffectApplied` 스냅샷 필드 추가 + 기존 `BattleSystemTests` 보강(값 assert 유지).
-- UI: `BattleFlowController`, `CombatPresentationPipeline`, Kind/Kind별 Presenter, `CombatViewModel`, `SlotRogue.UI` asmdef에 UniTask 참조.
-- `BattleDevHarness`는 동기 `ApplyTurn` 경로를 유지하거나, Play 검증용 `ApplyTurnAsync` 경로를 추가한다( plan에서 확정).
+- UI: `BattlePresentationController`, `CombatPresentationPipeline`, Kind/Kind별 Presenter, `CombatViewModel`, `SlotRogue.UI` asmdef에 UniTask 참조.
+- 초기 Play 검증은 `BattleDevHarness`의 `ApplyTurnAsync` 경로로 수행했다. 본편 통합과 Dev 씬 제거 후 하네스도 2026-06-12 삭제했다.
 - 입력 잠금: `_isBusy` 또는 동등한 gate로 연출 중 스핀·턴 중복 호출 방지.
 - ADR-0001 Notes의 "UI 타임라인·연출은 CombatEvent 소비자"가 구체화된다.
 
