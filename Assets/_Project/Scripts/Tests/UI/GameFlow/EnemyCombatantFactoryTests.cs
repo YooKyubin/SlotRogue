@@ -69,11 +69,58 @@ namespace SlotRogue.UI.Tests.GameFlow
             BattleSystem battle = new();
             CombatParticipant player = RunCombatParticipantFactory.CreatePlayer(maxHp: 30, currentHp: 30);
 
-            battle.StartBattle(player, roster.EnemyCombatants);
+            battle.StartBattle(player, new[] { roster.Enemies[0].Combatant });
 
-            Assert.That(roster.EnemyCombatants.Length, Is.EqualTo(1));
-            Assert.That(battle.TryGetUpcomingEnemyTurn(roster.Enemies[0].Id, out EnemyUpcomingTurn upcoming), Is.True);
+            Assert.That(roster.Enemies.Count, Is.EqualTo(1));
+            Assert.That(battle.TryGetUpcomingEnemyTurn(roster.Enemies[0].Combatant.Participant.Id, out EnemyUpcomingTurn upcoming), Is.True);
             AssertPlan(upcoming.Plan, CombatEffectKind.Damage, 4);
+        }
+
+        [Test]
+        public void EnemyEncounterUnit_StoresCombatantAndFormationSlot()
+        {
+            EnemyCombatant combatant = new(
+                Enemy(id: 101, maxHp: 12),
+                new FixedSequenceEnemyActionPlanner(new[]
+                {
+                    Plan(new CombatEffect(CombatEffectKind.Damage, 3, CombatEffectTarget.Enemy)),
+                }));
+
+            var unit = new EnemyEncounterUnit(combatant, formationSlot: 2);
+
+            Assert.That(unit.Combatant, Is.SameAs(combatant));
+            Assert.That(unit.FormationSlot, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void RunEncounterRoster_StoresEnemyUnitsInOrder()
+        {
+            EnemyCombatant first = new(
+                Enemy(id: 101, maxHp: 12),
+                new FixedSequenceEnemyActionPlanner(new[]
+                {
+                    Plan(new CombatEffect(CombatEffectKind.Damage, 3, CombatEffectTarget.Enemy)),
+                }));
+            EnemyCombatant second = new(
+                Enemy(id: 102, maxHp: 14),
+                new FixedSequenceEnemyActionPlanner(new[]
+                {
+                    Plan(new CombatEffect(CombatEffectKind.Shield, 4, CombatEffectTarget.Self)),
+                }));
+            var source = new[]
+            {
+                new EnemyEncounterUnit(first, formationSlot: 1),
+                new EnemyEncounterUnit(second, formationSlot: 0),
+            };
+
+            RunEncounterRoster roster = new(source);
+
+            source[0] = new EnemyEncounterUnit(second, formationSlot: 2);
+            Assert.That(roster.Enemies.Count, Is.EqualTo(2));
+            Assert.That(roster.Enemies[0].Combatant, Is.SameAs(first));
+            Assert.That(roster.Enemies[0].FormationSlot, Is.EqualTo(1));
+            Assert.That(roster.Enemies[1].Combatant, Is.SameAs(second));
+            Assert.That(roster.Enemies[0].Combatant.Participant, Is.SameAs(first.Participant));
         }
 
         private static MonsterTurnPatternDefinition Pattern(params MonsterTurnStepDefinition[] turns)
@@ -110,6 +157,11 @@ namespace SlotRogue.UI.Tests.GameFlow
         private static CombatParticipant Enemy(int id, int maxHp)
         {
             return new CombatParticipant(maxHp, maxHp, shield: 0, new CombatParticipantId(id), CombatTeam.Enemy);
+        }
+
+        private static EnemyActionPlan Plan(params CombatEffect[] effects)
+        {
+            return new EnemyActionPlan(effects);
         }
 
         private static void AssertPlan(

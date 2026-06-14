@@ -10,18 +10,13 @@ namespace SlotRogue.UI.GameFlow
     {
         public static int ResolveFormationSlot(RunEncounterRoster roster, int rosterIndex, int maxSlotCount)
         {
-            if (roster == null || rosterIndex < 0 || rosterIndex >= roster.Enemies.Length)
+            if (roster == null || rosterIndex < 0 || rosterIndex >= roster.Enemies.Count)
             {
                 return rosterIndex;
             }
 
             int slotCount = Mathf.Max(1, maxSlotCount);
-            if (roster.FormationSlots == null || rosterIndex >= roster.FormationSlots.Length)
-            {
-                return Mathf.Clamp(rosterIndex, 0, slotCount - 1);
-            }
-
-            int formationSlot = roster.FormationSlots[rosterIndex];
+            int formationSlot = roster.Enemies[rosterIndex].FormationSlot;
             if (formationSlot < 0 || formationSlot >= slotCount)
             {
                 Debug.LogWarning(
@@ -48,7 +43,10 @@ namespace SlotRogue.UI.GameFlow
                 maxHp,
                 plannerFactory.Create(TierTurnEffects(tier, level)));
 
-            return new RunEncounterRoster(new[] { combatant }, new[] { 0 });
+            // Tier-based infinite mode currently builds enemies from EncounterTier + level,
+            // so there is no MonsterDefinition to attach here yet. Keep the encounter unit
+            // limited to runtime + formation until the monster selection path supplies one.
+            return new RunEncounterRoster(new[] { new EnemyEncounterUnit(combatant, formationSlot: 0) });
         }
 
         private static int TierMaxHp(EncounterTier tier, int level)

@@ -1,7 +1,7 @@
 # 전투 코어 (Combat Core)
 
 **Status**: draft  
-**Last updated**: 2026-06-15 (GameFlow EnemyCombatant 명칭 정리)
+**Last updated**: 2026-06-15 (GameFlow EnemyEncounterUnit 조립 단위 추가)
 
 ## Purpose
 
@@ -33,7 +33,7 @@
 ```mermaid
 stateDiagram-v2
     [*] --> NotInBattle
-    NotInBattle --> PlayerTurn: StartBattle(player, enemyRuntimes)
+    NotInBattle --> PlayerTurn: StartBattle(player, enemyCombatants)
 
     PlayerTurn --> Resolving: ApplyPlayerTurn(effects)
     Resolving --> Ended: 몬스터 HP ≤ 0 (Victory)
@@ -139,7 +139,11 @@ sequenceDiagram
 
 `EnemyCombatant`는 전투 중 하나의 Enemy에 대해 `CombatParticipant`, 내부 `IEnemyActionPlanner`, `UpcomingPlan`을 묶는다. 생성 직후 `UpcomingPlan`은 빈 계획이며, `PlanNextAction()` 호출 후 Planner 결과로 갱신된다. `BattleSystem`은 적별 `EnemyCombatant`를 입력받아 보관하고, UI 조회와 적 턴 실행 모두 저장된 `UpcomingPlan`을 기준으로 처리한다.
 
-GameFlow는 `EnemyActionPlannerFactory`와 `EnemyCombatantFactory`로 Data 패턴 또는 tier 기반 행동 데이터를 `EnemyCombatant`로 조립한 뒤 `BattleSystem.StartBattle(player, enemyCombatants)`에 전달한다. `BattleSystem`은 더 이상 `MonsterTurnSchedule` 입력이나 legacy schedule 어댑터를 제공하지 않는다.
+GameFlow는 `EnemyActionPlannerFactory`와 `EnemyCombatantFactory`로 Data 패턴 또는 tier 기반 행동 데이터를 `EnemyCombatant`로 조립한다. `RunEncounterRoster`는 적 한 마리 단위의 `EnemyEncounterUnit` 목록을 보관하고, `BattleFlowController`가 여기서 `EnemyCombatant`만 추출해 `BattleSystem.StartBattle(player, enemyCombatants)`에 전달한다. `BattleSystem`은 더 이상 `MonsterTurnSchedule` 입력이나 legacy schedule 어댑터를 제공하지 않는다.
+
+### EnemyEncounterUnit
+
+`EnemyEncounterUnit`은 GameFlow에서 적 한 마리의 상위 조립 정보를 묶는 타입이다. 현재 무한모드 roster 생성 경로는 `MonsterDefinition`이 아니라 `EncounterTier + level`로 적 HP와 행동 패턴을 직접 만들기 때문에, 이번 단계에서는 `EnemyCombatant`와 `FormationSlot`만 보관한다. `MonsterDefinition` 연결은 몬스터 선택 경로가 정의 객체를 공급하는 후속 단계에서 추가한다.
 
 ### Shield 지속
 

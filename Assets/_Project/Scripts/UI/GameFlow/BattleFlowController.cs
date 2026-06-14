@@ -61,9 +61,7 @@ namespace SlotRogue.UI.GameFlow
             _turnRunning = false;
 
             _slotTurnController.SetupImmediate();
-            _battle.StartBattle(
-                _context.Player,
-                _context.EncounterRoster.EnemyCombatants);
+            _battle.StartBattle(_context.Player, ExtractEnemyCombatants(_context.EncounterRoster));
             _combatViewModel.SyncFrom(_battle);
             _screenController.BeginBattle(
                 _battle,
@@ -290,6 +288,17 @@ namespace SlotRogue.UI.GameFlow
             BattleCompleted?.Invoke(new BattleFlowResult(
                 _battle.EndReason,
                 _battle.Player.CurrentHp));
+        }
+
+        private static EnemyCombatant[] ExtractEnemyCombatants(RunEncounterRoster roster)
+        {
+            var combatants = new EnemyCombatant[roster.Enemies.Count];
+            for (int index = 0; index < roster.Enemies.Count; index++)
+            {
+                combatants[index] = roster.Enemies[index].Combatant;
+            }
+
+            return combatants;
         }
     }
 }
