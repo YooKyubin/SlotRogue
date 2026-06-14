@@ -26,14 +26,20 @@ namespace SlotRogue.UI.GameFlow
                     continue;
                 }
 
-                if (!battle.TryGetUpcomingEnemyTurn(enemy.Id, out EnemyUpcomingTurn upcomingTurn) ||
-                    upcomingTurn.Actions.Count == 0)
+                if (!battle.TryGetUpcomingEnemyTurn(enemy.Id, out EnemyUpcomingTurn upcomingTurn))
                 {
                     _actionsByEnemyId[enemy.Id.Value] = new List<EnemyUpcomingActionViewData>();
                     continue;
                 }
 
-                _actionsByEnemyId[enemy.Id.Value] = BuildActions(upcomingTurn.Actions);
+                IReadOnlyList<CombatEffect> plannedEffects = upcomingTurn.Plan.Effects;
+                if (plannedEffects.Count == 0)
+                {
+                    _actionsByEnemyId[enemy.Id.Value] = new List<EnemyUpcomingActionViewData>();
+                    continue;
+                }
+
+                _actionsByEnemyId[enemy.Id.Value] = BuildActions(plannedEffects);
             }
         }
 

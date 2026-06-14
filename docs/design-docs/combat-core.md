@@ -1,7 +1,7 @@
 # 전투 코어 (Combat Core)
 
 **Status**: draft  
-**Last updated**: 2026-06-11 (몬스터별 다음 턴 조회 API)
+**Last updated**: 2026-06-13 (EnemyActionPlan 도입)
 
 ## Purpose
 
@@ -119,6 +119,10 @@ sequenceDiagram
 
 플레이어·몬스터가 `currentHp`, `maxHp`, `shield`를 내부 관리한다. Resolver는 Participant에 Effect를 적용한다.
 
+### EnemyActionPlan
+
+`EnemyActionPlan`은 몬스터 한 턴에 실행할 확정된 `CombatEffect` 목록을 보관하는 Core 타입이다. 행동을 선택하거나 실행하지 않으며, 외부 조회는 `EnemyUpcomingTurn.Plan.Effects`를 통해 이뤄진다.
+
 ### Shield 지속
 
 | 주체 | 유효 구간 | 초기화 |
@@ -205,7 +209,7 @@ flowchart LR
 | `StartBattle(player, monster, monsterTurnSchedule)` | 전투 시작 → `PlayerTurn`. 스케줄은 SO→Factory 또는 테스트에서 생성 |
 | `ApplyPlayerTurn(IReadOnlyList<CombatEffect> effects)` | 플레이어 턴 처리. `PlayerTurn`이 아니면 거부 |
 | `CurrentPhase` | UI·슬롯 스핀 가능 여부 |
-| `TryGetUpcomingEnemyTurn(participantId, out EnemyUpcomingTurn)` | 특정 생존 Enemy의 **다음** 턴 index와 Effect 목록 조회. 없는 id·사망 Enemy는 `false` |
+| `TryGetUpcomingEnemyTurn(participantId, out EnemyUpcomingTurn)` | 특정 생존 Enemy의 **다음** 턴 index와 `EnemyActionPlan` 조회. 없는 id·사망 Enemy는 `false` |
 
 `StartBattle`의 파라미터 vs BattleSystem 멤버 보유는 구현 plan에서 확정한다.
 

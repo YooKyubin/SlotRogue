@@ -64,7 +64,7 @@ namespace SlotRogue.Core.Combat
                 upcomingTurn = new EnemyUpcomingTurn(
                     state.Participant.Id,
                     state.Schedule.UpcomingTurnIndex,
-                    state.Schedule.UpcomingActions);
+                    new EnemyActionPlan(state.Schedule.UpcomingActions));
 
                 return true;
             }

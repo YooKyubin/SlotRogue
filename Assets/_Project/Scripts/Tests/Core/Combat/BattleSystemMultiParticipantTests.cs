@@ -275,7 +275,7 @@ namespace SlotRogue.Core.Tests.Combat
             Assert.That(_battle.TryGetUpcomingEnemyTurn(enemy1.Id, out EnemyUpcomingTurn upcomingTurn), Is.True);
             Assert.That(upcomingTurn.ParticipantId.Value, Is.EqualTo(enemy1.Id.Value));
             Assert.That(upcomingTurn.TurnIndex, Is.EqualTo(1));
-            Assert.That(upcomingTurn.Actions, Is.EqualTo(enemy1Actions));
+            Assert.That(upcomingTurn.Plan.Effects, Is.EqualTo(enemy1Actions));
         }
 
         [Test]
@@ -322,10 +322,10 @@ namespace SlotRogue.Core.Tests.Combat
             Assert.That(
                 _battle.TryGetUpcomingEnemyTurn(enemy.Id, out EnemyUpcomingTurn upcomingTurn),
                 Is.True);
-            Assert.That(upcomingTurn.Actions, Is.EqualTo(actions));
-            Assert.That(upcomingTurn.Actions.Count, Is.EqualTo(2));
-            Assert.That(upcomingTurn.Actions[0].Kind, Is.EqualTo(CombatEffectKind.Damage));
-            Assert.That(upcomingTurn.Actions[1].Kind, Is.EqualTo(CombatEffectKind.Shield));
+            Assert.That(upcomingTurn.Plan.Effects, Is.EqualTo(actions));
+            Assert.That(upcomingTurn.Plan.Effects.Count, Is.EqualTo(2));
+            Assert.That(upcomingTurn.Plan.Effects[0].Kind, Is.EqualTo(CombatEffectKind.Damage));
+            Assert.That(upcomingTurn.Plan.Effects[1].Kind, Is.EqualTo(CombatEffectKind.Shield));
         }
 
         private CombatParticipant EnemyWithId(int id) =>
