@@ -1,7 +1,7 @@
 # 전투 코어 (Combat Core)
 
 **Status**: draft  
-**Last updated**: 2026-06-14 (BattleSystem EnemyRuntime 전환)
+**Last updated**: 2026-06-14 (GameFlow EnemyRuntime 생성 전환)
 
 ## Purpose
 
@@ -33,7 +33,7 @@
 ```mermaid
 stateDiagram-v2
     [*] --> NotInBattle
-    NotInBattle --> PlayerTurn: StartBattle(player, monster)
+    NotInBattle --> PlayerTurn: StartBattle(player, enemyRuntimes)
 
     PlayerTurn --> Resolving: ApplyPlayerTurn(effects)
     Resolving --> Ended: 몬스터 HP ≤ 0 (Victory)
@@ -137,9 +137,9 @@ sequenceDiagram
 
 ### EnemyRuntime
 
-`EnemyRuntime`은 전투 중 하나의 Enemy에 대해 `CombatParticipant`, 내부 `IEnemyActionPlanner`, `UpcomingPlan`을 묶는다. 생성 직후 `UpcomingPlan`은 빈 계획이며, `PlanNextAction()` 호출 후 Planner 결과로 갱신된다. `BattleSystem`은 적별 `EnemyRuntime`을 보관하고, UI 조회와 적 턴 실행 모두 저장된 `UpcomingPlan`을 기준으로 처리한다.
+`EnemyRuntime`은 전투 중 하나의 Enemy에 대해 `CombatParticipant`, 내부 `IEnemyActionPlanner`, `UpcomingPlan`을 묶는다. 생성 직후 `UpcomingPlan`은 빈 계획이며, `PlanNextAction()` 호출 후 Planner 결과로 갱신된다. `BattleSystem`은 적별 `EnemyRuntime`을 입력받아 보관하고, UI 조회와 적 턴 실행 모두 저장된 `UpcomingPlan`을 기준으로 처리한다.
 
-현재 Data/GameFlow 생성 경로는 아직 `MonsterTurnSchedule`을 만들기 때문에, `BattleSystem.StartBattle()`은 임시 어댑터로 legacy schedule을 `FixedSequenceEnemyActionPlanner`와 `EnemyRuntime`으로 변환한다. 이 어댑터는 Data/GameFlow가 `EnemyRuntime`을 직접 생성하게 되면 제거한다.
+GameFlow는 `EnemyActionPlannerFactory`와 `EnemyRuntimeFactory`로 Data 패턴 또는 tier 기반 행동 데이터를 `EnemyRuntime`으로 조립한 뒤 `BattleSystem.StartBattle(player, enemyRuntimes)`에 전달한다. `BattleSystem`은 더 이상 `MonsterTurnSchedule` 입력이나 legacy schedule 어댑터를 제공하지 않는다.
 
 ### Shield 지속
 
@@ -150,14 +150,16 @@ sequenceDiagram
 
 ### Monster pattern (ScriptableObject)
 
-몬스터 턴 패턴은 **불변 SO**로 저장하고, 전투 시작 시 런타임 `MonsterTurnSchedule`을 생성한다. 순환 index는 SO·asset에 두지 않는다.
+몬스터 턴 패턴은 **불변 SO**로 저장하고, GameFlow에서 `EnemyActionPlannerFactory`를 통해 `FixedSequenceEnemyActionPlanner`로 변환한다. 순환 index는 SO·asset에 두지 않는다.
 
 | 타입 (SlotRogue.Data.Combat) | 역할 |
 |------------------------------|------|
 | `CombatEffectStep` | SO 직렬화용 step (`kind`, `amount`, `target`) |
 | `MonsterTurnPatternDefinition` | 턴별 `CombatEffectStep[]` 배열 (불변 패턴) |
 | `MonsterDefinition` | `maxHp`, `turnPattern` 참조 |
-| `MonsterTurnScheduleFactory` | pattern SO → `new MonsterTurnSchedule(...)`; `StartBattle` 내부 `Reset()` |
+| `EnemyActionPlannerFactory` (UI/GameFlow) | pattern SO → `FixedSequenceEnemyActionPlanner` |
+| `EnemyRuntimeFactory` (UI/GameFlow) | `MonsterDefinition` 또는 생성 데이터 → `CombatParticipant` + Planner → `EnemyRuntime` |
+| `MonsterTurnScheduleFactory` | legacy schedule 테스트/전환 전 독립 경로용 |
 
 - SO asset: `Assets/_Project/Data/Combat/` (예: Goblin + GoblinTurnPattern).
 - 과거 `Dev_Battle`은 `BattleDevHarness`로 `MonsterDefinition` SO를 검증했다. 해당 씬과 하네스는 본편 통합 완료 후 제거했다.
@@ -185,8 +187,7 @@ flowchart LR
     subgraph Data["SlotRogue.Data / Combat"]
         MonsterSO["MonsterDefinition SO"]
         PatternSO["MonsterTurnPatternDefinition SO"]
-        Factory["MonsterTurnScheduleFactory"]
-        PatternSO --> Factory
+        PatternSO --> PlannerFactory
         MonsterSO --> Factory
     end
 
@@ -196,13 +197,18 @@ flowchart LR
         Pipe["CombatPresentationPipeline"]
         VM["CombatViewModel"]
         BattleFlow["BattleFlowController"]
+        PlannerFactory["EnemyActionPlannerFactory"]
+        Factory["EnemyRuntimeFactory"]
     end
 
     subgraph Combat["SlotRogue.Core / Combat"]
-        Schedule["MonsterTurnSchedule"]
+        Runtime["EnemyRuntime"]
+        Planner["FixedSequenceEnemyActionPlanner"]
         StartBattle --> Resolver
-        Factory --> Schedule
-        Schedule --> StartBattle
+        Factory --> Runtime
+        PlannerFactory --> Planner
+        Planner --> Runtime
+        Runtime --> StartBattle
         Adapt --> Flow
         Flow --> Apply["ApplyPlayerTurn() sync"]
         Apply --> Resolver
@@ -226,7 +232,7 @@ flowchart LR
 
 | API | 역할 |
 |-----|------|
-| `StartBattle(player, monster, monsterTurnSchedule)` | 전투 시작 → `PlayerTurn`. 스케줄은 SO→Factory 또는 테스트에서 생성 |
+| `StartBattle(player, enemyRuntime)` / `StartBattle(player, enemyRuntimes)` | 전투 시작 → 모든 Runtime의 첫 Plan 생성 → `PlayerTurn` |
 | `ApplyPlayerTurn(IReadOnlyList<CombatEffect> effects)` | 플레이어 턴 처리. `PlayerTurn`이 아니면 거부 |
 | `CurrentPhase` | UI·슬롯 스핀 가능 여부 |
 | `TryGetUpcomingEnemyTurn(participantId, out EnemyUpcomingTurn)` | 특정 생존 Enemy의 저장된 `EnemyActionPlan` 조회. 없는 id·사망 Enemy는 `false` |

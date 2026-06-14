@@ -70,37 +70,16 @@ namespace SlotRogue.Core.Combat
             return false;
         }
 
-        public void StartBattle(CombatParticipant player, CombatParticipant monster, IReadOnlyList<CombatEffect> monsterTurnActions)
-        {
-            StartBattle(player, monster, new MonsterTurnSchedule(monsterTurnActions));
-        }
-
-        public void StartBattle(CombatParticipant player, CombatParticipant monster, MonsterTurnSchedule monsterTurnSchedule)
-        {
-            StartBattle(
-                player,
-                new[] { monster },
-                new[] { monsterTurnSchedule ?? throw new ArgumentNullException(nameof(monsterTurnSchedule)) });
-        }
-
-        public void StartBattle(
-            CombatParticipant player,
-            IReadOnlyList<CombatParticipant> enemies,
-            IReadOnlyList<MonsterTurnSchedule> enemyTurnSchedules)
+        public void StartBattle(CombatParticipant player, IReadOnlyList<EnemyRuntime> enemyRuntimes)
         {
             if (player == null)
             {
                 throw new ArgumentNullException(nameof(player));
             }
 
-            if (enemies == null || enemies.Count == 0)
+            if (enemyRuntimes == null || enemyRuntimes.Count == 0)
             {
-                throw new ArgumentException("At least one enemy is required.", nameof(enemies));
-            }
-
-            if (enemyTurnSchedules == null || enemyTurnSchedules.Count != enemies.Count)
-            {
-                throw new ArgumentException("Enemy schedules must match enemy count.", nameof(enemyTurnSchedules));
+                throw new ArgumentException("At least one enemy runtime is required.", nameof(enemyRuntimes));
             }
 
             _player = player;
@@ -109,11 +88,10 @@ namespace SlotRogue.Core.Combat
             _participantsById.Clear();
             RegisterParticipant(_player);
 
-            for (int index = 0; index < enemies.Count; index++)
+            for (int index = 0; index < enemyRuntimes.Count; index++)
             {
-                CombatParticipant enemy = enemies[index] ?? throw new ArgumentNullException(nameof(enemies));
-                MonsterTurnSchedule schedule = enemyTurnSchedules[index] ?? throw new ArgumentNullException(nameof(enemyTurnSchedules));
-                EnemyRuntime runtime = CreateRuntimeFromLegacySchedule(enemy, schedule);
+                EnemyRuntime runtime = enemyRuntimes[index] ?? throw new ArgumentNullException(nameof(enemyRuntimes));
+                CombatParticipant enemy = runtime.Participant;
                 _enemies.Add(enemy);
                 _enemyRuntimes.Add(runtime);
                 RegisterParticipant(enemy);
@@ -451,29 +429,6 @@ namespace SlotRogue.Core.Combat
         private EnemyActionContext CreateEnemyActionContext(CombatParticipant enemy)
         {
             return new(enemy, _player, _enemies, turnNumber: 0);
-        }
-
-        private static EnemyRuntime CreateRuntimeFromLegacySchedule(
-            CombatParticipant enemy,
-            MonsterTurnSchedule schedule)
-        {
-            // Temporary migration adapter.
-            // Converts the legacy MonsterTurnSchedule-based input into EnemyRuntime.
-            // Remove this after Data/GameFlow creates EnemyRuntime directly.
-            schedule.Reset();
-
-            var plans = new EnemyActionPlan[schedule.TurnCount];
-            for (int index = 0; index < schedule.TurnCount; index++)
-            {
-                plans[index] = new EnemyActionPlan(schedule.UpcomingActions);
-                schedule.ConsumeUpcomingTurn();
-            }
-
-            schedule.Reset();
-
-            return new EnemyRuntime(
-                enemy,
-                new FixedSequenceEnemyActionPlanner(plans));
         }
     }
 }

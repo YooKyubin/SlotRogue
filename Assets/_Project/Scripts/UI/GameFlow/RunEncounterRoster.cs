@@ -5,16 +5,27 @@ namespace SlotRogue.UI.GameFlow
 {
     public sealed class RunEncounterRoster
     {
-        public RunEncounterRoster(CombatParticipant[] enemies, MonsterTurnSchedule[] schedules, int[] formationSlots)
+        public RunEncounterRoster(EnemyRuntime[] enemyRuntimes, int[] formationSlots)
         {
-            Enemies = enemies ?? Array.Empty<CombatParticipant>();
-            Schedules = schedules ?? Array.Empty<MonsterTurnSchedule>();
+            EnemyRuntimes = enemyRuntimes ?? Array.Empty<EnemyRuntime>();
             FormationSlots = formationSlots ?? Array.Empty<int>();
         }
 
-        public CombatParticipant[] Enemies { get; }
+        public EnemyRuntime[] EnemyRuntimes { get; }
 
-        public MonsterTurnSchedule[] Schedules { get; }
+        public CombatParticipant[] Enemies
+        {
+            get
+            {
+                var enemies = new CombatParticipant[EnemyRuntimes.Length];
+                for (int index = 0; index < EnemyRuntimes.Length; index++)
+                {
+                    enemies[index] = EnemyRuntimes[index].Participant;
+                }
+
+                return enemies;
+            }
+        }
 
         public int[] FormationSlots { get; }
     }

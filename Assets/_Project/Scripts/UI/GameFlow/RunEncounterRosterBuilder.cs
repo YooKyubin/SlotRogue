@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using SlotRogue.Core.Combat;
 using SlotRogue.Data.Combat;
 using SlotRogue.Data.GameFlow;
@@ -40,13 +41,14 @@ namespace SlotRogue.UI.GameFlow
             int level)
         {
             int maxHp = TierMaxHp(tier, level);
-            var enemies = new[]
-            {
-                RunCombatParticipantFactory.CreateEnemy(rosterIndex: 0, maxHp),
-            };
+            var plannerFactory = new EnemyActionPlannerFactory();
+            var runtimeFactory = new EnemyRuntimeFactory(plannerFactory);
+            EnemyRuntime runtime = runtimeFactory.Create(
+                rosterIndex: 0,
+                maxHp,
+                plannerFactory.Create(TierTurnEffects(tier, level)));
 
-            MonsterTurnSchedule schedule = TierTurnSchedule(tier, level);
-            return new RunEncounterRoster(enemies, new[] { schedule }, new[] { 0 });
+            return new RunEncounterRoster(new[] { runtime }, new[] { 0 });
         }
 
         private static int TierMaxHp(EncounterTier tier, int level)
@@ -61,31 +63,37 @@ namespace SlotRogue.UI.GameFlow
             };
         }
 
-        private static MonsterTurnSchedule TierTurnSchedule(EncounterTier tier, int level)
+        private static IReadOnlyList<IReadOnlyList<CombatEffect>> TierTurnEffects(EncounterTier tier, int level)
         {
             int lv = Mathf.Max(1, level);
 
             if (tier == EncounterTier.Boss)
             {
-                return new MonsterTurnSchedule(
+                return new[]
+                {
                     new[] { new CombatEffect(CombatEffectKind.Damage, 6 + lv, CombatEffectTarget.Enemy) },
                     new[] { new CombatEffect(CombatEffectKind.Shield, 5 + lv, CombatEffectTarget.Self) },
-                    new[] { new CombatEffect(CombatEffectKind.Damage, 9 + lv, CombatEffectTarget.Enemy) });
+                    new[] { new CombatEffect(CombatEffectKind.Damage, 9 + lv, CombatEffectTarget.Enemy) },
+                };
             }
 
             if (tier == EncounterTier.Elite)
             {
-                return new MonsterTurnSchedule(
+                return new[]
+                {
                     new[] { new CombatEffect(CombatEffectKind.Damage, 5 + lv, CombatEffectTarget.Enemy) },
                     new[] { new CombatEffect(CombatEffectKind.Shield, 4 + lv, CombatEffectTarget.Self) },
-                    new[] { new CombatEffect(CombatEffectKind.Damage, 7 + lv, CombatEffectTarget.Enemy) });
+                    new[] { new CombatEffect(CombatEffectKind.Damage, 7 + lv, CombatEffectTarget.Enemy) },
+                };
             }
 
-            return new MonsterTurnSchedule(
+            return new[]
+            {
                 new[] { new CombatEffect(CombatEffectKind.Damage, 3 + lv, CombatEffectTarget.Enemy) },
                 new[] { new CombatEffect(CombatEffectKind.Shield, 4 + lv, CombatEffectTarget.Self) },
                 new[] { new CombatEffect(CombatEffectKind.Damage, 5 + lv, CombatEffectTarget.Enemy) },
-                new[] { new CombatEffect(CombatEffectKind.Heal, 1 + lv, CombatEffectTarget.Self) });
+                new[] { new CombatEffect(CombatEffectKind.Heal, 1 + lv, CombatEffectTarget.Self) },
+            };
         }
     }
 }
