@@ -1,7 +1,7 @@
 # 전투 코어 (Combat Core)
 
 **Status**: draft  
-**Last updated**: 2026-06-13 (EnemyActionPlan 도입)
+**Last updated**: 2026-06-14 (EnemyRuntime 계획 타입 도입)
 
 ## Purpose
 
@@ -123,6 +123,22 @@ sequenceDiagram
 
 `EnemyActionPlan`은 몬스터 한 턴에 실행할 확정된 `CombatEffect` 목록을 보관하는 Core 타입이다. 행동을 선택하거나 실행하지 않으며, 외부 조회는 `EnemyUpcomingTurn.Plan.Effects`를 통해 이뤄진다.
 
+### EnemyActionContext
+
+`EnemyActionContext`는 Planner가 다음 행동을 고를 때 필요한 읽기 전용 전투 정보를 전달한다. `BattleSystem` 전체를 참조하지 않고 `Self`, `Player`, `Enemies`, `TurnNumber`처럼 현재 필요한 최소 정보만 담는다.
+
+### IEnemyActionPlanner
+
+`IEnemyActionPlanner`는 `EnemyActionContext`를 받아 다음 `EnemyActionPlan`을 생성하는 Core 계약이다. 피해·Shield·상태이상 적용이나 UI 갱신은 하지 않는다.
+
+### FixedSequenceEnemyActionPlanner
+
+`FixedSequenceEnemyActionPlanner`는 기존 `MonsterTurnSchedule`과 같은 고정 순환 행동 계획을 제공한다. 입력된 계획 목록은 생성 시점에 복사해 외부 컬렉션 변경으로부터 내부 순서를 보호한다.
+
+### EnemyRuntime
+
+`EnemyRuntime`은 전투 중 하나의 Enemy에 대해 `CombatParticipant`, 내부 `IEnemyActionPlanner`, `UpcomingPlan`을 묶는다. 생성 직후 `UpcomingPlan`은 빈 계획이며, `PlanNextAction()` 호출 후 Planner 결과로 갱신된다. 이번 단계에서는 `BattleSystem` 연결을 바꾸지 않고, 이후 런타임 기반 전환의 단위만 준비한다.
+
 ### Shield 지속
 
 | 주체 | 유효 구간 | 초기화 |
@@ -155,6 +171,8 @@ flowchart TD
 ```
 
 ## System boundary
+
+`SlotRogue.Core`는 Data/UI 계층과 Unity scene object에 의존하지 않는다. 다만 현재 asmdef는 UnityEngine 참조를 허용하므로, Core 내부에서 `Debug.LogWarning`, `Mathf`, `Vector2` 같은 진단·값 타입·수학 유틸 사용은 허용한다. `MonoBehaviour`, `GameObject`, `Transform`, `ScriptableObject`, `Sprite`처럼 scene/object lifecycle 또는 asset 계층에 묶이는 타입은 Core 전투 로직에서 참조하지 않는다.
 
 ```mermaid
 flowchart LR
