@@ -142,6 +142,27 @@ Assets/
 
 **의존 방향은 단방향**. `Core`가 `UI`를 알게 되면 즉시 위반.
 
+### Core의 UnityEngine 참조 기준
+
+`SlotRogue.Core`는 Data/UI 계층과 Unity scene object에 의존하지 않는다. 다만 현재 Core asmdef는 UnityEngine 참조를 허용하므로, 아래처럼 **값 타입·수학 유틸·진단 로그** 수준의 제한적 Unity 의존은 허용한다.
+
+| 범주 | 예 | 기준 |
+|------|----|------|
+| 진단 로그 | `Debug.LogWarning`, `Debug.LogError` | 잘못된 사용이나 데이터 이상을 개발 중 드러내기 위한 로그 |
+| 수학 유틸 | `Mathf` | 순수 계산 보조. scene/object 상태에 접근하지 않음 |
+| 값 타입 | `Vector2`, `Vector3`, `Vector2Int`, `Vector3Int`, `Color`, `Rect` | 데이터 표현용. Unity object lifecycle과 무관한 struct |
+| Attribute/툴링 보조 | `PropertyAttribute` 등 | 런타임 전투 상태와 분리된 에디터/툴링 보조 용도 |
+
+Core 전투 로직에서는 다음 UnityEngine 의존을 금지한다.
+
+- `MonoBehaviour`, `Component`, `GameObject`, `Transform`처럼 scene hierarchy나 lifecycle에 묶이는 타입.
+- `ScriptableObject`, `Sprite`, `Texture`, `AudioClip`, `Prefab`처럼 asset 계층이나 로딩 경계에 묶이는 타입.
+- `Resources`, Addressables, scene load API처럼 런타임 자산 로드·씬 전환을 직접 수행하는 API.
+- `Time`, `Coroutine`, `Input`, `Camera`, Physics API처럼 프레임 진행·입력·물리 월드에 직접 의존하는 API.
+- UI, Data, Presentation 계층 타입. 필요한 경우 상위 계층에서 Core DTO나 값 타입으로 변환해 전달한다.
+
+판단 기준은 “이 의존이 EditMode 테스트 가능한 순수 게임 규칙을 scene/object 상태 없이 유지하는가”이다. 애매하면 Core에는 DTO·값 타입만 두고, Unity object 참조는 UI/Data/Composition Root에서 해석한다.
+
 ---
 
 ## 자주 발생하는 문제
