@@ -51,29 +51,27 @@ namespace SlotRogue.Core.Tests.Combat
         }
 
         [Test]
-        public void PlanNext_SameInputAsMonsterTurnSchedule_ReturnsSameOrder()
+        public void PlanNext_PreservesEffectOrderWithinPlan()
         {
-            var turnSets = new[]
-            {
-                new[] { Effect(CombatEffectKind.Damage, 1) },
-                new[] { Effect(CombatEffectKind.Shield, 2) },
-                new[] { Effect(CombatEffectKind.Damage, 3) },
-            };
-            var schedule = new MonsterTurnSchedule(turnSets);
             var planner = new FixedSequenceEnemyActionPlanner(new[]
             {
-                new EnemyActionPlan(turnSets[0]),
-                new EnemyActionPlan(turnSets[1]),
-                new EnemyActionPlan(turnSets[2]),
+                new EnemyActionPlan(new[]
+                {
+                    Effect(CombatEffectKind.Damage, 1),
+                    Effect(CombatEffectKind.Shield, 2),
+                    Effect(CombatEffectKind.Damage, 3),
+                }),
             });
 
-            for (int index = 0; index < 5; index++)
-            {
-                IReadOnlyList<CombatEffect> scheduledEffects = schedule.ConsumeUpcomingTurn();
-                IReadOnlyList<CombatEffect> plannedEffects = planner.PlanNext(CreateContext()).Effects;
+            IReadOnlyList<CombatEffect> effects = planner.PlanNext(CreateContext()).Effects;
 
-                Assert.That(plannedEffects, Is.EqualTo(scheduledEffects));
-            }
+            Assert.That(effects.Count, Is.EqualTo(3));
+            Assert.That(effects[0].Kind, Is.EqualTo(CombatEffectKind.Damage));
+            Assert.That(effects[0].Amount, Is.EqualTo(1));
+            Assert.That(effects[1].Kind, Is.EqualTo(CombatEffectKind.Shield));
+            Assert.That(effects[1].Amount, Is.EqualTo(2));
+            Assert.That(effects[2].Kind, Is.EqualTo(CombatEffectKind.Damage));
+            Assert.That(effects[2].Amount, Is.EqualTo(3));
         }
 
         [Test]

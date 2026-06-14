@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NUnit.Framework;
 using SlotRogue.Core.Combat;
 using SlotRogue.Data.Combat;
@@ -26,18 +27,62 @@ namespace SlotRogue.UI.Tests.GameFlow
         }
 
         [Test]
-        public void EnemyActionPlannerFactory_CreatePattern_MatchesLegacyScheduleFactoryOrder()
+        public void EnemyActionPlannerFactory_CreatePattern_PreservesActionOrder()
         {
             MonsterTurnPatternDefinition pattern = Pattern(
-                Turn(Step(CombatEffectKind.Damage, 4, CombatTargetMode.SelectedEnemy)),
-                Turn(Step(CombatEffectKind.Heal, 2, CombatTargetMode.Self)));
+                Turn(
+                    Step(CombatEffectKind.Damage, 4, CombatTargetMode.SelectedEnemy),
+                    Step(CombatEffectKind.Shield, 3, CombatTargetMode.Self),
+                    Step(CombatEffectKind.Heal, 2, CombatTargetMode.Self)));
             IEnemyActionPlanner planner = new EnemyActionPlannerFactory().Create(pattern);
-            MonsterTurnSchedule legacySchedule = MonsterTurnScheduleFactory.FromPattern(pattern);
             CombatParticipant enemy = Enemy(id: 100, maxHp: 20);
             EnemyActionContext context = Context(enemy);
 
-            Assert.That(planner.PlanNext(context).Effects, Is.EqualTo(legacySchedule.ConsumeUpcomingTurn()));
-            Assert.That(planner.PlanNext(context).Effects, Is.EqualTo(legacySchedule.ConsumeUpcomingTurn()));
+            var effects = planner.PlanNext(context).Effects;
+
+            Assert.That(effects.Count, Is.EqualTo(3));
+            Assert.That(effects[0].Kind, Is.EqualTo(CombatEffectKind.Damage));
+            Assert.That(effects[0].Amount, Is.EqualTo(4));
+            Assert.That(effects[1].Kind, Is.EqualTo(CombatEffectKind.Shield));
+            Assert.That(effects[1].Amount, Is.EqualTo(3));
+            Assert.That(effects[2].Kind, Is.EqualTo(CombatEffectKind.Heal));
+            Assert.That(effects[2].Amount, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void EnemyActionPlannerFactory_CreatePattern_NullPattern_ReturnsDefaultFallback()
+        {
+            IEnemyActionPlanner planner = new EnemyActionPlannerFactory().Create((MonsterTurnPatternDefinition)null);
+            CombatParticipant enemy = Enemy(id: 100, maxHp: 20);
+
+            EnemyActionPlan plan = planner.PlanNext(Context(enemy));
+
+            AssertPlan(plan, CombatEffectKind.Damage, 2);
+        }
+
+        [Test]
+        public void EnemyActionPlannerFactory_CreatePattern_EmptyTurns_ReturnsEmptyPlan()
+        {
+            MonsterTurnPatternDefinition pattern = Pattern();
+            IEnemyActionPlanner planner = new EnemyActionPlannerFactory().Create(pattern);
+            CombatParticipant enemy = Enemy(id: 100, maxHp: 20);
+
+            EnemyActionPlan plan = planner.PlanNext(Context(enemy));
+
+            Assert.That(plan.Effects, Is.Empty);
+            Object.DestroyImmediate(pattern);
+        }
+
+        [Test]
+        public void EnemyActionPlannerFactory_CreateTurnEffects_NullOrEmpty_ReturnsDefaultFallback()
+        {
+            var factory = new EnemyActionPlannerFactory();
+            IEnemyActionPlanner fromNull = factory.Create((IReadOnlyList<IReadOnlyList<CombatEffect>>)null);
+            IEnemyActionPlanner fromEmpty = factory.Create(System.Array.Empty<IReadOnlyList<CombatEffect>>());
+            CombatParticipant enemy = Enemy(id: 100, maxHp: 20);
+
+            AssertPlan(fromNull.PlanNext(Context(enemy)), CombatEffectKind.Damage, 2);
+            AssertPlan(fromEmpty.PlanNext(Context(enemy)), CombatEffectKind.Damage, 2);
         }
 
         [Test]
