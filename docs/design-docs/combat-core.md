@@ -1,7 +1,7 @@
 # 전투 코어 (Combat Core)
 
 **Status**: draft  
-**Last updated**: 2026-06-14 (GameFlow EnemyRuntime 생성 전환)
+**Last updated**: 2026-06-15 (GameFlow EnemyCombatant 명칭 정리)
 
 ## Purpose
 
@@ -135,11 +135,11 @@ sequenceDiagram
 
 `FixedSequenceEnemyActionPlanner`는 기존 `MonsterTurnSchedule`과 같은 고정 순환 행동 계획을 제공한다. 입력된 계획 목록은 생성 시점에 복사해 외부 컬렉션 변경으로부터 내부 순서를 보호한다.
 
-### EnemyRuntime
+### EnemyCombatant
 
-`EnemyRuntime`은 전투 중 하나의 Enemy에 대해 `CombatParticipant`, 내부 `IEnemyActionPlanner`, `UpcomingPlan`을 묶는다. 생성 직후 `UpcomingPlan`은 빈 계획이며, `PlanNextAction()` 호출 후 Planner 결과로 갱신된다. `BattleSystem`은 적별 `EnemyRuntime`을 입력받아 보관하고, UI 조회와 적 턴 실행 모두 저장된 `UpcomingPlan`을 기준으로 처리한다.
+`EnemyCombatant`는 전투 중 하나의 Enemy에 대해 `CombatParticipant`, 내부 `IEnemyActionPlanner`, `UpcomingPlan`을 묶는다. 생성 직후 `UpcomingPlan`은 빈 계획이며, `PlanNextAction()` 호출 후 Planner 결과로 갱신된다. `BattleSystem`은 적별 `EnemyCombatant`를 입력받아 보관하고, UI 조회와 적 턴 실행 모두 저장된 `UpcomingPlan`을 기준으로 처리한다.
 
-GameFlow는 `EnemyActionPlannerFactory`와 `EnemyRuntimeFactory`로 Data 패턴 또는 tier 기반 행동 데이터를 `EnemyRuntime`으로 조립한 뒤 `BattleSystem.StartBattle(player, enemyRuntimes)`에 전달한다. `BattleSystem`은 더 이상 `MonsterTurnSchedule` 입력이나 legacy schedule 어댑터를 제공하지 않는다.
+GameFlow는 `EnemyActionPlannerFactory`와 `EnemyCombatantFactory`로 Data 패턴 또는 tier 기반 행동 데이터를 `EnemyCombatant`로 조립한 뒤 `BattleSystem.StartBattle(player, enemyCombatants)`에 전달한다. `BattleSystem`은 더 이상 `MonsterTurnSchedule` 입력이나 legacy schedule 어댑터를 제공하지 않는다.
 
 ### Shield 지속
 
@@ -158,7 +158,7 @@ GameFlow는 `EnemyActionPlannerFactory`와 `EnemyRuntimeFactory`로 Data 패턴 
 | `MonsterTurnPatternDefinition` | 턴별 `CombatEffectStep[]` 배열 (불변 패턴) |
 | `MonsterDefinition` | `maxHp`, `turnPattern` 참조 |
 | `EnemyActionPlannerFactory` (UI/GameFlow) | pattern SO → `FixedSequenceEnemyActionPlanner` |
-| `EnemyRuntimeFactory` (UI/GameFlow) | `MonsterDefinition` 또는 생성 데이터 → `CombatParticipant` + Planner → `EnemyRuntime` |
+| `EnemyCombatantFactory` (UI/GameFlow) | `MonsterDefinition` 또는 생성 데이터 → `CombatParticipant` + Planner → `EnemyCombatant` |
 | `MonsterTurnScheduleFactory` | legacy schedule 테스트/전환 전 독립 경로용 |
 
 - SO asset: `Assets/_Project/Data/Combat/` (예: Goblin + GoblinTurnPattern).
@@ -198,11 +198,11 @@ flowchart LR
         VM["CombatViewModel"]
         BattleFlow["BattleFlowController"]
         PlannerFactory["EnemyActionPlannerFactory"]
-        Factory["EnemyRuntimeFactory"]
+        Factory["EnemyCombatantFactory"]
     end
 
     subgraph Combat["SlotRogue.Core / Combat"]
-        Runtime["EnemyRuntime"]
+        Runtime["EnemyCombatant"]
         Planner["FixedSequenceEnemyActionPlanner"]
         StartBattle --> Resolver
         Factory --> Runtime
@@ -232,7 +232,7 @@ flowchart LR
 
 | API | 역할 |
 |-----|------|
-| `StartBattle(player, enemyRuntime)` / `StartBattle(player, enemyRuntimes)` | 전투 시작 → 모든 Runtime의 첫 Plan 생성 → `PlayerTurn` |
+| `StartBattle(player, enemyCombatant)` / `StartBattle(player, enemyCombatants)` | 전투 시작 → 모든 Combatant의 첫 Plan 생성 → `PlayerTurn` |
 | `ApplyPlayerTurn(IReadOnlyList<CombatEffect> effects)` | 플레이어 턴 처리. `PlayerTurn`이 아니면 거부 |
 | `CurrentPhase` | UI·슬롯 스핀 가능 여부 |
 | `TryGetUpcomingEnemyTurn(participantId, out EnemyUpcomingTurn)` | 특정 생존 Enemy의 저장된 `EnemyActionPlan` 조회. 없는 id·사망 Enemy는 `false` |

@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace SlotRogue.UI.Tests.GameFlow
 {
-    public sealed class EnemyRuntimeFactoryTests
+    public sealed class EnemyCombatantFactoryTests
     {
         [Test]
         public void EnemyActionPlannerFactory_CreatePattern_ReturnsFixedSequencePlanner()
@@ -41,27 +41,27 @@ namespace SlotRogue.UI.Tests.GameFlow
         }
 
         [Test]
-        public void EnemyRuntimeFactory_CreateDefinition_UsesMonsterHpAndEnemyIdentity()
+        public void EnemyCombatantFactory_CreateDefinition_UsesMonsterHpAndEnemyIdentity()
         {
             MonsterDefinition definition = ScriptableObject.CreateInstance<MonsterDefinition>();
             definition.maxHp = 17;
             definition.turnPattern = Pattern(Turn(Step(CombatEffectKind.Damage, 6, CombatTargetMode.SelectedEnemy)));
-            var factory = new EnemyRuntimeFactory();
+            var factory = new EnemyCombatantFactory();
 
-            EnemyRuntime runtime = factory.Create(definition, rosterIndex: 2);
-            runtime.PlanNextAction(Context(runtime.Participant));
+            EnemyCombatant combatant = factory.Create(definition, rosterIndex: 2);
+            combatant.PlanNextAction(Context(combatant.Participant));
 
-            Assert.That(runtime.Participant.MaxHp, Is.EqualTo(17));
-            Assert.That(runtime.Participant.CurrentHp, Is.EqualTo(17));
-            Assert.That(runtime.Participant.Team, Is.EqualTo(CombatTeam.Enemy));
-            Assert.That(runtime.Participant.Id.Value, Is.EqualTo(102));
-            AssertPlan(runtime.UpcomingPlan, CombatEffectKind.Damage, 6);
-            Assert.That(typeof(EnemyRuntime).GetProperty("Definition"), Is.Null);
+            Assert.That(combatant.Participant.MaxHp, Is.EqualTo(17));
+            Assert.That(combatant.Participant.CurrentHp, Is.EqualTo(17));
+            Assert.That(combatant.Participant.Team, Is.EqualTo(CombatTeam.Enemy));
+            Assert.That(combatant.Participant.Id.Value, Is.EqualTo(102));
+            AssertPlan(combatant.UpcomingPlan, CombatEffectKind.Damage, 6);
+            Assert.That(typeof(EnemyCombatant).GetProperty("Definition"), Is.Null);
             Object.DestroyImmediate(definition);
         }
 
         [Test]
-        public void RunEncounterRosterBuilder_BuildForTier_CreatesEnemyRuntime()
+        public void RunEncounterRosterBuilder_BuildForTier_CreatesEnemyCombatant()
         {
             RunEncounterRoster roster = RunEncounterRosterBuilder.BuildForTier(
                 SlotRogue.Data.GameFlow.EncounterTier.Normal,
@@ -69,9 +69,9 @@ namespace SlotRogue.UI.Tests.GameFlow
             BattleSystem battle = new();
             CombatParticipant player = RunCombatParticipantFactory.CreatePlayer(maxHp: 30, currentHp: 30);
 
-            battle.StartBattle(player, roster.EnemyRuntimes);
+            battle.StartBattle(player, roster.EnemyCombatants);
 
-            Assert.That(roster.EnemyRuntimes.Length, Is.EqualTo(1));
+            Assert.That(roster.EnemyCombatants.Length, Is.EqualTo(1));
             Assert.That(battle.TryGetUpcomingEnemyTurn(roster.Enemies[0].Id, out EnemyUpcomingTurn upcoming), Is.True);
             AssertPlan(upcoming.Plan, CombatEffectKind.Damage, 4);
         }

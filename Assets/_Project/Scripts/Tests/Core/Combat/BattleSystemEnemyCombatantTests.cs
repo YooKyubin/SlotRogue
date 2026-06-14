@@ -5,7 +5,7 @@ using SlotRogue.Core.Combat;
 
 namespace SlotRogue.Core.Tests.Combat
 {
-    public sealed class BattleSystemEnemyRuntimeTests
+    public sealed class BattleSystemEnemyCombatantTests
     {
         private BattleSystem _battle = null!;
 
@@ -16,15 +16,15 @@ namespace SlotRogue.Core.Tests.Combat
         }
 
         [Test]
-        public void StartBattle_WithEnemyRuntime_PreparesInitialPlan()
+        public void StartBattle_WithEnemyCombatant_PreparesInitialPlan()
         {
             CombatParticipant player = Player(maxHp: 30);
             CombatParticipant enemy = Enemy(id: 100, maxHp: 20);
-            EnemyRuntime runtime = Runtime(
+            EnemyCombatant combatant = Combatant(
                 enemy,
                 Plan(CombatEffectKind.Damage, 4, CombatEffectTarget.Enemy));
 
-            _battle.StartBattle(player, new[] { runtime });
+            _battle.StartBattle(player, new[] { combatant });
 
             Assert.That(_battle.CurrentPhase, Is.EqualTo(BattlePhase.PlayerTurn));
             Assert.That(_battle.TryGetUpcomingEnemyTurn(enemy.Id, out EnemyUpcomingTurn upcomingTurn), Is.True);
@@ -37,11 +37,11 @@ namespace SlotRogue.Core.Tests.Combat
         {
             CombatParticipant player = Player(maxHp: 30);
             CombatParticipant enemy = Enemy(id: 100, maxHp: 30);
-            EnemyRuntime runtime = Runtime(
+            EnemyCombatant combatant = Combatant(
                 enemy,
                 Plan(CombatEffectKind.Damage, 3, CombatEffectTarget.Enemy),
                 Plan(CombatEffectKind.Shield, 5, CombatEffectTarget.Self));
-            _battle.StartBattle(player, new[] { runtime });
+            _battle.StartBattle(player, new[] { combatant });
 
             _battle.ApplyPlayerTurn(System.Array.Empty<CombatEffect>());
 
@@ -55,11 +55,11 @@ namespace SlotRogue.Core.Tests.Combat
         {
             CombatParticipant player = Player(maxHp: 30);
             CombatParticipant enemy = Enemy(id: 100, maxHp: 30);
-            EnemyRuntime runtime = Runtime(
+            EnemyCombatant combatant = Combatant(
                 enemy,
                 Plan(CombatEffectKind.Damage, 3, CombatEffectTarget.Enemy),
                 Plan(CombatEffectKind.Damage, 7, CombatEffectTarget.Enemy));
-            _battle.StartBattle(player, new[] { runtime });
+            _battle.StartBattle(player, new[] { combatant });
 
             _battle.ApplyPlayerTurn(new[]
             {
@@ -77,7 +77,7 @@ namespace SlotRogue.Core.Tests.Combat
         }
 
         [Test]
-        public void ApplyPlayerTurn_MultipleEnemyRuntimes_ExecutesInRosterOrder()
+        public void ApplyPlayerTurn_MultipleEnemyCombatants_ExecutesInRosterOrder()
         {
             CombatParticipant player = Player(maxHp: 30);
             CombatParticipant enemy0 = Enemy(id: 100, maxHp: 20);
@@ -86,8 +86,8 @@ namespace SlotRogue.Core.Tests.Combat
                 player,
                 new[]
                 {
-                    Runtime(enemy0, Plan(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy)),
-                    Runtime(enemy1, Plan(CombatEffectKind.Damage, 5, CombatEffectTarget.Enemy)),
+                    Combatant(enemy0, Plan(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy)),
+                    Combatant(enemy1, Plan(CombatEffectKind.Damage, 5, CombatEffectTarget.Enemy)),
                 });
 
             _battle.ApplyPlayerTurn(System.Array.Empty<CombatEffect>());
@@ -113,8 +113,8 @@ namespace SlotRogue.Core.Tests.Combat
                 player,
                 new[]
                 {
-                    Runtime(enemy0, Plan(CombatEffectKind.Damage, 0, CombatEffectTarget.Enemy)),
-                    Runtime(enemy1, Plan(CombatEffectKind.Damage, 0, CombatEffectTarget.Enemy)),
+                    Combatant(enemy0, Plan(CombatEffectKind.Damage, 0, CombatEffectTarget.Enemy)),
+                    Combatant(enemy1, Plan(CombatEffectKind.Damage, 0, CombatEffectTarget.Enemy)),
                 });
 
             _battle.ApplyPlayerTurn(
@@ -135,9 +135,9 @@ namespace SlotRogue.Core.Tests.Combat
             Assert.That(enemy1.CurrentHp, Is.EqualTo(16));
         }
 
-        private static EnemyRuntime Runtime(CombatParticipant enemy, params EnemyActionPlan[] plans)
+        private static EnemyCombatant Combatant(CombatParticipant enemy, params EnemyActionPlan[] plans)
         {
-            return new EnemyRuntime(enemy, new FixedSequenceEnemyActionPlanner(plans));
+            return new EnemyCombatant(enemy, new FixedSequenceEnemyActionPlanner(plans));
         }
 
         private static EnemyActionPlan Plan(

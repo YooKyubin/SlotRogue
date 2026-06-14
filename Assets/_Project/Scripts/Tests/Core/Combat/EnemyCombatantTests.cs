@@ -5,60 +5,60 @@ using SlotRogue.Core.Combat;
 
 namespace SlotRogue.Core.Tests.Combat
 {
-    public sealed class EnemyRuntimeTests
+    public sealed class EnemyCombatantTests
     {
         [Test]
         public void Constructor_StoresParticipant()
         {
             CombatParticipant enemy = Enemy(100);
-            var runtime = new EnemyRuntime(enemy, new SequencePlanner(Plan(CombatEffectKind.Damage, 1)));
+            var combatant = new EnemyCombatant(enemy, new SequencePlanner(Plan(CombatEffectKind.Damage, 1)));
 
-            Assert.That(runtime.Participant, Is.SameAs(enemy));
+            Assert.That(combatant.Participant, Is.SameAs(enemy));
         }
 
         [Test]
         public void UpcomingPlan_BeforePlanning_ReturnsEmptyPlan()
         {
-            var runtime = new EnemyRuntime(
+            var combatant = new EnemyCombatant(
                 Enemy(100),
                 new SequencePlanner(Plan(CombatEffectKind.Damage, 1)));
 
-            Assert.That(runtime.UpcomingPlan.Effects, Is.Empty);
+            Assert.That(combatant.UpcomingPlan.Effects, Is.Empty);
         }
 
         [Test]
         public void PlanNextAction_StoresPlannerResultAsUpcomingPlan()
         {
-            var runtime = new EnemyRuntime(
+            var combatant = new EnemyCombatant(
                 Enemy(100),
                 new SequencePlanner(Plan(CombatEffectKind.Damage, 3)));
 
-            runtime.PlanNextAction(CreateContext(runtime.Participant));
+            combatant.PlanNextAction(CreateContext(combatant.Participant));
 
-            AssertPlan(runtime.UpcomingPlan, CombatEffectKind.Damage, 3);
+            AssertPlan(combatant.UpcomingPlan, CombatEffectKind.Damage, 3);
         }
 
         [Test]
         public void PlanNextAction_MultipleCalls_UpdatesUpcomingPlanInPlannerOrder()
         {
-            var runtime = new EnemyRuntime(
+            var combatant = new EnemyCombatant(
                 Enemy(100),
                 new SequencePlanner(
                     Plan(CombatEffectKind.Damage, 3),
                     Plan(CombatEffectKind.Shield, 5)));
 
-            runtime.PlanNextAction(CreateContext(runtime.Participant));
-            AssertPlan(runtime.UpcomingPlan, CombatEffectKind.Damage, 3);
+            combatant.PlanNextAction(CreateContext(combatant.Participant));
+            AssertPlan(combatant.UpcomingPlan, CombatEffectKind.Damage, 3);
 
-            runtime.PlanNextAction(CreateContext(runtime.Participant));
-            AssertPlan(runtime.UpcomingPlan, CombatEffectKind.Shield, 5);
+            combatant.PlanNextAction(CreateContext(combatant.Participant));
+            AssertPlan(combatant.UpcomingPlan, CombatEffectKind.Shield, 5);
         }
 
         [Test]
         public void PublicApi_DoesNotExposePlanner()
         {
-            PropertyInfo property = typeof(EnemyRuntime).GetProperty("ActionPlanner");
-            FieldInfo field = typeof(EnemyRuntime).GetField(
+            PropertyInfo property = typeof(EnemyCombatant).GetProperty("ActionPlanner");
+            FieldInfo field = typeof(EnemyCombatant).GetField(
                 "ActionPlanner",
                 BindingFlags.Instance | BindingFlags.Public);
 

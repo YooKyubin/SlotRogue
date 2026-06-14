@@ -4,13 +4,13 @@ using UnityEngine;
 
 namespace SlotRogue.Core.Combat
 {
-    public sealed class EnemyRuntime
+    public sealed class EnemyCombatant
     {
         private readonly IEnemyActionPlanner _actionPlanner;
         private EnemyActionPlan _upcomingPlan;
         private bool _hasUpcomingPlan;
 
-        public EnemyRuntime(CombatParticipant participant, IEnemyActionPlanner actionPlanner)
+        public EnemyCombatant(CombatParticipant participant, IEnemyActionPlanner actionPlanner)
         {
             Participant = participant ?? throw new ArgumentNullException(nameof(participant));
             _actionPlanner = actionPlanner ?? throw new ArgumentNullException(nameof(actionPlanner));
@@ -27,7 +27,7 @@ namespace SlotRogue.Core.Combat
                 if (!_hasUpcomingPlan)
                 {
                     Debug.LogWarning(
-                        "EnemyRuntime.UpcomingPlan was read before PlanNextAction was called.");
+                        "EnemyCombatant.UpcomingPlan was read before PlanNextAction was called.");
                 }
 
                 return _upcomingPlan;

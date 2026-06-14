@@ -63,7 +63,7 @@ namespace SlotRogue.UI.GameFlow
             _slotTurnController.SetupImmediate();
             _battle.StartBattle(
                 _context.Player,
-                _context.EncounterRoster.EnemyRuntimes);
+                _context.EncounterRoster.EnemyCombatants);
             _combatViewModel.SyncFrom(_battle);
             _screenController.BeginBattle(
                 _battle,

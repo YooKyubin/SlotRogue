@@ -9,7 +9,7 @@ namespace SlotRogue.Core.Combat
         private readonly StatusEffectEngine _statusEffectEngine;
         private readonly List<CombatEvent> _events = new();
         private readonly List<CombatParticipant> _enemies = new();
-        private readonly List<EnemyRuntime> _enemyRuntimes = new();
+        private readonly List<EnemyCombatant> _enemyCombatants = new();
         private readonly Dictionary<int, CombatParticipant> _participantsById = new();
         private CombatParticipant _player = null!;
 
@@ -46,10 +46,10 @@ namespace SlotRogue.Core.Combat
                 return false;
             }
 
-            for (int index = 0; index < _enemyRuntimes.Count; index++)
+            for (int index = 0; index < _enemyCombatants.Count; index++)
             {
-                EnemyRuntime runtime = _enemyRuntimes[index];
-                CombatParticipant participant = runtime.Participant;
+                EnemyCombatant combatant = _enemyCombatants[index];
+                CombatParticipant participant = combatant.Participant;
 
                 if (participant.Id.Value != participantId.Value)
                 {
@@ -62,7 +62,7 @@ namespace SlotRogue.Core.Combat
                     return false;
                 }
 
-                upcomingTurn = new EnemyUpcomingTurn(participant.Id, runtime.UpcomingPlan);
+                upcomingTurn = new EnemyUpcomingTurn(participant.Id, combatant.UpcomingPlan);
                 return true;
             }
 
@@ -70,30 +70,30 @@ namespace SlotRogue.Core.Combat
             return false;
         }
 
-        public void StartBattle(CombatParticipant player, IReadOnlyList<EnemyRuntime> enemyRuntimes)
+        public void StartBattle(CombatParticipant player, IReadOnlyList<EnemyCombatant> enemyCombatants)
         {
             if (player == null)
             {
                 throw new ArgumentNullException(nameof(player));
             }
 
-            if (enemyRuntimes == null || enemyRuntimes.Count == 0)
+            if (enemyCombatants == null || enemyCombatants.Count == 0)
             {
-                throw new ArgumentException("At least one enemy runtime is required.", nameof(enemyRuntimes));
+                throw new ArgumentException("At least one enemy combatant is required.", nameof(enemyCombatants));
             }
 
             _player = player;
             _enemies.Clear();
-            _enemyRuntimes.Clear();
+            _enemyCombatants.Clear();
             _participantsById.Clear();
             RegisterParticipant(_player);
 
-            for (int index = 0; index < enemyRuntimes.Count; index++)
+            for (int index = 0; index < enemyCombatants.Count; index++)
             {
-                EnemyRuntime runtime = enemyRuntimes[index] ?? throw new ArgumentNullException(nameof(enemyRuntimes));
-                CombatParticipant enemy = runtime.Participant;
+                EnemyCombatant combatant = enemyCombatants[index] ?? throw new ArgumentNullException(nameof(enemyCombatants));
+                CombatParticipant enemy = combatant.Participant;
                 _enemies.Add(enemy);
-                _enemyRuntimes.Add(runtime);
+                _enemyCombatants.Add(combatant);
                 RegisterParticipant(enemy);
             }
 
@@ -145,10 +145,10 @@ namespace SlotRogue.Core.Combat
         {
             SetPhase(BattlePhase.EnemyTurn);
 
-            for (int index = 0; index < _enemyRuntimes.Count; index++)
+            for (int index = 0; index < _enemyCombatants.Count; index++)
             {
-                EnemyRuntime enemyRuntime = _enemyRuntimes[index];
-                CombatParticipant enemy = enemyRuntime.Participant;
+                EnemyCombatant enemyCombatant = _enemyCombatants[index];
+                CombatParticipant enemy = enemyCombatant.Participant;
                 if (enemy.IsDead)
                 {
                     continue;
@@ -160,8 +160,8 @@ namespace SlotRogue.Core.Combat
                 }
 
                 bool shouldSkipAction = TrySkipParticipantAction(enemy);
-                IReadOnlyList<CombatEffect> enemyTurnActions = enemyRuntime.UpcomingPlan.Effects;
-                enemyRuntime.PlanNextAction(CreateEnemyActionContext(enemy));
+                IReadOnlyList<CombatEffect> enemyTurnActions = enemyCombatant.UpcomingPlan.Effects;
+                enemyCombatant.PlanNextAction(CreateEnemyActionContext(enemy));
                 if (!shouldSkipAction &&
                     ApplyEffects(enemyTurnActions, enemy, default))
                 {
@@ -419,10 +419,10 @@ namespace SlotRogue.Core.Combat
 
         private void PlanNextActionsForAllEnemies()
         {
-            for (int index = 0; index < _enemyRuntimes.Count; index++)
+            for (int index = 0; index < _enemyCombatants.Count; index++)
             {
-                EnemyRuntime runtime = _enemyRuntimes[index];
-                runtime.PlanNextAction(CreateEnemyActionContext(runtime.Participant));
+                EnemyCombatant combatant = _enemyCombatants[index];
+                combatant.PlanNextAction(CreateEnemyActionContext(combatant.Participant));
             }
         }
 

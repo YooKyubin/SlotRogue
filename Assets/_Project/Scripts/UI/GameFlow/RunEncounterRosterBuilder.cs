@@ -42,13 +42,13 @@ namespace SlotRogue.UI.GameFlow
         {
             int maxHp = TierMaxHp(tier, level);
             var plannerFactory = new EnemyActionPlannerFactory();
-            var runtimeFactory = new EnemyRuntimeFactory(plannerFactory);
-            EnemyRuntime runtime = runtimeFactory.Create(
+            var combatantFactory = new EnemyCombatantFactory(plannerFactory);
+            EnemyCombatant combatant = combatantFactory.Create(
                 rosterIndex: 0,
                 maxHp,
                 plannerFactory.Create(TierTurnEffects(tier, level)));
 
-            return new RunEncounterRoster(new[] { runtime }, new[] { 0 });
+            return new RunEncounterRoster(new[] { combatant }, new[] { 0 });
         }
 
         private static int TierMaxHp(EncounterTier tier, int level)
