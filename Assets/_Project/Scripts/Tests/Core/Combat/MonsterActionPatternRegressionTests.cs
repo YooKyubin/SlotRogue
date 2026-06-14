@@ -47,7 +47,6 @@ namespace SlotRogue.Core.Tests.Combat
 
             Assert.That(_battle.TryGetUpcomingEnemyTurn(enemy.Id, out EnemyUpcomingTurn upcomingTurn), Is.True);
             Assert.That(upcomingTurn.ParticipantId.Value, Is.EqualTo(100));
-            Assert.That(upcomingTurn.TurnIndex, Is.Zero);
             AssertTurn(upcomingTurn.Plan.Effects, CombatEffectKind.Damage, amount: 4);
         }
 
@@ -65,7 +64,6 @@ namespace SlotRogue.Core.Tests.Combat
 
             Assert.That(player.CurrentHp, Is.EqualTo(46));
             Assert.That(_battle.TryGetUpcomingEnemyTurn(enemy.Id, out EnemyUpcomingTurn upcomingTurn), Is.True);
-            Assert.That(upcomingTurn.TurnIndex, Is.EqualTo(1));
             AssertTurn(upcomingTurn.Plan.Effects, CombatEffectKind.Shield, amount: 6);
         }
 
@@ -92,7 +90,6 @@ namespace SlotRogue.Core.Tests.Combat
                 e.StatusEffectKind == StatusEffectKind.Freeze &&
                 !e.IsPlayerParticipant));
             Assert.That(_battle.TryGetUpcomingEnemyTurn(enemy.Id, out EnemyUpcomingTurn upcomingTurn), Is.True);
-            Assert.That(upcomingTurn.TurnIndex, Is.EqualTo(1));
             AssertTurn(upcomingTurn.Plan.Effects, CombatEffectKind.Damage, amount: 7);
 
             _battle.ApplyPlayerTurn(System.Array.Empty<CombatEffect>());

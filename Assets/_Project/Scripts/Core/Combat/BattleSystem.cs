@@ -9,7 +9,7 @@ namespace SlotRogue.Core.Combat
         private readonly StatusEffectEngine _statusEffectEngine;
         private readonly List<CombatEvent> _events = new();
         private readonly List<CombatParticipant> _enemies = new();
-        private readonly List<EnemyTurnState> _enemyTurnStates = new();
+        private readonly List<EnemyRuntime> _enemyRuntimes = new();
         private readonly Dictionary<int, CombatParticipant> _participantsById = new();
         private CombatParticipant _player = null!;
 
@@ -46,26 +46,23 @@ namespace SlotRogue.Core.Combat
                 return false;
             }
 
-            for (int index = 0; index < _enemyTurnStates.Count; index++)
+            for (int index = 0; index < _enemyRuntimes.Count; index++)
             {
-                EnemyTurnState state = _enemyTurnStates[index];
+                EnemyRuntime runtime = _enemyRuntimes[index];
+                CombatParticipant participant = runtime.Participant;
 
-                if (state.Participant.Id.Value != participantId.Value)
+                if (participant.Id.Value != participantId.Value)
                 {
                     continue;
                 }
 
-                if (state.Participant.IsDead)
+                if (participant.IsDead)
                 {
                     upcomingTurn = default;
                     return false;
                 }
 
-                upcomingTurn = new EnemyUpcomingTurn(
-                    state.Participant.Id,
-                    state.Schedule.UpcomingTurnIndex,
-                    new EnemyActionPlan(state.Schedule.UpcomingActions));
-
+                upcomingTurn = new EnemyUpcomingTurn(participant.Id, runtime.UpcomingPlan);
                 return true;
             }
 
@@ -108,7 +105,7 @@ namespace SlotRogue.Core.Combat
 
             _player = player;
             _enemies.Clear();
-            _enemyTurnStates.Clear();
+            _enemyRuntimes.Clear();
             _participantsById.Clear();
             RegisterParticipant(_player);
 
@@ -116,15 +113,16 @@ namespace SlotRogue.Core.Combat
             {
                 CombatParticipant enemy = enemies[index] ?? throw new ArgumentNullException(nameof(enemies));
                 MonsterTurnSchedule schedule = enemyTurnSchedules[index] ?? throw new ArgumentNullException(nameof(enemyTurnSchedules));
-                schedule.Reset();
+                EnemyRuntime runtime = CreateRuntimeFromLegacySchedule(enemy, schedule);
                 _enemies.Add(enemy);
-                _enemyTurnStates.Add(new EnemyTurnState(enemy, schedule));
+                _enemyRuntimes.Add(runtime);
                 RegisterParticipant(enemy);
             }
 
             EndReason = BattleEndReason.None;
             _events.Clear();
 
+            PlanNextActionsForAllEnemies();
             SetPhase(BattlePhase.PlayerTurn);
         }
 
@@ -169,28 +167,30 @@ namespace SlotRogue.Core.Combat
         {
             SetPhase(BattlePhase.EnemyTurn);
 
-            for (int index = 0; index < _enemyTurnStates.Count; index++)
+            for (int index = 0; index < _enemyRuntimes.Count; index++)
             {
-                EnemyTurnState enemyState = _enemyTurnStates[index];
-                if (enemyState.Participant.IsDead)
+                EnemyRuntime enemyRuntime = _enemyRuntimes[index];
+                CombatParticipant enemy = enemyRuntime.Participant;
+                if (enemy.IsDead)
                 {
                     continue;
                 }
 
-                if (RunBattleStep(() => RunParticipantTurnStart(enemyState.Participant)))
+                if (RunBattleStep(() => RunParticipantTurnStart(enemy)))
                 {
                     return;
                 }
 
-                bool shouldSkipAction = TrySkipParticipantAction(enemyState.Participant);
-                IReadOnlyList<CombatEffect> enemyTurnActions = enemyState.Schedule.ConsumeUpcomingTurn();
+                bool shouldSkipAction = TrySkipParticipantAction(enemy);
+                IReadOnlyList<CombatEffect> enemyTurnActions = enemyRuntime.UpcomingPlan.Effects;
+                enemyRuntime.PlanNextAction(CreateEnemyActionContext(enemy));
                 if (!shouldSkipAction &&
-                    ApplyEffects(enemyTurnActions, enemyState.Participant, default))
+                    ApplyEffects(enemyTurnActions, enemy, default))
                 {
                     return;
                 }
 
-                if (RunBattleStep(() => RunParticipantTurnEnd(enemyState.Participant)))
+                if (RunBattleStep(() => RunParticipantTurnEnd(enemy)))
                 {
                     return;
                 }
@@ -439,17 +439,41 @@ namespace SlotRogue.Core.Combat
             _participantsById[participant.Id.Value] = participant;
         }
 
-        private sealed class EnemyTurnState
+        private void PlanNextActionsForAllEnemies()
         {
-            public EnemyTurnState(CombatParticipant participant, MonsterTurnSchedule schedule)
+            for (int index = 0; index < _enemyRuntimes.Count; index++)
             {
-                Participant = participant;
-                Schedule = schedule;
+                EnemyRuntime runtime = _enemyRuntimes[index];
+                runtime.PlanNextAction(CreateEnemyActionContext(runtime.Participant));
+            }
+        }
+
+        private EnemyActionContext CreateEnemyActionContext(CombatParticipant enemy)
+        {
+            return new(enemy, _player, _enemies, turnNumber: 0);
+        }
+
+        private static EnemyRuntime CreateRuntimeFromLegacySchedule(
+            CombatParticipant enemy,
+            MonsterTurnSchedule schedule)
+        {
+            // Temporary migration adapter.
+            // Converts the legacy MonsterTurnSchedule-based input into EnemyRuntime.
+            // Remove this after Data/GameFlow creates EnemyRuntime directly.
+            schedule.Reset();
+
+            var plans = new EnemyActionPlan[schedule.TurnCount];
+            for (int index = 0; index < schedule.TurnCount; index++)
+            {
+                plans[index] = new EnemyActionPlan(schedule.UpcomingActions);
+                schedule.ConsumeUpcomingTurn();
             }
 
-            public CombatParticipant Participant { get; }
+            schedule.Reset();
 
-            public MonsterTurnSchedule Schedule { get; }
+            return new EnemyRuntime(
+                enemy,
+                new FixedSequenceEnemyActionPlanner(plans));
         }
     }
 }

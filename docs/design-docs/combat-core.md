@@ -1,7 +1,7 @@
 # 전투 코어 (Combat Core)
 
 **Status**: draft  
-**Last updated**: 2026-06-14 (EnemyRuntime 계획 타입 도입)
+**Last updated**: 2026-06-14 (BattleSystem EnemyRuntime 전환)
 
 ## Purpose
 
@@ -137,7 +137,9 @@ sequenceDiagram
 
 ### EnemyRuntime
 
-`EnemyRuntime`은 전투 중 하나의 Enemy에 대해 `CombatParticipant`, 내부 `IEnemyActionPlanner`, `UpcomingPlan`을 묶는다. 생성 직후 `UpcomingPlan`은 빈 계획이며, `PlanNextAction()` 호출 후 Planner 결과로 갱신된다. 이번 단계에서는 `BattleSystem` 연결을 바꾸지 않고, 이후 런타임 기반 전환의 단위만 준비한다.
+`EnemyRuntime`은 전투 중 하나의 Enemy에 대해 `CombatParticipant`, 내부 `IEnemyActionPlanner`, `UpcomingPlan`을 묶는다. 생성 직후 `UpcomingPlan`은 빈 계획이며, `PlanNextAction()` 호출 후 Planner 결과로 갱신된다. `BattleSystem`은 적별 `EnemyRuntime`을 보관하고, UI 조회와 적 턴 실행 모두 저장된 `UpcomingPlan`을 기준으로 처리한다.
+
+현재 Data/GameFlow 생성 경로는 아직 `MonsterTurnSchedule`을 만들기 때문에, `BattleSystem.StartBattle()`은 임시 어댑터로 legacy schedule을 `FixedSequenceEnemyActionPlanner`와 `EnemyRuntime`으로 변환한다. 이 어댑터는 Data/GameFlow가 `EnemyRuntime`을 직접 생성하게 되면 제거한다.
 
 ### Shield 지속
 
@@ -227,7 +229,7 @@ flowchart LR
 | `StartBattle(player, monster, monsterTurnSchedule)` | 전투 시작 → `PlayerTurn`. 스케줄은 SO→Factory 또는 테스트에서 생성 |
 | `ApplyPlayerTurn(IReadOnlyList<CombatEffect> effects)` | 플레이어 턴 처리. `PlayerTurn`이 아니면 거부 |
 | `CurrentPhase` | UI·슬롯 스핀 가능 여부 |
-| `TryGetUpcomingEnemyTurn(participantId, out EnemyUpcomingTurn)` | 특정 생존 Enemy의 **다음** 턴 index와 `EnemyActionPlan` 조회. 없는 id·사망 Enemy는 `false` |
+| `TryGetUpcomingEnemyTurn(participantId, out EnemyUpcomingTurn)` | 특정 생존 Enemy의 저장된 `EnemyActionPlan` 조회. 없는 id·사망 Enemy는 `false` |
 
 `StartBattle`의 파라미터 vs BattleSystem 멤버 보유는 구현 plan에서 확정한다.
 

@@ -274,7 +274,6 @@ namespace SlotRogue.Core.Tests.Combat
 
             Assert.That(_battle.TryGetUpcomingEnemyTurn(enemy1.Id, out EnemyUpcomingTurn upcomingTurn), Is.True);
             Assert.That(upcomingTurn.ParticipantId.Value, Is.EqualTo(enemy1.Id.Value));
-            Assert.That(upcomingTurn.TurnIndex, Is.EqualTo(1));
             Assert.That(upcomingTurn.Plan.Effects, Is.EqualTo(enemy1Actions));
         }
 

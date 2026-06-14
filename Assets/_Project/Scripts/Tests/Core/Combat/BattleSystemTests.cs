@@ -32,7 +32,6 @@ namespace SlotRogue.Core.Tests.Combat
                 Is.True);
             Assert.That(upcomingTurn.ParticipantId.Value, Is.EqualTo(monster.Id.Value));
             Assert.That(upcomingTurn.Plan.Effects, Is.EqualTo(enemyActions));
-            Assert.That(upcomingTurn.TurnIndex, Is.Zero);
         }
 
         [Test]
@@ -436,22 +435,52 @@ namespace SlotRogue.Core.Tests.Combat
             _battle.StartBattle(player, monster, schedule);
 
             Assert.That(_battle.TryGetUpcomingEnemyTurn(monster.Id, out EnemyUpcomingTurn upcomingTurn), Is.True);
-            Assert.That(upcomingTurn.TurnIndex, Is.Zero);
+            AssertEnemyPlan(upcomingTurn.Plan, expectedAmount: 1);
 
             _battle.ApplyPlayerTurn(System.Array.Empty<CombatEffect>());
             Assert.That(_battle.Player.CurrentHp, Is.EqualTo(29));
             Assert.That(_battle.TryGetUpcomingEnemyTurn(monster.Id, out upcomingTurn), Is.True);
-            Assert.That(upcomingTurn.TurnIndex, Is.EqualTo(1));
+            AssertEnemyPlan(upcomingTurn.Plan, expectedAmount: 2);
 
             _battle.ApplyPlayerTurn(System.Array.Empty<CombatEffect>());
             Assert.That(_battle.Player.CurrentHp, Is.EqualTo(27));
             Assert.That(_battle.TryGetUpcomingEnemyTurn(monster.Id, out upcomingTurn), Is.True);
-            Assert.That(upcomingTurn.TurnIndex, Is.EqualTo(2));
+            AssertEnemyPlan(upcomingTurn.Plan, expectedAmount: 3);
 
             _battle.ApplyPlayerTurn(System.Array.Empty<CombatEffect>());
             Assert.That(_battle.Player.CurrentHp, Is.EqualTo(24));
             Assert.That(_battle.TryGetUpcomingEnemyTurn(monster.Id, out upcomingTurn), Is.True);
-            Assert.That(upcomingTurn.TurnIndex, Is.Zero);
+            AssertEnemyPlan(upcomingTurn.Plan, expectedAmount: 1);
+        }
+
+        [Test]
+        public void TryGetUpcomingEnemyTurn_RepeatedQueries_DoNotAdvancePlan()
+        {
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30);
+            CombatParticipant monster = CombatParticipantFactory.CreateEnemy(maxHp: 50);
+            var schedule = new MonsterTurnSchedule(
+                new[] { new CombatEffect(CombatEffectKind.Damage, 4, CombatEffectTarget.Enemy) },
+                new[] { new CombatEffect(CombatEffectKind.Damage, 9, CombatEffectTarget.Enemy) });
+            _battle.StartBattle(player, monster, schedule);
+
+            Assert.That(_battle.TryGetUpcomingEnemyTurn(monster.Id, out EnemyUpcomingTurn firstQuery), Is.True);
+            Assert.That(_battle.TryGetUpcomingEnemyTurn(monster.Id, out EnemyUpcomingTurn secondQuery), Is.True);
+            AssertEnemyPlan(firstQuery.Plan, expectedAmount: 4);
+            AssertEnemyPlan(secondQuery.Plan, expectedAmount: 4);
+
+            _battle.ApplyPlayerTurn(System.Array.Empty<CombatEffect>());
+
+            Assert.That(_battle.Player.CurrentHp, Is.EqualTo(26));
+            Assert.That(_battle.TryGetUpcomingEnemyTurn(monster.Id, out EnemyUpcomingTurn upcomingTurn), Is.True);
+            AssertEnemyPlan(upcomingTurn.Plan, expectedAmount: 9);
+        }
+
+        private static void AssertEnemyPlan(EnemyActionPlan plan, int expectedAmount)
+        {
+            Assert.That(plan.Effects.Count, Is.EqualTo(1));
+            Assert.That(plan.Effects[0].Kind, Is.EqualTo(CombatEffectKind.Damage));
+            Assert.That(plan.Effects[0].Amount, Is.EqualTo(expectedAmount));
+            Assert.That(plan.Effects[0].Target, Is.EqualTo(CombatEffectTarget.Enemy));
         }
     }
 }

@@ -61,7 +61,9 @@ namespace SlotRogue.Core.Tests.Combat
 
             Assert.That(_battle.Player.CurrentHp, Is.EqualTo(30));
             Assert.That(_battle.TryGetUpcomingEnemyTurn(monster.Id, out EnemyUpcomingTurn upcomingTurn), Is.True);
-            Assert.That(upcomingTurn.TurnIndex, Is.EqualTo(1));
+            Assert.That(upcomingTurn.Plan.Effects.Count, Is.EqualTo(1));
+            Assert.That(upcomingTurn.Plan.Effects[0].Kind, Is.EqualTo(CombatEffectKind.Damage));
+            Assert.That(upcomingTurn.Plan.Effects[0].Amount, Is.EqualTo(7));
             Assert.That(FirstEnemy.StatusEffects.Single().RemainingTurns, Is.EqualTo(2));
             Assert.That(_battle.Events, Has.Some.Matches<CombatEvent>(e =>
                 e.Kind == CombatEventKind.ActionSkipped &&
