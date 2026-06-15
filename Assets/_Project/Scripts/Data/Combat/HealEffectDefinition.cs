@@ -9,6 +9,8 @@ namespace SlotRogue.Data.Combat
     {
         [SerializeField] private int _amount;
         [SerializeField] private CombatEffectTargetDefinition _target;
+        public int Amount => _amount;
+        public CombatEffectTargetDefinition Target => _target;
 
         public HealEffectDefinition()
         {
@@ -20,9 +22,5 @@ namespace SlotRogue.Data.Combat
             _amount = amount;
             _target = target;
         }
-
-        public int Amount => _amount;
-
-        public CombatEffectTargetDefinition Target => _target;
     }
 }
