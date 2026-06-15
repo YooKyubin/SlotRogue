@@ -116,35 +116,22 @@ namespace SlotRogue.UI.GameFlow
                     action.IntentIcon));
                 plannedActions[index] = new EnemyPlannedAction(
                     actionKey,
-                    ToActionEffects(action.Effects));
+                    ToActionEffects(action.Effect));
             }
 
             return EnemyActionPlan.FromActions(plannedActions);
         }
 
-        private static EnemyActionEffect[] ToActionEffects(IReadOnlyList<EnemyEffectDefinition> definitions)
+        private static EnemyActionEffect[] ToActionEffects(EnemyEffectDefinition definition)
         {
-            if (definitions == null || definitions.Count == 0)
+            if (definition == null)
             {
                 return Array.Empty<EnemyActionEffect>();
             }
 
-            var effects = new List<EnemyActionEffect>(definitions.Count);
-            for (int index = 0; index < definitions.Count; index++)
-            {
-                EnemyEffectDefinition definition = definitions[index];
-                if (definition == null)
-                {
-                    continue;
-                }
-
-                if (TryToActionEffect(definition, out EnemyActionEffect effect))
-                {
-                    effects.Add(effect);
-                }
-            }
-
-            return effects.ToArray();
+            return TryToActionEffect(definition, out EnemyActionEffect effect)
+                ? new[] { effect }
+                : Array.Empty<EnemyActionEffect>();
         }
 
         private static bool TryToActionEffect(

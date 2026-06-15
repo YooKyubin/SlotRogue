@@ -55,9 +55,7 @@ namespace SlotRogue.UI.Tests.GameFlow
             MonsterTurnPatternDefinition pattern = Pattern(
                 Turn(
                     Action("Attack", Damage(4, CombatTargetMode.SelectedEnemy)),
-                    Action("Lock Strike",
-                        Damage(2, CombatTargetMode.SelectedEnemy),
-                        new LockSlotEffectDefinition(lockCount: 1, durationTurns: 2))));
+                    Action("Lock", new LockSlotEffectDefinition(lockCount: 1, durationTurns: 2))));
             IEnemyActionPlanner planner = new EnemyActionPlannerFactory().Create(pattern);
             CombatParticipant enemy = Enemy(id: 100, maxHp: 20);
 
@@ -65,10 +63,10 @@ namespace SlotRogue.UI.Tests.GameFlow
 
             Assert.That(plan.Actions.Count, Is.EqualTo(2));
             Assert.That(plan.Actions[0].Effects.Count, Is.EqualTo(1));
-            Assert.That(plan.Actions[1].Effects.Count, Is.EqualTo(2));
-            Assert.That(plan.Actions[1].Effects[1].Kind, Is.EqualTo(EnemyActionEffectKind.LockSlot));
-            Assert.That(plan.Actions[1].Effects[1].LockCount, Is.EqualTo(1));
-            Assert.That(plan.Actions[1].Effects[1].DurationTurns, Is.EqualTo(2));
+            Assert.That(plan.Actions[1].Effects.Count, Is.EqualTo(1));
+            Assert.That(plan.Actions[1].Effects[0].Kind, Is.EqualTo(EnemyActionEffectKind.LockSlot));
+            Assert.That(plan.Actions[1].Effects[0].LockCount, Is.EqualTo(1));
+            Assert.That(plan.Actions[1].Effects[0].DurationTurns, Is.EqualTo(2));
         }
 
         [Test]
@@ -85,26 +83,16 @@ namespace SlotRogue.UI.Tests.GameFlow
         }
 
         [Test]
-        public void EnemyActionDefinition_StoresDisplayDataAndPolymorphicEffects()
+        public void EnemyActionDefinition_StoresDisplayDataAndPolymorphicEffect()
         {
             var action = new EnemyActionDefinition(
                 "Lock Strike",
                 intentIcon: null,
-                new EnemyEffectDefinition[]
-                {
-                    Damage(3, CombatTargetMode.SelectedEnemy),
-                    Shield(2, CombatTargetMode.Self),
-                    Heal(1, CombatTargetMode.Self),
-                    new LockSlotEffectDefinition(lockCount: 1, durationTurns: 2),
-                });
+                new LockSlotEffectDefinition(lockCount: 1, durationTurns: 2));
 
             Assert.That(action.DisplayName, Is.EqualTo("Lock Strike"));
             Assert.That(action.IntentIcon, Is.Null);
-            Assert.That(action.Effects.Count, Is.EqualTo(4));
-            Assert.That(action.Effects[0], Is.TypeOf<DamageEffectDefinition>());
-            Assert.That(action.Effects[1], Is.TypeOf<ShieldEffectDefinition>());
-            Assert.That(action.Effects[2], Is.TypeOf<HealEffectDefinition>());
-            Assert.That(action.Effects[3], Is.TypeOf<LockSlotEffectDefinition>());
+            Assert.That(action.Effect, Is.TypeOf<LockSlotEffectDefinition>());
         }
 
         [Test]
@@ -255,9 +243,9 @@ namespace SlotRogue.UI.Tests.GameFlow
 
         private static EnemyActionDefinition Action(
             string displayName,
-            params EnemyEffectDefinition[] effects)
+            EnemyEffectDefinition effect)
         {
-            return new EnemyActionDefinition(displayName, intentIcon: null, effects);
+            return new EnemyActionDefinition(displayName, intentIcon: null, effect);
         }
 
         private static DamageEffectDefinition Damage(
