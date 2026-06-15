@@ -87,7 +87,11 @@ namespace SlotRogue.UI.GameFlow
 
             return new[]
             {
-                new[] { new CombatEffect(CombatEffectKind.Damage, 3 + lv, CombatEffectTarget.Enemy) },
+                new[]
+                {
+                    new CombatEffect(CombatEffectKind.Damage, 3 + lv, CombatEffectTarget.Enemy),
+                    new CombatEffect(CombatEffectKind.Shield, 4 + lv, CombatEffectTarget.Self),
+                },
                 new[] { new CombatEffect(CombatEffectKind.Shield, 4 + lv, CombatEffectTarget.Self) },
                 new[] { new CombatEffect(CombatEffectKind.Damage, 5 + lv, CombatEffectTarget.Enemy) },
                 new[] { new CombatEffect(CombatEffectKind.Heal, 1 + lv, CombatEffectTarget.Self) },
