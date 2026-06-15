@@ -34,7 +34,7 @@ namespace SlotRogue.Core.Combat
                 EnemyActionPlan plan = plans[index];
                 copy[index] = plan == null
                     ? new EnemyActionPlan(null)
-                    : new EnemyActionPlan(plan.Effects);
+                    : EnemyActionPlan.FromActions(plan.Actions);
             }
 
             return copy;

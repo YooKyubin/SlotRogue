@@ -5,29 +5,84 @@ namespace SlotRogue.Core.Combat
 {
     public sealed class EnemyActionPlan
     {
-        private readonly CombatEffect[] _effects;
+        private readonly EnemyPlannedAction[] _actions;
 
         public EnemyActionPlan(IReadOnlyList<CombatEffect> effects)
         {
-            _effects = Clone(effects);
+            _actions = WrapCombatEffects(effects);
         }
 
-        public IReadOnlyList<CombatEffect> Effects => Clone(_effects);
+        private EnemyActionPlan(IReadOnlyList<EnemyPlannedAction> actions)
+        {
+            _actions = CloneActions(actions);
+        }
 
-        private static CombatEffect[] Clone(IReadOnlyList<CombatEffect> effects)
+        public IReadOnlyList<EnemyPlannedAction> Actions => CloneActions(_actions);
+
+        public IReadOnlyList<CombatEffect> Effects => FlattenCombatEffects(_actions);
+
+        public static EnemyActionPlan FromActions(IReadOnlyList<EnemyPlannedAction> actions) =>
+            new(actions);
+
+        private static EnemyPlannedAction[] WrapCombatEffects(IReadOnlyList<CombatEffect> effects)
         {
             if (effects == null || effects.Count == 0)
+            {
+                return Array.Empty<EnemyPlannedAction>();
+            }
+
+            var actions = new EnemyPlannedAction[effects.Count];
+            for (int index = 0; index < effects.Count; index++)
+            {
+                actions[index] = new EnemyPlannedAction(
+                    new EnemyActionKey(index + 1),
+                    new[] { EnemyActionEffect.FromCombatEffect(effects[index]) });
+            }
+
+            return actions;
+        }
+
+        private static EnemyPlannedAction[] CloneActions(IReadOnlyList<EnemyPlannedAction> actions)
+        {
+            if (actions == null || actions.Count == 0)
+            {
+                return Array.Empty<EnemyPlannedAction>();
+            }
+
+            var copy = new EnemyPlannedAction[actions.Count];
+            for (int index = 0; index < actions.Count; index++)
+            {
+                EnemyPlannedAction action = actions[index];
+                copy[index] = action == null
+                    ? new EnemyPlannedAction(default, null)
+                    : new EnemyPlannedAction(action.ActionKey, action.Effects);
+            }
+
+            return copy;
+        }
+
+        private static CombatEffect[] FlattenCombatEffects(IReadOnlyList<EnemyPlannedAction> actions)
+        {
+            if (actions == null || actions.Count == 0)
             {
                 return Array.Empty<CombatEffect>();
             }
 
-            var copy = new CombatEffect[effects.Count];
-            for (int index = 0; index < effects.Count; index++)
+            var effects = new List<CombatEffect>();
+            for (int actionIndex = 0; actionIndex < actions.Count; actionIndex++)
             {
-                copy[index] = effects[index];
+                IReadOnlyList<EnemyActionEffect> actionEffects = actions[actionIndex].Effects;
+                for (int effectIndex = 0; effectIndex < actionEffects.Count; effectIndex++)
+                {
+                    EnemyActionEffect effect = actionEffects[effectIndex];
+                    if (effect.Kind == EnemyActionEffectKind.Combat)
+                    {
+                        effects.Add(effect.CombatEffect);
+                    }
+                }
             }
 
-            return copy;
+            return effects.ToArray();
         }
     }
 }

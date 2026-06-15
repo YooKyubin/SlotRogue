@@ -20,13 +20,19 @@ namespace SlotRogue.UI.GameFlow
 
         public EnemyCombatant Create(MonsterDefinition definition, int rosterIndex)
         {
+            return CreateWithPresentation(definition, rosterIndex).Combatant;
+        }
+
+        public EnemyCombatantBuildResult CreateWithPresentation(MonsterDefinition definition, int rosterIndex)
+        {
             if (definition == null)
             {
                 throw new ArgumentNullException(nameof(definition));
             }
 
-            IEnemyActionPlanner planner = _plannerFactory.Create(definition.turnPattern);
-            return Create(rosterIndex, definition.maxHp, planner);
+            EnemyActionPlannerBuildResult plannerResult = _plannerFactory.Build(definition.turnPattern);
+            EnemyCombatant combatant = Create(rosterIndex, definition.maxHp, plannerResult.Planner);
+            return new EnemyCombatantBuildResult(combatant, plannerResult.PresentationMap);
         }
 
         public EnemyCombatant Create(

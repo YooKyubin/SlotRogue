@@ -160,10 +160,10 @@ namespace SlotRogue.Core.Combat
                 }
 
                 bool shouldSkipAction = TrySkipParticipantAction(enemy);
-                IReadOnlyList<CombatEffect> enemyTurnActions = enemyCombatant.UpcomingPlan.Effects;
+                IReadOnlyList<EnemyPlannedAction> enemyTurnActions = enemyCombatant.UpcomingPlan.Actions;
                 enemyCombatant.PlanNextAction(CreateEnemyActionContext(enemy));
                 if (!shouldSkipAction &&
-                    ApplyEffects(enemyTurnActions, enemy, default))
+                    ApplyPlannedActions(enemyTurnActions, enemy, default))
                 {
                     return;
                 }
@@ -233,6 +233,74 @@ namespace SlotRogue.Core.Combat
                     CombatEventKind.ActionCompleted,
                     CurrentPhase,
                     effect,
+                    sourceParticipantId: source.Id));
+            }
+
+            return false;
+        }
+
+        private bool ApplyPlannedActions(
+            IReadOnlyList<EnemyPlannedAction> actions,
+            CombatParticipant source,
+            CombatParticipantId selectedTargetId)
+        {
+            if (actions == null || actions.Count == 0)
+            {
+                return false;
+            }
+
+            for (int actionIndex = 0; actionIndex < actions.Count; actionIndex++)
+            {
+                EnemyPlannedAction action = actions[actionIndex];
+                if (action == null)
+                {
+                    continue;
+                }
+
+                IReadOnlyList<EnemyActionEffect> effects = action.Effects;
+                CombatEffect completedEffect = default;
+                for (int effectIndex = 0; effectIndex < effects.Count; effectIndex++)
+                {
+                    EnemyActionEffect actionEffect = effects[effectIndex];
+                    if (actionEffect.Kind == EnemyActionEffectKind.LockSlot)
+                    {
+                        continue;
+                    }
+
+                    CombatEffect effect = actionEffect.CombatEffect;
+                    completedEffect = effect;
+                    IReadOnlyList<CombatParticipant> targets = ResolveTargets(effect, source, selectedTargetId);
+
+                    for (int targetIndex = 0; targetIndex < targets.Count; targetIndex++)
+                    {
+                        CombatParticipant target = targets[targetIndex];
+                        CombatParticipantSnapshot targetBefore = target.CaptureSnapshot();
+                        EffectApplyResult applyResult = ApplyEffectToTarget(effect, target);
+                        CombatParticipantSnapshot targetAfter = target.CaptureSnapshot();
+                        bool isPlayerTarget = target.Team == CombatTeam.Player;
+
+                        _events.Add(new CombatEvent(
+                            CombatEventKind.EffectApplied,
+                            CurrentPhase,
+                            effect,
+                            applyResult,
+                            isPlayerParticipant: isPlayerTarget,
+                            targetParticipantId: target.Id,
+                            targetBefore: targetBefore,
+                            targetAfter: targetAfter,
+                            sourceParticipantId: source.Id));
+
+                        if (TryEndBattle())
+                        {
+                            return true;
+                        }
+                    }
+                }
+
+                _events.Add(new CombatEvent(
+                    CombatEventKind.ActionCompleted,
+                    CurrentPhase,
+                    completedEffect,
                     sourceParticipantId: source.Id));
             }
 

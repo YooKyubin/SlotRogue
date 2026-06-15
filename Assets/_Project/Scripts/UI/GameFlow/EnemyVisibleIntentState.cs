@@ -10,7 +10,10 @@ namespace SlotRogue.UI.GameFlow
 
         private readonly Dictionary<int, List<EnemyUpcomingActionViewData>> _actionsByEnemyId = new();
 
-        public void RefreshFromBattle(BattleSystem battle, IReadOnlyList<CombatParticipant> enemies)
+        public void RefreshFromBattle(
+            BattleSystem battle,
+            IReadOnlyList<CombatParticipant> enemies,
+            RunEncounterRoster encounterRoster)
         {
             _actionsByEnemyId.Clear();
             if (battle == null || enemies == null)
@@ -26,20 +29,22 @@ namespace SlotRogue.UI.GameFlow
                     continue;
                 }
 
+                EnemyActionPresentationMap presentationMap =
+                    ResolvePresentationMap(encounterRoster, enemy.Id);
                 if (!battle.TryGetUpcomingEnemyTurn(enemy.Id, out EnemyUpcomingTurn upcomingTurn))
                 {
                     _actionsByEnemyId[enemy.Id.Value] = new List<EnemyUpcomingActionViewData>();
                     continue;
                 }
 
-                IReadOnlyList<CombatEffect> plannedEffects = upcomingTurn.Plan.Effects;
-                if (plannedEffects.Count == 0)
+                IReadOnlyList<EnemyPlannedAction> plannedActions = upcomingTurn.Plan.Actions;
+                if (plannedActions.Count == 0)
                 {
                     _actionsByEnemyId[enemy.Id.Value] = new List<EnemyUpcomingActionViewData>();
                     continue;
                 }
 
-                _actionsByEnemyId[enemy.Id.Value] = BuildActions(plannedEffects);
+                _actionsByEnemyId[enemy.Id.Value] = BuildActions(plannedActions, presentationMap);
             }
         }
 
@@ -72,16 +77,79 @@ namespace SlotRogue.UI.GameFlow
             _actionsByEnemyId.Clear();
         }
 
-        private static List<EnemyUpcomingActionViewData> BuildActions(IReadOnlyList<CombatEffect> effects)
+        private static List<EnemyUpcomingActionViewData> BuildActions(
+            IReadOnlyList<EnemyPlannedAction> actions,
+            EnemyActionPresentationMap presentationMap)
         {
-            var actions = new List<EnemyUpcomingActionViewData>(effects.Count);
-            for (int index = 0; index < effects.Count; index++)
+            var viewData = new List<EnemyUpcomingActionViewData>(actions.Count);
+            for (int index = 0; index < actions.Count; index++)
             {
-                CombatEffect effect = effects[index];
-                actions.Add(new EnemyUpcomingActionViewData(ToUpcomingActionKind(effect.Kind), effect.Amount));
+                EnemyPlannedAction action = actions[index];
+                bool hasCombatEffect = TryFindRepresentativeCombatEffect(action, out CombatEffect representativeEffect);
+                EnemyUpcomingActionKind kind = hasCombatEffect
+                    ? ToUpcomingActionKind(representativeEffect.Kind)
+                    : EnemyUpcomingActionKind.Special;
+                int amount = hasCombatEffect ? representativeEffect.Amount : 0;
+                string displayName = string.Empty;
+                UnityEngine.Sprite intentIcon = null;
+
+                if (presentationMap != null &&
+                    presentationMap.TryGet(action.ActionKey, out EnemyActionPresentation presentation))
+                {
+                    displayName = presentation.DisplayName;
+                    intentIcon = presentation.IntentIcon;
+                }
+
+                viewData.Add(new EnemyUpcomingActionViewData(kind, amount, displayName, intentIcon));
             }
 
-            return actions;
+            return viewData;
+        }
+
+        private static EnemyActionPresentationMap ResolvePresentationMap(
+            RunEncounterRoster encounterRoster,
+            CombatParticipantId enemyId)
+        {
+            if (encounterRoster == null || !enemyId.IsValid)
+            {
+                return EnemyActionPresentationMap.Empty;
+            }
+
+            for (int index = 0; index < encounterRoster.Enemies.Count; index++)
+            {
+                EnemyEncounterUnit unit = encounterRoster.Enemies[index];
+                if (unit.Combatant.Participant.Id.Value == enemyId.Value)
+                {
+                    return unit.PresentationMap;
+                }
+            }
+
+            return EnemyActionPresentationMap.Empty;
+        }
+
+        private static bool TryFindRepresentativeCombatEffect(
+            EnemyPlannedAction action,
+            out CombatEffect combatEffect)
+        {
+            if (action == null)
+            {
+                combatEffect = default;
+                return false;
+            }
+
+            IReadOnlyList<EnemyActionEffect> effects = action.Effects;
+            for (int index = 0; index < effects.Count; index++)
+            {
+                EnemyActionEffect effect = effects[index];
+                if (effect.Kind == EnemyActionEffectKind.Combat)
+                {
+                    combatEffect = effect.CombatEffect;
+                    return true;
+                }
+            }
+
+            combatEffect = default;
+            return false;
         }
 
         private static EnemyUpcomingActionKind ToUpcomingActionKind(CombatEffectKind kind)

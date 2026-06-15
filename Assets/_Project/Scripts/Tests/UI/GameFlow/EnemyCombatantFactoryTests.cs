@@ -13,8 +13,8 @@ namespace SlotRogue.UI.Tests.GameFlow
         public void EnemyActionPlannerFactory_CreatePattern_ReturnsFixedSequencePlanner()
         {
             MonsterTurnPatternDefinition pattern = Pattern(
-                Turn(Step(CombatEffectKind.Damage, 3, CombatTargetMode.SelectedEnemy)),
-                Turn(Step(CombatEffectKind.Shield, 5, CombatTargetMode.Self)));
+                Turn(Action("Attack", Damage(3, CombatTargetMode.SelectedEnemy))),
+                Turn(Action("Guard", Shield(5, CombatTargetMode.Self))));
             var factory = new EnemyActionPlannerFactory();
 
             IEnemyActionPlanner planner = factory.Create(pattern);
@@ -31,9 +31,9 @@ namespace SlotRogue.UI.Tests.GameFlow
         {
             MonsterTurnPatternDefinition pattern = Pattern(
                 Turn(
-                    Step(CombatEffectKind.Damage, 4, CombatTargetMode.SelectedEnemy),
-                    Step(CombatEffectKind.Shield, 3, CombatTargetMode.Self),
-                    Step(CombatEffectKind.Heal, 2, CombatTargetMode.Self)));
+                    Action("Attack", Damage(4, CombatTargetMode.SelectedEnemy)),
+                    Action("Guard", Shield(3, CombatTargetMode.Self)),
+                    Action("Recover", Heal(2, CombatTargetMode.Self))));
             IEnemyActionPlanner planner = new EnemyActionPlannerFactory().Create(pattern);
             CombatParticipant enemy = Enemy(id: 100, maxHp: 20);
             EnemyActionContext context = Context(enemy);
@@ -47,6 +47,79 @@ namespace SlotRogue.UI.Tests.GameFlow
             Assert.That(effects[1].Amount, Is.EqualTo(3));
             Assert.That(effects[2].Kind, Is.EqualTo(CombatEffectKind.Heal));
             Assert.That(effects[2].Amount, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void EnemyActionPlannerFactory_CreatePattern_PreservesActionBoundaries()
+        {
+            MonsterTurnPatternDefinition pattern = Pattern(
+                Turn(
+                    Action("Attack", Damage(4, CombatTargetMode.SelectedEnemy)),
+                    Action("Lock Strike",
+                        Damage(2, CombatTargetMode.SelectedEnemy),
+                        new LockSlotEffectDefinition(lockCount: 1, durationTurns: 2))));
+            IEnemyActionPlanner planner = new EnemyActionPlannerFactory().Create(pattern);
+            CombatParticipant enemy = Enemy(id: 100, maxHp: 20);
+
+            EnemyActionPlan plan = planner.PlanNext(Context(enemy));
+
+            Assert.That(plan.Actions.Count, Is.EqualTo(2));
+            Assert.That(plan.Actions[0].Effects.Count, Is.EqualTo(1));
+            Assert.That(plan.Actions[1].Effects.Count, Is.EqualTo(2));
+            Assert.That(plan.Actions[1].Effects[1].Kind, Is.EqualTo(EnemyActionEffectKind.LockSlot));
+            Assert.That(plan.Actions[1].Effects[1].LockCount, Is.EqualTo(1));
+            Assert.That(plan.Actions[1].Effects[1].DurationTurns, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void EnemyActionPlannerFactory_CreatePattern_PreservesTargetParticipantId()
+        {
+            MonsterTurnPatternDefinition pattern = Pattern(
+                Turn(Action("Focus", Damage(4, CombatTargetMode.SelectedEnemy, targetParticipantId: 101))));
+            IEnemyActionPlanner planner = new EnemyActionPlannerFactory().Create(pattern);
+            CombatParticipant enemy = Enemy(id: 100, maxHp: 20);
+
+            CombatEffect effect = planner.PlanNext(Context(enemy)).Effects[0];
+
+            Assert.That(effect.Target.ParticipantId.Value, Is.EqualTo(101));
+        }
+
+        [Test]
+        public void EnemyActionDefinition_StoresDisplayDataAndPolymorphicEffects()
+        {
+            var action = new EnemyActionDefinition(
+                "Lock Strike",
+                intentIcon: null,
+                new EnemyEffectDefinition[]
+                {
+                    Damage(3, CombatTargetMode.SelectedEnemy),
+                    Shield(2, CombatTargetMode.Self),
+                    Heal(1, CombatTargetMode.Self),
+                    new LockSlotEffectDefinition(lockCount: 1, durationTurns: 2),
+                });
+
+            Assert.That(action.DisplayName, Is.EqualTo("Lock Strike"));
+            Assert.That(action.IntentIcon, Is.Null);
+            Assert.That(action.Effects.Count, Is.EqualTo(4));
+            Assert.That(action.Effects[0], Is.TypeOf<DamageEffectDefinition>());
+            Assert.That(action.Effects[1], Is.TypeOf<ShieldEffectDefinition>());
+            Assert.That(action.Effects[2], Is.TypeOf<HealEffectDefinition>());
+            Assert.That(action.Effects[3], Is.TypeOf<LockSlotEffectDefinition>());
+        }
+
+        [Test]
+        public void EnemyActionPlannerFactory_Build_ReturnsPresentationMapForActionKeys()
+        {
+            MonsterTurnPatternDefinition pattern = Pattern(
+                Turn(Action("Attack", Damage(3, CombatTargetMode.SelectedEnemy))));
+            EnemyActionPlannerBuildResult result = new EnemyActionPlannerFactory().Build(pattern);
+            CombatParticipant enemy = Enemy(id: 100, maxHp: 20);
+
+            EnemyActionPlan plan = result.Planner.PlanNext(Context(enemy));
+            EnemyActionKey actionKey = plan.Actions[0].ActionKey;
+
+            Assert.That(result.PresentationMap.TryGet(actionKey, out EnemyActionPresentation presentation), Is.True);
+            Assert.That(presentation.DisplayName, Is.EqualTo("Attack"));
         }
 
         [Test]
@@ -90,7 +163,7 @@ namespace SlotRogue.UI.Tests.GameFlow
         {
             MonsterDefinition definition = ScriptableObject.CreateInstance<MonsterDefinition>();
             definition.maxHp = 17;
-            definition.turnPattern = Pattern(Turn(Step(CombatEffectKind.Damage, 6, CombatTargetMode.SelectedEnemy)));
+            definition.turnPattern = Pattern(Turn(Action("Attack", Damage(6, CombatTargetMode.SelectedEnemy))));
             var factory = new EnemyCombatantFactory();
 
             EnemyCombatant combatant = factory.Create(definition, rosterIndex: 2);
@@ -175,22 +248,44 @@ namespace SlotRogue.UI.Tests.GameFlow
             return pattern;
         }
 
-        private static MonsterTurnStepDefinition Turn(params CombatEffectStep[] steps)
+        private static MonsterTurnStepDefinition Turn(params EnemyActionDefinition[] actions)
         {
-            return new MonsterTurnStepDefinition { actions = steps };
+            return new MonsterTurnStepDefinition { actions = actions };
         }
 
-        private static CombatEffectStep Step(
-            CombatEffectKind kind,
+        private static EnemyActionDefinition Action(
+            string displayName,
+            params EnemyEffectDefinition[] effects)
+        {
+            return new EnemyActionDefinition(displayName, intentIcon: null, effects);
+        }
+
+        private static DamageEffectDefinition Damage(
+            int amount,
+            CombatTargetMode targetMode,
+            int targetParticipantId = 0)
+        {
+            return new DamageEffectDefinition(
+                amount,
+                new CombatEffectTargetDefinition(targetMode, targetParticipantId));
+        }
+
+        private static ShieldEffectDefinition Shield(
             int amount,
             CombatTargetMode targetMode)
         {
-            return new CombatEffectStep
-            {
-                kind = kind,
-                amount = amount,
-                targetMode = targetMode,
-            };
+            return new ShieldEffectDefinition(
+                amount,
+                new CombatEffectTargetDefinition(targetMode));
+        }
+
+        private static HealEffectDefinition Heal(
+            int amount,
+            CombatTargetMode targetMode)
+        {
+            return new HealEffectDefinition(
+                amount,
+                new CombatEffectTargetDefinition(targetMode));
         }
 
         private static EnemyActionContext Context(CombatParticipant self)

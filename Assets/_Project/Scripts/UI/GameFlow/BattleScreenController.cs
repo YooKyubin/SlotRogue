@@ -67,7 +67,7 @@ namespace SlotRogue.UI.GameFlow
                 _isTurnRunning,
                 Refresh);
             _targetSelectionController.ResolveSelectedEnemyId();
-            _enemyVisibleIntentState.RefreshFromBattle(_battle, _battle.Enemies);
+            _enemyVisibleIntentState.RefreshFromBattle(_battle, _battle.Enemies, _encounterRoster);
 
             Bind();
             _targetSelectionController.Bind();
@@ -110,7 +110,7 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
-            _enemyVisibleIntentState.RefreshFromBattle(_battle, _battle.Enemies);
+            _enemyVisibleIntentState.RefreshFromBattle(_battle, _battle.Enemies, _encounterRoster);
             Refresh();
         }
 
