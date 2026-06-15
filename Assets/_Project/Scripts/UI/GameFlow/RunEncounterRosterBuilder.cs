@@ -49,6 +49,25 @@ namespace SlotRogue.UI.GameFlow
             return new RunEncounterRoster(new[] { new EnemyEncounterUnit(combatant, formationSlot: 0) });
         }
 
+        public static RunEncounterRoster BuildFromMonsterDefinition(
+            MonsterDefinition definition,
+            int rosterIndex,
+            int formationSlot)
+        {
+            var combatantFactory = new EnemyCombatantFactory();
+            EnemyCombatantBuildResult buildResult = combatantFactory.CreateWithPresentation(
+                definition,
+                rosterIndex);
+
+            return new RunEncounterRoster(new[]
+            {
+                new EnemyEncounterUnit(
+                    buildResult.Combatant,
+                    formationSlot,
+                    buildResult.PresentationMap),
+            });
+        }
+
         private static int TierMaxHp(EncounterTier tier, int level)
         {
             int lv = Mathf.Max(1, level);

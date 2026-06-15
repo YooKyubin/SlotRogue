@@ -23,6 +23,11 @@ namespace SlotRogue.UI.GameFlow
     /// </summary>
     public class BattleSceneCompositionRoot : MonoBehaviour
     {
+        // TEMPORARY TEST HOOK: use this MonsterDefinition to verify SO-driven monster
+        // actions and Intent UI. Remove this override when the real encounter selection
+        // path supplies MonsterDefinition assets.
+        [SerializeField] private MonsterDefinition _devMonsterDefinitionOverride;
+
         [SerializeField] private RunBattleScreenView _view;
         [SerializeField] private FloatingCombatTextLayerView _floatingTextLayerView;
         [SerializeField] private TurnBannerView _turnBannerView;
@@ -158,14 +163,12 @@ namespace SlotRogue.UI.GameFlow
                 cancellationToken);
         }
 
-        private static BattleFlowContext CreateBattleFlowContext()
+        private BattleFlowContext CreateBattleFlowContext()
         {
             CombatParticipant player = RunCombatParticipantFactory.CreatePlayer(
                 GameFlowSession.PlayerMaxHp,
                 GameFlowSession.PlayerCurrentHp);
-            RunEncounterRoster encounterRoster = RunEncounterRosterBuilder.BuildForTier(
-                GameFlowSession.CurrentTier,
-                GameFlowSession.CurrentBattleNumber);
+            RunEncounterRoster encounterRoster = CreateEncounterRoster();
 
             return new BattleFlowContext(
                 player,
@@ -174,6 +177,23 @@ namespace SlotRogue.UI.GameFlow
                 GameFlowSession.DamageBonus,
                 GameFlowSession.DefenseBonus,
                 GameFlowSession.CurrentEncounterTitle);
+        }
+
+        private RunEncounterRoster CreateEncounterRoster()
+        {
+            if (_devMonsterDefinitionOverride != null)
+            {
+                // TEMPORARY TEST HOOK: this bypasses the tier-based infinite-mode builder
+                // only while manually verifying MonsterDefinition/MonsterTurnPattern assets.
+                return RunEncounterRosterBuilder.BuildFromMonsterDefinition(
+                    _devMonsterDefinitionOverride,
+                    rosterIndex: 0,
+                    formationSlot: 1);
+            }
+
+            return RunEncounterRosterBuilder.BuildForTier(
+                GameFlowSession.CurrentTier,
+                GameFlowSession.CurrentBattleNumber);
         }
 
         private bool ValidateSceneReferences()
