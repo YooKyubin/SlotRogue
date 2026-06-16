@@ -1,25 +1,25 @@
 fileFormatVersion: 2
-guid: bf047085f7a2bc64dbf3206007c635d3
+guid: cbecda5b44bc239428396b50af071622
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -5565170295458569320
-    second: "\uC544\uC774\uCF58_\uC2AC\uB86F_0"
+      213: -6804718575311740471
+    second: icon-Sheet-ani_0
   - first:
-      213: -2014568273487865526
-    second: "\uC544\uC774\uCF58_\uC2AC\uB86F_1"
+      213: -5617461358785571431
+    second: icon-Sheet-ani_1
   - first:
-      213: -7636307948082203214
-    second: "\uC544\uC774\uCF58_\uC2AC\uB86F_2"
+      213: -1990193515880964991
+    second: icon-Sheet-ani_2
   - first:
-      213: 6026070333206741400
-    second: "\uC544\uC774\uCF58_\uC2AC\uB86F_3"
+      213: -3427241291298484510
+    second: icon-Sheet-ani_3
   - first:
-      213: -8660658156046878545
-    second: "\uC544\uC774\uCF58_\uC2AC\uB86F_4"
+      213: -5088758840292966481
+    second: icon-Sheet-ani_4
   - first:
-      213: -3500839835203779570
-    second: "\uC544\uC774\uCF58_\uC2AC\uB86F_5"
+      213: 4558005443507578314
+    second: icon-Sheet-ani_5
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -128,133 +128,133 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: "\uC544\uC774\uCF58_\uC2AC\uB86F_0"
+      name: icon-Sheet-ani_0
       rect:
         serializedVersion: 2
-        x: 5
-        y: 5
+        x: 0
+        y: 0
         width: 20
-        height: 20
+        height: 26
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 893e2a01a1b84c2b0800000000000000
-      internalID: -5565170295458569320
+      spriteID: 9c1aa0a3288c091a0800000000000000
+      internalID: -6804718575311740471
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC544\uC774\uCF58_\uC2AC\uB86F_1"
+      name: icon-Sheet-ani_1
       rect:
         serializedVersion: 2
-        x: 31
-        y: 5
-        width: 18
-        height: 20
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: a49dbf234d0da04e0800000000000000
-      internalID: -2014568273487865526
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: "\uC544\uC774\uCF58_\uC2AC\uB86F_2"
-      rect:
-        serializedVersion: 2
-        x: 55
-        y: 5
+        x: 20
+        y: 0
         width: 20
-        height: 20
+        height: 26
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 2b5711f4162660690800000000000000
-      internalID: -7636307948082203214
+      spriteID: 9955a1228a4ca02b0800000000000000
+      internalID: -5617461358785571431
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC544\uC774\uCF58_\uC2AC\uB86F_3"
+      name: icon-Sheet-ani_2
+      rect:
+        serializedVersion: 2
+        x: 40
+        y: 0
+        width: 20
+        height: 26
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 18c11a3ba896164e0800000000000000
+      internalID: -1990193515880964991
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: icon-Sheet-ani_3
+      rect:
+        serializedVersion: 2
+        x: 60
+        y: 0
+        width: 20
+        height: 26
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2ee4a90343eff60d0800000000000000
+      internalID: -3427241291298484510
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: icon-Sheet-ani_4
       rect:
         serializedVersion: 2
         x: 80
-        y: 5
+        y: 0
         width: 20
-        height: 20
+        height: 26
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 891ce426a07e0a350800000000000000
-      internalID: 6026070333206741400
+      spriteID: faf75b0dbc81169b0800000000000000
+      internalID: -5088758840292966481
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC544\uC774\uCF58_\uC2AC\uB86F_4"
+      name: icon-Sheet-ani_5
       rect:
         serializedVersion: 2
-        x: 106
-        y: 5
-        width: 19
-        height: 20
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: fa87cbf0b492fc780800000000000000
-      internalID: -8660658156046878545
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: "\uC544\uC774\uCF58_\uC2AC\uB86F_5"
-      rect:
-        serializedVersion: 2
-        x: 130
-        y: 5
+        x: 100
+        y: 0
         width: 20
-        height: 20
+        height: 26
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: e044427d7b48a6fc0800000000000000
-      internalID: -3500839835203779570
+      spriteID: ac5e0903dc9414f30800000000000000
+      internalID: 4558005443507578314
       vertices: []
       indices: 
       edges: []
@@ -263,7 +263,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 4304460adabe96946b6bfc93d37a171d
     internalID: 0
     vertices: []
     indices: 
@@ -271,14 +271,16 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries: []
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":6.0,"y":1.0},"gridSpriteSize":{"x":20.0,"y":26.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":2,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
-      "\uC544\uC774\uCF58_\uC2AC\uB86F_0": -5565170295458569320
-      "\uC544\uC774\uCF58_\uC2AC\uB86F_1": -2014568273487865526
-      "\uC544\uC774\uCF58_\uC2AC\uB86F_2": -7636307948082203214
-      "\uC544\uC774\uCF58_\uC2AC\uB86F_3": 6026070333206741400
-      "\uC544\uC774\uCF58_\uC2AC\uB86F_4": -8660658156046878545
-      "\uC544\uC774\uCF58_\uC2AC\uB86F_5": -3500839835203779570
+      icon-Sheet-ani_0: -6804718575311740471
+      icon-Sheet-ani_1: -5617461358785571431
+      icon-Sheet-ani_2: -1990193515880964991
+      icon-Sheet-ani_3: -3427241291298484510
+      icon-Sheet-ani_4: -5088758840292966481
+      icon-Sheet-ani_5: 4558005443507578314
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

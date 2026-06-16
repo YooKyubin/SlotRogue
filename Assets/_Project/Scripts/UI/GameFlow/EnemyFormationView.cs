@@ -61,6 +61,20 @@ namespace SlotRogue.UI.GameFlow
             }
         }
 
+        public Sprite GetPrimaryPortrait()
+        {
+            for (int index = 0; index < SlotCount; index++)
+            {
+                if (TryGetFormationSlotView(index, out EnemyFormationSlotView formationSlotView) &&
+                    formationSlotView.PortraitSprite != null)
+                {
+                    return formationSlotView.PortraitSprite;
+                }
+            }
+
+            return null;
+        }
+
         public void SetClickHandler(int slotIndex, Action action)
         {
             if (TryGetFormationSlotView(slotIndex, out EnemyFormationSlotView formationSlotView))

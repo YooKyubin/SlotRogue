@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
+using SlotRogue.Core.Tooling;
 using SlotRogue.UI.Combat.Presentation;
 using UnityEngine;
 
@@ -9,11 +10,16 @@ namespace SlotRogue.UI.GameFlow
 {
     public sealed class RunBattleScreenView : MonoBehaviour, ICombatDamageAnchorRegistry, ICombatShieldGaugeRegistry
     {
-        [SerializeField] private RunBattlePlayerHudView _playerHudView;
-        [SerializeField] private RunBattleSlotBoardView _slotBoardView;
-        [SerializeField] private RunBattleActionView _actionView;
-        [SerializeField] private RunBattlePresentationOverlayView _presentationOverlayView;
-        [SerializeField] private RunBattleWorldView _worldView;
+        [SerializeField, AutoWire("10_BattleView", AutoWireSearchScope.Children)]
+        private RunBattlePlayerHudView _playerHudView;
+        [SerializeField, AutoWire("Slot Machine Panel", AutoWireSearchScope.Children)]
+        private RunBattleSlotBoardView _slotBoardView;
+        [SerializeField, AutoWire("10_BattleView", AutoWireSearchScope.Children)]
+        private RunBattleActionView _actionView;
+        [SerializeField, AutoWire("Presentation Overlay", AutoWireSearchScope.Children)]
+        private RunBattlePresentationOverlayView _presentationOverlayView;
+        [SerializeField, AutoWire("10_World")]
+        private RunBattleWorldView _worldView;
 
         public event Action SpinRequested;
 
@@ -91,6 +97,11 @@ namespace SlotRogue.UI.GameFlow
         public void SetEnemyPortrait(int slotIndex, Sprite portrait)
         {
             _worldView?.SetEnemyPortrait(slotIndex, portrait);
+        }
+
+        public Sprite GetPrimaryEnemyPortrait()
+        {
+            return _worldView != null ? _worldView.GetPrimaryEnemyPortrait() : null;
         }
 
         public void SetEnemySlotClickHandler(int slotIndex, Action action)
@@ -197,6 +208,5 @@ namespace SlotRogue.UI.GameFlow
         {
             SpinRequested?.Invoke();
         }
-
     }
 }

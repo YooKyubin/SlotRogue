@@ -99,9 +99,21 @@ namespace SlotRogue.UI.GameFlow
 
         public static int DefenseBonus { get; private set; }
 
+        public static bool HasRevivedThisRun { get; private set; }
+
+        public static bool IsDefeatPending { get; private set; }
+
+        public static bool CanRevive =>
+            HasRun &&
+            IsDefeatPending &&
+            !HasRevivedThisRun;
+
+        public static int RevivePlayerHp => Math.Max(1, (PlayerMaxHp + 1) / 2);
+
         // ── v23 유물 인벤토리 ────────────────────────────────────────────
         // 시작 유물 + 보상으로 획득한 유물을 누적한다. 전투마다 RelicTurnResolver가 소비한다.
         private static readonly List<RelicDefinition> _ownedRelics = new();
+        private static readonly RelicContributionAccumulator _relicContributions = new();
 
         /// <summary>이 런에서 보유한 v23 유물 목록(시작 유물 포함).</summary>
         public static IReadOnlyList<RelicDefinition> OwnedRelics => _ownedRelics;
@@ -165,7 +177,10 @@ namespace SlotRogue.UI.GameFlow
             RewardsClaimed = 0;
             DamageBonus = 0;
             DefenseBonus = 0;
+            HasRevivedThisRun = false;
+            IsDefeatPending = false;
             _ownedRelics.Clear();
+            _relicContributions.Clear();
             SlotPool.Reset();
         }
 
@@ -180,12 +195,34 @@ namespace SlotRogue.UI.GameFlow
         public static void CompleteBattleVictory(int remainingPlayerHp)
         {
             EnsureRunStarted();
+            IsDefeatPending = false;
             PlayerCurrentHp = Math.Max(1, Math.Min(remainingPlayerHp, PlayerMaxHp));
             Victories++;
         }
 
+        public static void BeginBattleDefeat()
+        {
+            EnsureRunStarted();
+            IsDefeatPending = true;
+            PlayerCurrentHp = 0;
+        }
+
+        public static bool TryRevive()
+        {
+            if (!CanRevive)
+            {
+                return false;
+            }
+
+            HasRevivedThisRun = true;
+            IsDefeatPending = false;
+            PlayerCurrentHp = RevivePlayerHp;
+            return true;
+        }
+
         public static void CompleteBattleDefeat()
         {
+            IsDefeatPending = false;
             HasRun = false;
         }
 
@@ -242,6 +279,54 @@ namespace SlotRogue.UI.GameFlow
             RewardsClaimed++;
         }
 
+        public static void RecordRelicContributions(
+            IReadOnlyList<RelicContributionSnapshot> contributions)
+        {
+            _relicContributions.Add(contributions);
+        }
+
+        public static IReadOnlyList<RelicContributionSnapshot>
+            GetRelicContributionSummary()
+        {
+            return _relicContributions.SnapshotForRelics(_ownedRelics);
+        }
+
+        public static string BuildRelicContributionSummary()
+        {
+            IReadOnlyList<RelicContributionSnapshot> contributions =
+                GetRelicContributionSummary();
+            if (contributions.Count == 0)
+            {
+                return "NO RELICS";
+            }
+
+            var builder = new System.Text.StringBuilder();
+            for (int index = 0; index < contributions.Count; index++)
+            {
+                RelicContributionSnapshot contribution = contributions[index];
+                if (index > 0)
+                {
+                    builder.AppendLine();
+                    builder.AppendLine();
+                }
+
+                builder.Append(contribution.RelicName);
+                builder.Append(" [");
+                builder.Append(contribution.RelicId);
+                builder.AppendLine("]");
+                builder.Append("TRIGGER ");
+                builder.Append(contribution.TriggerCount);
+                builder.Append("  DMG ");
+                builder.Append(contribution.Damage);
+                builder.Append("  BLOCK ");
+                builder.Append(contribution.Block);
+                builder.Append("  HEAL ");
+                builder.Append(contribution.Heal);
+            }
+
+            return builder.ToString();
+        }
+
         public static string BuildSummary()
         {
             return
@@ -251,6 +336,7 @@ namespace SlotRogue.UI.GameFlow
                 $"보상: {RewardsClaimed}\n" +
                 $"현재 전투: {CurrentBattleNumber}\n" +
                 $"전투 등급: {CurrentTier}\n" +
+                $"부활 사용: {HasRevivedThisRun}\n" +
                 $"보유 유물: {BuildRelicSummary()}\n" +
                 $"슬롯 풀: {SlotPool.BuildSummary()}";
         }

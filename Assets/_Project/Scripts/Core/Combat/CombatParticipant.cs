@@ -65,6 +65,17 @@ namespace SlotRogue.Core.Combat
             return new EffectApplyResult(0, 0, 0, healApplied);
         }
 
+        internal bool TryRevive(int currentHp)
+        {
+            if (!IsDead || currentHp <= 0)
+            {
+                return false;
+            }
+
+            CurrentHp = Math.Min(currentHp, MaxHp);
+            return true;
+        }
+
         internal void ResetShield()
         {
             Shield = 0;

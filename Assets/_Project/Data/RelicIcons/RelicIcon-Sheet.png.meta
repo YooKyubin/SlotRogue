@@ -1,31 +1,55 @@
 fileFormatVersion: 2
-guid: 9623568b693406747ae5884f6096b2e7
+guid: 28d4f719a07d2f948952c95a683f1862
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 3528233155703532341
-    second: "\uC720\uBB3Cicon-Sheet2_0"
+      213: 1091957330559400137
+    second: "\uC720\uBB3Cicon-Sheet_0"
   - first:
-      213: -4595237365495922081
-    second: "\uC720\uBB3Cicon-Sheet2_1"
+      213: -7046689021573651835
+    second: "\uC720\uBB3Cicon-Sheet_1"
   - first:
-      213: -7363030756739188457
-    second: "\uC720\uBB3Cicon-Sheet2_2"
+      213: 6818513026384109794
+    second: "\uC720\uBB3Cicon-Sheet_2"
   - first:
-      213: 4356292889308735713
-    second: "\uC720\uBB3Cicon-Sheet2_3"
+      213: -6463263019576727232
+    second: "\uC720\uBB3Cicon-Sheet_3"
   - first:
-      213: 7611573984062201356
-    second: "\uC720\uBB3Cicon-Sheet2_4"
+      213: -1385156588449384482
+    second: "\uC720\uBB3Cicon-Sheet_4"
   - first:
-      213: -108122431242646982
-    second: "\uC720\uBB3Cicon-Sheet2_5"
+      213: -3533518572533497926
+    second: "\uC720\uBB3Cicon-Sheet_5"
   - first:
-      213: -4515179685732761515
-    second: "\uC720\uBB3Cicon-Sheet2_6"
+      213: 8186324908598789413
+    second: "\uC720\uBB3Cicon-Sheet_6"
   - first:
-      213: -6871159382622599266
-    second: "\uC720\uBB3Cicon-Sheet2_7"
+      213: 951802676002293340
+    second: "\uC720\uBB3Cicon-Sheet_7"
+  - first:
+      213: 7749446593794614759
+    second: "\uC720\uBB3Cicon-Sheet_8"
+  - first:
+      213: -6454563567186023312
+    second: "\uC720\uBB3Cicon-Sheet_9"
+  - first:
+      213: -5899598521967760933
+    second: "\uC720\uBB3Cicon-Sheet_10"
+  - first:
+      213: -8988535993540384525
+    second: "\uC720\uBB3Cicon-Sheet_11"
+  - first:
+      213: 4615798172132047281
+    second: "\uC720\uBB3Cicon-Sheet_12"
+  - first:
+      213: 4808925037376601832
+    second: "\uC720\uBB3Cicon-Sheet_13"
+  - first:
+      213: -5398277066757095262
+    second: "\uC720\uBB3Cicon-Sheet_14"
+  - first:
+      213: -8380834054162333920
+    second: "\uC720\uBB3Cicon-Sheet_15"
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -134,7 +158,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: "\uC720\uBB3Cicon-Sheet2_0"
+      name: RelicIcon-Sheet_0
       rect:
         serializedVersion: 2
         x: 0
@@ -147,16 +171,16 @@ TextureImporter:
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 53be67a9c5dc6f030800000000000000
-      internalID: 3528233155703532341
+      spriteID: ccd56f4d90361ed44acec10b461cdab7
+      internalID: 400678677
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC720\uBB3Cicon-Sheet2_1"
+      name: RelicIcon-Sheet_1
       rect:
         serializedVersion: 2
         x: 28
@@ -169,16 +193,16 @@ TextureImporter:
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: f52830376ff6a30c0800000000000000
-      internalID: -4595237365495922081
+      spriteID: 5b253cf42a2366f429a76b98f3c32d32
+      internalID: -1385491938
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC720\uBB3Cicon-Sheet2_2"
+      name: RelicIcon-Sheet_2
       rect:
         serializedVersion: 2
         x: 56
@@ -191,16 +215,16 @@ TextureImporter:
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 719f84aa98241d990800000000000000
-      internalID: -7363030756739188457
+      spriteID: c2cf23c0f36099d43944163b10e57074
+      internalID: -1215684443
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC720\uBB3Cicon-Sheet2_3"
+      name: RelicIcon-Sheet_3
       rect:
         serializedVersion: 2
         x: 84
@@ -213,16 +237,16 @@ TextureImporter:
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 1e8aecc5d49a47c30800000000000000
-      internalID: 4356292889308735713
+      spriteID: ce9c134eaad793b43b397898c3ad9851
+      internalID: -73702219
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC720\uBB3Cicon-Sheet2_4"
+      name: RelicIcon-Sheet_4
       rect:
         serializedVersion: 2
         x: 0
@@ -235,16 +259,16 @@ TextureImporter:
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: c0ed1ade53eb1a960800000000000000
-      internalID: 7611573984062201356
+      spriteID: fc1fd39f2f986634290bdf13b5863bc1
+      internalID: 761811128
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC720\uBB3Cicon-Sheet2_5"
+      name: RelicIcon-Sheet_5
       rect:
         serializedVersion: 2
         x: 28
@@ -257,16 +281,16 @@ TextureImporter:
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: a3ac78db83fdf7ef0800000000000000
-      internalID: -108122431242646982
+      spriteID: 9b9cb509e6cbd8747a091406fb62b391
+      internalID: -1909684553
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC720\uBB3Cicon-Sheet2_6"
+      name: RelicIcon-Sheet_6
       rect:
         serializedVersion: 2
         x: 56
@@ -279,16 +303,16 @@ TextureImporter:
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 550c6de8ffbd651c0800000000000000
-      internalID: -4515179685732761515
+      spriteID: 3992f25426e535344b3c545966af293a
+      internalID: -76814457
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC720\uBB3Cicon-Sheet2_7"
+      name: RelicIcon-Sheet_7
       rect:
         serializedVersion: 2
         x: 84
@@ -301,16 +325,16 @@ TextureImporter:
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: e9700bb42fcb4a0a0800000000000000
-      internalID: -6871159382622599266
+      spriteID: 4a1ef87e4abb4da459f1c84e86d7d4a9
+      internalID: -1514724471
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC720\uBB3Cicon-Sheet2_8"
+      name: RelicIcon-Sheet_8
       rect:
         serializedVersion: 2
         x: 0
@@ -325,14 +349,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 29d7dfd268deaa64b8ec961371aa412b
-      internalID: 545182620
+      spriteID: 93c147c1b413906429d02b616de1ac4d
+      internalID: -996049374
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC720\uBB3Cicon-Sheet2_9"
+      name: RelicIcon-Sheet_9
       rect:
         serializedVersion: 2
         x: 28
@@ -347,14 +371,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 1f93e5c2bce4ed9418fb9f3f667379ca
-      internalID: -1299828075
+      spriteID: a7d3f5ee04cc6454ca02ecd59295e729
+      internalID: -2079686393
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC720\uBB3Cicon-Sheet2_10"
+      name: RelicIcon-Sheet_10
       rect:
         serializedVersion: 2
         x: 56
@@ -369,14 +393,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 26c93664a1b0f534fab632475f6feb6b
-      internalID: -1785544714
+      spriteID: 8ebf14b0d66381147bfb6828faa494f2
+      internalID: 1237385201
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC720\uBB3Cicon-Sheet2_11"
+      name: RelicIcon-Sheet_11
       rect:
         serializedVersion: 2
         x: 84
@@ -391,14 +415,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 08e250b16a65a174ea481e1c63d7ce5a
-      internalID: 2093876854
+      spriteID: ac8941782f9a01b4fb3b8afadf2aac79
+      internalID: -404595842
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC720\uBB3Cicon-Sheet2_12"
+      name: RelicIcon-Sheet_12
       rect:
         serializedVersion: 2
         x: 0
@@ -413,14 +437,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 014b355ed21674046b061691c6f1942b
-      internalID: 1291780303
+      spriteID: 82cf6934a921b6f408c9249469b0381a
+      internalID: -250334348
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC720\uBB3Cicon-Sheet2_13"
+      name: RelicIcon-Sheet_13
       rect:
         serializedVersion: 2
         x: 28
@@ -435,14 +459,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 802ca94bffd7ee84c9e100fb80abcacd
-      internalID: 1517927619
+      spriteID: f1c2f0a6faed6be47ae0fdfe7d7c8a98
+      internalID: 1085755000
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC720\uBB3Cicon-Sheet2_14"
+      name: RelicIcon-Sheet_14
       rect:
         serializedVersion: 2
         x: 56
@@ -457,14 +481,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 7c34ca7478437b44381e6645c4f0851a
-      internalID: -1835197713
+      spriteID: 77b2a85a0a1407f4d84bdf791881f2cf
+      internalID: 1183248443
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC720\uBB3Cicon-Sheet2_15"
+      name: RelicIcon-Sheet_15
       rect:
         serializedVersion: 2
         x: 84
@@ -479,8 +503,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 8eacc5f960f96c94a8f9dbf5d954d7bb
-      internalID: -541866671
+      spriteID: 062a765ef62225a4ea8b8750320ad576
+      internalID: -1349208534
       vertices: []
       indices: 
       edges: []
@@ -489,7 +513,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 08dbc46960698f449b740904fbd83a5e
+    spriteID: aab7b469f09cc8a4e9341daef3465298
     internalID: 0
     vertices: []
     indices: 
@@ -501,22 +525,22 @@ TextureImporter:
       - key: SpriteEditor.SliceSettings
         value: '{"sliceOnImport":false,"gridCellCount":{"x":4.0,"y":4.0},"gridSpriteSize":{"x":28.0,"y":28.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":2,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
-      "\uC720\uBB3Cicon-Sheet2_0": 3528233155703532341
-      "\uC720\uBB3Cicon-Sheet2_1": -4595237365495922081
-      "\uC720\uBB3Cicon-Sheet2_10": -1785544714
-      "\uC720\uBB3Cicon-Sheet2_11": 2093876854
-      "\uC720\uBB3Cicon-Sheet2_12": 1291780303
-      "\uC720\uBB3Cicon-Sheet2_13": 1517927619
-      "\uC720\uBB3Cicon-Sheet2_14": -1835197713
-      "\uC720\uBB3Cicon-Sheet2_15": -541866671
-      "\uC720\uBB3Cicon-Sheet2_2": -7363030756739188457
-      "\uC720\uBB3Cicon-Sheet2_3": 4356292889308735713
-      "\uC720\uBB3Cicon-Sheet2_4": 7611573984062201356
-      "\uC720\uBB3Cicon-Sheet2_5": -108122431242646982
-      "\uC720\uBB3Cicon-Sheet2_6": -4515179685732761515
-      "\uC720\uBB3Cicon-Sheet2_7": -6871159382622599266
-      "\uC720\uBB3Cicon-Sheet2_8": 545182620
-      "\uC720\uBB3Cicon-Sheet2_9": -1299828075
+      RelicIcon-Sheet_0: 400678677
+      RelicIcon-Sheet_1: -1385491938
+      RelicIcon-Sheet_10: 1237385201
+      RelicIcon-Sheet_11: -404595842
+      RelicIcon-Sheet_12: -250334348
+      RelicIcon-Sheet_13: 1085755000
+      RelicIcon-Sheet_14: 1183248443
+      RelicIcon-Sheet_15: -1349208534
+      RelicIcon-Sheet_2: -1215684443
+      RelicIcon-Sheet_3: -73702219
+      RelicIcon-Sheet_4: 761811128
+      RelicIcon-Sheet_5: -1909684553
+      RelicIcon-Sheet_6: -76814457
+      RelicIcon-Sheet_7: -1514724471
+      RelicIcon-Sheet_8: -996049374
+      RelicIcon-Sheet_9: -2079686393
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

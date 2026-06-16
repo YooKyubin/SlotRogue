@@ -102,6 +102,16 @@ namespace SlotRogue.UI.GameFlow
             Refresh();
         }
 
+        internal void ResumeBattle()
+        {
+            _battleCompleted = false;
+            _enemyVisibleIntentState.RefreshFromBattle(
+                _battle,
+                _battle.Enemies,
+                _encounterRoster);
+            Refresh();
+        }
+
         internal void RefreshVisibleIntentsFromBattle()
         {
             if (_battle == null)

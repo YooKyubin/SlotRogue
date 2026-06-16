@@ -28,6 +28,7 @@ namespace SlotRogue.UI.GameFlow
             int healAmount = 0;
             var statuses = new List<StatusEffectRequest>();
             var activated = new List<string>();
+            var contributions = new List<RelicContributionDelta>();
 
             if (ownedRelics != null)
             {
@@ -44,17 +45,33 @@ namespace SlotRogue.UI.GameFlow
                         continue;
                     }
 
+                    int triggerPatternIndex = FindTriggerPatternIndex(relic, patternMatches);
+                    int damageBefore = additionalDamage;
+                    int blockBefore = additionalBlock;
+                    int healBefore = healAmount;
                     bool applied = ApplyEffect(
                         relic, context, ref additionalDamage, ref additionalBlock, ref healAmount, statuses);
                     if (applied)
                     {
                         activated.Add(relic.Name);
+                        contributions.Add(new RelicContributionDelta(
+                            relic.Id,
+                            relic.Name,
+                            additionalDamage - damageBefore,
+                            additionalBlock - blockBefore,
+                            healAmount - healBefore,
+                            triggerPatternIndex));
                     }
                 }
             }
 
             return new RelicResolveResult(
-                additionalDamage, additionalBlock, healAmount, statuses, BuildSummary(activated));
+                additionalDamage,
+                additionalBlock,
+                healAmount,
+                statuses,
+                BuildSummary(activated),
+                contributions);
         }
 
         // ── 조건 판정 ────────────────────────────────────────────────────
@@ -209,6 +226,75 @@ namespace SlotRogue.UI.GameFlow
             }
 
             return false;
+        }
+
+        private static int FindTriggerPatternIndex(
+            RelicDefinition relic,
+            IReadOnlyList<SlotPatternMatch> matches)
+        {
+            if (relic == null || matches == null || matches.Count == 0)
+            {
+                return -1;
+            }
+
+            switch (relic.TriggerType)
+            {
+                case RelicTriggerType.MatchSymbol:
+                    if (!relic.TriggerSymbol.HasValue)
+                    {
+                        return -1;
+                    }
+
+                    int minLength = relic.RequiredCount < 1 ? 1 : relic.RequiredCount;
+                    for (int index = 0; index < matches.Count; index++)
+                    {
+                        SlotPatternMatch match = matches[index];
+                        if (match?.MatchedCells != null &&
+                            match.Symbol == relic.TriggerSymbol.Value &&
+                            match.MatchedCells.Count >= minLength)
+                        {
+                            return index;
+                        }
+                    }
+
+                    return -1;
+
+                case RelicTriggerType.MatchTag:
+                    if (!relic.TriggerTag.HasValue)
+                    {
+                        return -1;
+                    }
+
+                    int requiredCount = relic.RequiredCount < 1 ? 1 : relic.RequiredCount;
+                    var matchedCells = new HashSet<SlotCell>();
+                    for (int index = 0; index < matches.Count; index++)
+                    {
+                        SlotPatternMatch match = matches[index];
+                        if (match?.MatchedCells == null ||
+                            !SymbolTagMap.HasTag(match.Symbol, relic.TriggerTag.Value))
+                        {
+                            continue;
+                        }
+
+                        for (int cellIndex = 0; cellIndex < match.MatchedCells.Count; cellIndex++)
+                        {
+                            matchedCells.Add(match.MatchedCells[cellIndex]);
+                        }
+
+                        if (matchedCells.Count >= requiredCount)
+                        {
+                            return index;
+                        }
+                    }
+
+                    return -1;
+
+                case RelicTriggerType.Conditional:
+                    return 0;
+
+                default:
+                    return -1;
+            }
         }
 
         // 겹치는 족보가 같은 칸을 공유해도 태그 심볼 한 칸은 한 번만 센다.

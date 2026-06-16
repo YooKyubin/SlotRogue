@@ -25,6 +25,7 @@ namespace SlotRogue.UI.SlotPresentation
 
         public event Action<SlotPresentationResult> Completed;
         public event Action SlotSpinCompleted;
+        public event Action<int> SlotReelStopped;
         public event Action<SlotPatternPresentationResult> PatternStepStarted;
 
         public bool IsPlaying => _playRoutine != null;
@@ -117,6 +118,7 @@ namespace SlotRogue.UI.SlotPresentation
             _skipAllRequested = false;
             SetTapSkipEnabled(false);
             HideAllViews();
+            UnsubscribeSpinPresenterEvents();
         }
 
         private IEnumerator PlayRoutine(SlotPresentationResult result, Action<SlotPresentationResult> onCompleted)
@@ -178,6 +180,7 @@ namespace SlotRogue.UI.SlotPresentation
                 yield break;
             }
 
+            RefreshPatternTargets();
             PatternStepStarted?.Invoke(pattern);
             PlayPatternSfx();
             yield return _patternView.Play(pattern, IsSkipRequested);
@@ -246,6 +249,7 @@ namespace SlotRogue.UI.SlotPresentation
             if (_slotCellSpinView == null ||
                 !_slotCellSpinView.TryGetReelBindings(out Image[] cellIcons, out Sprite[] symbolSprites, out Sprite[] spinSprites))
             {
+                SubscribeSpinPresenterEvents(_spinPresenter);
                 return _spinPresenter;
             }
 
@@ -263,7 +267,64 @@ namespace SlotRogue.UI.SlotPresentation
 
             // Cell icons and sprite tables are runtime data, so (re)initialize every time.
             _spinPresenter.Initialize(cellIcons, symbolSprites, spinSprites);
+            SubscribeSpinPresenterEvents(_spinPresenter);
             return _spinPresenter;
+        }
+
+        private void SubscribeSpinPresenterEvents(SlotMachineSpinPresenter presenter)
+        {
+            if (_subscribedSpinPresenter == presenter)
+            {
+                return;
+            }
+
+            UnsubscribeSpinPresenterEvents();
+            _subscribedSpinPresenter = presenter;
+
+            if (_subscribedSpinPresenter != null)
+            {
+                _subscribedSpinPresenter.ReelStopped += HandleReelStopped;
+            }
+        }
+
+        private void UnsubscribeSpinPresenterEvents()
+        {
+            if (_subscribedSpinPresenter == null)
+            {
+                return;
+            }
+
+            _subscribedSpinPresenter.ReelStopped -= HandleReelStopped;
+            _subscribedSpinPresenter = null;
+        }
+
+        private void HandleReelStopped(int column)
+        {
+            SlotReelStopped?.Invoke(column);
+        }
+
+        private void RefreshPatternTargets()
+        {
+            if (_patternView == null)
+            {
+                return;
+            }
+
+            if (_spinPresenter != null &&
+                _spinPresenter.TryGetVisibleCellIcons(out Image[] reelIcons))
+            {
+                _patternView.SetSlotCellIcons(reelIcons);
+                return;
+            }
+
+            if (_slotCellSpinView != null &&
+                _slotCellSpinView.TryGetReelBindings(
+                    out Image[] cellIcons,
+                    out _,
+                    out _))
+            {
+                _patternView.SetSlotCellIcons(cellIcons);
+            }
         }
 
         private void HideAllViews()
@@ -330,5 +391,6 @@ namespace SlotRogue.UI.SlotPresentation
         private bool _skipRequested;
         private bool _skipAllRequested;
         private int _nextPatternClipIndex;
+        private SlotMachineSpinPresenter _subscribedSpinPresenter;
     }
 }

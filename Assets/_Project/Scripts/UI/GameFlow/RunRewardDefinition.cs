@@ -1,3 +1,4 @@
+using System;
 using SlotRogue.Relics.Pool;
 using SlotRogue.Slot.Data;
 
@@ -10,7 +11,7 @@ namespace SlotRogue.UI.GameFlow
         Relic = 2,   // v23 유물 획득
     }
 
-    public sealed class RunRewardDefinition
+    public sealed class RunRewardDefinition : IEquatable<RunRewardDefinition>
     {
         /// <summary>v23 유물 보상.</summary>
         public RunRewardDefinition(RelicDefinition relic)
@@ -58,5 +59,50 @@ namespace SlotRogue.UI.GameFlow
         public string Description { get; }
 
         public string IconKey { get; }
+
+        public bool Equals(RunRewardDefinition other)
+        {
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            if (other == null || Kind != other.Kind)
+            {
+                return false;
+            }
+
+            return Kind switch
+            {
+                RunRewardKind.Relic => string.Equals(
+                    Relic?.Id,
+                    other.Relic?.Id,
+                    StringComparison.Ordinal),
+                RunRewardKind.Symbol => Symbol == other.Symbol && Amount == other.Amount,
+                _ => Type == other.Type,
+            };
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is RunRewardDefinition other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = (int)Kind;
+                return Kind switch
+                {
+                    RunRewardKind.Relic =>
+                        (hashCode * 397) ^
+                        StringComparer.Ordinal.GetHashCode(Relic?.Id ?? string.Empty),
+                    RunRewardKind.Symbol =>
+                        ((hashCode * 397) ^ (int)Symbol) * 397 ^ Amount,
+                    _ => (hashCode * 397) ^ (int)Type,
+                };
+            }
+        }
     }
 }

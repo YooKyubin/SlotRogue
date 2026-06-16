@@ -29,6 +29,10 @@ namespace SlotRogue.UI.Tests.GameFlow
             Assert.That(result.AdditionalDamage, Is.EqualTo(4));
             Assert.That(result.AdditionalBlock, Is.EqualTo(0));
             Assert.That(result.HealAmount, Is.EqualTo(0));
+            Assert.That(result.Contributions, Has.Count.EqualTo(1));
+            Assert.That(result.Contributions[0].RelicId, Is.EqualTo("C-01"));
+            Assert.That(result.Contributions[0].DamagePerHit, Is.EqualTo(4));
+            Assert.That(result.Contributions[0].TriggerPatternIndex, Is.Zero);
         }
 
         [Test]
@@ -39,6 +43,23 @@ namespace SlotRogue.UI.Tests.GameFlow
             RelicResolveResult result = _runner.Resolve(Matches(SlotSymbolType.Lemon, 3), owned, FullHp());
 
             Assert.That(result.AdditionalDamage, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void ContributionAccumulator_MultipliesDamageByAttackCount()
+        {
+            RelicResolveResult result = _runner.Resolve(
+                Matches(SlotSymbolType.Cherry, 3),
+                new[] { RelicCatalog.GetById("C-01") },
+                FullHp());
+            var accumulator = new RelicContributionAccumulator();
+
+            accumulator.RecordTurn(result.Contributions, attackCount: 3);
+            IReadOnlyList<RelicContributionSnapshot> snapshot = accumulator.Snapshot();
+
+            Assert.That(snapshot, Has.Count.EqualTo(1));
+            Assert.That(snapshot[0].TriggerCount, Is.EqualTo(1));
+            Assert.That(snapshot[0].Damage, Is.EqualTo(12));
         }
 
         [Test]
@@ -80,6 +101,34 @@ namespace SlotRogue.UI.Tests.GameFlow
             RelicResolveResult result = _runner.Resolve(overlappingMatches, owned, FullHp());
 
             Assert.That(result.AdditionalDamage, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void TagRelic_RecordsPatternWhereAccumulatedThresholdIsReached()
+        {
+            var owned = new[] { RelicCatalog.GetById("C-10") };
+            var matches = new[]
+            {
+                Single(
+                    SlotSymbolType.Cherry,
+                    new[]
+                    {
+                        new SlotCell(0, 0),
+                        new SlotCell(1, 0),
+                    }),
+                Single(
+                    SlotSymbolType.Lemon,
+                    new[]
+                    {
+                        new SlotCell(2, 0),
+                        new SlotCell(3, 0),
+                    }),
+            };
+
+            RelicResolveResult result = _runner.Resolve(matches, owned, FullHp());
+
+            Assert.That(result.Contributions, Has.Count.EqualTo(1));
+            Assert.That(result.Contributions[0].TriggerPatternIndex, Is.EqualTo(1));
         }
 
         [Test]
@@ -209,6 +258,7 @@ namespace SlotRogue.UI.Tests.GameFlow
             Assert.That(result.ActivationSummary, Does.Contain("체리 단검"));
             Assert.That(result.ActivationSummary, Does.Contain("클로버 방패"));
             Assert.That(result.ActivationSummary, Does.Contain("종 치료제"));
+            Assert.That(result.Contributions, Has.Count.EqualTo(3));
         }
 
         [Test]

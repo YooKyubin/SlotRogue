@@ -9,13 +9,15 @@ namespace SlotRogue.UI.SlotPresentation
             string relicName,
             Sprite icon,
             string description,
-            string valueText)
+            string valueText,
+            int triggerPatternIndex = -1)
         {
             RelicId = relicId ?? string.Empty;
             RelicName = relicName ?? string.Empty;
             Icon = icon;
             Description = description ?? string.Empty;
             ValueText = valueText ?? string.Empty;
+            TriggerPatternIndex = triggerPatternIndex;
         }
 
         public string RelicId { get; }
@@ -27,5 +29,7 @@ namespace SlotRogue.UI.SlotPresentation
         public string Description { get; }
 
         public string ValueText { get; }
+
+        public int TriggerPatternIndex { get; }
     }
 }

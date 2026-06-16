@@ -64,6 +64,8 @@ namespace SlotRogue.UI.GameFlow
 
         public ShieldGaugeView ShieldGauge => _shieldGauge;
 
+        public Sprite PortraitSprite => _portrait != null ? _portrait.sprite : null;
+
         public void Bind(
             Transform root,
             Transform shakeGroup,

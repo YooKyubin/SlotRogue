@@ -1035,7 +1035,8 @@ MonoBehaviour:
   _startRelicSelectView: {fileID: 2477338205436084518}
   _battleView: {fileID: 1537428644}
   _rewardView: {fileID: 8221322808510567929}
-  _defeatView: {fileID: 0}
+  _defeatView: {fileID: 1039850555}
+  _leaderboardView: {fileID: 0}
   _hudView: {fileID: 0}
   _battleSceneCompositionRoot: {fileID: 2132137700}
 --- !u!1 &1039850553
@@ -1047,6 +1048,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1039850554}
+  - component: {fileID: 1039850555}
   m_Layer: 0
   m_Name: DefeatView
   m_TagString: Untagged
@@ -1069,6 +1071,34 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1935372054}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1039850555
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1039850553}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 447ef6b7d1ed49c5b77fb4ee801a0609, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.RunGame.RunDefeatView
+  _layoutRoot: {fileID: 0}
+  _titleText: {fileID: 0}
+  _reviveOfferRoot: {fileID: 0}
+  _monsterImage: {fileID: 0}
+  _countdownText: {fileID: 0}
+  _reviveButton: {fileID: 0}
+  _reviveButtonText: {fileID: 0}
+  _resultRoot: {fileID: 0}
+  _summaryText: {fileID: 0}
+  _contributionText: {fileID: 0}
+  _newRunButton: {fileID: 0}
+  _newRunButtonText: {fileID: 0}
+  _rankingButton: {fileID: 0}
+  _rankingButtonText: {fileID: 0}
+  _homeButton: {fileID: 0}
+  _homeButtonText: {fileID: 0}
 --- !u!1 &1154256866
 GameObject:
   m_ObjectHideFlags: 0
@@ -2087,10 +2117,6 @@ PrefabInstance:
     - target: {fileID: 2716031693084600746, guid: 156a5d44823893d42aec86fe5db73f64, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5096372360387640066, guid: 156a5d44823893d42aec86fe5db73f64, type: 3}
-      propertyPath: _rerollButton
-      value: 
       objectReference: {fileID: 0}
     - target: {fileID: 6207223129459888019, guid: 156a5d44823893d42aec86fe5db73f64, type: 3}
       propertyPath: m_AnchorMax.y

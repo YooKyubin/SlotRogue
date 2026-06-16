@@ -1,25 +1,10 @@
 fileFormatVersion: 2
-guid: 339f173af79a8414dbaf9a89aa1c69c9
+guid: 4b31378bce374f64783e611c010fc667
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -1826497962949472106
-    second: icon_slot_ani_0
-  - first:
-      213: -8865915934392631781
-    second: icon_slot_ani_1
-  - first:
-      213: -8266937977364886079
-    second: icon_slot_ani_2
-  - first:
-      213: 6813601856839289315
-    second: icon_slot_ani_3
-  - first:
-      213: -5698752927395512239
-    second: icon_slot_ani_4
-  - first:
-      213: -2833847552205077362
-    second: icon_slot_ani_5
+      213: 6512131306100088590
+    second: Ingame_Slot_left_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -128,133 +113,67 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: icon_slot_ani_0
+      name: Ingame_Slot_left_0
       rect:
         serializedVersion: 2
-        x: 5
-        y: 3
-        width: 20
-        height: 24
+        x: 0
+        y: 0
+        width: 36
+        height: 108
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 6901c67a7c9f6a6e0800000000000000
-      internalID: -1826497962949472106
+      spriteID: e0fdbce8becbf5a50800000000000000
+      internalID: 6512131306100088590
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: icon_slot_ani_1
+      name: Ingame_Slot_left_1
       rect:
         serializedVersion: 2
-        x: 31
-        y: 3
-        width: 18
-        height: 24
+        x: 36
+        y: 0
+        width: 36
+        height: 108
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: b1e3d0a6e60f5f480800000000000000
-      internalID: -8865915934392631781
+      spriteID: ad24c57676bf98944bd4b74ffb152f9e
+      internalID: -640095426
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: icon_slot_ani_2
+      name: Ingame_Slot_left_2
       rect:
         serializedVersion: 2
-        x: 55
-        y: 3
-        width: 20
-        height: 24
+        x: 72
+        y: 0
+        width: 36
+        height: 108
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 1cdcafea5bfe54d80800000000000000
-      internalID: -8266937977364886079
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: icon_slot_ani_3
-      rect:
-        serializedVersion: 2
-        x: 80
-        y: 3
-        width: 20
-        height: 24
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 3e909dde9c6ce8e50800000000000000
-      internalID: 6813601856839289315
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: icon_slot_ani_4
-      rect:
-        serializedVersion: 2
-        x: 106
-        y: 3
-        width: 19
-        height: 24
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 1508fd3e766f9e0b0800000000000000
-      internalID: -5698752927395512239
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: icon_slot_ani_5
-      rect:
-        serializedVersion: 2
-        x: 130
-        y: 3
-        width: 20
-        height: 24
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: e84c4376aa62ca8d0800000000000000
-      internalID: -2833847552205077362
+      spriteID: 866d9845211b3bd4da124e86a47095c1
+      internalID: 1796278009
       vertices: []
       indices: 
       edges: []
@@ -263,7 +182,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: f8aa0d1525b29c64d9cf8025d4ba7586
     internalID: 0
     vertices: []
     indices: 
@@ -271,14 +190,13 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries: []
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":3.0,"y":1.0},"gridSpriteSize":{"x":36.0,"y":108.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":2,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
-      icon_slot_ani_0: -1826497962949472106
-      icon_slot_ani_1: -8865915934392631781
-      icon_slot_ani_2: -8266937977364886079
-      icon_slot_ani_3: 6813601856839289315
-      icon_slot_ani_4: -5698752927395512239
-      icon_slot_ani_5: -2833847552205077362
+      Ingame_Slot_left_0: 6512131306100088590
+      Ingame_Slot_left_1: -640095426
+      Ingame_Slot_left_2: 1796278009
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

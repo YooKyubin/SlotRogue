@@ -1,8 +1,12 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using SlotRogue.Relics.Pool;
+using SlotRogue.Core.Tooling;
+using SlotRogue.UI.Ads;
+using SlotRogue.UI.App;
 using SlotRogue.UI.GameFlow;
+using SlotRogue.UI.Iap;
+using SlotRogue.UI.Leaderboard;
 using SlotRogue.UI.RunGame.ViewModels;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -20,34 +24,43 @@ namespace SlotRogue.UI.RunGame
     /// </summary>
     public class RunGameSceneRoot : MonoBehaviour
     {
+        private const float ReviveWindowSeconds = 5f;
+
         public static RunGameSceneRoot Instance { get; private set; }
 
         // ── Inspector 연결 ───────────────────────────────────────────────
 
         [Header("Navigator")]
-        [SerializeField] private RunGameNavigator _navigator;
+        [SerializeField, AutoWire("RunGameNavigator")]
+        private RunGameNavigator _navigator;
 
         [Header("Game Views  (IRunGameView 구현체)")]
-        [SerializeField] private StartArtifactSelectionView _startRelicSelectView;
-        [SerializeField] private BattleView                 _battleView;
-        [SerializeField] private RunRewardView              _rewardView;
-        [SerializeField] private RunDefeatView              _defeatView;
+        [SerializeField, AutoWire("00_StartRelicSelectView")]
+        private StartArtifactSelectionView _startRelicSelectView;
+        [SerializeField, AutoWire("10_BattleView")]
+        private BattleView _battleView;
+        [SerializeField, AutoWire("20_RewardView")]
+        private RunRewardView _rewardView;
+        [SerializeField] private RunDefeatView _defeatView;
+        [SerializeField] private LeaderboardView _leaderboardView;
 
         [Header("HUD  (항상 표시)")]
         [SerializeField] private RunHUDView _hudView;
 
         [Header("Battle Flow")]
         [FormerlySerializedAs("_battleFlowController")]
-        [SerializeField] private BattleSceneCompositionRoot _battleSceneCompositionRoot;
+        [SerializeField, AutoWire("BattleSceneCompositionRoot")]
+        private BattleSceneCompositionRoot _battleSceneCompositionRoot;
 
         private StartRelicSelectViewModel _startRelicSelectVM;
         private RunRewardViewModel        _rewardVM;
         private RunHUDViewModel           _hudVM;
         private RunDefeatViewModel        _defeatVM;
-        private AddressableSpriteProvider _relicIconProvider;
-        private CancellationTokenSource   _iconLoadCts;
-        private int _startRelicIconRenderVersion;
-        private int _rewardIconRenderVersion;
+        private LeaderboardViewModel       _leaderboardVM;
+        private RelicIconRenderer          _relicIconRenderer;
+        private CancellationTokenSource     _defeatCountdownCts;
+        private bool                        _reviveAdPending;
+        private bool                        _resumeBattleOnEnter;
 
         // ── 초기화 ──────────────────────────────────────────────────────
 
@@ -60,8 +73,8 @@ namespace SlotRogue.UI.RunGame
             }
 
             Instance = this;
-            _iconLoadCts = new CancellationTokenSource();
-            _relicIconProvider = new AddressableSpriteProvider(RelicIconKeys.Default);
+            _relicIconRenderer = new RelicIconRenderer();
+            AdsRemoveState.Initialize();
 
             // 런 보장은 ViewModel 생성·View 바인딩·Navigator.GoTo 이전에 실행되어야 합니다.
             // BootScene → GameStart → RunGame 경로에서는 GameStart에서 이미 새 런을 시작했으므로
@@ -70,9 +83,11 @@ namespace SlotRogue.UI.RunGame
 
             CreateViewModels();
             EnsureDefeatView();
+            EnsureLeaderboardView();
             BindViews();
             RegisterViews();
             SubscribeEvents();
+            RefreshRewardedAvailability();
             RefreshHud();
         }
 
@@ -93,14 +108,10 @@ namespace SlotRogue.UI.RunGame
 
         protected virtual void OnDestroy()
         {
-            _startRelicIconRenderVersion++;
-            _rewardIconRenderVersion++;
-            _iconLoadCts?.Cancel();
+            CancelDefeatCountdown();
             UnsubscribeEvents();
-            _relicIconProvider?.Dispose();
-            _relicIconProvider = null;
-            _iconLoadCts?.Dispose();
-            _iconLoadCts = null;
+            _relicIconRenderer?.Dispose();
+            _relicIconRenderer = null;
 
             if (Instance == this)
             {
@@ -116,6 +127,7 @@ namespace SlotRogue.UI.RunGame
             _rewardVM           = new RunRewardViewModel();
             _hudVM              = new RunHUDViewModel();
             _defeatVM           = new RunDefeatViewModel();
+            _leaderboardVM      = new LeaderboardViewModel();
         }
 
         // ── View Bind ────────────────────────────────────────────────────
@@ -140,6 +152,11 @@ namespace SlotRogue.UI.RunGame
             if (_defeatView != null)
             {
                 _defeatView.Render(_defeatVM.State);
+            }
+
+            if (_leaderboardView != null)
+            {
+                _leaderboardView.Render(_leaderboardVM.State);
             }
         }
 
@@ -171,7 +188,10 @@ namespace SlotRogue.UI.RunGame
             _hudVM.Changed += HandleHudStateChanged;
             _hudVM.PauseRequested += OnPauseRequested;
             _defeatVM.Changed += HandleDefeatStateChanged;
-            _defeatVM.NewRunRequested += HandleNewRunRequested;
+            _defeatVM.RestartRequested += HandleRestartRequested;
+            _defeatVM.RankingRequested += HandleRankingRequested;
+            _defeatVM.HomeRequested += HandleHomeRequested;
+            _defeatVM.ReviveRequested += HandleReviveRequested;
 
             if (_startRelicSelectView != null)
             {
@@ -183,8 +203,9 @@ namespace SlotRogue.UI.RunGame
             {
                 _rewardView.Entered += HandleRewardEntered;
                 _rewardView.RewardSelectionRequested += HandleRewardSelectionRequested;
-                _rewardView.RerollRequested += _rewardVM.RerollRewards;
-                _rewardView.ExtraRewardRequested += _rewardVM.AddExtraReward;
+                _rewardView.RerollRequested += HandleRewardRerollRequested;
+                _rewardView.ExtraRewardRequested += HandleExtraRewardRequested;
+                _rewardView.RewardDoubleRequested += HandleRewardDoubleRequested;
             }
 
             if (_battleView != null)
@@ -199,7 +220,28 @@ namespace SlotRogue.UI.RunGame
 
             if (_defeatView != null)
             {
-                _defeatView.NewRunRequested += _defeatVM.RequestNewRun;
+                _defeatView.RestartRequested += _defeatVM.RequestRestart;
+                _defeatView.RankingRequested += _defeatVM.RequestRanking;
+                _defeatView.HomeRequested += _defeatVM.RequestHome;
+                _defeatView.ReviveRequested += _defeatVM.RequestRevive;
+            }
+
+            if (AdsManager.Instance != null)
+            {
+                AdsManager.Instance.RewardedAvailabilityChanged +=
+                    RefreshRewardedAvailability;
+                AdsManager.Instance.RewardedSessionEnded +=
+                    HandleRewardedSessionEnded;
+            }
+
+            AdsRemoveState.Changed += HandleAdsRemoveChanged;
+
+            if (_leaderboardView != null)
+            {
+                _leaderboardView.CloseRequested += _leaderboardVM.Close;
+                _leaderboardView.RefreshRequested += HandleLeaderboardRefreshRequested;
+                _leaderboardView.PlayerProfileSubmitted += HandlePlayerProfileSubmitted;
+                _leaderboardVM.Changed += _leaderboardView.Render;
             }
 
             if (_battleSceneCompositionRoot != null)
@@ -232,7 +274,10 @@ namespace SlotRogue.UI.RunGame
             if (_defeatVM != null)
             {
                 _defeatVM.Changed -= HandleDefeatStateChanged;
-                _defeatVM.NewRunRequested -= HandleNewRunRequested;
+                _defeatVM.RestartRequested -= HandleRestartRequested;
+                _defeatVM.RankingRequested -= HandleRankingRequested;
+                _defeatVM.HomeRequested -= HandleHomeRequested;
+                _defeatVM.ReviveRequested -= HandleReviveRequested;
             }
 
             if (_startRelicSelectView != null)
@@ -245,8 +290,9 @@ namespace SlotRogue.UI.RunGame
             {
                 _rewardView.Entered -= HandleRewardEntered;
                 _rewardView.RewardSelectionRequested -= HandleRewardSelectionRequested;
-                _rewardView.RerollRequested -= _rewardVM.RerollRewards;
-                _rewardView.ExtraRewardRequested -= _rewardVM.AddExtraReward;
+                _rewardView.RerollRequested -= HandleRewardRerollRequested;
+                _rewardView.ExtraRewardRequested -= HandleExtraRewardRequested;
+                _rewardView.RewardDoubleRequested -= HandleRewardDoubleRequested;
             }
 
             if (_battleView != null)
@@ -261,7 +307,28 @@ namespace SlotRogue.UI.RunGame
 
             if (_defeatView != null && _defeatVM != null)
             {
-                _defeatView.NewRunRequested -= _defeatVM.RequestNewRun;
+                _defeatView.RestartRequested -= _defeatVM.RequestRestart;
+                _defeatView.RankingRequested -= _defeatVM.RequestRanking;
+                _defeatView.HomeRequested -= _defeatVM.RequestHome;
+                _defeatView.ReviveRequested -= _defeatVM.RequestRevive;
+            }
+
+            if (AdsManager.Instance != null)
+            {
+                AdsManager.Instance.RewardedAvailabilityChanged -=
+                    RefreshRewardedAvailability;
+                AdsManager.Instance.RewardedSessionEnded -=
+                    HandleRewardedSessionEnded;
+            }
+
+            AdsRemoveState.Changed -= HandleAdsRemoveChanged;
+
+            if (_leaderboardView != null && _leaderboardVM != null)
+            {
+                _leaderboardView.CloseRequested -= _leaderboardVM.Close;
+                _leaderboardView.RefreshRequested -= HandleLeaderboardRefreshRequested;
+                _leaderboardView.PlayerProfileSubmitted -= HandlePlayerProfileSubmitted;
+                _leaderboardVM.Changed -= _leaderboardView.Render;
             }
 
             if (_battleSceneCompositionRoot != null)
@@ -298,11 +365,62 @@ namespace SlotRogue.UI.RunGame
         private void HandleRewardEntered()
         {
             _rewardVM.Refresh();
+            RefreshRewardedAvailability();
         }
 
         private void HandleRewardSelectionRequested(int optionIndex)
         {
             _rewardVM.ClaimReward(optionIndex);
+        }
+
+        private void HandleRewardRerollRequested()
+        {
+            RunRewardedOrSkip(
+                RewardedAdPurpose.RewardReroll,
+                HandleRewardRerollRewarded);
+        }
+
+        private void HandleRewardRerollRewarded()
+        {
+            Debug.Log("[RunGameSceneRoot] Applying rewarded reroll.");
+            _rewardVM.ApplyRewardedReroll();
+        }
+
+        private void HandleExtraRewardRequested()
+        {
+            RunRewardedOrSkip(
+                RewardedAdPurpose.ExtraReward,
+                _rewardVM.ApplyRewardedExtraReward);
+        }
+
+        private void HandleRewardDoubleRequested()
+        {
+            RunRewardedOrSkip(
+                RewardedAdPurpose.RewardDouble,
+                _rewardVM.ApplyRewardedDouble);
+        }
+
+        private void RunRewardedOrSkip(
+            RewardedAdPurpose purpose,
+            Action rewardCallback)
+        {
+            if (AdsRemoveState.IsRemoved)
+            {
+                rewardCallback?.Invoke();
+                return;
+            }
+
+            AdsManager adsManager = AdsManager.Instance;
+            if (adsManager == null ||
+                !adsManager.CanShowRewarded(purpose))
+            {
+                Debug.LogWarning(
+                    $"[RunGameSceneRoot] Rewarded is not ready for {purpose}.");
+                RefreshRewardedAvailability();
+                return;
+            }
+
+            adsManager.ShowRewarded(purpose, rewardCallback);
         }
 
         private void HandleRewardStateChanged(RunRewardViewState state)
@@ -330,6 +448,12 @@ namespace SlotRogue.UI.RunGame
 
         private void HandleBattleEntered()
         {
+            if (_resumeBattleOnEnter)
+            {
+                _resumeBattleOnEnter = false;
+                return;
+            }
+
             if (_battleSceneCompositionRoot != null)
             {
                 _battleSceneCompositionRoot.BeginBattle();
@@ -347,12 +471,32 @@ namespace SlotRogue.UI.RunGame
 
         private void OnBattleDefeat()
         {
-            _defeatVM.Refresh(
-                GameFlowSession.CurrentBattleNumber,
-                GameFlowSession.Victories,
-                GameFlowSession.RewardsClaimed);
+            CancelDefeatCountdown();
+            _reviveAdPending = false;
+            _defeatView?.SetMonsterPortrait(
+                _battleSceneCompositionRoot?.GetDefeatingMonsterPortrait());
+
+            if (GameFlowSession.CanRevive)
+            {
+                _defeatVM.ShowReviveOffer(
+                    GameFlowSession.CurrentBattleNumber,
+                    GameFlowSession.Victories,
+                    GameFlowSession.RewardsClaimed,
+                    Mathf.CeilToInt(ReviveWindowSeconds));
+            }
+            else
+            {
+                ShowFinalDefeatResult();
+            }
+
             RefreshHud();
             _navigator.GoTo(RunGameState.Defeat);
+
+            if (GameFlowSession.CanRevive)
+            {
+                RefreshRewardedAvailability();
+                StartDefeatCountdown();
+            }
         }
 
         private void HandleDefeatStateChanged(RunDefeatViewState state)
@@ -363,11 +507,103 @@ namespace SlotRogue.UI.RunGame
             }
         }
 
-        private void HandleNewRunRequested()
+        private void HandleRestartRequested()
         {
+            FinalizePendingDefeat();
             GameFlowSession.StartNewRun();
             RefreshHud();
             _navigator.GoTo(RunGameState.StartRelicSelect);
+        }
+
+        private void HandleRankingRequested()
+        {
+            FinalizePendingDefeat();
+            _leaderboardVM.OpenAsync().Forget();
+        }
+
+        private void HandleHomeRequested()
+        {
+            FinalizePendingDefeat();
+            GameSceneLoader.LoadGameStart();
+        }
+
+        private void HandleReviveRequested()
+        {
+            if (!GameFlowSession.CanRevive)
+            {
+                return;
+            }
+
+            if (AdsRemoveState.IsRemoved)
+            {
+                HandleReviveRewarded();
+                return;
+            }
+
+            AdsManager adsManager = AdsManager.Instance;
+            if (adsManager == null ||
+                !adsManager.CanShowRewarded(RewardedAdPurpose.Revive))
+            {
+                Debug.LogWarning("[RunGameSceneRoot] Rewarded revive is not ready.");
+                RefreshRewardedAvailability();
+                return;
+            }
+
+            CancelDefeatCountdown();
+            _reviveAdPending = true;
+            _defeatVM.SetRevivePending();
+            adsManager.ShowRewarded(
+                RewardedAdPurpose.Revive,
+                HandleReviveRewarded);
+        }
+
+        private void HandleReviveRewarded()
+        {
+            _reviveAdPending = false;
+            CancelDefeatCountdown();
+
+            if (_navigator.CurrentState != RunGameState.Defeat ||
+                _battleSceneCompositionRoot == null ||
+                !_battleSceneCompositionRoot.TryRevive())
+            {
+                ShowFinalDefeatResult();
+                return;
+            }
+
+            _defeatVM.SetCanRevive(false);
+            RefreshHud();
+            _resumeBattleOnEnter = true;
+            _navigator.GoTo(RunGameState.Battle);
+        }
+
+        private void HandleRewardedSessionEnded(
+            RewardedAdPurpose purpose,
+            bool rewarded)
+        {
+            if (purpose != RewardedAdPurpose.Revive ||
+                rewarded ||
+                !_reviveAdPending)
+            {
+                return;
+            }
+
+            _reviveAdPending = false;
+            ShowFinalDefeatResult();
+        }
+
+        private void HandleLeaderboardRefreshRequested()
+        {
+            _leaderboardVM.RefreshAsync().Forget();
+        }
+
+        private void HandlePlayerProfileSubmitted(string playerName)
+        {
+            _leaderboardVM.SaveProfileAsync(playerName).Forget();
+        }
+
+        private void HandleAdsRemoveChanged(bool isRemoved)
+        {
+            RefreshRewardedAvailability();
         }
 
         private void EnsureDefeatView()
@@ -379,10 +615,14 @@ namespace SlotRogue.UI.RunGame
             }
 
             Transform searchRoot = _navigator != null ? _navigator.transform.root : transform.root;
-            Transform host = SceneComponentResolver.FindDeepChild(searchRoot, "GameOverView");
+            Transform host = SceneComponentResolver.FindDeepChild(searchRoot, "DefeatView") ??
+                SceneComponentResolver.FindDeepChild(searchRoot, "GameOverView");
             if (host == null)
             {
-                var hostObject = new GameObject("GameOverView", typeof(RectTransform));
+                Debug.LogWarning(
+                    "[RunGameSceneRoot] DefeatView host is missing. Creating the runtime fallback.");
+
+                var hostObject = new GameObject("DefeatView", typeof(RectTransform));
                 host = hostObject.transform;
 
                 Transform parent = _rewardView != null
@@ -409,9 +649,42 @@ namespace SlotRogue.UI.RunGame
             host.gameObject.SetActive(false);
         }
 
+        private void EnsureLeaderboardView()
+        {
+            if (_leaderboardView != null)
+            {
+                _leaderboardView.EnsureRuntimeLayout();
+                _leaderboardView.SetLauncherVisible(false);
+                return;
+            }
+
+            Transform searchRoot = _navigator != null ? _navigator.transform.root : transform.root;
+            _leaderboardView =
+                searchRoot.GetComponentInChildren<LeaderboardView>(includeInactive: true);
+
+            if (_leaderboardView == null)
+            {
+                Canvas canvas = _defeatView != null
+                    ? _defeatView.GetComponentInParent<Canvas>()
+                    : null;
+                canvas ??= searchRoot.GetComponentInChildren<Canvas>(includeInactive: true);
+                if (canvas != null)
+                {
+                    _leaderboardView = LeaderboardView.CreateRuntime(canvas.transform);
+                }
+            }
+
+            if (_leaderboardView != null)
+            {
+                _leaderboardView.EnsureRuntimeLayout();
+                _leaderboardView.SetLauncherVisible(false);
+            }
+        }
+
         // 같은 Battle 상태에 머무를 땐 Navigator.GoTo가 no-op이므로 View를 직접 재진입시킨다.
         private void StartNextBattle()
         {
+            CancelDefeatCountdown();
             if (_navigator.CurrentState == RunGameState.Battle && _battleView != null)
             {
                 _battleView.OnEnter();
@@ -435,123 +708,108 @@ namespace SlotRogue.UI.RunGame
             _hudVM.Refresh();
         }
 
+        private void RefreshRewardedAvailability()
+        {
+            AdsManager adsManager = AdsManager.Instance;
+            bool adsRemoved = AdsRemoveState.IsRemoved;
+
+            _rewardVM?.SetRewardedAvailability(
+                CanShowRewarded(adsManager, RewardedAdPurpose.RewardReroll),
+                CanShowRewarded(adsManager, RewardedAdPurpose.ExtraReward),
+                CanShowRewarded(adsManager, RewardedAdPurpose.RewardDouble),
+                adsRemoved);
+            _defeatVM?.SetRewardedAvailability(
+                CanShowRewarded(adsManager, RewardedAdPurpose.Revive),
+                adsRemoved);
+        }
+
+        private static bool CanShowRewarded(
+            AdsManager adsManager,
+            RewardedAdPurpose purpose)
+        {
+            return adsManager != null && adsManager.CanShowRewarded(purpose);
+        }
+
+        private void FinalizePendingDefeat()
+        {
+            CancelDefeatCountdown();
+            _reviveAdPending = false;
+            _battleSceneCompositionRoot?.FinalizePendingDefeat();
+            RefreshRewardedAvailability();
+        }
+
+        private void StartDefeatCountdown()
+        {
+            CancelDefeatCountdown();
+            _defeatCountdownCts = new CancellationTokenSource();
+            RunDefeatCountdownAsync(_defeatCountdownCts.Token).Forget();
+        }
+
+        private async UniTaskVoid RunDefeatCountdownAsync(
+            CancellationToken cancellationToken)
+        {
+            float remainingSeconds = ReviveWindowSeconds;
+            int displayedSeconds = Mathf.CeilToInt(remainingSeconds);
+
+            try
+            {
+                while (remainingSeconds > 0f)
+                {
+                    await UniTask.Yield(
+                        PlayerLoopTiming.Update,
+                        cancellationToken);
+                    remainingSeconds -= Time.unscaledDeltaTime;
+                    int nextDisplayedSeconds =
+                        Mathf.Max(0, Mathf.CeilToInt(remainingSeconds));
+                    if (nextDisplayedSeconds != displayedSeconds)
+                    {
+                        displayedSeconds = nextDisplayedSeconds;
+                        _defeatVM.UpdateReviveCountdown(displayedSeconds);
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                ShowFinalDefeatResult();
+            }
+        }
+
+        private void ShowFinalDefeatResult()
+        {
+            CancelDefeatCountdown();
+            _reviveAdPending = false;
+            _battleSceneCompositionRoot?.FinalizePendingDefeat();
+            _defeatVM.ShowResult(
+                GameFlowSession.CurrentBattleNumber,
+                GameFlowSession.Victories,
+                GameFlowSession.RewardsClaimed,
+                GameFlowSession.HasRevivedThisRun,
+                GameFlowSession.BuildRelicContributionSummary());
+            RefreshRewardedAvailability();
+        }
+
+        private void CancelDefeatCountdown()
+        {
+            _defeatCountdownCts?.Cancel();
+            _defeatCountdownCts?.Dispose();
+            _defeatCountdownCts = null;
+        }
+
         private void RenderStartRelicState(StartRelicSelectViewState state)
         {
             _startRelicSelectView.Render(state);
-
-            int renderVersion = ++_startRelicIconRenderVersion;
-            if (_iconLoadCts != null)
-            {
-                ApplyStartRelicIconsAsync(
-                    state,
-                    renderVersion,
-                    _iconLoadCts.Token).Forget();
-            }
+            _relicIconRenderer?.RenderStartRelicIcons(_startRelicSelectView, state);
         }
 
         private void RenderRewardState(RunRewardViewState state)
         {
             _rewardView.Render(state);
-
-            int renderVersion = ++_rewardIconRenderVersion;
-            if (_iconLoadCts != null)
-            {
-                ApplyRewardIconsAsync(
-                    state,
-                    renderVersion,
-                    _iconLoadCts.Token).Forget();
-            }
-        }
-
-        private async UniTask ApplyStartRelicIconsAsync(
-            StartRelicSelectViewState state,
-            int renderVersion,
-            CancellationToken cancellationToken)
-        {
-            if (state == null || _relicIconProvider == null)
-            {
-                return;
-            }
-
-            try
-            {
-                GameFlowOptionView[] views = _startRelicSelectView.ArtifactOptions;
-                int count = Mathf.Min(views?.Length ?? 0, state.Options.Count);
-
-                for (int index = 0; index < count; index++)
-                {
-                    Sprite icon = await _relicIconProvider.LoadAsync(
-                        state.Options[index].IconKey,
-                        cancellationToken);
-
-                    if (renderVersion != _startRelicIconRenderVersion)
-                    {
-                        return;
-                    }
-
-                    if (views[index] != null)
-                    {
-                        views[index].SetIcon(icon);
-                    }
-                }
-            }
-            catch (OperationCanceledException)
-            {
-            }
-        }
-
-        private async UniTask ApplyRewardIconsAsync(
-            RunRewardViewState state,
-            int renderVersion,
-            CancellationToken cancellationToken)
-        {
-            if (state == null || _relicIconProvider == null)
-            {
-                return;
-            }
-
-            try
-            {
-                GameFlowOptionView[] views = _rewardView.RewardOptions;
-                int count = Mathf.Min(views?.Length ?? 0, state.Options.Count);
-
-                for (int index = 0; index < count; index++)
-                {
-                    if (cancellationToken.IsCancellationRequested ||
-                        renderVersion != _rewardIconRenderVersion)
-                    {
-                        return;
-                    }
-
-                    string iconKey = state.Options[index].IconKey;
-                    if (string.IsNullOrEmpty(iconKey))
-                    {
-                        if (views[index] != null)
-                        {
-                            views[index].SetIcon(null);
-                        }
-
-                        continue;
-                    }
-
-                    Sprite icon = await _relicIconProvider.LoadAsync(
-                        iconKey,
-                        cancellationToken);
-
-                    if (renderVersion != _rewardIconRenderVersion)
-                    {
-                        return;
-                    }
-
-                    if (views[index] != null)
-                    {
-                        views[index].SetIcon(icon);
-                    }
-                }
-            }
-            catch (OperationCanceledException)
-            {
-            }
+            _relicIconRenderer?.RenderRewardIcons(_rewardView, state);
         }
     }
 

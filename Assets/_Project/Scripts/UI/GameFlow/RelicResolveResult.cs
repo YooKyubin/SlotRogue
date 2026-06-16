@@ -14,13 +14,15 @@ namespace SlotRogue.UI.GameFlow
             int additionalBlock,
             int healAmount,
             IReadOnlyList<StatusEffectRequest> statusEffectsToApply,
-            string activationSummary)
+            string activationSummary,
+            IReadOnlyList<RelicContributionDelta> contributions = null)
         {
             AdditionalDamage = additionalDamage;
             AdditionalBlock = additionalBlock;
             HealAmount = healAmount;
             StatusEffectsToApply = statusEffectsToApply ?? System.Array.Empty<StatusEffectRequest>();
             ActivationSummary = activationSummary ?? string.Empty;
+            Contributions = contributions ?? System.Array.Empty<RelicContributionDelta>();
         }
 
         /// <summary>이번 턴 추가 피해량.</summary>
@@ -37,5 +39,7 @@ namespace SlotRogue.UI.GameFlow
 
         /// <summary>발동한 유물 요약(UI/로그 표시용).</summary>
         public string ActivationSummary { get; }
+
+        public IReadOnlyList<RelicContributionDelta> Contributions { get; }
     }
 }

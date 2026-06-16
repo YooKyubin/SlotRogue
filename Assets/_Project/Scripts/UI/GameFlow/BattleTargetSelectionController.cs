@@ -38,7 +38,6 @@ namespace SlotRogue.UI.GameFlow
             for (int index = 0; index < slotCount; index++)
             {
                 _view.SetEnemySlotClickHandler(index, null);
-                _view.SetEnemyPortrait(index, null);
             }
 
             int bindCount = Mathf.Min(slotCount, _battle.Enemies.Count);

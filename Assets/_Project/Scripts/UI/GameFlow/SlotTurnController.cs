@@ -1,10 +1,13 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
+using SlotRogue.Relics.Pool;
 using SlotRogue.Slot.Data;
 using SlotRogue.Slot.ViewModels;
 using SlotRogue.UI.SlotPresentation;
+using UnityEngine;
 
 namespace SlotRogue.UI.GameFlow
 {
@@ -13,15 +16,18 @@ namespace SlotRogue.UI.GameFlow
         private readonly SlotMachineViewModel _slotViewModel;
         private readonly RunBattleSpinSequence _spinSequence;
         private readonly SlotPresentationManager _presentationManager;
+        private readonly Func<string, Sprite> _relicIconResolver;
 
         internal SlotTurnController(
             SlotMachineViewModel slotViewModel,
             RunBattleSpinSequence spinSequence,
-            SlotPresentationManager presentationManager)
+            SlotPresentationManager presentationManager,
+            Func<string, Sprite> relicIconResolver = null)
         {
             _slotViewModel = slotViewModel;
             _spinSequence = spinSequence;
             _presentationManager = presentationManager;
+            _relicIconResolver = relicIconResolver;
         }
 
         internal void SetupImmediate()
@@ -45,6 +51,7 @@ namespace SlotRogue.UI.GameFlow
 
         internal async UniTask PlayPresentationAsync(
             SlotTurnResult slotTurnResult,
+            RelicResolveResult relicResult,
             RunCombatRequestResult combatRequestResult,
             CancellationToken cancellationToken)
         {
@@ -55,15 +62,21 @@ namespace SlotRogue.UI.GameFlow
             }
 
             SlotPresentationResult presentationResult =
-                BuildPresentationResult(slotTurnResult, combatRequestResult);
+                BuildPresentationResult(slotTurnResult, relicResult, combatRequestResult);
             bool presentationDone = false;
             bool slotSpinDone = false;
+
+            void HandleSlotReelStopped(int reelIndex)
+            {
+                _spinSequence.SetReelIdle(reelIndex);
+            }
 
             void HandleSlotSpinCompleted()
             {
                 slotSpinDone = true;
             }
 
+            _presentationManager.SlotReelStopped += HandleSlotReelStopped;
             _presentationManager.SlotSpinCompleted += HandleSlotSpinCompleted;
             try
             {
@@ -79,6 +92,7 @@ namespace SlotRogue.UI.GameFlow
             }
             finally
             {
+                _presentationManager.SlotReelStopped -= HandleSlotReelStopped;
                 _presentationManager.SlotSpinCompleted -= HandleSlotSpinCompleted;
             }
         }
@@ -110,8 +124,9 @@ namespace SlotRogue.UI.GameFlow
             _spinSequence.ResetImmediate();
         }
 
-        private static SlotPresentationResult BuildPresentationResult(
+        private SlotPresentationResult BuildPresentationResult(
             SlotTurnResult slotTurnResult,
+            RelicResolveResult relicResult,
             RunCombatRequestResult combatRequestResult)
         {
             IReadOnlyList<SlotPatternMatch> matches = slotTurnResult.PatternMatches;
@@ -144,6 +159,8 @@ namespace SlotRogue.UI.GameFlow
 
             SlotCombatRequest request =
                 combatRequestResult?.FinalRequest ?? SlotCombatRequest.Empty;
+            SlotRelicTriggerPresentationResult[] relicPresentations =
+                BuildRelicPresentations(relicResult, combatRequestResult?.BaseRequest);
             var finalResult = new SlotFinalPresentationResult(
                 request.Damage,
                 request.Defense,
@@ -154,8 +171,74 @@ namespace SlotRogue.UI.GameFlow
             return new SlotPresentationResult(
                 slotTurnResult.SpinResult,
                 patternPresentations,
-                null,
+                relicPresentations,
                 finalResult);
+        }
+
+        private SlotRelicTriggerPresentationResult[] BuildRelicPresentations(
+            RelicResolveResult relicResult,
+            SlotCombatRequest baseRequest)
+        {
+            IReadOnlyList<RelicContributionDelta> contributions = relicResult?.Contributions;
+            if (contributions == null || contributions.Count == 0)
+            {
+                return Array.Empty<SlotRelicTriggerPresentationResult>();
+            }
+
+            int attackCount = Math.Max(1, baseRequest?.AttackCount ?? 1);
+            int attackPower = Math.Max(0, baseRequest?.Damage ?? 0) * attackCount;
+            var results = new SlotRelicTriggerPresentationResult[contributions.Count];
+
+            for (int index = 0; index < contributions.Count; index++)
+            {
+                RelicContributionDelta contribution = contributions[index];
+                RelicDefinition definition = RelicCatalog.GetById(contribution.RelicId);
+                int addedAttackPower = contribution.DamagePerHit * attackCount;
+                int previousAttackPower = attackPower;
+                attackPower += addedAttackPower;
+
+                results[index] = new SlotRelicTriggerPresentationResult(
+                    contribution.RelicId,
+                    contribution.RelicName,
+                    _relicIconResolver?.Invoke(contribution.RelicId),
+                    definition?.Description ?? $"{contribution.RelicName} 발동",
+                    BuildRelicValueText(
+                        previousAttackPower,
+                        attackPower,
+                        addedAttackPower,
+                        contribution.Block,
+                        contribution.Heal),
+                    contribution.TriggerPatternIndex);
+            }
+
+            return results;
+        }
+
+        private static string BuildRelicValueText(
+            int previousAttackPower,
+            int attackPower,
+            int addedAttackPower,
+            int block,
+            int heal)
+        {
+            var values = new List<string>(3);
+
+            if (addedAttackPower > 0)
+            {
+                values.Add($"공격력 {previousAttackPower} → {attackPower} (+{addedAttackPower})");
+            }
+
+            if (block > 0)
+            {
+                values.Add($"방어 +{block}");
+            }
+
+            if (heal > 0)
+            {
+                values.Add($"회복 +{heal}");
+            }
+
+            return values.Count > 0 ? string.Join(" / ", values) : "효과 발동";
         }
 
         private static bool ShouldRaiseLeverBeforeEvent(CombatEvent combatEvent)
