@@ -37,6 +37,9 @@
 - [x] v20.3 시작 유물 6종·복수 유물 합산 EditMode 테스트 추가
 - [x] 슬롯 카탈로그와 전투 UI의 `Resources.Load*` fallback 제거 및 직렬화/Composition Root 주입 전환
 - [x] `SlotPatternCatalog` Addressable 엔트리와 `BattleSceneCompositionRoot` 비동기 로드 경로 연결
+- [x] 심볼 풀 시작 개수 차등(고확률 체리/클로버/종 6, 저확률 레몬/다이아/7 4) 적용 + EditMode 테스트
+- [x] 보상 등급 분기: 일반전 = 심볼 추가/제거, 엘리트/보스 = 유물 선택 + EditMode 테스트
+- [x] 슬롯 심볼 native size 기준 1.25배 표시와 작은 족보 순차 확대·원복·패턴별 유물 공격력 연출 복구
 - [ ] Unity Editor에서 `GameStart`부터 Play 검증
 
 ## Notes
@@ -67,6 +70,11 @@
 - 2026-06-11: HTML과 `RelicCatalog`의 63개 ID·이름 일치, 등급별 개수 일치, 활성 씬/프리팹/자산의 `_Legacy` GUID 참조 0건, 구 Artifact/Relic 생성 메뉴 0건을 확인했다.
 - 2026-06-11: ADR-0006에 따라 슬롯 카탈로그와 전투 UI Sprite의 `Resources.Load*` 경로를 제거했다. Prefab 직렬화 참조와 전투 씬 조립 경계 주입을 사용하며 AssetBundle 정책은 후속 ADR로 남긴다.
 - 2026-06-11: ADR-0007에 따라 Addressables 2.9.1 로컬 기준선을 적용했다. `SlotPatternCatalog`을 `slot/catalog/patterns`로 등록하고 현재 `BattleSceneCompositionRoot`에서 UniTask로 로드·해제한다. Editor Fast Mode와 Player 빌드 동반 생성을 설정했으며 `dotnet build SlotRogue.slnx --no-restore`는 경고·오류 0개로 통과했다.
+
+- 2026-06-12: 유물 풀 v23.2 "심볼 확률은 풀 개수로만 조작" 원칙을 적용해 `SlotSymbolPool` 시작 개수를 균등 4에서 고확률 6/저확률 4로 차등화. 5x3 보드 이항분포 기준 "3개 이상 족보" 발동 확률이 약 60% vs 32%로, 유물 수치 보정 비율(+4 vs +7 등)과 기대값 동급이 된다.
+- 2026-06-12: `RunRewardCatalog.ForTier`를 등급 분기로 변경 — 일반전은 심볼 추가(+1)/제거(-1, 최소 1개 유지) 보상, 엘리트는 Common+Uncommon 유물, 보스는 Uncommon 이상 유물. `RunRewardViewModel`/`GameFlowSession.ApplySymbolReward` 기존 경로 재사용으로 View 수정 없음. `dotnet build` 4개 asm 경고/오류 0, EditMode 테스트는 Unity Test Runner 실행 보류.
+- 2026-06-13: 릴 심볼 표시 크기를 기존 대비 1.25배로 복구했다. 패턴 View가 숨겨진 레거시 셀이 아니라 현재 보이는 릴 심볼을 확대하고 원래 크기로 복귀하도록 연결했으며, 유물 발동 패턴 인덱스를 보존해 `패턴 → 해당 유물과 누적 공격력 증가 → 다음 패턴` 순서로 큐를 재생한다. Addressable 유물 아이콘을 전투 진입 시 캐시하고 `dotnet build SlotRogue.slnx --no-restore` 경고·오류 0개를 확인했다. Unity Play 검증은 보류.
+- 2026-06-14: 심볼 1.25배의 기준을 셀/기존 고정 크기가 아니라 각 Sprite의 `Image.SetNativeSize()` 결과로 정정했다. 정적 심볼과 세로로 긴 스핀 심볼 모두 자신의 native width/height를 유지한 채 1.25배 표시한다.
 
 ## Completion
 

@@ -47,6 +47,7 @@ design-doc도 exec-plan도 아닌 실용 가이드.
 
 - [`guides/unity-setup.md`](./guides/unity-setup.md) — Unity 버전, 패키지(Addressables/UniTask/DOTween), 프로젝트 설정, asmdef 분할
 - [`guides/coding-style.md`](./guides/coding-style.md) — C#/Unity 네이밍, MonoBehaviour 패턴, 비동기/트윈/로깅
+- [`guides/leaderboard-setup.md`](./guides/leaderboard-setup.md) — UGS Cloud Project 연결, `Slot_Rogue_Leaderboard` 설정, 제출·조회 검증
 
 **필요해지면 추가** (지금은 만들지 않는다): `mobile-build.md`(Android/iOS 빌드 + 키스토어), `unity-profiling.md`(Profiler/Frame Debugger), `addressables-workflow.md`(그룹/빌드/원격 호스팅), `package-setup.md`.
 

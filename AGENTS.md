@@ -30,12 +30,16 @@
 | 전투 연출 (Replay / CombatEvent 타임라인) | [ADR-0003](docs/adr/0003-combat-presentation-replay.md) (proposed) |
 | 슬롯 RNG / 페이아웃 모델 | _미정_ |
 | 세이브 포맷 (JSON / Binary / PlayerPrefs 한계) | _미정_ |
+| UGS 리더보드 최고기록 / metadata 모델 | [ADR-0012](docs/adr/0012-leaderboard-nickname-only-profile.md) (accepted) |
 | Addressables 로컬 그룹 / 빌드 기준선 | [ADR-0007](docs/adr/0007-addressables-local-runtime-assets.md), [ADR-0009](docs/adr/0009-relic-icon-addressable-keys.md) (accepted) |
 | 런타임 자산 로드 경계 | [ADR-0006](docs/adr/0006-runtime-asset-loading-boundary.md) (accepted) |
-| 광고 / IAP SDK 선택 | _미정_ |
+| 광고 / IAP SDK 선택 | [ADR-0013](docs/adr/0013-levelplay-rewarded-ads.md), [ADR-0015](docs/adr/0015-remove-ads-rewarded-skip-iap.md) (accepted) |
+| 로컬 알림 / 주간 랭킹 리셋 | [ADR-0016](docs/adr/0016-local-notifications-weekly-ranking-reset.md) (accepted) |
 | 타겟 해상도 / Safe Area 처리 | _미정_ |
 | 브랜치 / PR 워크플로 | _미정 (사용해본 후 박제)_ |
 | 유물 런타임 모델 (v23 RelicCatalog 단일화) | [ADR-0005](docs/adr/0005-relic-v23-runtime-model.md) (accepted) |
+| 리더보드 프로필 / 자동 제출 / 패배 후 선택 | [ADR-0012](docs/adr/0012-leaderboard-nickname-only-profile.md) (accepted) |
+| 패배 부활 유예 / 유물 기여도 결과 | [ADR-0014](docs/adr/0014-defeat-revive-window-and-relic-contribution.md) (accepted) |
 
 전체 결정 목록: [`docs/adr/INDEX.md`](docs/adr/INDEX.md). 시스템별 narrative: `docs/design-docs/` (기획 문서 확정 후 추가). 빌드/툴체인 가이드: [`docs/guides/unity-setup.md`](docs/guides/unity-setup.md).
 

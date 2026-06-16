@@ -1,7 +1,7 @@
 # 게임 플로우
 
 **Status**: draft  
-**Last updated**: 2026-06-11
+**Last updated**: 2026-06-14
 
 ## Purpose
 
@@ -19,6 +19,7 @@
 | F6 | [ADR-0008](../adr/0008-ui-strict-mvvm-boundary.md) | UI는 strict MVVM을 따른다. View는 화면 상태 렌더링과 입력 event만 담당하고 SceneRoot가 순수 ViewModel 및 Flow Controller를 연결한다. |
 | F7 | 슬롯 결과 연출은 전투 적용 전 큐로 재생 | `RunGame` Battle 화면은 슬롯 계산과 유물 후처리를 먼저 끝내고, `SlotPresentationManager`가 패턴 → 유물 → 최종 결과 연출을 완료한 뒤 전투 Effect를 적용한다. |
 | F8 | [ADR-0005](../adr/0005-relic-v23-runtime-model.md) | 시작 선택·보상·전투 효과는 v23 `RelicCatalog` 단일 모델을 사용한다. |
+| F9 | [ADR-0014](../adr/0014-defeat-revive-window-and-relic-contribution.md) | 첫 패배는 5초 부활 유예 후 확정하고 최종 결과에 모든 보유 유물의 명목 기여량을 표시한다. |
 
 ## Scene flow
 
@@ -27,10 +28,12 @@ GameStart
 → RunGame / StartRelicSelect
 → RunGame / Battle
 ├─ Victory → RunGame / Reward → RunGame / Battle → ...
-└─ Defeat → RunGame / Defeat → RunGame / StartRelicSelect
+└─ Defeat → RunGame / ReviveOffer
+   ├─ Rewarded → RunGame / Battle
+   └─ Timeout/No reward → RunGame / RunResult → StartRelicSelect
 ```
 
-전투는 별도 `RunBattle` 씬이 아니라 `RunGame` 씬 내부 `BattleView` 상태다. 승리 연출이 끝나면 추가 버튼 입력 없이 보상 상태로 자동 전환한다. 패배 연출이 끝나면 패배 상태를 표시하고, 패배 View의 새 런 버튼으로 시작 유물 선택 상태에 돌아간다.
+전투는 별도 `RunBattle` 씬이 아니라 `RunGame` 씬 내부 `BattleView` 상태다. 승리 연출이 끝나면 추가 버튼 입력 없이 보상 상태로 자동 전환한다. 첫 패배이면서 부활권이 남아 있으면 패배 View가 5초간 몬스터 초상화·카운트다운·광고 부활 버튼을 표시한다. Rewarded 부활은 몬스터 상태와 행동 순서를 유지하고 플레이어 HP만 최대 HP의 절반으로 복구해 같은 전투를 재개한다. 시간 초과 또는 광고 보상 실패 뒤에 최종 결과를 확정하며, 결과 화면은 모든 보유 유물의 발동 횟수와 누적 피해·방어·회복 기여를 표시한다.
 
 ## Runtime flow
 
@@ -54,7 +57,9 @@ sequenceDiagram
     Battle->>Battle: BattleSystem.ApplyPlayerTurn()
     Battle->>Reward: Victory 자동 전환
     Reward->>Battle: 보상 저장 후 다음 전투
-    Battle->>Defeat: Defeat 자동 전환
+    Battle->>Defeat: ReviveOffer 자동 전환
+    Defeat->>Battle: 5초 내 Rewarded 부활
+    Defeat->>Defeat: Timeout/No reward → RunResult
     Defeat->>Artifact: 새 런
 ```
 
@@ -153,15 +158,18 @@ BATTLE 1 (Normal)
 
 `SlotRogue.UI.SlotPresentation`은 실제 계산 로직과 분리된 표시 계층이다. `SlotTurnController`는 스핀 결과, 패턴 목록, 최종 `SlotCombatRequest`를 읽어 연출용 DTO를 만든다. 이 DTO는 전투 수치를 다시 계산하지 않는다. 큐 진행은 Coroutine으로 관리하고, 각 UI 이동/확대 애니메이션은 DOTween으로 재생한다.
 
+슬롯 심볼은 각 Sprite에 `Image.SetNativeSize()`를 적용했을 때의 크기를 기준으로 1.25배 표시한다. 족보 연출은 `SlotPatternResolver.ResolveAll()`이 반환한 작은 족보 순서를 유지하며, 각 단계에서 해당 칸을 확대했다가 원래 크기로 복귀한 뒤 다음 단계로 이동한다. 유물이 해당 족보에서 발동하면 패턴 복귀 직후 유물 카드와 `공격력 이전값 → 적용값 (+증가량)`을 표시한 다음 다음 족보를 재생한다.
+
 ```text
 SlotMachineViewModel.Spin()
 → RelicTurnResolver.Resolve()
 → CombatTurnRequestBuilder.Build()
 → SlotPresentationResult 생성
 → SlotPresentationQueue 재생
-   1. PatternPresentationView
-   2. RelicPresentationView
-   3. FinalResultView
+   1. PatternPresentationView (작은 족보부터 확대 → 원복)
+   2. 해당 패턴의 RelicPresentationView
+   3. 다음 PatternPresentationView 반복
+   4. FinalResultView
 → Completed callback
 → BattleSystem.ApplyPlayerTurn()
 ```
