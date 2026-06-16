@@ -19,7 +19,9 @@ namespace SlotRogue.UI.GameFlow
         {
             if (_iconImage != null)
             {
-                _iconImage.sprite = ResolveSprite(action.Kind);
+                _iconImage.sprite = action.IntentIcon != null
+                    ? action.IntentIcon
+                    : ResolveSprite(action.Kind);
                 _iconImage.enabled = _iconImage.sprite != null;
             }
 

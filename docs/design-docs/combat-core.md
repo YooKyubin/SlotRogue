@@ -1,7 +1,7 @@
 # 전투 코어 (Combat Core)
 
 **Status**: draft  
-**Last updated**: 2026-06-11 (몬스터별 다음 턴 조회 API)
+**Last updated**: 2026-06-15 (EnemyActionDefinition 행동 단위 패턴)
 
 ## Purpose
 
@@ -33,7 +33,7 @@
 ```mermaid
 stateDiagram-v2
     [*] --> NotInBattle
-    NotInBattle --> PlayerTurn: StartBattle(player, monster)
+    NotInBattle --> PlayerTurn: StartBattle(player, enemyCombatants)
 
     PlayerTurn --> Resolving: ApplyPlayerTurn(effects)
     Resolving --> Ended: 몬스터 HP ≤ 0 (Victory)
@@ -119,6 +119,32 @@ sequenceDiagram
 
 플레이어·몬스터가 `currentHp`, `maxHp`, `shield`를 내부 관리한다. Resolver는 Participant에 Effect를 적용한다.
 
+### EnemyActionPlan
+
+`EnemyActionPlan`은 몬스터 한 턴에 실행할 확정 행동 목록을 보관하는 Core 타입이다. 한 Plan은 여러 `EnemyPlannedAction`을 가지고, 각 PlannedAction은 하나의 Data 행동 정의에 대응하는 `EnemyActionKey`와 여러 `EnemyActionEffect`를 가진다. `CombatEffect`는 `EnemyActionEffect`의 한 종류로 유지하며, `LockSlot` 같은 특수 효과는 Core-safe 런타임 효과로만 표현한다.
+
+### EnemyActionContext
+
+`EnemyActionContext`는 Planner가 다음 행동을 고를 때 필요한 읽기 전용 전투 정보를 전달한다. `BattleSystem` 전체를 참조하지 않고 `Self`, `Player`, `Enemies`, `TurnNumber`처럼 현재 필요한 최소 정보만 담는다.
+
+### IEnemyActionPlanner
+
+`IEnemyActionPlanner`는 `EnemyActionContext`를 받아 다음 `EnemyActionPlan`을 생성하는 Core 계약이다. 피해·Shield·상태이상 적용이나 UI 갱신은 하지 않는다.
+
+### FixedSequenceEnemyActionPlanner
+
+`FixedSequenceEnemyActionPlanner`는 고정 순환 행동 계획을 제공한다. 입력된 계획 목록은 생성 시점에 복사해 외부 컬렉션 변경으로부터 내부 순서를 보호한다.
+
+### EnemyCombatant
+
+`EnemyCombatant`는 전투 중 하나의 Enemy에 대해 `CombatParticipant`, 내부 `IEnemyActionPlanner`, `UpcomingPlan`을 묶는다. 생성 직후 `UpcomingPlan`은 빈 계획이며, `PlanNextAction()` 호출 후 Planner 결과로 갱신된다. `BattleSystem`은 적별 `EnemyCombatant`를 입력받아 보관하고, UI 조회와 적 턴 실행 모두 저장된 `UpcomingPlan`을 기준으로 처리한다.
+
+GameFlow는 `EnemyActionPlannerFactory`와 `EnemyCombatantFactory`로 Data 패턴 또는 tier 기반 행동 데이터를 `EnemyCombatant`로 조립한다. `RunEncounterRoster`는 적 한 마리 단위의 `EnemyEncounterUnit` 목록을 보관하고, `BattleFlowController`가 여기서 `EnemyCombatant`만 추출해 `BattleSystem.StartBattle(player, enemyCombatants)`에 전달한다. `BattleSystem`은 `IEnemyActionPlanner`가 준비한 `EnemyActionPlan`만 소비한다.
+
+### EnemyEncounterUnit
+
+`EnemyEncounterUnit`은 GameFlow에서 적 한 마리의 상위 조립 정보를 묶는 타입이다. 현재 무한모드 roster 생성 경로는 `MonsterDefinition`이 아니라 `EncounterTier + level`로 적 HP와 행동 패턴을 직접 만들기 때문에, 이번 단계에서는 `EnemyCombatant`와 `FormationSlot`만 보관한다. `MonsterDefinition` 연결은 몬스터 선택 경로가 정의 객체를 공급하는 후속 단계에서 추가한다.
+
 ### Shield 지속
 
 | 주체 | 유효 구간 | 초기화 |
@@ -128,19 +154,26 @@ sequenceDiagram
 
 ### Monster pattern (ScriptableObject)
 
-몬스터 턴 패턴은 **불변 SO**로 저장하고, 전투 시작 시 런타임 `MonsterTurnSchedule`을 생성한다. 순환 index는 SO·asset에 두지 않는다.
+몬스터 턴 패턴은 **불변 SO**로 저장하고, GameFlow에서 `EnemyActionPlannerFactory`를 통해 `FixedSequenceEnemyActionPlanner`로 변환한다. 순환 index는 SO·asset에 두지 않는다.
 
 | 타입 (SlotRogue.Data.Combat) | 역할 |
 |------------------------------|------|
-| `CombatEffectStep` | SO 직렬화용 step (`kind`, `amount`, `target`) |
-| `MonsterTurnPatternDefinition` | 턴별 `CombatEffectStep[]` 배열 (불변 패턴) |
+| `CombatEffectTargetDefinition` | 참가자 대상 정의 (`targetMode`, `targetParticipantId`) |
+| `EnemyEffectDefinition` | SO 직렬화용 효과 정의 기반 타입 (`Damage`, `Shield`, `Heal`, `LockSlot`) |
+| `EnemyActionDefinition` | 행동 표시 이름, Intent 아이콘, 단일 효과 정의 |
+| `MonsterTurnPatternDefinition` | 턴별 `EnemyActionDefinition[]` 배열 (불변 패턴) |
 | `MonsterDefinition` | `maxHp`, `turnPattern` 참조 |
-| `MonsterTurnScheduleFactory` | pattern SO → `new MonsterTurnSchedule(...)`; `StartBattle` 내부 `Reset()` |
+| `EnemyActionPlannerFactory` (UI/GameFlow) | pattern SO → `EnemyActionPlan[]` + `FixedSequenceEnemyActionPlanner` + 행동 표시 맵 |
+| `EnemyCombatantFactory` (UI/GameFlow) | `MonsterDefinition` 또는 생성 데이터 → `CombatParticipant` + Planner → `EnemyCombatant` |
 
 - SO asset: `Assets/_Project/Data/Combat/` (예: Goblin + GoblinTurnPattern).
 - 과거 `Dev_Battle`은 `BattleDevHarness`로 `MonsterDefinition` SO를 검증했다. 해당 씬과 하네스는 본편 통합 완료 후 제거했다.
 - 본편: encounter/run bootstrap에서 동일 Factory 경로를 재사용한다.
 - 구현: [`feature-monster-pattern-so`](../exec-plans/completed/feature-monster-pattern-so.md).
+
+`EnemyActionDefinition.IntentIcon`은 Data/UI 계층의 `Sprite`이므로 Core Plan에 직접 들어가지 않는다. GameFlow 조립 시 `EnemyActionKey`와 표시 정보를 `EnemyActionPresentationMap`으로 묶고, Intent UI는 저장된 `UpcomingPlan.Actions`를 이 맵으로 해석한다. Definition이 없는 tier 기반 임시 생성 경로는 표시 맵이 비어 있어 기존 효과 kind 기반 아이콘으로 fallback한다.
+
+`LockSlotEffectDefinition`은 현재 Data 정의와 Core-safe `EnemyActionEffectKind.LockSlot` 런타임 표현까지만 제공한다. 실제 슬롯 상태 잠금은 `SlotMachineService`/`SlotMachineViewModel`에 지속 상태와 Spin 반영 API가 필요하므로 후속 작업으로 분리한다.
 
 ```mermaid
 flowchart TD
@@ -152,6 +185,8 @@ flowchart TD
 
 ## System boundary
 
+`SlotRogue.Core`는 Data/UI 계층과 Unity scene object에 의존하지 않는다. 다만 현재 asmdef는 UnityEngine 참조를 허용하므로, Core 내부에서 `Debug.LogWarning`, `Mathf`, `Vector2` 같은 진단·값 타입·수학 유틸 사용은 허용한다. `MonoBehaviour`, `GameObject`, `Transform`, `ScriptableObject`, `Sprite`처럼 scene/object lifecycle 또는 asset 계층에 묶이는 타입은 Core 전투 로직에서 참조하지 않는다.
+
 ```mermaid
 flowchart LR
     subgraph Slot["SlotRogue.Slot"]
@@ -161,8 +196,7 @@ flowchart LR
     subgraph Data["SlotRogue.Data / Combat"]
         MonsterSO["MonsterDefinition SO"]
         PatternSO["MonsterTurnPatternDefinition SO"]
-        Factory["MonsterTurnScheduleFactory"]
-        PatternSO --> Factory
+        PatternSO --> PlannerFactory
         MonsterSO --> Factory
     end
 
@@ -172,13 +206,18 @@ flowchart LR
         Pipe["CombatPresentationPipeline"]
         VM["CombatViewModel"]
         BattleFlow["BattleFlowController"]
+        PlannerFactory["EnemyActionPlannerFactory"]
+        Factory["EnemyCombatantFactory"]
     end
 
     subgraph Combat["SlotRogue.Core / Combat"]
-        Schedule["MonsterTurnSchedule"]
+        Runtime["EnemyCombatant"]
+        Planner["FixedSequenceEnemyActionPlanner"]
         StartBattle --> Resolver
-        Factory --> Schedule
-        Schedule --> StartBattle
+        Factory --> Runtime
+        PlannerFactory --> Planner
+        Planner --> Runtime
+        Runtime --> StartBattle
         Adapt --> Flow
         Flow --> Apply["ApplyPlayerTurn() sync"]
         Apply --> Resolver
@@ -202,10 +241,10 @@ flowchart LR
 
 | API | 역할 |
 |-----|------|
-| `StartBattle(player, monster, monsterTurnSchedule)` | 전투 시작 → `PlayerTurn`. 스케줄은 SO→Factory 또는 테스트에서 생성 |
+| `StartBattle(player, enemyCombatant)` / `StartBattle(player, enemyCombatants)` | 전투 시작 → 모든 Combatant의 첫 Plan 생성 → `PlayerTurn` |
 | `ApplyPlayerTurn(IReadOnlyList<CombatEffect> effects)` | 플레이어 턴 처리. `PlayerTurn`이 아니면 거부 |
 | `CurrentPhase` | UI·슬롯 스핀 가능 여부 |
-| `TryGetUpcomingEnemyTurn(participantId, out EnemyUpcomingTurn)` | 특정 생존 Enemy의 **다음** 턴 index와 Effect 목록 조회. 없는 id·사망 Enemy는 `false` |
+| `TryGetUpcomingEnemyTurn(participantId, out EnemyUpcomingTurn)` | 특정 생존 Enemy의 저장된 `EnemyActionPlan` 조회. 없는 id·사망 Enemy는 `false` |
 
 `StartBattle`의 파라미터 vs BattleSystem 멤버 보유는 구현 plan에서 확정한다.
 
@@ -311,7 +350,8 @@ sequenceDiagram
 | ID | 질문 | 비고 |
 |----|------|------|
 | ~~Q1~~ | ~~`SlotCombatRequest` → `CombatEffect[]` 변환 규칙~~ | **닫음 (2026-05-31).** Shield→Heal→Damage×N, 0값 스킵, `AttackCount`≤0이면 1타. `IsCritical`/`PatternName`은 Effect 없음(Console Request 로그만). 구현: `SlotCombatRequestToCombatEffectsConverter`. 상세: [`feature-combat-dev-scene`](../exec-plans/completed/feature-combat-dev-scene.md) 변환 MVP |
-| ~~Q2~~ | ~~몬스터 행동 **배열 + 순환 인덱스**~~ | **닫음 (2026-05-31, 2026-06-11 다인전 조회 API 갱신).** `MonsterTurnSchedule` — 턴 세트 `CombatEffect[][]`, 적용 후 index 순환. 조회는 `TryGetUpcomingEnemyTurn(participantId, out EnemyUpcomingTurn)` 기준. **패턴 SO:** `MonsterTurnPatternDefinition` + `MonsterDefinition` + `MonsterTurnScheduleFactory` ([`feature-monster-pattern-so`](../exec-plans/completed/feature-monster-pattern-so.md)). RNG·가중치는 Later. 스케줄 런타임: [`feature-monster-turn-schedule`](../exec-plans/completed/feature-monster-turn-schedule.md) |
+| ~~Q2~~ | ~~몬스터 행동 **배열 + 순환 인덱스**~~ | **닫음 (2026-05-31, 2026-06-15 Planner 구조 전환).** 현재는 `MonsterTurnPatternDefinition` → `EnemyActionPlannerFactory` → `FixedSequenceEnemyActionPlanner`가 턴별 `EnemyActionPlan`을 순환 생성한다. Plan은 행동 경계(`EnemyPlannedAction`)와 행동 내부 효과 경계(`EnemyActionEffect`)를 보존한다. 조회는 `TryGetUpcomingEnemyTurn(participantId, out EnemyUpcomingTurn)` 기준이며 저장된 Plan을 반환한다. RNG·가중치는 Later. 과거 스케줄 구현 기록: [`feature-monster-turn-schedule`](../exec-plans/completed/feature-monster-turn-schedule.md), [`feature-monster-pattern-so`](../exec-plans/completed/feature-monster-pattern-so.md) |
+| Q7 | 슬롯 잠금 효과 실제 적용 | `LockSlotEffectDefinition`과 Plan 내 런타임 표현은 있음. 실제 슬롯 상태 소유, 지속 턴 감소, Spin 결과 반영은 Slot 계층 API 설계 후 구현 |
 | Q3 | `StartBattle` 시그니처 vs BattleSystem 멤버 | Participant 참조 전달 방식 |
 | Q4 | Effect optional 필드 (`Element`, `Status`) 도입 시점 | 속성·DoT 추가 시 별도 ADR |
 | Q5 | Kind별 Resolver 재정렬 필요 여부 | 디버프·상태가 많아지면 검토. MVP는 입력 순서 유지 (ADR-0001) |

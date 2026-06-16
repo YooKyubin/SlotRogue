@@ -9,7 +9,7 @@ namespace SlotRogue.Core.Combat
         private readonly StatusEffectEngine _statusEffectEngine;
         private readonly List<CombatEvent> _events = new();
         private readonly List<CombatParticipant> _enemies = new();
-        private readonly List<EnemyTurnState> _enemyTurnStates = new();
+        private readonly List<EnemyCombatant> _enemyCombatants = new();
         private readonly Dictionary<int, CombatParticipant> _participantsById = new();
         private CombatParticipant _player = null!;
 
@@ -46,26 +46,23 @@ namespace SlotRogue.Core.Combat
                 return false;
             }
 
-            for (int index = 0; index < _enemyTurnStates.Count; index++)
+            for (int index = 0; index < _enemyCombatants.Count; index++)
             {
-                EnemyTurnState state = _enemyTurnStates[index];
+                EnemyCombatant combatant = _enemyCombatants[index];
+                CombatParticipant participant = combatant.Participant;
 
-                if (state.Participant.Id.Value != participantId.Value)
+                if (participant.Id.Value != participantId.Value)
                 {
                     continue;
                 }
 
-                if (state.Participant.IsDead)
+                if (participant.IsDead)
                 {
                     upcomingTurn = default;
                     return false;
                 }
 
-                upcomingTurn = new EnemyUpcomingTurn(
-                    state.Participant.Id,
-                    state.Schedule.UpcomingTurnIndex,
-                    state.Schedule.UpcomingActions);
-
+                upcomingTurn = new EnemyUpcomingTurn(participant.Id, combatant.UpcomingPlan);
                 return true;
             }
 
@@ -73,58 +70,37 @@ namespace SlotRogue.Core.Combat
             return false;
         }
 
-        public void StartBattle(CombatParticipant player, CombatParticipant monster, IReadOnlyList<CombatEffect> monsterTurnActions)
-        {
-            StartBattle(player, monster, new MonsterTurnSchedule(monsterTurnActions));
-        }
-
-        public void StartBattle(CombatParticipant player, CombatParticipant monster, MonsterTurnSchedule monsterTurnSchedule)
-        {
-            StartBattle(
-                player,
-                new[] { monster },
-                new[] { monsterTurnSchedule ?? throw new ArgumentNullException(nameof(monsterTurnSchedule)) });
-        }
-
-        public void StartBattle(
-            CombatParticipant player,
-            IReadOnlyList<CombatParticipant> enemies,
-            IReadOnlyList<MonsterTurnSchedule> enemyTurnSchedules)
+        public void StartBattle(CombatParticipant player, IReadOnlyList<EnemyCombatant> enemyCombatants)
         {
             if (player == null)
             {
                 throw new ArgumentNullException(nameof(player));
             }
 
-            if (enemies == null || enemies.Count == 0)
+            if (enemyCombatants == null || enemyCombatants.Count == 0)
             {
-                throw new ArgumentException("At least one enemy is required.", nameof(enemies));
-            }
-
-            if (enemyTurnSchedules == null || enemyTurnSchedules.Count != enemies.Count)
-            {
-                throw new ArgumentException("Enemy schedules must match enemy count.", nameof(enemyTurnSchedules));
+                throw new ArgumentException("At least one enemy combatant is required.", nameof(enemyCombatants));
             }
 
             _player = player;
             _enemies.Clear();
-            _enemyTurnStates.Clear();
+            _enemyCombatants.Clear();
             _participantsById.Clear();
             RegisterParticipant(_player);
 
-            for (int index = 0; index < enemies.Count; index++)
+            for (int index = 0; index < enemyCombatants.Count; index++)
             {
-                CombatParticipant enemy = enemies[index] ?? throw new ArgumentNullException(nameof(enemies));
-                MonsterTurnSchedule schedule = enemyTurnSchedules[index] ?? throw new ArgumentNullException(nameof(enemyTurnSchedules));
-                schedule.Reset();
+                EnemyCombatant combatant = enemyCombatants[index] ?? throw new ArgumentNullException(nameof(enemyCombatants));
+                CombatParticipant enemy = combatant.Participant;
                 _enemies.Add(enemy);
-                _enemyTurnStates.Add(new EnemyTurnState(enemy, schedule));
+                _enemyCombatants.Add(combatant);
                 RegisterParticipant(enemy);
             }
 
             EndReason = BattleEndReason.None;
             _events.Clear();
 
+            PlanNextActionsForAllEnemies();
             SetPhase(BattlePhase.PlayerTurn);
         }
 
@@ -169,28 +145,30 @@ namespace SlotRogue.Core.Combat
         {
             SetPhase(BattlePhase.EnemyTurn);
 
-            for (int index = 0; index < _enemyTurnStates.Count; index++)
+            for (int index = 0; index < _enemyCombatants.Count; index++)
             {
-                EnemyTurnState enemyState = _enemyTurnStates[index];
-                if (enemyState.Participant.IsDead)
+                EnemyCombatant enemyCombatant = _enemyCombatants[index];
+                CombatParticipant enemy = enemyCombatant.Participant;
+                if (enemy.IsDead)
                 {
                     continue;
                 }
 
-                if (RunBattleStep(() => RunParticipantTurnStart(enemyState.Participant)))
+                if (RunBattleStep(() => RunParticipantTurnStart(enemy)))
                 {
                     return;
                 }
 
-                bool shouldSkipAction = TrySkipParticipantAction(enemyState.Participant);
-                IReadOnlyList<CombatEffect> enemyTurnActions = enemyState.Schedule.ConsumeUpcomingTurn();
+                bool shouldSkipAction = TrySkipParticipantAction(enemy);
+                IReadOnlyList<EnemyPlannedAction> enemyTurnActions = enemyCombatant.UpcomingPlan.Actions;
+                enemyCombatant.PlanNextAction(CreateEnemyActionContext(enemy));
                 if (!shouldSkipAction &&
-                    ApplyEffects(enemyTurnActions, enemyState.Participant, default))
+                    ApplyPlannedActions(enemyTurnActions, enemy, default))
                 {
                     return;
                 }
 
-                if (RunBattleStep(() => RunParticipantTurnEnd(enemyState.Participant)))
+                if (RunBattleStep(() => RunParticipantTurnEnd(enemy)))
                 {
                     return;
                 }
@@ -255,6 +233,74 @@ namespace SlotRogue.Core.Combat
                     CombatEventKind.ActionCompleted,
                     CurrentPhase,
                     effect,
+                    sourceParticipantId: source.Id));
+            }
+
+            return false;
+        }
+
+        private bool ApplyPlannedActions(
+            IReadOnlyList<EnemyPlannedAction> actions,
+            CombatParticipant source,
+            CombatParticipantId selectedTargetId)
+        {
+            if (actions == null || actions.Count == 0)
+            {
+                return false;
+            }
+
+            for (int actionIndex = 0; actionIndex < actions.Count; actionIndex++)
+            {
+                EnemyPlannedAction action = actions[actionIndex];
+                if (action == null)
+                {
+                    continue;
+                }
+
+                IReadOnlyList<EnemyActionEffect> effects = action.Effects;
+                CombatEffect completedEffect = default;
+                for (int effectIndex = 0; effectIndex < effects.Count; effectIndex++)
+                {
+                    EnemyActionEffect actionEffect = effects[effectIndex];
+                    if (actionEffect.Kind == EnemyActionEffectKind.LockSlot)
+                    {
+                        continue;
+                    }
+
+                    CombatEffect effect = actionEffect.CombatEffect;
+                    completedEffect = effect;
+                    IReadOnlyList<CombatParticipant> targets = ResolveTargets(effect, source, selectedTargetId);
+
+                    for (int targetIndex = 0; targetIndex < targets.Count; targetIndex++)
+                    {
+                        CombatParticipant target = targets[targetIndex];
+                        CombatParticipantSnapshot targetBefore = target.CaptureSnapshot();
+                        EffectApplyResult applyResult = ApplyEffectToTarget(effect, target);
+                        CombatParticipantSnapshot targetAfter = target.CaptureSnapshot();
+                        bool isPlayerTarget = target.Team == CombatTeam.Player;
+
+                        _events.Add(new CombatEvent(
+                            CombatEventKind.EffectApplied,
+                            CurrentPhase,
+                            effect,
+                            applyResult,
+                            isPlayerParticipant: isPlayerTarget,
+                            targetParticipantId: target.Id,
+                            targetBefore: targetBefore,
+                            targetAfter: targetAfter,
+                            sourceParticipantId: source.Id));
+
+                        if (TryEndBattle())
+                        {
+                            return true;
+                        }
+                    }
+                }
+
+                _events.Add(new CombatEvent(
+                    CombatEventKind.ActionCompleted,
+                    CurrentPhase,
+                    completedEffect,
                     sourceParticipantId: source.Id));
             }
 
@@ -439,17 +485,18 @@ namespace SlotRogue.Core.Combat
             _participantsById[participant.Id.Value] = participant;
         }
 
-        private sealed class EnemyTurnState
+        private void PlanNextActionsForAllEnemies()
         {
-            public EnemyTurnState(CombatParticipant participant, MonsterTurnSchedule schedule)
+            for (int index = 0; index < _enemyCombatants.Count; index++)
             {
-                Participant = participant;
-                Schedule = schedule;
+                EnemyCombatant combatant = _enemyCombatants[index];
+                combatant.PlanNextAction(CreateEnemyActionContext(combatant.Participant));
             }
+        }
 
-            public CombatParticipant Participant { get; }
-
-            public MonsterTurnSchedule Schedule { get; }
+        private EnemyActionContext CreateEnemyActionContext(CombatParticipant enemy)
+        {
+            return new(enemy, _player, _enemies, turnNumber: 0);
         }
     }
 }

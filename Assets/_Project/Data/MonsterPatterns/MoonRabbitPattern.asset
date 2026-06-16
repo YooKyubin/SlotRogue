@@ -1,0 +1,76 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4d5e6f7a8b94012a3b4c5d6e7f80904, type: 3}
+  m_Name: MoonRabbitPattern
+  m_EditorClassIdentifier: SlotRogue.Data::SlotRogue.Data.Combat.MonsterTurnPatternDefinition
+  turns:
+  - actions:
+    - _displayName: damage
+      _intentIcon: {fileID: -6820943923468213308, guid: 9528a7ad3160f354f8e8d9750266adea, type: 3}
+      _effect:
+        rid: 5421931881862791241
+    - _displayName: shield
+      _intentIcon: {fileID: 4880119492350309246, guid: dbe4681e3ea4cbd4b9fb6011982807e0, type: 3}
+      _effect:
+        rid: 5421931881862791243
+    - _displayName: damage2
+      _intentIcon: {fileID: -6820943923468213308, guid: 9528a7ad3160f354f8e8d9750266adea, type: 3}
+      _effect:
+        rid: 5421931881862791244
+  - actions:
+    - _displayName: 
+      _intentIcon: {fileID: -6820943923468213308, guid: 9528a7ad3160f354f8e8d9750266adea, type: 3}
+      _effect:
+        rid: 5421931881862791245
+  - actions:
+    - _displayName: 
+      _intentIcon: {fileID: 8707594959427059097, guid: f054b3ee2c7a79c42b2c7179b173387e, type: 3}
+      _effect:
+        rid: 5421931881862791246
+  references:
+    version: 2
+    RefIds:
+    - rid: 5421931881862791241
+      type: {class: DamageEffectDefinition, ns: SlotRogue.Data.Combat, asm: SlotRogue.Data}
+      data:
+        _amount: 4
+        _target:
+          _targetMode: 1
+          _targetParticipantId: 0
+    - rid: 5421931881862791243
+      type: {class: ShieldEffectDefinition, ns: SlotRogue.Data.Combat, asm: SlotRogue.Data}
+      data:
+        _amount: 5
+        _target:
+          _targetMode: 0
+          _targetParticipantId: 0
+    - rid: 5421931881862791244
+      type: {class: DamageEffectDefinition, ns: SlotRogue.Data.Combat, asm: SlotRogue.Data}
+      data:
+        _amount: 2
+        _target:
+          _targetMode: 1
+          _targetParticipantId: 0
+    - rid: 5421931881862791245
+      type: {class: DamageEffectDefinition, ns: SlotRogue.Data.Combat, asm: SlotRogue.Data}
+      data:
+        _amount: 4
+        _target:
+          _targetMode: 1
+          _targetParticipantId: 0
+    - rid: 5421931881862791246
+      type: {class: HealEffectDefinition, ns: SlotRogue.Data.Combat, asm: SlotRogue.Data}
+      data:
+        _amount: 2
+        _target:
+          _targetMode: 0
+          _targetParticipantId: 0

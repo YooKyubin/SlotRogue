@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using SlotRogue.Core.Combat;
 using SlotRogue.Data.Combat;
 using SlotRogue.Data.GameFlow;
@@ -9,18 +10,13 @@ namespace SlotRogue.UI.GameFlow
     {
         public static int ResolveFormationSlot(RunEncounterRoster roster, int rosterIndex, int maxSlotCount)
         {
-            if (roster == null || rosterIndex < 0 || rosterIndex >= roster.Enemies.Length)
+            if (roster == null || rosterIndex < 0 || rosterIndex >= roster.Enemies.Count)
             {
                 return rosterIndex;
             }
 
             int slotCount = Mathf.Max(1, maxSlotCount);
-            if (roster.FormationSlots == null || rosterIndex >= roster.FormationSlots.Length)
-            {
-                return Mathf.Clamp(rosterIndex, 0, slotCount - 1);
-            }
-
-            int formationSlot = roster.FormationSlots[rosterIndex];
+            int formationSlot = roster.Enemies[rosterIndex].FormationSlot;
             if (formationSlot < 0 || formationSlot >= slotCount)
             {
                 Debug.LogWarning(
@@ -40,13 +36,36 @@ namespace SlotRogue.UI.GameFlow
             int level)
         {
             int maxHp = TierMaxHp(tier, level);
-            var enemies = new[]
-            {
-                RunCombatParticipantFactory.CreateEnemy(rosterIndex: 0, maxHp),
-            };
+            var plannerFactory = new EnemyActionPlannerFactory();
+            var combatantFactory = new EnemyCombatantFactory(plannerFactory);
+            EnemyCombatant combatant = combatantFactory.Create(
+                rosterIndex: 0,
+                maxHp,
+                plannerFactory.Create(TierTurnEffects(tier, level)));
 
-            MonsterTurnSchedule schedule = TierTurnSchedule(tier, level);
-            return new RunEncounterRoster(enemies, new[] { schedule }, new[] { 0 });
+            // Tier-based infinite mode currently builds enemies from EncounterTier + level,
+            // so there is no MonsterDefinition to attach here yet. Keep the encounter unit
+            // limited to runtime + formation until the monster selection path supplies one.
+            return new RunEncounterRoster(new[] { new EnemyEncounterUnit(combatant, formationSlot: 0) });
+        }
+
+        public static RunEncounterRoster BuildFromMonsterDefinition(
+            MonsterDefinition definition,
+            int rosterIndex,
+            int formationSlot)
+        {
+            var combatantFactory = new EnemyCombatantFactory();
+            EnemyCombatantBuildResult buildResult = combatantFactory.CreateWithPresentation(
+                definition,
+                rosterIndex);
+
+            return new RunEncounterRoster(new[]
+            {
+                new EnemyEncounterUnit(
+                    buildResult.Combatant,
+                    formationSlot,
+                    buildResult.PresentationMap),
+            });
         }
 
         private static int TierMaxHp(EncounterTier tier, int level)
@@ -61,31 +80,41 @@ namespace SlotRogue.UI.GameFlow
             };
         }
 
-        private static MonsterTurnSchedule TierTurnSchedule(EncounterTier tier, int level)
+        private static IReadOnlyList<IReadOnlyList<CombatEffect>> TierTurnEffects(EncounterTier tier, int level)
         {
             int lv = Mathf.Max(1, level);
 
             if (tier == EncounterTier.Boss)
             {
-                return new MonsterTurnSchedule(
+                return new[]
+                {
                     new[] { new CombatEffect(CombatEffectKind.Damage, 6 + lv, CombatEffectTarget.Enemy) },
                     new[] { new CombatEffect(CombatEffectKind.Shield, 5 + lv, CombatEffectTarget.Self) },
-                    new[] { new CombatEffect(CombatEffectKind.Damage, 9 + lv, CombatEffectTarget.Enemy) });
+                    new[] { new CombatEffect(CombatEffectKind.Damage, 9 + lv, CombatEffectTarget.Enemy) },
+                };
             }
 
             if (tier == EncounterTier.Elite)
             {
-                return new MonsterTurnSchedule(
+                return new[]
+                {
                     new[] { new CombatEffect(CombatEffectKind.Damage, 5 + lv, CombatEffectTarget.Enemy) },
                     new[] { new CombatEffect(CombatEffectKind.Shield, 4 + lv, CombatEffectTarget.Self) },
-                    new[] { new CombatEffect(CombatEffectKind.Damage, 7 + lv, CombatEffectTarget.Enemy) });
+                    new[] { new CombatEffect(CombatEffectKind.Damage, 7 + lv, CombatEffectTarget.Enemy) },
+                };
             }
 
-            return new MonsterTurnSchedule(
-                new[] { new CombatEffect(CombatEffectKind.Damage, 3 + lv, CombatEffectTarget.Enemy) },
+            return new[]
+            {
+                new[]
+                {
+                    new CombatEffect(CombatEffectKind.Damage, 3 + lv, CombatEffectTarget.Enemy),
+                    new CombatEffect(CombatEffectKind.Shield, 4 + lv, CombatEffectTarget.Self),
+                },
                 new[] { new CombatEffect(CombatEffectKind.Shield, 4 + lv, CombatEffectTarget.Self) },
                 new[] { new CombatEffect(CombatEffectKind.Damage, 5 + lv, CombatEffectTarget.Enemy) },
-                new[] { new CombatEffect(CombatEffectKind.Heal, 1 + lv, CombatEffectTarget.Self) });
+                new[] { new CombatEffect(CombatEffectKind.Heal, 1 + lv, CombatEffectTarget.Self) },
+            };
         }
     }
 }

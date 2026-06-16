@@ -1,24 +1,17 @@
-using System;
-using System.Collections.Generic;
-
 namespace SlotRogue.Core.Combat
 {
     public readonly struct EnemyUpcomingTurn
     {
         public EnemyUpcomingTurn(
             CombatParticipantId participantId,
-            int turnIndex,
-            IReadOnlyList<CombatEffect> actions)
+            EnemyActionPlan plan)
         {
             ParticipantId = participantId;
-            TurnIndex = turnIndex;
-            Actions = actions ?? Array.Empty<CombatEffect>();
+            Plan = plan ?? new EnemyActionPlan(null);
         }
 
         public CombatParticipantId ParticipantId { get; }
 
-        public int TurnIndex { get; }
-
-        public IReadOnlyList<CombatEffect> Actions { get; }
+        public EnemyActionPlan Plan { get; }
     }
 }

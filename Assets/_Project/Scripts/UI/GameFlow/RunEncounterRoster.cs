@@ -1,21 +1,27 @@
 using System;
-using SlotRogue.Core.Combat;
+using System.Collections.Generic;
 
 namespace SlotRogue.UI.GameFlow
 {
     public sealed class RunEncounterRoster
     {
-        public RunEncounterRoster(CombatParticipant[] enemies, MonsterTurnSchedule[] schedules, int[] formationSlots)
+        public RunEncounterRoster(IReadOnlyList<EnemyEncounterUnit> enemies)
         {
-            Enemies = enemies ?? Array.Empty<CombatParticipant>();
-            Schedules = schedules ?? Array.Empty<MonsterTurnSchedule>();
-            FormationSlots = formationSlots ?? Array.Empty<int>();
+            if (enemies == null || enemies.Count == 0)
+            {
+                Enemies = Array.Empty<EnemyEncounterUnit>();
+                return;
+            }
+
+            var copy = new EnemyEncounterUnit[enemies.Count];
+            for (int index = 0; index < enemies.Count; index++)
+            {
+                copy[index] = enemies[index] ?? throw new ArgumentException("Enemy encounter units cannot contain null entries.", nameof(enemies));
+            }
+
+            Enemies = copy;
         }
 
-        public CombatParticipant[] Enemies { get; }
-
-        public MonsterTurnSchedule[] Schedules { get; }
-
-        public int[] FormationSlots { get; }
+        public IReadOnlyList<EnemyEncounterUnit> Enemies { get; }
     }
 }

@@ -138,6 +138,13 @@ namespace SlotRogue.Editor.GameFlow
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_turnBannerView"));
 
             EditorGUILayout.Space(6f);
+            EditorGUILayout.LabelField("Temporary Test Override", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox(
+                "TEMPORARY TEST HOOK: Assign a MonsterDefinition here to bypass the tier-based encounter builder while verifying MonsterDefinition/MonsterTurnPattern assets.",
+                MessageType.Warning);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_devMonsterDefinitionOverride"));
+
+            EditorGUILayout.Space(6f);
             DrawBindingSummary();
 
             EditorGUILayout.Space(6f);
