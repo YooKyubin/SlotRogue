@@ -11,7 +11,14 @@
         "Unity.ResourceManager",
         "UnityEngine.UI",
         "Unity.TextMeshPro",
-        "DOTween.Modules"
+        "DOTween.Modules",
+        "Unity.Services.Core",
+        "Unity.Services.Authentication",
+        "Unity.Services.Leaderboards",
+        "Unity.LevelPlay",
+        "Unity.Purchasing",
+        "Unity.Purchasing.Codeless",
+        "Unity.Notifications.Unified"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

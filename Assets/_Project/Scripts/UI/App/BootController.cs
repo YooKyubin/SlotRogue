@@ -1,4 +1,6 @@
 using Cysharp.Threading.Tasks;
+using SlotRogue.UI.Iap;
+using SlotRogue.UI.Leaderboard;
 using UnityEngine;
 
 namespace SlotRogue.UI.App
@@ -13,6 +15,11 @@ namespace SlotRogue.UI.App
     /// </summary>
     public sealed class BootController : MonoBehaviour
     {
+        private void Awake()
+        {
+            IapStoreConnectionCallbacks.Register();
+        }
+
         private void Start()
         {
             // 이벤트 진입점에서의 fire-and-forget은 async void 대신 UniTaskVoid를 사용합니다.
@@ -21,10 +28,10 @@ namespace SlotRogue.UI.App
 
         private async UniTaskVoid InitializeAsync()
         {
-            // 현재는 별도 초기화가 없습니다.
-            // 예: await SaveSystem.LoadAsync();
-            //     await AdsSdk.InitializeAsync();
-            //     await RemoteConfig.FetchAsync();
+            AdsRemoveState.Initialize();
+
+            // 온라인 기능은 본편 진입을 막지 않도록 백그라운드에서 준비합니다.
+            SlotRogueLeaderboardService.InitializeAsync().Forget();
             await UniTask.CompletedTask;
 
             GameSceneLoader.LoadGameStart();
