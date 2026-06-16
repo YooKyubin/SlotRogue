@@ -18,9 +18,8 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private Transform _root;
         [SerializeField] private Transform _shakeGroup;
 
-        [Header("Portrait")]
-        [SerializeField] private SpriteRenderer _portrait;
-        [SerializeField] private Text _placeholderText;
+        [Header("Visual")]
+        [SerializeField] private Transform _visualRoot;
 
         [Header("HUD")]
         [SerializeField] private Canvas _hudRoot;
@@ -51,6 +50,8 @@ namespace SlotRogue.UI.GameFlow
         private bool _hpFillLayoutInitialized;
         private bool _hpFillRendered;
         private GameObject _combatVisualPrefab;
+        private GameObject _combatVisualInstance;
+        private bool _visualRootMissingWarningLogged;
 #if DOTWEEN
         private Tween _hpFillTween;
 #endif
@@ -67,26 +68,29 @@ namespace SlotRogue.UI.GameFlow
 
         public GameObject CombatVisualPrefab => _combatVisualPrefab;
 
+        public GameObject CombatVisualInstance => _combatVisualInstance;
+
+        public Transform VisualRoot => _visualRoot;
+
         public void Bind(
             Transform root,
             Transform shakeGroup,
-            SpriteRenderer portrait,
             Canvas hudRoot,
             Text hudText,
             Image hpFill,
             Image statusBackground,
             ShieldGaugeView shieldGauge,
             RectTransform damageAnchor,
-            Text placeholderText,
             Collider2D clickCollider,
             RectTransform statusEffectRoot = null,
             GameObject statusEffectIconPrefab = null,
             Transform intentRoot = null,
-            EnemyIntentIconView intentIconPrefab = null)
+            EnemyIntentIconView intentIconPrefab = null,
+            Transform visualRoot = null)
         {
             _root = root;
             _shakeGroup = shakeGroup;
-            _portrait = portrait;
+            _visualRoot = visualRoot;
             _hudRoot = hudRoot;
             _hudText = hudText;
             _hpFill = hpFill;
@@ -95,7 +99,6 @@ namespace SlotRogue.UI.GameFlow
             _statusBackground = statusBackground;
             _shieldGauge = shieldGauge;
             _damageAnchor = damageAnchor;
-            _placeholderText = placeholderText;
             _clickCollider = clickCollider;
             _statusEffectRoot = statusEffectRoot;
             _statusEffectIconPrefab = statusEffectIconPrefab;
@@ -110,22 +113,25 @@ namespace SlotRogue.UI.GameFlow
 #endif
         }
 
-        public void SetPortrait(Sprite sprite)
+        private void OnDestroy()
         {
-            if (_portrait != null)
-            {
-                _portrait.sprite = sprite;
-            }
-
-            if (_placeholderText != null)
-            {
-                _placeholderText.gameObject.SetActive(sprite == null);
-            }
+            DestroyCombatVisualInstance();
         }
 
         public void SetCombatVisualPrefab(GameObject combatVisualPrefab)
         {
+            ClearCombatVisual();
+
             _combatVisualPrefab = combatVisualPrefab;
+            _combatVisualInstance = Instantiate(combatVisualPrefab, _visualRoot);
+            _combatVisualInstance.transform.localPosition = Vector3.zero;
+            _combatVisualInstance.transform.localRotation = Quaternion.identity;
+        }
+
+        public void ClearCombatVisual()
+        {
+            _combatVisualPrefab = null;
+            DestroyCombatVisualInstance();
         }
 
         public void SetActive(bool active)
@@ -213,7 +219,7 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetStatusEffects(IReadOnlyList<StatusEffectViewData> statuses)
         {
-            AutoBindStatusEffectRootIfNeeded();
+            //AutoBindStatusEffectRootIfNeeded();
             if (_statusEffectRoot == null)
             {
                 LogMissingStatusEffectReferenceWarning("Status Effect Root");
@@ -318,15 +324,34 @@ namespace SlotRogue.UI.GameFlow
             _clickHandler.Invoke();
         }
 
-        private void AutoBindStatusEffectRootIfNeeded()
+        //private void AutoBindStatusEffectRootIfNeeded()
+        //{
+        //    if (_statusEffectRoot != null)
+        //    {
+        //        return;
+        //    }
+
+        //    Transform rootTransform = FindDeepChild(Root, "Status Effect Root");
+        //    _statusEffectRoot = rootTransform as RectTransform;
+        //}
+
+        private void DestroyCombatVisualInstance()
         {
-            if (_statusEffectRoot != null)
+            if (_combatVisualInstance == null)
             {
                 return;
             }
 
-            Transform rootTransform = FindDeepChild(Root, "Status Effect Root");
-            _statusEffectRoot = rootTransform as RectTransform;
+            if (Application.isPlaying)
+            {
+                Destroy(_combatVisualInstance);
+            }
+            else
+            {
+                DestroyImmediate(_combatVisualInstance);
+            }
+
+            _combatVisualInstance = null;
         }
 
         private void EnsureStatusIconCount(int count)

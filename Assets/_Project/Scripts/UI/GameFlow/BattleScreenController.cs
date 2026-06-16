@@ -205,11 +205,7 @@ namespace SlotRogue.UI.GameFlow
 
         private void BindEnemyCombatVisualPrefabs()
         {
-            int slotCount = _view.EnemySlotCount;
-            for (int slotIndex = 0; slotIndex < slotCount; slotIndex++)
-            {
-                _view.SetEnemyCombatVisualPrefab(slotIndex, null);
-            }
+            _view.ClearEnemyCombatVisualPrefabs();
 
             for (int rosterIndex = 0; rosterIndex < _encounterRoster.Enemies.Count; rosterIndex++)
             {

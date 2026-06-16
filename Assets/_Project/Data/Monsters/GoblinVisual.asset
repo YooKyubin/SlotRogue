@@ -13,4 +13,4 @@ MonoBehaviour:
   m_Name: GoblinVisual
   m_EditorClassIdentifier: 
   _portrait: {fileID: -3010168192132499754, guid: 75a101441eaa2c748977b251201bfe4c, type: 3}
-  _combatVisualPrefab: {fileID: 0}
+  _combatVisualPrefab: {fileID: 100000, guid: 4cb8e7d88c5f4be49164bc7b1a4ae31e, type: 3}

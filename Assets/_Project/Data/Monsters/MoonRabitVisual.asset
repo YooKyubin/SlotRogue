@@ -13,4 +13,4 @@ MonoBehaviour:
   m_Name: MoonRabitVisual
   m_EditorClassIdentifier: 
   _portrait: {fileID: -855298285791758126, guid: f436e98ca17bb9246b558fb2f522b7b0, type: 3}
-  _combatVisualPrefab: {fileID: 0}
+  _combatVisualPrefab: {fileID: 100000, guid: 2c98fdcf368046e787fa52ab7af4bc17, type: 3}

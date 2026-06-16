@@ -18,7 +18,7 @@
 - [ ] HUD, 클릭 선택, combat visual binding이 같은 slot을 쓰도록 formation slot resolver 공통화
 - [x] `BattleScreenController.BeginBattle()`에서 기존 combat visual 정리 후 roster 기반 prefab binding 수행
 - [x] `RunBattleScreenView` → `RunBattleWorldView` → `EnemyFormationView` → `EnemyFormationSlotView` combat visual 전달 API 추가
-- [ ] `EnemyFormationSlotView`에 `VisualRoot`와 combat visual prefab instance 수명 관리 추가
+- [x] `EnemyFormationSlotView`에 `VisualRoot`와 combat visual prefab instance 수명 관리 추가
 - [ ] `EnemyBattleView` 추가로 Animator, SpriteRenderer 참조 검증 및 `PlayAttack()` 제공
 - [ ] 기존 combat presentation command 경로에 enemy attack animation 명령 연결
 - [ ] 관련 EditMode 테스트 추가 및 `dotnet build SlotRogue.slnx --no-restore` 검증
@@ -34,6 +34,7 @@
 - 2026-06-16: `dotnet build SlotRogue.slnx --no-restore`는 경고 0개, 오류 0개로 통과했다. `dotnet build SlotRogue.sln --no-restore`는 기존 `Assembly-CSharp-firstpass.csproj`의 `System.Net.Http` 버전 충돌 경고 1개가 남지만 오류 0개로 통과했다.
 - 2026-06-16: 전투 시작 시 `BattleScreenController.BeginBattle()`에서 각 `EnemyEncounterUnit`의 `Definition.Visual.CombatVisualPrefab`을 읽어 `RunBattleScreenView` → `RunBattleWorldView` → `EnemyFormationView` → `EnemyFormationSlotView`로 전달한다. 이번 단계는 prefab 참조만 보관하고 `Instantiate`, `VisualRoot`, `EnemyBattleView`, 애니메이션 재생은 추가하지 않았다. `BattleTargetSelectionController.Bind()`의 `SetEnemyPortrait(index, null)` 초기화는 선택 책임과 섞여 제거했다. `dotnet build SlotRogue.sln --no-restore`는 기존 `Assembly-CSharp-firstpass.csproj`의 `System.Net.Http` 버전 충돌 경고 1개가 남지만 오류 0개로 통과했다.
 - 2026-06-16: 명칭을 `MonsterPresentationDefinition`/`BattleViewPrefab`에서 `MonsterVisualDefinition`/`CombatVisualPrefab`으로 정리했다. 전투 이벤트 연출 계층의 `Presentation` 용어는 기존 의미가 달라 유지한다.
+- 2026-06-16: `EnemyFormationSlotView`가 전달받은 `CombatVisualPrefab`을 `VisualRoot` 아래에 생성하고, 같은 슬롯 재바인딩 시 이전에 생성한 인스턴스만 제거하도록 변경했다. `EnemyFormationSlot` prefab에는 HUD/Intent/DamageAnchor/ClickCollider와 분리된 `VisualRoot`를 추가했고, 기존 portrait placeholder와 SpriteRenderer는 fallback 표시를 막기 위해 비활성화했다. `GoblinCombatVisual`, `MoonRabitCombatVisual` 최소 SpriteRenderer prefab을 추가해 각 `MonsterVisualDefinition.CombatVisualPrefab`에 연결했다.
 
 ## Completion
 

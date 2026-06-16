@@ -53,19 +53,22 @@ namespace SlotRogue.UI.GameFlow
             }
         }
 
-        public void SetPortrait(int slotIndex, Sprite portrait)
-        {
-            if (TryGetFormationSlotView(slotIndex, out EnemyFormationSlotView formationSlotView))
-            {
-                formationSlotView.SetPortrait(portrait);
-            }
-        }
-
         public void SetCombatVisualPrefab(int formationSlot, GameObject combatVisualPrefab)
         {
             if (TryGetFormationSlotView(formationSlot, out EnemyFormationSlotView formationSlotView))
             {
                 formationSlotView.SetCombatVisualPrefab(combatVisualPrefab);
+            }
+        }
+
+        public void ClearCombatVisualPrefabs()
+        {
+            for (int slotIndex = 0; slotIndex < SlotCount; slotIndex++)
+            {
+                if (TryGetFormationSlotView(slotIndex, out EnemyFormationSlotView formationSlotView))
+                {
+                    formationSlotView.ClearCombatVisual();
+                }
             }
         }
 

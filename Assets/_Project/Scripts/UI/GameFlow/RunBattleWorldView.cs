@@ -59,16 +59,16 @@ namespace SlotRogue.UI.GameFlow
             _enemyFormationView?.Render(state.EnemySlots);
         }
 
-        public void SetEnemyPortrait(int slotIndex, Sprite portrait)
-        {
-            EnsureReferences();
-            _enemyFormationView?.SetPortrait(slotIndex, portrait);
-        }
-
         public void SetEnemyCombatVisualPrefab(int formationSlot, GameObject combatVisualPrefab)
         {
             EnsureReferences();
             _enemyFormationView?.SetCombatVisualPrefab(formationSlot, combatVisualPrefab);
+        }
+
+        public void ClearEnemyCombatVisualPrefabs()
+        {
+            EnsureReferences();
+            _enemyFormationView?.ClearCombatVisualPrefabs();
         }
 
         public void SetEnemySlotClickHandler(int slotIndex, Action action)

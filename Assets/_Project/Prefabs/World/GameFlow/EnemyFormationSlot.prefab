@@ -91,9 +91,41 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 884222139430000001}
   - {fileID: 5797755405106914537}
   - {fileID: 3904002063679712515}
   m_Father: {fileID: 7734689118347477723}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &884222139430000000
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 884222139430000001}
+  m_Layer: 0
+  m_Name: VisualRoot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &884222139430000001
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 884222139430000000}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.55, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5544154377086351525}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &527433206000637696
 GameObject:
@@ -430,7 +462,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2196566125196473623
 RectTransform:
   m_ObjectHideFlags: 0
@@ -510,7 +542,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &5797755405106914537
 Transform:
   m_ObjectHideFlags: 0
@@ -913,8 +945,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.EnemyFormationSlotView
   _root: {fileID: 7734689118347477723}
   _shakeGroup: {fileID: 5544154377086351525}
-  _portrait: {fileID: 3739380269821333535}
-  _placeholderText: {fileID: 5830150025322420425}
+  _visualRoot: {fileID: 884222139430000001}
   _hudRoot: {fileID: 7007034043896490227}
   _hudText: {fileID: 5201997253535934838}
   _hpFill: {fileID: 2146629859500977907}
@@ -979,7 +1010,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &783105499347405081
 RectTransform:
   m_ObjectHideFlags: 0

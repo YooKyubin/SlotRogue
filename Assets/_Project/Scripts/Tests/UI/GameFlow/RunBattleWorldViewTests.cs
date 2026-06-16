@@ -30,14 +30,12 @@ namespace SlotRogue.UI.Tests.GameFlow
                     slotView.Bind(
                         slot.transform,
                         shakeGroup: null,
-                        portrait: null,
                         hudRoot: null,
                         hudText: null,
                         hpFill: null,
                         statusBackground: null,
                         shieldGauge: null,
                         damageAnchor: damageAnchor,
-                        placeholderText: null,
                         clickCollider: null);
                 }
 
@@ -53,10 +51,11 @@ namespace SlotRogue.UI.Tests.GameFlow
         }
 
         [Test]
-        public void SetEnemyCombatVisualPrefab_ForwardsPrefabToFormationSlot()
+        public void SetEnemyCombatVisualPrefab_InstantiatesPrefabUnderFormationSlotVisualRoot()
         {
             var root = new GameObject("BattleArenaRoot");
             var combatVisualPrefab = new GameObject("Enemy Combat Visual Prefab");
+            var replacementPrefab = new GameObject("Enemy Combat Visual Replacement Prefab");
             try
             {
                 RunBattleWorldView worldView = root.AddComponent<RunBattleWorldView>();
@@ -68,19 +67,21 @@ namespace SlotRogue.UI.Tests.GameFlow
                 {
                     var slot = new GameObject($"Formation Slot {index + 1}");
                     slot.transform.SetParent(formationRoot.transform, false);
+                    var visualRoot = new GameObject("VisualRoot");
+                    visualRoot.transform.SetParent(slot.transform, false);
+
                     slotViews[index] = slot.AddComponent<EnemyFormationSlotView>();
                     slotViews[index].Bind(
                         slot.transform,
                         shakeGroup: null,
-                        portrait: null,
                         hudRoot: null,
                         hudText: null,
                         hpFill: null,
                         statusBackground: null,
                         shieldGauge: null,
                         damageAnchor: null,
-                        placeholderText: null,
-                        clickCollider: null);
+                        clickCollider: null,
+                        visualRoot: visualRoot.transform);
                 }
 
                 worldView.EnsureReferences();
@@ -88,9 +89,34 @@ namespace SlotRogue.UI.Tests.GameFlow
 
                 Assert.That(slotViews[0].CombatVisualPrefab, Is.Null);
                 Assert.That(slotViews[1].CombatVisualPrefab, Is.SameAs(combatVisualPrefab));
+                Assert.That(slotViews[1].CombatVisualInstance, Is.Not.Null);
+                Assert.That(slotViews[1].CombatVisualInstance.name, Does.StartWith(combatVisualPrefab.name));
+                Assert.That(slotViews[1].CombatVisualInstance.transform.parent, Is.SameAs(slotViews[1].VisualRoot));
+                Assert.That(slotViews[1].CombatVisualInstance.transform.localPosition, Is.EqualTo(Vector3.zero));
+                Assert.That(slotViews[1].CombatVisualInstance.transform.localRotation, Is.EqualTo(Quaternion.identity));
+
+                GameObject firstInstance = slotViews[1].CombatVisualInstance;
+                worldView.SetEnemyCombatVisualPrefab(formationSlot: 1, replacementPrefab);
+
+                Assert.That(firstInstance == null, Is.True);
+                Assert.That(slotViews[1].CombatVisualPrefab, Is.SameAs(replacementPrefab));
+                Assert.That(slotViews[1].CombatVisualInstance, Is.Not.Null);
+                Assert.That(slotViews[1].CombatVisualInstance.name, Does.StartWith(replacementPrefab.name));
+                Assert.That(slotViews[1].VisualRoot.childCount, Is.EqualTo(1));
+
+                GameObject replacementInstance = slotViews[1].CombatVisualInstance;
+                worldView.ClearEnemyCombatVisualPrefabs();
+
+                Assert.That(replacementInstance == null, Is.True);
+                Assert.That(slotViews[0].CombatVisualPrefab, Is.Null);
+                Assert.That(slotViews[0].CombatVisualInstance, Is.Null);
+                Assert.That(slotViews[1].CombatVisualPrefab, Is.Null);
+                Assert.That(slotViews[1].CombatVisualInstance, Is.Null);
+                Assert.That(slotViews[1].VisualRoot.childCount, Is.EqualTo(0));
             }
             finally
             {
+                Object.DestroyImmediate(replacementPrefab);
                 Object.DestroyImmediate(combatVisualPrefab);
                 Object.DestroyImmediate(root);
             }
@@ -162,14 +188,12 @@ namespace SlotRogue.UI.Tests.GameFlow
                 view.Bind(
                     root.transform,
                     shakeGroup: null,
-                    portrait: null,
                     hudRoot: null,
                     hudText: null,
                     hpFill: fill,
                     statusBackground: null,
                     shieldGauge: null,
                     damageAnchor: null,
-                    placeholderText: null,
                     clickCollider: null);
 
                 view.SetHpFill(current: 5, max: 10);
