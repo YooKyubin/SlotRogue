@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: MoonRabit
   m_EditorClassIdentifier: SlotRogue.Data::SlotRogue.Data.Combat.MonsterDefinition
   maxHp: 10
-  portrait: {fileID: 0}
-  turnPattern: {fileID: 0}
+  portrait: {fileID: -855298285791758126, guid: f436e98ca17bb9246b558fb2f522b7b0, type: 3}
+  turnPattern: {fileID: 11400000, guid: 34437041e4987fb4589982ab04c232d1, type: 2}

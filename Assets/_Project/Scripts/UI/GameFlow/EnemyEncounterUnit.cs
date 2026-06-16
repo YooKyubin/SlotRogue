@@ -5,8 +5,12 @@ namespace SlotRogue.UI.GameFlow
 {
     public sealed class EnemyEncounterUnit
     {
+        public EnemyCombatant Combatant { get; }
+        public int FormationSlot { get; }
+        public EnemyActionPresentationMap PresentationMap { get; }
         // MonsterDefinition is intentionally omitted for now: the current infinite-mode
         // builder creates enemies from EncounterTier + level, so no definition object exists yet.
+
         public EnemyEncounterUnit(EnemyCombatant combatant, int formationSlot)
             : this(combatant, formationSlot, EnemyActionPresentationMap.Empty)
         {
@@ -21,11 +25,5 @@ namespace SlotRogue.UI.GameFlow
             FormationSlot = formationSlot;
             PresentationMap = presentationMap ?? EnemyActionPresentationMap.Empty;
         }
-
-        public EnemyCombatant Combatant { get; }
-
-        public int FormationSlot { get; }
-
-        public EnemyActionPresentationMap PresentationMap { get; }
     }
 }
