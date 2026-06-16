@@ -53,6 +53,50 @@ namespace SlotRogue.UI.Tests.GameFlow
         }
 
         [Test]
+        public void SetEnemyCombatVisualPrefab_ForwardsPrefabToFormationSlot()
+        {
+            var root = new GameObject("BattleArenaRoot");
+            var combatVisualPrefab = new GameObject("Enemy Combat Visual Prefab");
+            try
+            {
+                RunBattleWorldView worldView = root.AddComponent<RunBattleWorldView>();
+                var formationRoot = new GameObject("FormationSlotsRoot");
+                formationRoot.transform.SetParent(root.transform, false);
+
+                EnemyFormationSlotView[] slotViews = new EnemyFormationSlotView[2];
+                for (int index = 0; index < slotViews.Length; index++)
+                {
+                    var slot = new GameObject($"Formation Slot {index + 1}");
+                    slot.transform.SetParent(formationRoot.transform, false);
+                    slotViews[index] = slot.AddComponent<EnemyFormationSlotView>();
+                    slotViews[index].Bind(
+                        slot.transform,
+                        shakeGroup: null,
+                        portrait: null,
+                        hudRoot: null,
+                        hudText: null,
+                        hpFill: null,
+                        statusBackground: null,
+                        shieldGauge: null,
+                        damageAnchor: null,
+                        placeholderText: null,
+                        clickCollider: null);
+                }
+
+                worldView.EnsureReferences();
+                worldView.SetEnemyCombatVisualPrefab(formationSlot: 1, combatVisualPrefab);
+
+                Assert.That(slotViews[0].CombatVisualPrefab, Is.Null);
+                Assert.That(slotViews[1].CombatVisualPrefab, Is.SameAs(combatVisualPrefab));
+            }
+            finally
+            {
+                Object.DestroyImmediate(combatVisualPrefab);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void PlayerHudRender_ResolvesVerticalHpSlotAndUpdatesFill()
         {
             var root = new GameObject("UI_HUDCanvas");

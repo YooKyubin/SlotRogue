@@ -1,5 +1,6 @@
 using System;
 using SlotRogue.Core.Combat;
+using SlotRogue.Data.Combat;
 
 namespace SlotRogue.UI.GameFlow
 {
@@ -8,20 +9,24 @@ namespace SlotRogue.UI.GameFlow
         public EnemyCombatant Combatant { get; }
         public int FormationSlot { get; }
         public EnemyActionPresentationMap PresentationMap { get; }
-        // MonsterDefinition is intentionally omitted for now: the current infinite-mode
-        // builder creates enemies from EncounterTier + level, so no definition object exists yet.
+        public MonsterDefinition Definition { get; }
 
-        public EnemyEncounterUnit(EnemyCombatant combatant, int formationSlot)
-            : this(combatant, formationSlot, EnemyActionPresentationMap.Empty)
+        public EnemyEncounterUnit(
+            EnemyCombatant combatant,
+            MonsterDefinition definition,
+            int formationSlot)
+            : this(combatant, definition, formationSlot, EnemyActionPresentationMap.Empty)
         {
         }
 
         public EnemyEncounterUnit(
             EnemyCombatant combatant,
+            MonsterDefinition definition,
             int formationSlot,
             EnemyActionPresentationMap presentationMap)
         {
             Combatant = combatant ?? throw new ArgumentNullException(nameof(combatant));
+            Definition = definition ?? throw new ArgumentNullException(nameof(definition));
             FormationSlot = formationSlot;
             PresentationMap = presentationMap ?? EnemyActionPresentationMap.Empty;
         }

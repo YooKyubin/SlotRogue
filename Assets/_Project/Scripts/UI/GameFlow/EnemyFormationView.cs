@@ -61,6 +61,14 @@ namespace SlotRogue.UI.GameFlow
             }
         }
 
+        public void SetCombatVisualPrefab(int formationSlot, GameObject combatVisualPrefab)
+        {
+            if (TryGetFormationSlotView(formationSlot, out EnemyFormationSlotView formationSlotView))
+            {
+                formationSlotView.SetCombatVisualPrefab(combatVisualPrefab);
+            }
+        }
+
         public void SetClickHandler(int slotIndex, Action action)
         {
             if (TryGetFormationSlotView(slotIndex, out EnemyFormationSlotView formationSlotView))

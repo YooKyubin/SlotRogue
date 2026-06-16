@@ -93,6 +93,11 @@ namespace SlotRogue.UI.GameFlow
             _worldView?.SetEnemyPortrait(slotIndex, portrait);
         }
 
+        public void SetEnemyCombatVisualPrefab(int formationSlot, GameObject combatVisualPrefab)
+        {
+            _worldView?.SetEnemyCombatVisualPrefab(formationSlot, combatVisualPrefab);
+        }
+
         public void SetEnemySlotClickHandler(int slotIndex, Action action)
         {
             _worldView?.SetEnemySlotClickHandler(slotIndex, action);

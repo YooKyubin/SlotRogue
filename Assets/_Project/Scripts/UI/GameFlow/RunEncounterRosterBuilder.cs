@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using SlotRogue.Core.Combat;
 using SlotRogue.Data.Combat;
@@ -35,18 +36,9 @@ namespace SlotRogue.UI.GameFlow
             EncounterTier tier,
             int level)
         {
-            int maxHp = TierMaxHp(tier, level);
-            var plannerFactory = new EnemyActionPlannerFactory();
-            var combatantFactory = new EnemyCombatantFactory(plannerFactory);
-            EnemyCombatant combatant = combatantFactory.Create(
-                rosterIndex: 0,
-                maxHp,
-                plannerFactory.Create(TierTurnEffects(tier, level)));
-
-            // Tier-based infinite mode currently builds enemies from EncounterTier + level,
-            // so there is no MonsterDefinition to attach here yet. Keep the encounter unit
-            // limited to runtime + formation until the monster selection path supplies one.
-            return new RunEncounterRoster(new[] { new EnemyEncounterUnit(combatant, formationSlot: 0) });
+            throw new NotSupportedException(
+                "Tier-based encounter building does not provide a MonsterDefinition. " +
+                "Use BuildFromMonsterDefinition until the tier encounter selection path supplies monster definitions.");
         }
 
         public static RunEncounterRoster BuildFromMonsterDefinition(
@@ -63,6 +55,7 @@ namespace SlotRogue.UI.GameFlow
             {
                 new EnemyEncounterUnit(
                     buildResult.Combatant,
+                    definition,
                     formationSlot,
                     buildResult.PresentationMap),
             });

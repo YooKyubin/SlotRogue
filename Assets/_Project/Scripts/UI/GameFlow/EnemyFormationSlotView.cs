@@ -50,6 +50,7 @@ namespace SlotRogue.UI.GameFlow
         private float _hpFillMaxWidth;
         private bool _hpFillLayoutInitialized;
         private bool _hpFillRendered;
+        private GameObject _combatVisualPrefab;
 #if DOTWEEN
         private Tween _hpFillTween;
 #endif
@@ -63,6 +64,8 @@ namespace SlotRogue.UI.GameFlow
         public RectTransform DamageAnchor => _damageAnchor;
 
         public ShieldGaugeView ShieldGauge => _shieldGauge;
+
+        public GameObject CombatVisualPrefab => _combatVisualPrefab;
 
         public void Bind(
             Transform root,
@@ -118,6 +121,11 @@ namespace SlotRogue.UI.GameFlow
             {
                 _placeholderText.gameObject.SetActive(sprite == null);
             }
+        }
+
+        public void SetCombatVisualPrefab(GameObject combatVisualPrefab)
+        {
+            _combatVisualPrefab = combatVisualPrefab;
         }
 
         public void SetActive(bool active)

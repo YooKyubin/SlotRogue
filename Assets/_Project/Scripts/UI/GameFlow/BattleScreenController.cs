@@ -1,5 +1,7 @@
 using System;
+using UnityEngine;
 using SlotRogue.Core.Combat;
+using SlotRogue.Data.Combat;
 using SlotRogue.UI.Combat.Presentation;
 
 namespace SlotRogue.UI.GameFlow
@@ -68,6 +70,7 @@ namespace SlotRogue.UI.GameFlow
                 Refresh);
             _targetSelectionController.ResolveSelectedEnemyId();
             _enemyVisibleIntentState.RefreshFromBattle(_battle, _battle.Enemies, _encounterRoster);
+            BindEnemyCombatVisualPrefabs();
 
             Bind();
             _targetSelectionController.Bind();
@@ -198,6 +201,50 @@ namespace SlotRogue.UI.GameFlow
         private void HandleSpinRequested()
         {
             SpinRequested?.Invoke();
+        }
+
+        private void BindEnemyCombatVisualPrefabs()
+        {
+            int slotCount = _view.EnemySlotCount;
+            for (int slotIndex = 0; slotIndex < slotCount; slotIndex++)
+            {
+                _view.SetEnemyCombatVisualPrefab(slotIndex, null);
+            }
+
+            for (int rosterIndex = 0; rosterIndex < _encounterRoster.Enemies.Count; rosterIndex++)
+            {
+                EnemyEncounterUnit unit = _encounterRoster.Enemies[rosterIndex];
+                GameObject combatVisualPrefab = ResolveCombatVisualPrefab(unit, rosterIndex);
+                _view.SetEnemyCombatVisualPrefab(unit.FormationSlot, combatVisualPrefab);
+            }
+        }
+
+        private static GameObject ResolveCombatVisualPrefab(EnemyEncounterUnit unit, int rosterIndex)
+        {
+            MonsterDefinition definition = unit.Definition;
+            if (definition == null)
+            {
+                Debug.LogError(
+                    $"[BattleScreenController] Enemy roster index {rosterIndex} has no MonsterDefinition.");
+                return null;
+            }
+
+            MonsterVisualDefinition visual = definition.Visual;
+            if (visual == null)
+            {
+                Debug.LogError(
+                    $"[BattleScreenController] MonsterDefinition '{definition.name}' has no visual definition.");
+                return null;
+            }
+
+            GameObject combatVisualPrefab = visual.CombatVisualPrefab;
+            if (combatVisualPrefab == null)
+            {
+                Debug.LogError(
+                    $"[BattleScreenController] Monster visual definition '{visual.name}' has no combat visual prefab.");
+            }
+
+            return combatVisualPrefab;
         }
 
         private void UpdateSlotResult(
