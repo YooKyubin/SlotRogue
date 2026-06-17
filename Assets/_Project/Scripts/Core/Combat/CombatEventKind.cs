@@ -10,6 +10,7 @@ namespace SlotRogue.Core.Combat
         StatusTicked = 5,
         StatusExpired = 6,
         ActionSkipped = 7,
-        ActionCompleted = 8,
+        ActionStarted = 8,
+        ActionCompleted = 9,
     }
 }

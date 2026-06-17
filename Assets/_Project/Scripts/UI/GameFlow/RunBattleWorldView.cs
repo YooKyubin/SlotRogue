@@ -97,6 +97,12 @@ namespace SlotRogue.UI.GameFlow
             return _enemyFormationView != null ? _enemyFormationView.ResolveDamageAnchor(participantId) : null;
         }
 
+        public void PlayEnemyCombatVisualAttack(CombatParticipantId participantId)
+        {
+            EnsureReferences();
+            _enemyFormationView?.PlayCombatVisualAttack(participantId);
+        }
+
         public ShieldGaugeView ResolveEnemyShieldGauge(CombatParticipantId participantId)
         {
             EnsureReferences();

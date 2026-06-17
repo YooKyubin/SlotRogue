@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using SlotRogue.Core.Combat;
 using SlotRogue.UI.GameFlow;
 using UnityEngine;
 using UnityEngine.UI;
@@ -100,8 +101,29 @@ namespace SlotRogue.UI.Tests.GameFlow
                 Assert.That(firstVisual, Is.Not.Null);
                 Assert.That(firstVisual.IdleCallCount, Is.EqualTo(1));
                 Assert.That(firstVisual.AttackCallCount, Is.EqualTo(0));
-                slotViews[1].PlayCombatVisualAttack();
+                var viewModel = new RunBattleScreenViewModel(slotCellCount: 0, enemySlotCount: 2);
+                viewModel.SetEnemySlot(
+                    slotIndex: 0,
+                    new CombatParticipantId(100),
+                    "Enemy 0",
+                    hp: 10,
+                    maxHp: 10,
+                    shield: 0,
+                    selected: false,
+                    interactable: true);
+                viewModel.SetEnemySlot(
+                    slotIndex: 1,
+                    new CombatParticipantId(101),
+                    "Enemy 1",
+                    hp: 10,
+                    maxHp: 10,
+                    shield: 0,
+                    selected: false,
+                    interactable: true);
+                worldView.Render(viewModel.State);
+                worldView.PlayEnemyCombatVisualAttack(new CombatParticipantId(101));
                 Assert.That(firstVisual.AttackCallCount, Is.EqualTo(1));
+                Assert.That(slotViews[0].CombatVisual, Is.Null);
 
                 GameObject firstInstance = slotViews[1].CombatVisualInstance;
                 worldView.SetEnemyCombatVisualPrefab(formationSlot: 1, replacementPrefab);

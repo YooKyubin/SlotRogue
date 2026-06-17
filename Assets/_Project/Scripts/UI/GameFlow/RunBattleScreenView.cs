@@ -7,7 +7,11 @@ using UnityEngine;
 
 namespace SlotRogue.UI.GameFlow
 {
-    public sealed class RunBattleScreenView : MonoBehaviour, ICombatDamageAnchorRegistry, ICombatShieldGaugeRegistry
+    public sealed class RunBattleScreenView :
+        MonoBehaviour,
+        ICombatDamageAnchorRegistry,
+        ICombatShieldGaugeRegistry,
+        IEnemyCombatVisualPresentationTarget
     {
         [SerializeField] private RunBattlePlayerHudView _playerHudView;
         [SerializeField] private RunBattleSlotBoardView _slotBoardView;
@@ -124,6 +128,11 @@ namespace SlotRogue.UI.GameFlow
                 ? _worldView.ResolveEnemyDamageAnchor(participantId)
                 : null;
             return enemyAnchor;
+        }
+
+        public void PlayEnemyCombatVisualAttack(CombatParticipantId participantId)
+        {
+            _worldView?.PlayEnemyCombatVisualAttack(participantId);
         }
 
         public UniTask ShowShieldGainAsync(

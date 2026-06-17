@@ -142,6 +142,19 @@ namespace SlotRogue.UI.GameFlow
             return null;
         }
 
+        public void PlayCombatVisualAttack(CombatParticipantId participantId)
+        {
+            if (participantId.IsValid &&
+                _slotIndexByParticipantId.TryGetValue(participantId.Value, out int slotIndex) &&
+                TryGetFormationSlotView(slotIndex, out EnemyFormationSlotView formationSlotView))
+            {
+                formationSlotView.PlayCombatVisualAttack();
+                return;
+            }
+
+            _warnings.MissingCombatVisualSlot(participantId);
+        }
+
         private static void RenderFormationSlot(
             EnemyFormationSlotView formationSlotView,
             RunBattleEnemySlotState state)
