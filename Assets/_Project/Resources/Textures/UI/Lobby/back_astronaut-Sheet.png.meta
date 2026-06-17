@@ -1,10 +1,22 @@
 fileFormatVersion: 2
-guid: f054b3ee2c7a79c42b2c7179b173387e
+guid: b24c46a323d127b4ba02c8f5c7dc787d
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 8707594959427059097
-    second: MonsterIntent_Heal_0
+      213: -7108032975205699064
+    second: back_astronaut-Sheet_0
+  - first:
+      213: 1653272723609845838
+    second: back_astronaut-Sheet_1
+  - first:
+      213: 3013261180996605246
+    second: back_astronaut-Sheet_2
+  - first:
+      213: 4793801328242093554
+    second: back_astronaut-Sheet_3
+  - first:
+      213: 8815756601236925883
+    second: back_astronaut-Sheet_4
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -37,7 +49,7 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 1
+    filterMode: 0
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -113,23 +125,89 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: MonsterIntent_Heal_0
+      name: back_astronaut-Sheet_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 16
-        height: 16
+        width: 32
+        height: 32
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 99db1a41b7797d870800000000000000
-      internalID: 8707594959427059097
+      spriteID: 802f9154ba13b5d90800000000000000
+      internalID: -7108032975205699064
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: back_astronaut-Sheet_1
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 0
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e408b9f58ca91f610800000000000000
+      internalID: 1653272723609845838
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: back_astronaut-Sheet_2
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 0
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e35d6c4441141d920800000000000000
+      internalID: 3013261180996605246
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: back_astronaut-Sheet_3
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 0
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2fd6aadc8e0078240800000000000000
+      internalID: 4793801328242093554
       vertices: []
       indices: 
       edges: []
@@ -138,7 +216,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 3c6e82e14a8d6bc47b9fc578ca1e97a5
     internalID: 0
     vertices: []
     indices: 
@@ -146,9 +224,14 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries: []
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":4.0,"y":1.0},"gridSpriteSize":{"x":32.0,"y":32.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":2,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
-      MonsterIntent_Heal_0: 8707594959427059097
+      back_astronaut-Sheet_0: -7108032975205699064
+      back_astronaut-Sheet_1: 1653272723609845838
+      back_astronaut-Sheet_2: 3013261180996605246
+      back_astronaut-Sheet_3: 4793801328242093554
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

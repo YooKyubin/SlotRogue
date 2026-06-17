@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: f054b3ee2c7a79c42b2c7179b173387e
+guid: 0615526b6f6dd9a4f99841fda7a64729
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 8707594959427059097
-    second: MonsterIntent_Heal_0
+      213: 532808523598318773
+    second: back3_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -37,7 +37,7 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 1
+    filterMode: 0
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -113,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: MonsterIntent_Heal_0
+      name: back3_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 16
-        height: 16
+        width: 360
+        height: 254
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 99db1a41b7797d870800000000000000
-      internalID: 8707594959427059097
+      spriteID: 5bcc06e778ae46700800000000000000
+      internalID: 532808523598318773
       vertices: []
       indices: 
       edges: []
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      MonsterIntent_Heal_0: 8707594959427059097
+      back3_0: 532808523598318773
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

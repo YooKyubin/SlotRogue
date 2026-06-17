@@ -19,12 +19,12 @@ namespace SlotRogue.UI.App
     {
         public static void LoadBoot()
         {
-            SceneManager.LoadScene(SceneNames.Boot);
+            SceneManager.LoadScene(SceneNames.Title);
         }
 
         public static void LoadGameStart()
         {
-            SceneManager.LoadScene(SceneNames.GameStart);
+            SceneManager.LoadScene(SceneNames.Lobby);
         }
 
         public static void LoadRunGame()

@@ -10,12 +10,12 @@ namespace SlotRogue.UI.App
     public static class SceneNames
     {
         /// <summary>앱 초기화 전용 씬. 진입점.</summary>
-        public const string Boot = "BootScene";
+        public const string Title = "00_TitleScene";
 
         /// <summary>타이틀 / 시작 화면 씬.</summary>
-        public const string GameStart = "GameStart";
+        public const string Lobby = "10_LobbyScene";
 
         /// <summary>무한 모드 게임 전체를 담는 씬. 단독 Play도 지원합니다.</summary>
-        public const string RunGame = "RunGame";
+        public const string RunGame = "20_RunGameScene";
     }
 }
