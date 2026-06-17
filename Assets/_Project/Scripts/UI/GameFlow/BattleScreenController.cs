@@ -216,16 +216,22 @@ namespace SlotRogue.UI.GameFlow
         private void BindEnemyCombatVisualPrefabs()
         {
             _view.ClearEnemyCombatVisualPrefabs();
+            _view.ClearEnemyPortraitSprites();
 
             for (int rosterIndex = 0; rosterIndex < _encounterRoster.Enemies.Count; rosterIndex++)
             {
                 EnemyEncounterUnit unit = _encounterRoster.Enemies[rosterIndex];
-                GameObject combatVisualPrefab = ResolveCombatVisualPrefab(unit, rosterIndex);
+                MonsterVisualDefinition visual = ResolveMonsterVisual(unit, rosterIndex);
+                _view.SetEnemyPortraitSprite(
+                    unit.FormationSlot,
+                    visual != null ? visual.Portrait : null);
+
+                GameObject combatVisualPrefab = ResolveCombatVisualPrefab(visual);
                 _view.SetEnemyCombatVisualPrefab(unit.FormationSlot, combatVisualPrefab);
             }
         }
 
-        private static GameObject ResolveCombatVisualPrefab(EnemyEncounterUnit unit, int rosterIndex)
+        private static MonsterVisualDefinition ResolveMonsterVisual(EnemyEncounterUnit unit, int rosterIndex)
         {
             MonsterDefinition definition = unit.Definition;
             if (definition == null)
@@ -240,6 +246,16 @@ namespace SlotRogue.UI.GameFlow
             {
                 Debug.LogError(
                     $"[BattleScreenController] MonsterDefinition '{definition.name}' has no visual definition.");
+                return null;
+            }
+
+            return visual;
+        }
+
+        private static GameObject ResolveCombatVisualPrefab(MonsterVisualDefinition visual)
+        {
+            if (visual == null)
+            {
                 return null;
             }
 
