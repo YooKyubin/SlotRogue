@@ -162,7 +162,7 @@ namespace SlotRogue.UI.GameFlow
             DestroyCombatVisualInstance();
         }
 
-        public void PlayCombatVisualAttack()
+        public void PlayCombatVisualAction(string actionName)
         {
             if (_combatVisual == null)
             {
@@ -170,7 +170,7 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
-            _combatVisual.PlayAttack();
+            _combatVisual.PlayAction(actionName);
         }
 
         private void PlayCombatVisualIdle()

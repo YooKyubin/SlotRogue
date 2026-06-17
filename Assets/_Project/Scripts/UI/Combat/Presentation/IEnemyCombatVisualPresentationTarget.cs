@@ -4,6 +4,6 @@ namespace SlotRogue.UI.Combat.Presentation
 {
     public interface IEnemyCombatVisualPresentationTarget
     {
-        void PlayEnemyCombatVisualAttack(CombatParticipantId participantId);
+        void PlayEnemyCombatVisualAction(CombatParticipantId participantId, string actionName);
     }
 }

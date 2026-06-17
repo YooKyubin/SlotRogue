@@ -12,8 +12,9 @@ namespace SlotRogue.UI.Combat.Presentation
         {
         }
 
-        public UniTask PlayEnemyAttackAsync(
+        public UniTask PlayEnemyActionAsync(
             CombatParticipantId participantId,
+            string actionName,
             CancellationToken cancellationToken)
         {
             return UniTask.CompletedTask;

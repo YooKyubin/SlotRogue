@@ -4,6 +4,6 @@ namespace SlotRogue.UI.GameFlow
     {
         void PlayIdle();
 
-        void PlayAttack();
+        void PlayAction(string actionName);
     }
 }

@@ -151,9 +151,9 @@ namespace SlotRogue.UI.GameFlow
             return enemyAnchor;
         }
 
-        public void PlayEnemyCombatVisualAttack(CombatParticipantId participantId)
+        public void PlayEnemyCombatVisualAction(CombatParticipantId participantId, string actionName)
         {
-            _worldView?.PlayEnemyCombatVisualAttack(participantId);
+            _worldView?.PlayEnemyCombatVisualAction(participantId, actionName);
         }
 
         public UniTask ShowShieldGainAsync(

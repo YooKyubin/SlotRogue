@@ -10,7 +10,7 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
     public sealed class ActionStartedPresenterTests
     {
         [Test]
-        public void PresentAsync_EnemyActionStartedRequestsEnemyAttackOnce()
+        public void PresentAsync_EnemyActionStartedRequestsEnemyActionOnce()
         {
             var hostObject = new GameObject("Presentation Host");
             try
@@ -21,7 +21,8 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 var combatEvent = new CombatEvent(
                     CombatEventKind.ActionStarted,
                     BattlePhase.EnemyTurn,
-                    sourceParticipantId: sourceParticipantId);
+                    sourceParticipantId: sourceParticipantId,
+                    actionName: "Defend");
 
                 presenter.PresentAsync(
                         combatEvent,
@@ -31,8 +32,9 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                     .GetAwaiter()
                     .GetResult();
 
-                Assert.That(commands.EnemyAttackCallCount, Is.EqualTo(1));
-                Assert.That(commands.LastEnemyAttackParticipantId.Value, Is.EqualTo(sourceParticipantId.Value));
+                Assert.That(commands.EnemyActionCallCount, Is.EqualTo(1));
+                Assert.That(commands.LastEnemyActionParticipantId.Value, Is.EqualTo(sourceParticipantId.Value));
+                Assert.That(commands.LastEnemyActionName, Is.EqualTo("Defend"));
                 Assert.That(commands.OtherCommandCallCount, Is.EqualTo(0));
             }
             finally
@@ -42,7 +44,7 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
         }
 
         [Test]
-        public void PresentAsync_NonActionStartedEventDoesNotRequestEnemyAttack()
+        public void PresentAsync_NonActionStartedEventDoesNotRequestEnemyAction()
         {
             var hostObject = new GameObject("Presentation Host");
             try
@@ -62,7 +64,7 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                     .GetAwaiter()
                     .GetResult();
 
-                Assert.That(commands.EnemyAttackCallCount, Is.EqualTo(0));
+                Assert.That(commands.EnemyActionCallCount, Is.EqualTo(0));
                 Assert.That(commands.OtherCommandCallCount, Is.EqualTo(0));
             }
             finally
@@ -73,18 +75,22 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
 
         private sealed class RecordingCommands : ICombatPresentationCommands
         {
-            public int EnemyAttackCallCount { get; private set; }
+            public int EnemyActionCallCount { get; private set; }
 
             public int OtherCommandCallCount { get; private set; }
 
-            public CombatParticipantId LastEnemyAttackParticipantId { get; private set; }
+            public CombatParticipantId LastEnemyActionParticipantId { get; private set; }
 
-            public UniTask PlayEnemyAttackAsync(
+            public string LastEnemyActionName { get; private set; }
+
+            public UniTask PlayEnemyActionAsync(
                 CombatParticipantId participantId,
+                string actionName,
                 CancellationToken cancellationToken)
             {
-                EnemyAttackCallCount++;
-                LastEnemyAttackParticipantId = participantId;
+                EnemyActionCallCount++;
+                LastEnemyActionParticipantId = participantId;
+                LastEnemyActionName = actionName;
                 return UniTask.CompletedTask;
             }
 

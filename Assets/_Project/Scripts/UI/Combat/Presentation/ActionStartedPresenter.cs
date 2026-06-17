@@ -24,8 +24,9 @@ namespace SlotRogue.UI.Combat.Presentation
                 return UniTask.CompletedTask;
             }
 
-            return Host.Commands.PlayEnemyAttackAsync(
+            return Host.Commands.PlayEnemyActionAsync(
                 combatEvent.SourceParticipantId,
+                combatEvent.ActionName,
                 cancellationToken);
         }
     }

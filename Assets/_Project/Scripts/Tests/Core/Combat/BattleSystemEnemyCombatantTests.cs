@@ -110,7 +110,7 @@ namespace SlotRogue.Core.Tests.Combat
             CombatParticipant enemy = Enemy(id: 100, maxHp: 20);
             _battle.StartBattle(
                 player,
-                new[] { Combatant(enemy, Plan(CombatEffectKind.Damage, 4, CombatEffectTarget.Enemy)) });
+                new[] { Combatant(enemy, NamedPlan("Attack", CombatEffectKind.Damage, 4, CombatEffectTarget.Enemy)) });
 
             _battle.ApplyPlayerTurn(System.Array.Empty<CombatEffect>());
 
@@ -122,6 +122,7 @@ namespace SlotRogue.Core.Tests.Combat
             Assert.That(completedIndex, Is.GreaterThan(effectIndex));
             Assert.That(_battle.Events[startedIndex].Phase, Is.EqualTo(BattlePhase.EnemyTurn));
             Assert.That(_battle.Events[startedIndex].SourceParticipantId.Value, Is.EqualTo(enemy.Id.Value));
+            Assert.That(_battle.Events[startedIndex].ActionName, Is.EqualTo("Attack"));
         }
 
         [Test]
@@ -167,6 +168,24 @@ namespace SlotRogue.Core.Tests.Combat
             CombatEffectTarget target)
         {
             return new EnemyActionPlan(new[] { new CombatEffect(kind, amount, target) });
+        }
+
+        private static EnemyActionPlan NamedPlan(
+            string actionName,
+            CombatEffectKind kind,
+            int amount,
+            CombatEffectTarget target)
+        {
+            return EnemyActionPlan.FromActions(new[]
+            {
+                new EnemyPlannedAction(
+                    new EnemyActionKey(1),
+                    actionName,
+                    new[]
+                    {
+                        EnemyActionEffect.FromCombatEffect(new CombatEffect(kind, amount, target)),
+                    }),
+            });
         }
 
         private int FindEventIndex(CombatEventKind kind, CombatParticipantId sourceParticipantId)

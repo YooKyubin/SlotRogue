@@ -9,7 +9,6 @@ namespace SlotRogue.UI.GameFlow
         private const float RestartFromBeginning = 0f;
 
         private static readonly int IdleStateHash = Animator.StringToHash("Idle");
-        private static readonly int AttackStateHash = Animator.StringToHash("Attack");
 
         [SerializeField] private Animator _animator;
 
@@ -23,14 +22,23 @@ namespace SlotRogue.UI.GameFlow
             _animator.Play(IdleStateHash, BaseLayer, RestartFromBeginning);
         }
 
-        public void PlayAttack()
+        public void PlayAction(string actionName)
         {
             if (!ValidateAnimator())
             {
                 return;
             }
 
-            _animator.Play(AttackStateHash, BaseLayer, RestartFromBeginning);
+            if (string.IsNullOrWhiteSpace(actionName))
+            {
+                Debug.LogError(
+                    "[MoonRabitCombatVisual] ActionName is empty.",
+                    this);
+                return;
+            }
+
+            int stateHash = Animator.StringToHash(actionName);
+            _animator.Play(stateHash, BaseLayer, RestartFromBeginning);
         }
 
         private bool ValidateAnimator()

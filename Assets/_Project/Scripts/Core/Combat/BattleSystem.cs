@@ -277,7 +277,8 @@ namespace SlotRogue.Core.Combat
                 _events.Add(new CombatEvent(
                     CombatEventKind.ActionStarted,
                     CurrentPhase,
-                    sourceParticipantId: source.Id));
+                    sourceParticipantId: source.Id,
+                    actionName: action.ActionName));
 
                 IReadOnlyList<EnemyActionEffect> effects = action.Effects;
                 CombatEffect completedEffect = default;

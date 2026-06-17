@@ -101,7 +101,7 @@ namespace SlotRogue.UI.Tests.GameFlow
                 var firstVisual = firstInstanceTransform.GetComponent<TestEnemyCombatVisual>();
                 Assert.That(firstVisual, Is.Not.Null);
                 Assert.That(firstVisual.IdleCallCount, Is.EqualTo(1));
-                Assert.That(firstVisual.AttackCallCount, Is.EqualTo(0));
+                Assert.That(firstVisual.ActionCallCount, Is.EqualTo(0));
                 var viewModel = new RunBattleScreenViewModel(slotCellCount: 0, enemySlotCount: 2);
                 viewModel.SetEnemySlot(
                     slotIndex: 0,
@@ -122,8 +122,9 @@ namespace SlotRogue.UI.Tests.GameFlow
                     selected: false,
                     interactable: true);
                 worldView.Render(viewModel.State);
-                worldView.PlayEnemyCombatVisualAttack(new CombatParticipantId(101));
-                Assert.That(firstVisual.AttackCallCount, Is.EqualTo(1));
+                worldView.PlayEnemyCombatVisualAction(new CombatParticipantId(101), "Defend");
+                Assert.That(firstVisual.ActionCallCount, Is.EqualTo(1));
+                Assert.That(firstVisual.LastActionName, Is.EqualTo("Defend"));
                 Assert.That(slotViews[0].transform.Find("VisualRoot").childCount, Is.EqualTo(0));
 
                 GameObject firstInstance = firstInstanceTransform.gameObject;
@@ -136,7 +137,7 @@ namespace SlotRogue.UI.Tests.GameFlow
                 var replacementVisual = replacementInstanceTransform.GetComponent<TestEnemyCombatVisual>();
                 Assert.That(replacementVisual, Is.Not.Null);
                 Assert.That(replacementVisual.IdleCallCount, Is.EqualTo(1));
-                Assert.That(replacementVisual.AttackCallCount, Is.EqualTo(0));
+                Assert.That(replacementVisual.ActionCallCount, Is.EqualTo(0));
 
                 GameObject replacementInstance = replacementInstanceTransform.gameObject;
                 worldView.ClearEnemyCombatVisualPrefabs();
@@ -279,16 +280,19 @@ namespace SlotRogue.UI.Tests.GameFlow
         {
             public int IdleCallCount { get; private set; }
 
-            public int AttackCallCount { get; private set; }
+            public int ActionCallCount { get; private set; }
+
+            public string LastActionName { get; private set; }
 
             public void PlayIdle()
             {
                 IdleCallCount++;
             }
 
-            public void PlayAttack()
+            public void PlayAction(string actionName)
             {
-                AttackCallCount++;
+                ActionCallCount++;
+                LastActionName = actionName;
             }
         }
     }

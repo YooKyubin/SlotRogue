@@ -175,13 +175,13 @@ namespace SlotRogue.UI.GameFlow
             return null;
         }
 
-        public void PlayCombatVisualAttack(CombatParticipantId participantId)
+        public void PlayCombatVisualAction(CombatParticipantId participantId, string actionName)
         {
             if (participantId.IsValid &&
                 _slotIndexByParticipantId.TryGetValue(participantId.Value, out int slotIndex) &&
                 TryGetFormationSlotView(slotIndex, out EnemyFormationSlotView formationSlotView))
             {
-                formationSlotView.PlayCombatVisualAttack();
+                formationSlotView.PlayCombatVisualAction(actionName);
                 return;
             }
 
