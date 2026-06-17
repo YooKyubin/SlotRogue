@@ -51,7 +51,9 @@ namespace SlotRogue.UI.GameFlow
         private bool _hpFillRendered;
         private GameObject _combatVisualPrefab;
         private GameObject _combatVisualInstance;
+        private IEnemyCombatVisual _combatVisual;
         private bool _visualRootMissingWarningLogged;
+        private bool _combatVisualMissingWarningLogged;
 #if DOTWEEN
         private Tween _hpFillTween;
 #endif
@@ -69,6 +71,8 @@ namespace SlotRogue.UI.GameFlow
         public GameObject CombatVisualPrefab => _combatVisualPrefab;
 
         public GameObject CombatVisualInstance => _combatVisualInstance;
+
+        public IEnemyCombatVisual CombatVisual => _combatVisual;
 
         public Transform VisualRoot => _visualRoot;
 
@@ -122,16 +126,62 @@ namespace SlotRogue.UI.GameFlow
         {
             ClearCombatVisual();
 
+            if (combatVisualPrefab == null)
+            {
+                Debug.LogError(
+                    "[EnemyFormationSlotView] Combat visual prefab is missing. " +
+                    "Assign MonsterVisualDefinition.CombatVisualPrefab before binding the enemy slot.",
+                    this);
+                return;
+            }
+
+            if (_visualRoot == null)
+            {
+                LogMissingVisualRootWarning();
+                return;
+            }
+
             _combatVisualPrefab = combatVisualPrefab;
             _combatVisualInstance = Instantiate(combatVisualPrefab, _visualRoot);
             _combatVisualInstance.transform.localPosition = Vector3.zero;
             _combatVisualInstance.transform.localRotation = Quaternion.identity;
+            _combatVisual = _combatVisualInstance.GetComponentInChildren<IEnemyCombatVisual>(includeInactive: true);
+            if (_combatVisual == null)
+            {
+                LogMissingCombatVisualWarning(combatVisualPrefab);
+                return;
+            }
+
+            PlayCombatVisualIdle();
         }
 
         public void ClearCombatVisual()
         {
             _combatVisualPrefab = null;
+            _combatVisual = null;
             DestroyCombatVisualInstance();
+        }
+
+        public void PlayCombatVisualIdle()
+        {
+            if (_combatVisual == null)
+            {
+                LogMissingCombatVisualWarning(_combatVisualPrefab);
+                return;
+            }
+
+            _combatVisual.PlayIdle();
+        }
+
+        public void PlayCombatVisualAttack()
+        {
+            if (_combatVisual == null)
+            {
+                LogMissingCombatVisualWarning(_combatVisualPrefab);
+                return;
+            }
+
+            _combatVisual.PlayAttack();
         }
 
         public void SetActive(bool active)
@@ -337,6 +387,7 @@ namespace SlotRogue.UI.GameFlow
 
         private void DestroyCombatVisualInstance()
         {
+            _combatVisual = null;
             if (_combatVisualInstance == null)
             {
                 return;
@@ -453,6 +504,35 @@ namespace SlotRogue.UI.GameFlow
             Debug.LogWarning(
                 $"[EnemyFormationSlotView] {missingReferenceName} is missing. " +
                 "Enemy intent icons will not be shown for this slot.");
+        }
+
+        private void LogMissingVisualRootWarning()
+        {
+            if (_visualRootMissingWarningLogged)
+            {
+                return;
+            }
+
+            _visualRootMissingWarningLogged = true;
+            Debug.LogError(
+                "[EnemyFormationSlotView] Visual Root is missing. " +
+                "Combat visual prefabs must be spawned under the slot VisualRoot.",
+                this);
+        }
+
+        private void LogMissingCombatVisualWarning(GameObject combatVisualPrefab)
+        {
+            if (_combatVisualMissingWarningLogged)
+            {
+                return;
+            }
+
+            _combatVisualMissingWarningLogged = true;
+            string prefabName = combatVisualPrefab != null ? combatVisualPrefab.name : "the bound combat visual prefab";
+            Debug.LogError(
+                $"[EnemyFormationSlotView] {prefabName} does not provide IEnemyCombatVisual. " +
+                "Add a monster combat visual component to the prefab before using animation requests.",
+                this);
         }
 
         private static Transform FindDeepChild(Transform parent, string childName)

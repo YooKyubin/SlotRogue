@@ -56,6 +56,8 @@ namespace SlotRogue.UI.Tests.GameFlow
             var root = new GameObject("BattleArenaRoot");
             var combatVisualPrefab = new GameObject("Enemy Combat Visual Prefab");
             var replacementPrefab = new GameObject("Enemy Combat Visual Replacement Prefab");
+            combatVisualPrefab.AddComponent<TestEnemyCombatVisual>();
+            replacementPrefab.AddComponent<TestEnemyCombatVisual>();
             try
             {
                 RunBattleWorldView worldView = root.AddComponent<RunBattleWorldView>();
@@ -94,6 +96,12 @@ namespace SlotRogue.UI.Tests.GameFlow
                 Assert.That(slotViews[1].CombatVisualInstance.transform.parent, Is.SameAs(slotViews[1].VisualRoot));
                 Assert.That(slotViews[1].CombatVisualInstance.transform.localPosition, Is.EqualTo(Vector3.zero));
                 Assert.That(slotViews[1].CombatVisualInstance.transform.localRotation, Is.EqualTo(Quaternion.identity));
+                var firstVisual = slotViews[1].CombatVisual as TestEnemyCombatVisual;
+                Assert.That(firstVisual, Is.Not.Null);
+                Assert.That(firstVisual.IdleCallCount, Is.EqualTo(1));
+                Assert.That(firstVisual.AttackCallCount, Is.EqualTo(0));
+                slotViews[1].PlayCombatVisualAttack();
+                Assert.That(firstVisual.AttackCallCount, Is.EqualTo(1));
 
                 GameObject firstInstance = slotViews[1].CombatVisualInstance;
                 worldView.SetEnemyCombatVisualPrefab(formationSlot: 1, replacementPrefab);
@@ -103,6 +111,10 @@ namespace SlotRogue.UI.Tests.GameFlow
                 Assert.That(slotViews[1].CombatVisualInstance, Is.Not.Null);
                 Assert.That(slotViews[1].CombatVisualInstance.name, Does.StartWith(replacementPrefab.name));
                 Assert.That(slotViews[1].VisualRoot.childCount, Is.EqualTo(1));
+                var replacementVisual = slotViews[1].CombatVisual as TestEnemyCombatVisual;
+                Assert.That(replacementVisual, Is.Not.Null);
+                Assert.That(replacementVisual.IdleCallCount, Is.EqualTo(1));
+                Assert.That(replacementVisual.AttackCallCount, Is.EqualTo(0));
 
                 GameObject replacementInstance = slotViews[1].CombatVisualInstance;
                 worldView.ClearEnemyCombatVisualPrefabs();
@@ -112,6 +124,7 @@ namespace SlotRogue.UI.Tests.GameFlow
                 Assert.That(slotViews[0].CombatVisualInstance, Is.Null);
                 Assert.That(slotViews[1].CombatVisualPrefab, Is.Null);
                 Assert.That(slotViews[1].CombatVisualInstance, Is.Null);
+                Assert.That(slotViews[1].CombatVisual, Is.Null);
                 Assert.That(slotViews[1].VisualRoot.childCount, Is.EqualTo(0));
             }
             finally
@@ -241,6 +254,23 @@ namespace SlotRogue.UI.Tests.GameFlow
             finally
             {
                 Object.DestroyImmediate(root);
+            }
+        }
+
+        private sealed class TestEnemyCombatVisual : MonoBehaviour, IEnemyCombatVisual
+        {
+            public int IdleCallCount { get; private set; }
+
+            public int AttackCallCount { get; private set; }
+
+            public void PlayIdle()
+            {
+                IdleCallCount++;
+            }
+
+            public void PlayAttack()
+            {
+                AttackCallCount++;
             }
         }
     }
