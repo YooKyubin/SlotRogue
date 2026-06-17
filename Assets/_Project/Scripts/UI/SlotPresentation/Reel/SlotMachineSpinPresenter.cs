@@ -142,6 +142,26 @@ namespace SlotRogue.UI.SlotPresentation.Reel
             FinishSpin(result, reelDisplay);
         }
 
+        public void ShowImmediate(SlotSpinResult result)
+        {
+            if (result == null || !EnsureReels())
+            {
+                return;
+            }
+
+            if (ReelsAreDisplay)
+            {
+                HideCellIcons();
+            }
+
+            StopImmediate(result);
+
+            if (ReelsAreDisplay)
+            {
+                ShowReels();
+            }
+        }
+
         private void SetAllReelsImmediate(SlotSpinResult result)
         {
             for (int column = 0; column < Columns; column++)

@@ -70,6 +70,33 @@ namespace SlotRogue.UI.SlotPresentation
             _playRoutine = StartCoroutine(PlayRoutine(result, onCompleted));
         }
 
+        public void ShowImmediate(SlotSpinResult result)
+        {
+            if (result == null)
+            {
+                return;
+            }
+
+            if (_playRoutine != null)
+            {
+                StopCoroutine(_playRoutine);
+                _playRoutine = null;
+            }
+
+            _skipRequested = false;
+            _skipAllRequested = false;
+            SetTapSkipEnabled(false);
+
+            SlotMachineSpinPresenter presenter = EnsureSpinPresenter();
+            if (presenter != null)
+            {
+                presenter.ShowImmediate(result);
+                return;
+            }
+
+            _slotCellSpinView?.StopImmediate(result);
+        }
+
         public void SkipCurrent()
         {
             _skipRequested = true;

@@ -33,6 +33,7 @@ namespace SlotRogue.UI.GameFlow
         internal void SetupImmediate()
         {
             _spinSequence.SetupImmediate();
+            _presentationManager?.ShowImmediate(CreateInitialSlotDisplayResult());
         }
 
         internal async UniTask<SlotTurnResult> SpinAsync(SlotTurnRequest request)
@@ -239,6 +240,19 @@ namespace SlotRogue.UI.GameFlow
             }
 
             return values.Count > 0 ? string.Join(" / ", values) : "효과 발동";
+        }
+
+        private static SlotSpinResult CreateInitialSlotDisplayResult()
+        {
+            IReadOnlyList<SlotSymbolType> symbols = SlotSymbolPool.Symbols;
+            var displaySymbols = new SlotSymbolType[SlotSpinResult.CellCount];
+
+            for (int index = 0; index < displaySymbols.Length; index++)
+            {
+                displaySymbols[index] = symbols[index % symbols.Count];
+            }
+
+            return new SlotSpinResult(displaySymbols);
         }
 
         private static bool ShouldRaiseLeverBeforeEvent(CombatEvent combatEvent)
