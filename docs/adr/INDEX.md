@@ -19,6 +19,13 @@
 | [0007](./0007-addressables-local-runtime-assets.md) | Addressables 로컬 기준선으로 런타임 설정 자산을 공급한다 | accepted | 2026-06-11 | — |
 | [0008](./0008-ui-strict-mvvm-boundary.md) | UI는 strict MVVM 경계를 따른다 | accepted | 2026-06-11 | — |
 | [0009](./0009-relic-icon-addressable-keys.md) | 유물 아이콘은 논리 키로 Addressable Sprite를 참조한다 | accepted | 2026-06-12 | — |
+| [0010](./0010-ugs-leaderboard-run-record.md) | 런 최고기록은 UGS Leaderboards 점수와 metadata로 저장한다 | superseded | 2026-06-12 | — |
+| [0011](./0011-leaderboard-profile-and-defeat-flow.md) | 리더보드 프로필은 필수이며 패배 기록은 자동 제출한다 | superseded | 2026-06-12 | 0010 |
+| [0012](./0012-leaderboard-nickname-only-profile.md) | 리더보드 프로필은 닉네임만 저장한다 | accepted | 2026-06-13 | 0011 |
+| [0013](./0013-levelplay-rewarded-ads.md) | 보상형 광고는 LevelPlay 단일 AdsManager로 제공한다 | accepted | 2026-06-13 | — |
+| [0014](./0014-defeat-revive-window-and-relic-contribution.md) | 패배는 부활 유예 후 확정하고 유물 기여도는 명목 효과량으로 집계한다 | accepted | 2026-06-13 | — |
+| [0015](./0015-remove-ads-rewarded-skip-iap.md) | 광고 제거 IAP를 보상형 광고 시청 스킵으로 정의한다 | accepted | 2026-06-14 | — |
+| [0016](./0016-local-notifications-weekly-ranking-reset.md) | 알림은 로컬 예약하고 주간 랭킹은 한국 수요일에 리셋한다 | accepted | 2026-06-14 | — |
 
 ---
 
@@ -29,7 +36,6 @@
 - 슬롯 RNG / 페이아웃 모델 (결정론적 시드 vs 비결정론, 고정 RTP vs 동적)
 - 세이브 포맷 (JSON 평문 vs 암호화 binary, PlayerPrefs 사용 한계)
 - Addressables 원격 호스팅 / 콘텐츠 업데이트 전략
-- 광고 / IAP SDK 선택
 - 타겟 해상도 / Safe Area 처리 방식
 - 브랜치 / PR 워크플로 (trunk-based vs feature branch + PR)
 

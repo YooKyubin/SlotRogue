@@ -38,14 +38,21 @@ namespace SlotRogue.UI.GameFlow
 
     public readonly struct BattleFlowResult
     {
-        public BattleFlowResult(BattleEndReason endReason, int remainingPlayerHp)
+        public BattleFlowResult(
+            BattleEndReason endReason,
+            int remainingPlayerHp,
+            IReadOnlyList<RelicContributionSnapshot> relicContributions)
         {
             EndReason = endReason;
             RemainingPlayerHp = remainingPlayerHp;
+            RelicContributions =
+                relicContributions ?? Array.Empty<RelicContributionSnapshot>();
         }
 
         public BattleEndReason EndReason { get; }
 
         public int RemainingPlayerHp { get; }
+
+        public IReadOnlyList<RelicContributionSnapshot> RelicContributions { get; }
     }
 }

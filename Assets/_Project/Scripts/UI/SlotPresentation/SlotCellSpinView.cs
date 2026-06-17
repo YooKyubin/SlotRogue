@@ -11,6 +11,8 @@ namespace SlotRogue.UI.SlotPresentation
 {
     public sealed class SlotCellSpinView : MonoBehaviour
     {
+        private const float NativeSizeMultiplier = 1.25f;
+
         [SerializeField] private Image[] _cellIcons;
         [SerializeField] private Sprite[] _symbolSprites;
         [SerializeField] private Sprite[] _spinSymbolSprites;
@@ -21,8 +23,6 @@ namespace SlotRogue.UI.SlotPresentation
         [SerializeField] private float _stopIntervalPerColumn = 0.12f;
 
         [Header("Lock Effect")]
-        [SerializeField] private float _iconSize = 32f;
-        [SerializeField] private float _spinningIconSize = 34f;
         [SerializeField] private float _spinPulseScale = 1.04f;
         [SerializeField] private float _lockPunchScale = 0.18f;
         [SerializeField] private float _lockPunchDuration = 0.22f;
@@ -250,7 +250,7 @@ namespace SlotRogue.UI.SlotPresentation
             rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
             rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
             rectTransform.anchoredPosition = Vector2.zero;
-            rectTransform.sizeDelta = new Vector2(_iconSize, _iconSize);
+            ApplyNativeSize(_cellIcons[index]);
             rectTransform.localRotation = Quaternion.identity;
             rectTransform.localScale = Vector3.one;
         }
@@ -271,9 +271,20 @@ namespace SlotRogue.UI.SlotPresentation
             rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
             rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
             rectTransform.anchoredPosition = Vector2.zero;
-            rectTransform.sizeDelta = new Vector2(_spinningIconSize, _spinningIconSize);
+            ApplyNativeSize(icon);
             rectTransform.localRotation = Quaternion.identity;
             rectTransform.localScale = new Vector3(_spinPulseScale, _spinPulseScale, 1f);
+        }
+
+        private static void ApplyNativeSize(Image icon)
+        {
+            if (icon == null || icon.sprite == null)
+            {
+                return;
+            }
+
+            icon.SetNativeSize();
+            icon.rectTransform.sizeDelta *= NativeSizeMultiplier;
         }
 
         private IEnumerator WaitForTweenOrSkip(Tween tween, Func<bool> shouldSkip)

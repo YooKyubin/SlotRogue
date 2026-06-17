@@ -2897,6 +2897,18 @@ MonoBehaviour:
   - {fileID: 7080512255757862221, guid: 8c48ddf30daf04e42bce73f0263e42ab, type: 3}
   - {fileID: 578215272941793440, guid: 8c48ddf30daf04e42bce73f0263e42ab, type: 3}
   - {fileID: -3294406764887841947, guid: 8c48ddf30daf04e42bce73f0263e42ab, type: 3}
+  _leftReelSprites:
+  - {fileID: 6512131306100088590, guid: 4b31378bce374f64783e611c010fc667, type: 3}
+  - {fileID: -640095426, guid: 4b31378bce374f64783e611c010fc667, type: 3}
+  - {fileID: 1796278009, guid: 4b31378bce374f64783e611c010fc667, type: 3}
+  _middleReelSprites:
+  - {fileID: 6501451392810206554, guid: cead807396a1deb4484810d3dc5814e9, type: 3}
+  - {fileID: -1326536945, guid: cead807396a1deb4484810d3dc5814e9, type: 3}
+  - {fileID: -1426412136, guid: cead807396a1deb4484810d3dc5814e9, type: 3}
+  _rightReelSprites:
+  - {fileID: -4121578602823758125, guid: afa807fe9ff914047ac3106f5fe3faae, type: 3}
+  - {fileID: 853297827, guid: afa807fe9ff914047ac3106f5fe3faae, type: 3}
+  - {fileID: -2047573836, guid: afa807fe9ff914047ac3106f5fe3faae, type: 3}
   _cycleInterval: 0.08
   _settleInterval: 0.08
 --- !u!1 &5864049905864004732

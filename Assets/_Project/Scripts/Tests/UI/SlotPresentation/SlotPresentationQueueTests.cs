@@ -32,13 +32,15 @@ namespace SlotRogue.UI.Tests.SlotPresentation
                 "체리",
                 null,
                 "Cherry bonus",
-                "+5 damage");
+                "+5 damage",
+                triggerPatternIndex: 0);
             var secondRelic = new SlotRelicTriggerPresentationResult(
                 "RunBonus",
                 "Run Bonus",
                 null,
                 "Reward bonus",
-                "+2 damage");
+                "+2 damage",
+                triggerPatternIndex: 1);
             var finalResult = new SlotFinalPresentationResult(
                 47,
                 0,
@@ -57,10 +59,10 @@ namespace SlotRogue.UI.Tests.SlotPresentation
             Assert.That(queue.Steps, Has.Count.EqualTo(5));
             Assert.That(queue.Steps[0].Kind, Is.EqualTo(SlotPresentationStepKind.Pattern));
             Assert.That(queue.Steps[0].Pattern, Is.SameAs(firstPattern));
-            Assert.That(queue.Steps[1].Kind, Is.EqualTo(SlotPresentationStepKind.Pattern));
-            Assert.That(queue.Steps[1].Pattern, Is.SameAs(secondPattern));
-            Assert.That(queue.Steps[2].Kind, Is.EqualTo(SlotPresentationStepKind.Relic));
-            Assert.That(queue.Steps[2].Relic, Is.SameAs(firstRelic));
+            Assert.That(queue.Steps[1].Kind, Is.EqualTo(SlotPresentationStepKind.Relic));
+            Assert.That(queue.Steps[1].Relic, Is.SameAs(firstRelic));
+            Assert.That(queue.Steps[2].Kind, Is.EqualTo(SlotPresentationStepKind.Pattern));
+            Assert.That(queue.Steps[2].Pattern, Is.SameAs(secondPattern));
             Assert.That(queue.Steps[3].Kind, Is.EqualTo(SlotPresentationStepKind.Relic));
             Assert.That(queue.Steps[3].Relic, Is.SameAs(secondRelic));
             Assert.That(queue.Steps[4].Kind, Is.EqualTo(SlotPresentationStepKind.Final));
@@ -68,7 +70,7 @@ namespace SlotRogue.UI.Tests.SlotPresentation
         }
 
         [Test]
-        public void Queue_FinalePattern_PlaysAfterNormalPatternsBeforeRelics()
+        public void Queue_UnassignedRelic_PlaysAfterFinalePattern()
         {
             var finalePattern = new SlotPatternPresentationResult(
                 "Perfect Spin x15",

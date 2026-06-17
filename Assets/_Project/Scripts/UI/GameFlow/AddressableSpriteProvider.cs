@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using SlotRogue.Relics.Pool;
+using SlotRogue.UI.RunGame;
+using SlotRogue.UI.RunGame.ViewModels;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
@@ -86,6 +89,152 @@ namespace SlotRogue.UI.GameFlow
             }
 
             return null;
+        }
+    }
+
+    public sealed class RelicIconRenderer : IDisposable
+    {
+        private readonly AddressableSpriteProvider _spriteProvider;
+        private readonly CancellationTokenSource _loadCts = new();
+        private int _startRelicRenderVersion;
+        private int _rewardRenderVersion;
+        private bool _disposed;
+
+        public RelicIconRenderer()
+        {
+            _spriteProvider = new AddressableSpriteProvider(RelicIconKeys.Default);
+        }
+
+        public void RenderStartRelicIcons(
+            StartArtifactSelectionView view,
+            StartRelicSelectViewState state)
+        {
+            if (_disposed || view == null || state == null)
+            {
+                return;
+            }
+
+            int renderVersion = ++_startRelicRenderVersion;
+            ApplyStartRelicIconsAsync(
+                view,
+                state,
+                renderVersion,
+                _loadCts.Token).Forget();
+        }
+
+        public void RenderRewardIcons(
+            RunRewardView view,
+            RunRewardViewState state)
+        {
+            if (_disposed || view == null || state == null)
+            {
+                return;
+            }
+
+            int renderVersion = ++_rewardRenderVersion;
+            ApplyRewardIconsAsync(
+                view,
+                state,
+                renderVersion,
+                _loadCts.Token).Forget();
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+            _startRelicRenderVersion++;
+            _rewardRenderVersion++;
+            _loadCts.Cancel();
+            _spriteProvider.Dispose();
+            _loadCts.Dispose();
+        }
+
+        private async UniTask ApplyStartRelicIconsAsync(
+            StartArtifactSelectionView view,
+            StartRelicSelectViewState state,
+            int renderVersion,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                GameFlowOptionView[] views = view.ArtifactOptions;
+                int count = Mathf.Min(views?.Length ?? 0, state.Options.Count);
+
+                for (int index = 0; index < count; index++)
+                {
+                    Sprite icon = await _spriteProvider.LoadAsync(
+                        state.Options[index].IconKey,
+                        cancellationToken);
+
+                    if (renderVersion != _startRelicRenderVersion)
+                    {
+                        return;
+                    }
+
+                    if (views[index] != null)
+                    {
+                        views[index].SetIcon(icon);
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }
+
+        private async UniTask ApplyRewardIconsAsync(
+            RunRewardView view,
+            RunRewardViewState state,
+            int renderVersion,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                GameFlowOptionView[] views = view.RewardOptions;
+                int count = Mathf.Min(views?.Length ?? 0, state.Options.Count);
+
+                for (int index = 0; index < count; index++)
+                {
+                    if (cancellationToken.IsCancellationRequested ||
+                        renderVersion != _rewardRenderVersion)
+                    {
+                        return;
+                    }
+
+                    string iconKey = state.Options[index].IconKey;
+                    if (string.IsNullOrEmpty(iconKey))
+                    {
+                        if (views[index] != null)
+                        {
+                            views[index].SetIcon(null);
+                        }
+
+                        continue;
+                    }
+
+                    Sprite icon = await _spriteProvider.LoadAsync(
+                        iconKey,
+                        cancellationToken);
+
+                    if (renderVersion != _rewardRenderVersion)
+                    {
+                        return;
+                    }
+
+                    if (views[index] != null)
+                    {
+                        views[index].SetIcon(icon);
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+            }
         }
     }
 }

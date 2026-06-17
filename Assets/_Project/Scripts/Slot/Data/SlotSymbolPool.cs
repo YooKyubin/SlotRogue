@@ -12,8 +12,16 @@ namespace SlotRogue.Slot.Data
     /// </summary>
     public sealed class SlotSymbolPool
     {
-        /// <summary>심볼당 시작 개수. 기획 미정 — 플레이테스트로 조정.</summary>
-        public const int DefaultCountPerSymbol = 4;
+        // 기획(유물 풀 v23.2): 확률은 숨겨진 보정 없이 "심볼 풀 개수"로만 조작한다.
+        // 고확률 심볼(체리/클로버/종)은 낮은 유물 수치, 저확률 심볼(레몬/다이아/7)은 높은 수치.
+        // 6:4 시작 비율이면 5x3 보드에서 "3개 이상 족보" 확률이 약 1.9배 차이 —
+        // 유물 수치 보정 비율(피해 +4 vs +7, 회복 +3 vs +5)과 기대값 기준 동급이 된다.
+
+        /// <summary>고확률 심볼(체리/클로버/종)의 시작 개수.</summary>
+        public const int DefaultHighProbabilityCount = 6;
+
+        /// <summary>저확률 심볼(레몬/다이아/7)의 시작 개수.</summary>
+        public const int DefaultLowProbabilityCount = 4;
 
         private static readonly SlotSymbolType[] AllSymbols =
         {
@@ -25,15 +33,24 @@ namespace SlotRogue.Slot.Data
             SlotSymbolType.Lemon,
         };
 
+        private static readonly SlotSymbolType[] HighProbabilitySymbols =
+        {
+            SlotSymbolType.Cherry,
+            SlotSymbolType.Clover,
+            SlotSymbolType.Bell,
+        };
+
         private readonly Dictionary<SlotSymbolType, int> _counts = new();
 
-        public SlotSymbolPool() : this(DefaultCountPerSymbol)
+        public SlotSymbolPool()
         {
+            Reset();
         }
 
+        /// <summary>모든 심볼을 같은 개수로 시작하는 풀(테스트/디버그용).</summary>
         public SlotSymbolPool(int initialPerSymbol)
         {
-            Reset(initialPerSymbol);
+            ResetUniform(initialPerSymbol);
         }
 
         /// <summary>풀에 존재하는 모든 심볼 종류(고정).</summary>
@@ -53,8 +70,23 @@ namespace SlotRogue.Slot.Data
         public int GetCount(SlotSymbolType symbol) =>
             _counts.TryGetValue(symbol, out int count) ? count : 0;
 
-        /// <summary>새 런 시작 시 호출. 모든 심볼 개수를 시작값으로 되돌립니다.</summary>
-        public void Reset(int initialPerSymbol = DefaultCountPerSymbol)
+        /// <summary>심볼이 고확률군(체리/클로버/종)인지 여부.</summary>
+        public static bool IsHighProbability(SlotSymbolType symbol) =>
+            Array.IndexOf(HighProbabilitySymbols, symbol) >= 0;
+
+        /// <summary>새 런 시작 시 호출. 심볼 개수를 확률군별 시작값(고확률 6 / 저확률 4)으로 되돌립니다.</summary>
+        public void Reset()
+        {
+            foreach (SlotSymbolType symbol in AllSymbols)
+            {
+                _counts[symbol] = IsHighProbability(symbol)
+                    ? DefaultHighProbabilityCount
+                    : DefaultLowProbabilityCount;
+            }
+        }
+
+        /// <summary>모든 심볼을 같은 개수로 되돌립니다(테스트/디버그용).</summary>
+        public void ResetUniform(int initialPerSymbol)
         {
             int start = Math.Max(0, initialPerSymbol);
             foreach (SlotSymbolType symbol in AllSymbols) _counts[symbol] = start;

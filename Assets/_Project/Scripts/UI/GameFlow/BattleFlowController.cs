@@ -24,6 +24,7 @@ namespace SlotRogue.UI.GameFlow
         private readonly CombatViewModel _combatViewModel;
         private readonly BattleScreenController _screenController;
         private readonly CancellationToken _presentationCancellationToken;
+        private readonly RelicContributionAccumulator _relicContributions = new();
 
         private BattleFlowContext _context;
         private bool _battleCompleted;
@@ -59,6 +60,7 @@ namespace SlotRogue.UI.GameFlow
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _battleCompleted = false;
             _turnRunning = false;
+            _relicContributions.Clear();
 
             _slotTurnController.SetupImmediate();
             _battle.StartBattle(_context.Player, ExtractEnemyCombatants(_context.EncounterRoster));
@@ -99,6 +101,22 @@ namespace SlotRogue.UI.GameFlow
             _screenController.Dispose();
         }
 
+        public bool TryRevivePlayer(int currentHp)
+        {
+            if (!_battleCompleted ||
+                _turnRunning ||
+                !_battle.TryRevivePlayer(currentHp))
+            {
+                return false;
+            }
+
+            _battleCompleted = false;
+            _relicContributions.Clear();
+            _combatViewModel.SyncFrom(_battle);
+            _screenController.ResumeBattle();
+            return true;
+        }
+
         private void HandleSpinRequested()
         {
             RunSpinTurnAsync().Forget();
@@ -129,6 +147,9 @@ namespace SlotRogue.UI.GameFlow
                     relicResult,
                     _context.RunDamageBonus,
                     _context.RunDefenseBonus);
+                _relicContributions.RecordTurn(
+                    relicResult.Contributions,
+                    requestResult.FinalRequest.AttackCount);
 
                 _screenController.UpdateTurnResult(slotTurnResult, requestResult);
 
@@ -143,6 +164,7 @@ namespace SlotRogue.UI.GameFlow
 
                 await _slotTurnController.PlayPresentationAsync(
                     slotTurnResult,
+                    relicResult,
                     requestResult,
                     _presentationCancellationToken);
 
@@ -287,7 +309,8 @@ namespace SlotRogue.UI.GameFlow
             _screenController.CompleteBattle();
             BattleCompleted?.Invoke(new BattleFlowResult(
                 _battle.EndReason,
-                _battle.Player.CurrentHp));
+                _battle.Player.CurrentHp,
+                _relicContributions.Snapshot()));
         }
 
         private static EnemyCombatant[] ExtractEnemyCombatants(RunEncounterRoster roster)

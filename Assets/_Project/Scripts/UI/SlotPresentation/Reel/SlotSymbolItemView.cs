@@ -10,9 +10,13 @@ namespace SlotRogue.UI.SlotPresentation.Reel
     [RequireComponent(typeof(RectTransform))]
     public sealed class SlotSymbolItemView : MonoBehaviour
     {
+        private const float NativeSizeMultiplier = 1.25f;
+
         [SerializeField] private Image _icon;
 
         public RectTransform RectTransform => _rectTransform != null ? _rectTransform : _rectTransform = (RectTransform)transform;
+
+        public Image Icon => _icon;
 
         public float LocalY => RectTransform.anchoredPosition.y;
 
@@ -49,6 +53,7 @@ namespace SlotRogue.UI.SlotPresentation.Reel
 
             _icon.sprite = sprite;
             _icon.enabled = sprite != null;
+            ApplyNativeSize();
         }
 
         public void SetLocalY(float y)
@@ -66,6 +71,17 @@ namespace SlotRogue.UI.SlotPresentation.Reel
         public void SetScale(float scale)
         {
             RectTransform.localScale = new Vector3(scale, scale, 1f);
+        }
+
+        public void ApplyNativeSize()
+        {
+            if (_icon == null || _icon.sprite == null)
+            {
+                return;
+            }
+
+            _icon.SetNativeSize();
+            RectTransform.sizeDelta *= NativeSizeMultiplier;
         }
 
         private RectTransform _rectTransform;

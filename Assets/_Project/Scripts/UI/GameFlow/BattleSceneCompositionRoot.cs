@@ -58,6 +58,30 @@ namespace SlotRogue.UI.GameFlow
             BeginBattleAsync(_battleStartCts.Token).Forget();
         }
 
+        public Sprite GetDefeatingMonsterPortrait()
+        {
+            return _view != null ? _view.GetPrimaryEnemyPortrait() : null;
+        }
+
+        public bool TryRevive()
+        {
+            if (!GameFlowSession.CanRevive ||
+                _battleFlowController == null ||
+                !_battleFlowController.TryRevivePlayer(GameFlowSession.RevivePlayerHp) ||
+                !GameFlowSession.TryRevive())
+            {
+                return false;
+            }
+
+            _resultRecorder.CancelPendingDefeat();
+            return true;
+        }
+
+        public void FinalizePendingDefeat()
+        {
+            _resultRecorder.FinalizePendingDefeat();
+        }
+
         public void DevApplyStatusTurn(
             StatusEffectKind statusEffectKind,
             int duration,

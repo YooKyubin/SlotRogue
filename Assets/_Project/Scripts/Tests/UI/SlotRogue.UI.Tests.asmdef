@@ -10,7 +10,8 @@
         "UniTask",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "UnityEditor"
+        "UnityEditor",
+        "Unity.Purchasing"
     ],
     "includePlatforms": [
         "Editor"

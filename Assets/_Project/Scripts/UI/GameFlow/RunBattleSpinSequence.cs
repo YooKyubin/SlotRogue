@@ -44,6 +44,11 @@ namespace SlotRogue.UI.GameFlow
             _frameView?.PlaySpin();
         }
 
+        internal void SetReelIdle(int reelIndex)
+        {
+            _frameView?.SetReelIdle(reelIndex);
+        }
+
         internal async UniTask SettleIfNeededAsync(CancellationToken ct)
         {
             if (_settled || _frameView == null)

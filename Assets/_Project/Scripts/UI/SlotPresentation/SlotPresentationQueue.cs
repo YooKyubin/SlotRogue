@@ -10,8 +10,8 @@ namespace SlotRogue.UI.SlotPresentation
 
             if (result != null)
             {
-                AddPatterns(steps, result.Patterns);
-                AddRelics(steps, result.RelicTriggers);
+                AddPatternsAndRelics(steps, result.Patterns, result.RelicTriggers);
+                AddUnassignedRelics(steps, result.RelicTriggers);
 
                 if (result.FinalResult != null)
                 {
@@ -24,22 +24,24 @@ namespace SlotRogue.UI.SlotPresentation
 
         public IReadOnlyList<SlotPresentationStep> Steps { get; }
 
-        private static void AddPatterns(
+        private static void AddPatternsAndRelics(
             List<SlotPresentationStep> steps,
-            IReadOnlyList<SlotPatternPresentationResult> patterns)
+            IReadOnlyList<SlotPatternPresentationResult> patterns,
+            IReadOnlyList<SlotRelicTriggerPresentationResult> relics)
         {
             if (patterns == null)
             {
                 return;
             }
 
-            AddPatternsByFinaleState(steps, patterns, false);
-            AddPatternsByFinaleState(steps, patterns, true);
+            AddPatternsByFinaleState(steps, patterns, relics, false);
+            AddPatternsByFinaleState(steps, patterns, relics, true);
         }
 
         private static void AddPatternsByFinaleState(
             List<SlotPresentationStep> steps,
             IReadOnlyList<SlotPatternPresentationResult> patterns,
+            IReadOnlyList<SlotRelicTriggerPresentationResult> relics,
             bool isFinale)
         {
             for (int index = 0; index < patterns.Count; index++)
@@ -49,11 +51,32 @@ namespace SlotRogue.UI.SlotPresentation
                 if (pattern != null && pattern.IsFinale == isFinale)
                 {
                     steps.Add(SlotPresentationStep.ForPattern(pattern));
+                    AddRelicsForPattern(steps, relics, index);
                 }
             }
         }
 
-        private static void AddRelics(
+        private static void AddRelicsForPattern(
+            List<SlotPresentationStep> steps,
+            IReadOnlyList<SlotRelicTriggerPresentationResult> relics,
+            int patternIndex)
+        {
+            if (relics == null)
+            {
+                return;
+            }
+
+            for (int index = 0; index < relics.Count; index++)
+            {
+                SlotRelicTriggerPresentationResult relic = relics[index];
+                if (relic != null && relic.TriggerPatternIndex == patternIndex)
+                {
+                    steps.Add(SlotPresentationStep.ForRelic(relic));
+                }
+            }
+        }
+
+        private static void AddUnassignedRelics(
             List<SlotPresentationStep> steps,
             IReadOnlyList<SlotRelicTriggerPresentationResult> relics)
         {
@@ -64,9 +87,10 @@ namespace SlotRogue.UI.SlotPresentation
 
             for (int index = 0; index < relics.Count; index++)
             {
-                if (relics[index] != null)
+                SlotRelicTriggerPresentationResult relic = relics[index];
+                if (relic != null && relic.TriggerPatternIndex < 0)
                 {
-                    steps.Add(SlotPresentationStep.ForRelic(relics[index]));
+                    steps.Add(SlotPresentationStep.ForRelic(relic));
                 }
             }
         }

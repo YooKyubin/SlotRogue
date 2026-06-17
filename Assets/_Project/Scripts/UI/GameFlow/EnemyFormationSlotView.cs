@@ -49,6 +49,7 @@ namespace SlotRogue.UI.GameFlow
         private float _hpFillMaxWidth;
         private bool _hpFillLayoutInitialized;
         private bool _hpFillRendered;
+        private Sprite _portraitSprite;
         private GameObject _combatVisualPrefab;
         private GameObject _combatVisualInstance;
         private IEnemyCombatVisual _combatVisual;
@@ -67,6 +68,8 @@ namespace SlotRogue.UI.GameFlow
         public RectTransform DamageAnchor => _damageAnchor;
 
         public ShieldGaugeView ShieldGauge => _shieldGauge;
+
+        public Sprite PortraitSprite => _portraitSprite;
 
         public void Bind(
             Transform root,
@@ -145,6 +148,11 @@ namespace SlotRogue.UI.GameFlow
             }
 
             PlayCombatVisualIdle();
+        }
+
+        public void SetPortraitSprite(Sprite portraitSprite)
+        {
+            _portraitSprite = portraitSprite;
         }
 
         public void ClearCombatVisual()

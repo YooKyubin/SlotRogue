@@ -3384,19 +3384,19 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   _symbolSprites:
-  - {fileID: -5565170295458569320, guid: bf047085f7a2bc64dbf3206007c635d3, type: 3}
-  - {fileID: -2014568273487865526, guid: bf047085f7a2bc64dbf3206007c635d3, type: 3}
-  - {fileID: -7636307948082203214, guid: bf047085f7a2bc64dbf3206007c635d3, type: 3}
-  - {fileID: 6026070333206741400, guid: bf047085f7a2bc64dbf3206007c635d3, type: 3}
-  - {fileID: -8660658156046878545, guid: bf047085f7a2bc64dbf3206007c635d3, type: 3}
-  - {fileID: -3500839835203779570, guid: bf047085f7a2bc64dbf3206007c635d3, type: 3}
+  - {fileID: 1595734238, guid: c938b3e401f206a43bc8e4b6697d72eb, type: 3}
+  - {fileID: 2042238902, guid: c938b3e401f206a43bc8e4b6697d72eb, type: 3}
+  - {fileID: 1252867092, guid: c938b3e401f206a43bc8e4b6697d72eb, type: 3}
+  - {fileID: 170849761, guid: c938b3e401f206a43bc8e4b6697d72eb, type: 3}
+  - {fileID: -211301131, guid: c938b3e401f206a43bc8e4b6697d72eb, type: 3}
+  - {fileID: -1552314830, guid: c938b3e401f206a43bc8e4b6697d72eb, type: 3}
   _spinSymbolSprites:
-  - {fileID: -1826497962949472106, guid: 339f173af79a8414dbaf9a89aa1c69c9, type: 3}
-  - {fileID: -8865915934392631781, guid: 339f173af79a8414dbaf9a89aa1c69c9, type: 3}
-  - {fileID: -8266937977364886079, guid: 339f173af79a8414dbaf9a89aa1c69c9, type: 3}
-  - {fileID: 6813601856839289315, guid: 339f173af79a8414dbaf9a89aa1c69c9, type: 3}
-  - {fileID: -5698752927395512239, guid: 339f173af79a8414dbaf9a89aa1c69c9, type: 3}
-  - {fileID: -2833847552205077362, guid: 339f173af79a8414dbaf9a89aa1c69c9, type: 3}
+  - {fileID: -6804718575311740471, guid: cbecda5b44bc239428396b50af071622, type: 3}
+  - {fileID: -5617461358785571431, guid: cbecda5b44bc239428396b50af071622, type: 3}
+  - {fileID: -1990193515880964991, guid: cbecda5b44bc239428396b50af071622, type: 3}
+  - {fileID: -3427241291298484510, guid: cbecda5b44bc239428396b50af071622, type: 3}
+  - {fileID: -5088758840292966481, guid: cbecda5b44bc239428396b50af071622, type: 3}
+  - {fileID: 4558005443507578314, guid: cbecda5b44bc239428396b50af071622, type: 3}
   _spinDuration: 1.2
   _cycleInterval: 0.06
   _stopIntervalPerColumn: 0.12

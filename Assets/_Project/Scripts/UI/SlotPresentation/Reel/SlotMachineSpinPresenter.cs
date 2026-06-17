@@ -35,6 +35,8 @@ namespace SlotRogue.UI.SlotPresentation.Reel
         public bool IsReady =>
             _symbolSprites != null && _symbolSprites.Length > 0 && (HasAuthoredReels() || HasCells());
 
+        public event Action<int> ReelStopped;
+
         // When the reels are authored in the scene they stay on as the slot face; the legacy 5x3 cell
         // grid is no longer required and can be deleted. Runtime-built reels still use the cells.
         private bool ReelsAreDisplay => _authored || HasAuthoredReels();
@@ -44,6 +46,39 @@ namespace SlotRogue.UI.SlotPresentation.Reel
             _cellIcons = cellIcons;
             _symbolSprites = symbolSprites;
             _spinSprites = spinSprites;
+        }
+
+        public bool TryGetVisibleCellIcons(out Image[] cellIcons)
+        {
+            cellIcons = null;
+
+            if (_reels == null || _reels.Length < Columns)
+            {
+                return false;
+            }
+
+            var result = new Image[SlotSpinResult.CellCount];
+            for (int column = 0; column < Columns; column++)
+            {
+                if (_reels[column] == null)
+                {
+                    return false;
+                }
+
+                for (int row = 0; row < VisibleRows; row++)
+                {
+                    Image icon = _reels[column].GetVisibleIcon(row);
+                    if (icon == null)
+                    {
+                        return false;
+                    }
+
+                    result[SlotSpinResult.ToIndex(column, row)] = icon;
+                }
+            }
+
+            cellIcons = result;
+            return true;
         }
 
         public IEnumerator Play(SlotSpinResult result, Func<bool> shouldSkip)
@@ -60,6 +95,7 @@ namespace SlotRogue.UI.SlotPresentation.Reel
             // In reel-display mode the cells stay hidden permanently — they can be deleted.
             HideCellIcons();
             ShowReels();
+            ResetReelStopNotifications();
             if (!reelDisplay)
             {
                 PositionReels();
@@ -68,6 +104,7 @@ namespace SlotRogue.UI.SlotPresentation.Reel
             if (IsSkipped(shouldSkip))
             {
                 SetAllReelsImmediate(result);
+                NotifyAllReelsStopped();
                 FinishSpin(result, reelDisplay);
                 yield break;
             }
@@ -82,7 +119,7 @@ namespace SlotRogue.UI.SlotPresentation.Reel
 
             for (int column = 0; column < Columns; column++)
             {
-                StartCoroutine(_reels[column].StopRoutine(ResultColumn(result, column), shouldSkip));
+                StartCoroutine(StopReelRoutine(column, result, shouldSkip));
                 yield return WaitColumnInterval(shouldSkip);
 
                 if (IsSkipped(shouldSkip))
@@ -99,9 +136,30 @@ namespace SlotRogue.UI.SlotPresentation.Reel
             if (IsSkipped(shouldSkip))
             {
                 SetAllReelsImmediate(result);
+                NotifyAllReelsStopped();
             }
 
             FinishSpin(result, reelDisplay);
+        }
+
+        public void ShowImmediate(SlotSpinResult result)
+        {
+            if (result == null || !EnsureReels())
+            {
+                return;
+            }
+
+            if (ReelsAreDisplay)
+            {
+                HideCellIcons();
+            }
+
+            StopImmediate(result);
+
+            if (ReelsAreDisplay)
+            {
+                ShowReels();
+            }
         }
 
         private void SetAllReelsImmediate(SlotSpinResult result)
@@ -110,6 +168,12 @@ namespace SlotRogue.UI.SlotPresentation.Reel
             {
                 _reels[column].SetImmediate(ResultColumn(result, column));
             }
+        }
+
+        private IEnumerator StopReelRoutine(int column, SlotSpinResult result, Func<bool> shouldSkip)
+        {
+            yield return _reels[column].StopRoutine(ResultColumn(result, column), shouldSkip);
+            NotifyReelStopped(column);
         }
 
         private void FinishSpin(SlotSpinResult result, bool reelDisplay)
@@ -641,6 +705,49 @@ namespace SlotRogue.UI.SlotPresentation.Reel
             }
         }
 
+        private void ResetReelStopNotifications()
+        {
+            if (_reelStopNotified == null || _reelStopNotified.Length != Columns)
+            {
+                _reelStopNotified = new bool[Columns];
+                return;
+            }
+
+            for (int column = 0; column < Columns; column++)
+            {
+                _reelStopNotified[column] = false;
+            }
+        }
+
+        private void NotifyAllReelsStopped()
+        {
+            for (int column = 0; column < Columns; column++)
+            {
+                NotifyReelStopped(column);
+            }
+        }
+
+        private void NotifyReelStopped(int column)
+        {
+            if (column < 0 || column >= Columns)
+            {
+                return;
+            }
+
+            if (_reelStopNotified == null || _reelStopNotified.Length != Columns)
+            {
+                _reelStopNotified = new bool[Columns];
+            }
+
+            if (_reelStopNotified[column])
+            {
+                return;
+            }
+
+            _reelStopNotified[column] = true;
+            ReelStopped?.Invoke(column);
+        }
+
         private static bool IsSkipped(Func<bool> shouldSkip)
         {
             return shouldSkip != null && shouldSkip();
@@ -649,6 +756,7 @@ namespace SlotRogue.UI.SlotPresentation.Reel
         private Image[] _cellIcons;
         private Sprite[] _symbolSprites;
         private Sprite[] _spinSprites;
+        private bool[] _reelStopNotified = new bool[Columns];
         private bool _authored;
         private bool _built;
     }

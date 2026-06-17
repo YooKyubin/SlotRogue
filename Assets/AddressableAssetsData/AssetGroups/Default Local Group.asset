@@ -15,18 +15,25 @@ MonoBehaviour:
   m_GroupName: Default Local Group
   m_GUID: 94987ebf8eac0ae40b8196063ce421eb
   m_SerializeEntries:
-  - m_GUID: ade757b05a113bc4abad410e56f1ee2d
-    m_Address: slot/catalog/patterns
+  - m_GUID: 28d4f719a07d2f948952c95a683f1862
+    m_Address: relic/icons/base2
     m_ReadOnly: 0
     m_SerializedLabels:
     - default
+    - relic-icon
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 28d4f719a07d2f948952c95a683f1862
+  - m_GUID: 9623568b693406747ae5884f6096b2e7
     m_Address: relic/icons/base
     m_ReadOnly: 0
     m_SerializedLabels:
     - default
     - relic-icon
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ade757b05a113bc4abad410e56f1ee2d
+    m_Address: slot/catalog/patterns
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - default
     FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: ea18cf4cad671f34f9ed7b386f881d76, type: 2}

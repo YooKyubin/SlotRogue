@@ -14,6 +14,10 @@
 | [`combat-core.md`](./combat-core.md) | draft | 1스핀=1턴, Effect, Participant, shield; 연출 Replay (ADR-0003, [`feature-combat-presentation`](../exec-plans/completed/feature-combat-presentation.md) 완료) |
 | [`game-flow.md`](./game-flow.md) | draft | 게임 시작, 시작 유물, 맵, 전투, 보상 반복 루프 |
 | [`relic-system.md`](./relic-system.md) | draft | v23 유물 80종, Phase 1 풀, 선택·보상·전투 단일 런타임 경로 |
+| [`leaderboard.md`](./leaderboard.md) | accepted | UGS 인증, 최고기록 metadata, 제출·조회·GameStart UI |
+| [`rewarded-ads.md`](./rewarded-ads.md) | accepted | LevelPlay 초기화, Rewarded 로드·표시·보상, 부활·리롤 연결 |
+| [`remove-ads-iap.md`](./remove-ads-iap.md) | accepted | `remove_ads` Non-Consumable 구매 상태, 보상형 광고 스킵, Store 복원 경계 |
+| [`notifications-weekly-ranking.md`](./notifications-weekly-ranking.md) | accepted | 24시간 미접속 로컬 알림, 주간 랭킹 마감 알림, 한국 수요일 리셋 |
 
 ---
 

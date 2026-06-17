@@ -41,6 +41,21 @@ namespace SlotRogue.UI.SlotPresentation
             _titleText = titleText;
             _descriptionText = descriptionText;
             _bonusText = bonusText;
+            _hasCachedSlotCellDefaults = false;
+        }
+
+        public void SetSlotCellIcons(Image[] slotCellIcons)
+        {
+            if (ReferenceEquals(_slotCellIcons, slotCellIcons))
+            {
+                return;
+            }
+
+            ResetHighlights();
+            _slotCellIcons = slotCellIcons;
+            _slotCellIconDefaultColors = null;
+            _slotCellIconDefaultScales = null;
+            _hasCachedSlotCellDefaults = false;
         }
 
         public IEnumerator Play(SlotPatternPresentationResult result, Func<bool> shouldSkip)
@@ -66,6 +81,7 @@ namespace SlotRogue.UI.SlotPresentation
 
             yield return PlayScaleTween(new Vector3(0.9f, 0.9f, 1f), Vector3.one, _introDuration, Ease.OutBack, shouldSkip);
             yield return WaitOrSkip(result.IsFinale ? _finaleHoldDuration : _holdDuration, shouldSkip);
+            yield return RestoreHighlights(result.HighlightedCellIndices, shouldSkip);
             yield return PlayScaleTween(Vector3.one, new Vector3(0.96f, 0.96f, 1f), _outroDuration, Ease.OutCubic, shouldSkip);
 
             HideImmediate();
@@ -141,15 +157,78 @@ namespace SlotRogue.UI.SlotPresentation
                 if (_slotCells != null && cellIndex >= 0 && cellIndex < _slotCells.Length && _slotCells[cellIndex] != null)
                 {
                     _slotCells[cellIndex].color = _highlightColor;
-                    PlayHighlightScale(_slotCells[cellIndex].transform, _highlightScale);
+                    PlayHighlightScale(
+                        _slotCells[cellIndex].transform,
+                        _highlightScale,
+                        GetDefaultScale(_slotCellDefaultScales, cellIndex));
                 }
 
                 if (_slotCellIcons != null && cellIndex >= 0 && cellIndex < _slotCellIcons.Length && _slotCellIcons[cellIndex] != null)
                 {
                     _slotCellIcons[cellIndex].color = _highlightColor;
-                    PlayHighlightScale(_slotCellIcons[cellIndex].transform, _highlightScale);
+                    PlayHighlightScale(
+                        _slotCellIcons[cellIndex].transform,
+                        _highlightScale,
+                        GetDefaultScale(_slotCellIconDefaultScales, cellIndex));
                 }
             }
+        }
+
+        private IEnumerator RestoreHighlights(int[] indices, Func<bool> shouldSkip)
+        {
+            if (indices == null || indices.Length == 0)
+            {
+                yield break;
+            }
+
+            Sequence sequence = DOTween.Sequence().SetUpdate(true);
+            bool hasTarget = false;
+
+            for (int index = 0; index < indices.Length; index++)
+            {
+                int cellIndex = indices[index];
+
+                if (_slotCells != null &&
+                    cellIndex >= 0 &&
+                    cellIndex < _slotCells.Length &&
+                    _slotCells[cellIndex] != null)
+                {
+                    Transform target = _slotCells[cellIndex].transform;
+                    target.DOKill();
+                    sequence.Join(
+                        target
+                            .DOScale(GetDefaultScale(_slotCellDefaultScales, cellIndex), _highlightDuration)
+                            .SetEase(Ease.OutCubic)
+                            .SetUpdate(true));
+                    hasTarget = true;
+                }
+
+                if (_slotCellIcons != null &&
+                    cellIndex >= 0 &&
+                    cellIndex < _slotCellIcons.Length &&
+                    _slotCellIcons[cellIndex] != null)
+                {
+                    Transform target = _slotCellIcons[cellIndex].transform;
+                    target.DOKill();
+                    sequence.Join(
+                        target
+                            .DOScale(GetDefaultScale(_slotCellIconDefaultScales, cellIndex), _highlightDuration)
+                            .SetEase(Ease.OutCubic)
+                            .SetUpdate(true));
+                    hasTarget = true;
+                }
+            }
+
+            if (hasTarget)
+            {
+                yield return PlayTween(sequence, shouldSkip);
+            }
+            else
+            {
+                sequence.Kill();
+            }
+
+            ResetHighlights();
         }
 
         private void ResetHighlights()
@@ -200,7 +279,7 @@ namespace SlotRogue.UI.SlotPresentation
             }
         }
 
-        private void PlayHighlightScale(Transform target, float scale)
+        private void PlayHighlightScale(Transform target, float scale, Vector3 defaultScale)
         {
             if (target == null)
             {
@@ -211,10 +290,21 @@ namespace SlotRogue.UI.SlotPresentation
                 ? Mathf.Min(scale, 1.08f)
                 : scale;
             target.DOKill();
+            Vector3 targetScale = new(
+                defaultScale.x * appliedScale,
+                defaultScale.y * appliedScale,
+                defaultScale.z);
             target
-                .DOScale(new Vector3(appliedScale, appliedScale, 1f), _highlightDuration)
+                .DOScale(targetScale, _highlightDuration)
                 .SetEase(Ease.OutBack)
                 .SetUpdate(true);
+        }
+
+        private static Vector3 GetDefaultScale(Vector3[] scales, int index)
+        {
+            return scales != null && index >= 0 && index < scales.Length
+                ? scales[index]
+                : Vector3.one;
         }
 
         private void CacheSlotCellDefaultsIfNeeded()

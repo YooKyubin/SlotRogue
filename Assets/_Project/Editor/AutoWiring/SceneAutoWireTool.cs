@@ -15,6 +15,7 @@ namespace SlotRogue.Editor.AutoWiring
         private const string MenuRoot = "SlotRogue/Tools/Auto Wire/";
         private const string AutoRunMenu = MenuRoot + "Auto Wire On Hierarchy Change";
         private const string AutoRunPreferenceKey = "SlotRogue.AutoWire.AutoRunOnHierarchyChange";
+        private const string ProjectNamespace = "SlotRogue";
         private const int MaxDetailLines = 80;
 
         private static bool _autoRunQueued;
@@ -143,6 +144,11 @@ namespace SlotRogue.Editor.AutoWiring
             AutoWireReport report)
         {
             Type componentType = component.GetType();
+            if (!IsProjectType(componentType))
+            {
+                return;
+            }
+
             FieldInfo[] fields = GetSerializableFields(componentType);
             if (fields.Length == 0)
             {
@@ -182,6 +188,10 @@ namespace SlotRogue.Editor.AutoWiring
                 bool includeInactive = attribute == null || attribute.IncludeInactive;
                 string targetName = ResolveTargetName(field, attribute);
                 List<UnityEngine.Object> candidates = FindCandidates(component, elementType, scope, includeInactive);
+                if (attribute == null)
+                {
+                    RemoveOwnerCandidate(component, candidates);
+                }
 
                 bool fieldChanged = isArray
                     ? WireArrayField(
@@ -547,7 +557,9 @@ namespace SlotRogue.Editor.AutoWiring
         private static FieldInfo[] GetSerializableFields(Type type)
         {
             var fields = new List<FieldInfo>();
-            while (type != null && type != typeof(MonoBehaviour))
+            while (type != null &&
+                type != typeof(MonoBehaviour) &&
+                IsProjectType(type))
             {
                 FieldInfo[] declaredFields = type.GetFields(
                     BindingFlags.Instance |
@@ -578,6 +590,27 @@ namespace SlotRogue.Editor.AutoWiring
             }
 
             return fields.ToArray();
+        }
+
+        private static bool IsProjectType(Type type)
+        {
+            string typeNamespace = type?.Namespace;
+            return string.Equals(typeNamespace, ProjectNamespace, StringComparison.Ordinal) ||
+                (typeNamespace != null &&
+                    typeNamespace.StartsWith(ProjectNamespace + ".", StringComparison.Ordinal));
+        }
+
+        private static void RemoveOwnerCandidate(
+            MonoBehaviour owner,
+            List<UnityEngine.Object> candidates)
+        {
+            for (int index = candidates.Count - 1; index >= 0; index--)
+            {
+                if (ReferenceEquals(candidates[index], owner))
+                {
+                    candidates.RemoveAt(index);
+                }
+            }
         }
 
         private static bool TryGetObjectFieldKind(
@@ -883,7 +916,7 @@ namespace SlotRogue.Editor.AutoWiring
 
             var report = WireScene(
                 SceneManager.GetActiveScene(),
-                AutoWireOptions.Execute("Hierarchy Change", useHeuristics: true, quiet: true));
+                AutoWireOptions.Execute("Hierarchy Change", useHeuristics: false, quiet: true));
             if (report.Wired > 0 || report.Ambiguous > 0)
             {
                 report.Log();

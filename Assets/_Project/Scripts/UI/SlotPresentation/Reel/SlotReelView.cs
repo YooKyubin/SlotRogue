@@ -43,6 +43,22 @@ namespace SlotRogue.UI.SlotPresentation.Reel
         public bool IsStopped { get; private set; }
         public int VisibleRows => Mathf.Max(1, _visibleRows);
 
+        public Image GetVisibleIcon(int row)
+        {
+            int itemIndex = TopBufferCount + row;
+            if (row < 0 ||
+                row >= VisibleRows ||
+                _items == null ||
+                itemIndex < 0 ||
+                itemIndex >= _items.Count ||
+                _items[itemIndex] == null)
+            {
+                return null;
+            }
+
+            return _items[itemIndex].Icon;
+        }
+
         /// <summary>
         /// Prepares the reel for spinning. Geometry (cell size) is derived from this reel's own
         /// RectTransform so it can be sized and positioned in the scene by hand; the content holder
@@ -423,7 +439,7 @@ namespace SlotRogue.UI.SlotPresentation.Reel
                 _items.Add(item);
             }
 
-            // Re-parent and resize so authored items match the current geometry.
+            // Re-parent authored items and size each icon from its Sprite native size.
             for (int index = 0; index < _items.Count; index++)
             {
                 RectTransform itemRect = _items[index].RectTransform;
@@ -432,7 +448,7 @@ namespace SlotRogue.UI.SlotPresentation.Reel
                     itemRect.SetParent(_content, false);
                 }
 
-                itemRect.sizeDelta = _cellSize * 0.8f;
+                _items[index].ApplyNativeSize();
             }
         }
 

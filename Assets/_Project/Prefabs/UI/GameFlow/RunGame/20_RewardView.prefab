@@ -2250,4 +2250,5 @@ MonoBehaviour:
   - {fileID: 433253098023558542}
   - {fileID: 5398406174731021307}
   _rerollButton: {fileID: 4290252330774641411}
+  _rerollButtonText: {fileID: 887144965248544934}
   _addRewardButton: {fileID: 0}

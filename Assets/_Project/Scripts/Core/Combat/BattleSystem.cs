@@ -104,6 +104,23 @@ namespace SlotRogue.Core.Combat
             SetPhase(BattlePhase.PlayerTurn);
         }
 
+        public bool TryRevivePlayer(int currentHp)
+        {
+            if (CurrentPhase != BattlePhase.Ended ||
+                EndReason != BattleEndReason.Defeat ||
+                _player == null ||
+                AreAllEnemiesDefeated() ||
+                !_player.TryRevive(currentHp))
+            {
+                return false;
+            }
+
+            EndReason = BattleEndReason.None;
+            _events.Clear();
+            SetPhase(BattlePhase.PlayerTurn);
+            return true;
+        }
+
         public BattleApplyResult ApplyPlayerTurn(
             IReadOnlyList<CombatEffect> playerEffects,
             CombatParticipantId selectedTargetId = default)

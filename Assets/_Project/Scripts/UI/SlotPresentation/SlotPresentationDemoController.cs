@@ -77,7 +77,8 @@ namespace SlotRogue.UI.SlotPresentation
                         "체리",
                         _demoRelicIcon,
                         "완전 체리 보드에서 체리 아이콘 피해 보너스가 발동됩니다.",
-                        "+15 피해")
+                        "공격력 150 → 165 (+15)",
+                        triggerPatternIndex: 0)
                 },
                 "잭팟 보드: 모든 패턴 순서대로 발동 → 유물 → 최종 결과.");
         }
@@ -101,7 +102,8 @@ namespace SlotRogue.UI.SlotPresentation
                         "숫돌",
                         _demoRelicIcon,
                         "패턴 이후 런 피해 보너스가 추가됩니다.",
-                        "+4 피해")
+                        "공격력 10 → 14 (+4)",
+                        triggerPatternIndex: 0)
                 },
                 "혼합 보드: 가로 5칸 2열 → 유물 → 최종 결과.");
         }
