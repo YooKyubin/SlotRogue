@@ -90,14 +90,15 @@ namespace SlotRogue.UI.Tests.GameFlow
                 worldView.EnsureReferences();
                 worldView.SetEnemyCombatVisualPrefab(formationSlot: 1, combatVisualPrefab);
 
-                Assert.That(slotViews[0].CombatVisualPrefab, Is.Null);
-                Assert.That(slotViews[1].CombatVisualPrefab, Is.SameAs(combatVisualPrefab));
-                Assert.That(slotViews[1].CombatVisualInstance, Is.Not.Null);
-                Assert.That(slotViews[1].CombatVisualInstance.name, Does.StartWith(combatVisualPrefab.name));
-                Assert.That(slotViews[1].CombatVisualInstance.transform.parent, Is.SameAs(slotViews[1].VisualRoot));
-                Assert.That(slotViews[1].CombatVisualInstance.transform.localPosition, Is.EqualTo(Vector3.zero));
-                Assert.That(slotViews[1].CombatVisualInstance.transform.localRotation, Is.EqualTo(Quaternion.identity));
-                var firstVisual = slotViews[1].CombatVisual as TestEnemyCombatVisual;
+                Assert.That(slotViews[0].transform.Find("VisualRoot").childCount, Is.EqualTo(0));
+                Transform boundVisualRoot = slotViews[1].transform.Find("VisualRoot");
+                Assert.That(boundVisualRoot.childCount, Is.EqualTo(1));
+                Transform firstInstanceTransform = boundVisualRoot.GetChild(0);
+                Assert.That(firstInstanceTransform.name, Does.StartWith(combatVisualPrefab.name));
+                Assert.That(firstInstanceTransform.parent, Is.SameAs(boundVisualRoot));
+                Assert.That(firstInstanceTransform.localPosition, Is.EqualTo(Vector3.zero));
+                Assert.That(firstInstanceTransform.localRotation, Is.EqualTo(Quaternion.identity));
+                var firstVisual = firstInstanceTransform.GetComponent<TestEnemyCombatVisual>();
                 Assert.That(firstVisual, Is.Not.Null);
                 Assert.That(firstVisual.IdleCallCount, Is.EqualTo(1));
                 Assert.That(firstVisual.AttackCallCount, Is.EqualTo(0));
@@ -123,31 +124,26 @@ namespace SlotRogue.UI.Tests.GameFlow
                 worldView.Render(viewModel.State);
                 worldView.PlayEnemyCombatVisualAttack(new CombatParticipantId(101));
                 Assert.That(firstVisual.AttackCallCount, Is.EqualTo(1));
-                Assert.That(slotViews[0].CombatVisual, Is.Null);
+                Assert.That(slotViews[0].transform.Find("VisualRoot").childCount, Is.EqualTo(0));
 
-                GameObject firstInstance = slotViews[1].CombatVisualInstance;
+                GameObject firstInstance = firstInstanceTransform.gameObject;
                 worldView.SetEnemyCombatVisualPrefab(formationSlot: 1, replacementPrefab);
 
                 Assert.That(firstInstance == null, Is.True);
-                Assert.That(slotViews[1].CombatVisualPrefab, Is.SameAs(replacementPrefab));
-                Assert.That(slotViews[1].CombatVisualInstance, Is.Not.Null);
-                Assert.That(slotViews[1].CombatVisualInstance.name, Does.StartWith(replacementPrefab.name));
-                Assert.That(slotViews[1].VisualRoot.childCount, Is.EqualTo(1));
-                var replacementVisual = slotViews[1].CombatVisual as TestEnemyCombatVisual;
+                Assert.That(boundVisualRoot.childCount, Is.EqualTo(1));
+                Transform replacementInstanceTransform = boundVisualRoot.GetChild(0);
+                Assert.That(replacementInstanceTransform.name, Does.StartWith(replacementPrefab.name));
+                var replacementVisual = replacementInstanceTransform.GetComponent<TestEnemyCombatVisual>();
                 Assert.That(replacementVisual, Is.Not.Null);
                 Assert.That(replacementVisual.IdleCallCount, Is.EqualTo(1));
                 Assert.That(replacementVisual.AttackCallCount, Is.EqualTo(0));
 
-                GameObject replacementInstance = slotViews[1].CombatVisualInstance;
+                GameObject replacementInstance = replacementInstanceTransform.gameObject;
                 worldView.ClearEnemyCombatVisualPrefabs();
 
                 Assert.That(replacementInstance == null, Is.True);
-                Assert.That(slotViews[0].CombatVisualPrefab, Is.Null);
-                Assert.That(slotViews[0].CombatVisualInstance, Is.Null);
-                Assert.That(slotViews[1].CombatVisualPrefab, Is.Null);
-                Assert.That(slotViews[1].CombatVisualInstance, Is.Null);
-                Assert.That(slotViews[1].CombatVisual, Is.Null);
-                Assert.That(slotViews[1].VisualRoot.childCount, Is.EqualTo(0));
+                Assert.That(slotViews[0].transform.Find("VisualRoot").childCount, Is.EqualTo(0));
+                Assert.That(boundVisualRoot.childCount, Is.EqualTo(0));
             }
             finally
             {

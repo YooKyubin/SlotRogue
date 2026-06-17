@@ -68,14 +68,6 @@ namespace SlotRogue.UI.GameFlow
 
         public ShieldGaugeView ShieldGauge => _shieldGauge;
 
-        public GameObject CombatVisualPrefab => _combatVisualPrefab;
-
-        public GameObject CombatVisualInstance => _combatVisualInstance;
-
-        public IEnemyCombatVisual CombatVisual => _combatVisual;
-
-        public Transform VisualRoot => _visualRoot;
-
         public void Bind(
             Transform root,
             Transform shakeGroup,
@@ -162,17 +154,6 @@ namespace SlotRogue.UI.GameFlow
             DestroyCombatVisualInstance();
         }
 
-        public void PlayCombatVisualIdle()
-        {
-            if (_combatVisual == null)
-            {
-                LogMissingCombatVisualWarning(_combatVisualPrefab);
-                return;
-            }
-
-            _combatVisual.PlayIdle();
-        }
-
         public void PlayCombatVisualAttack()
         {
             if (_combatVisual == null)
@@ -182,6 +163,17 @@ namespace SlotRogue.UI.GameFlow
             }
 
             _combatVisual.PlayAttack();
+        }
+
+        private void PlayCombatVisualIdle()
+        {
+            if (_combatVisual == null)
+            {
+                LogMissingCombatVisualWarning(_combatVisualPrefab);
+                return;
+            }
+
+            _combatVisual.PlayIdle();
         }
 
         public void SetActive(bool active)
