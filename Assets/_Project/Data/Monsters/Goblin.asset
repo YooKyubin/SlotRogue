@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4d5e6f7a8b94012a3b4c5d6e7f80905, type: 3}
   m_Name: Goblin
   m_EditorClassIdentifier: SlotRogue.Data::SlotRogue.Data.Combat.MonsterDefinition
+  _visual: {fileID: 11400000, guid: e8702f1d4a7346dcb6d7e07aa1af11f3, type: 2}
   maxHp: 20
-  portrait: {fileID: -3010168192132499754, guid: 75a101441eaa2c748977b251201bfe4c, type: 3}
   turnPattern: {fileID: 11400000, guid: 70dc0f785e6543642bb39902f84f80f5, type: 2}

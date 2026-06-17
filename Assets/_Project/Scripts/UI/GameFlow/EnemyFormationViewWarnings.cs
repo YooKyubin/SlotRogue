@@ -9,6 +9,7 @@ namespace SlotRogue.UI.GameFlow
         private readonly HashSet<int> _missingFormationSlotsLogged = new();
         private readonly HashSet<int> _missingDamageAnchorsLogged = new();
         private readonly HashSet<int> _missingSlotDamageAnchorsLogged = new();
+        private readonly HashSet<int> _missingCombatVisualSlotsLogged = new();
 
         public void MissingFormationSlot(int slotIndex)
         {
@@ -45,6 +46,19 @@ namespace SlotRogue.UI.GameFlow
             Debug.LogError(
                 $"[EnemyFormationView] DamageAnchor is missing on formation slot {slotIndex} " +
                 $"for enemy participant {ParticipantLabel(participantId)}.");
+        }
+
+        public void MissingCombatVisualSlot(CombatParticipantId participantId)
+        {
+            int participantKey = ParticipantKey(participantId);
+            if (!_missingCombatVisualSlotsLogged.Add(participantKey))
+            {
+                return;
+            }
+
+            Debug.LogError(
+                $"[EnemyFormationView] Combat visual slot mapping is missing for enemy participant {ParticipantLabel(participantId)}. " +
+                "Render the enemy slot state before requesting combat visual animation.");
         }
 
         private static int ParticipantKey(CombatParticipantId participantId)

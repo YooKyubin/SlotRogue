@@ -1,5 +1,6 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using SlotRogue.Core.Combat;
 
 namespace SlotRogue.UI.Combat.Presentation
 {
@@ -8,15 +9,26 @@ namespace SlotRogue.UI.Combat.Presentation
         private readonly FloatingCombatTextLayerView _floatingTextLayerView;
         private readonly TurnBannerView _turnBannerView;
         private readonly ICombatShieldGaugeRegistry _shieldGaugeRegistry;
+        private readonly IEnemyCombatVisualPresentationTarget _enemyCombatVisualTarget;
 
         public CombatPresentationCommandDispatcher(
             FloatingCombatTextLayerView floatingTextLayerView,
             TurnBannerView turnBannerView,
-            ICombatShieldGaugeRegistry shieldGaugeRegistry)
+            ICombatShieldGaugeRegistry shieldGaugeRegistry,
+            IEnemyCombatVisualPresentationTarget enemyCombatVisualTarget)
         {
             _floatingTextLayerView = floatingTextLayerView;
             _turnBannerView = turnBannerView;
             _shieldGaugeRegistry = shieldGaugeRegistry;
+            _enemyCombatVisualTarget = enemyCombatVisualTarget;
+        }
+
+        public UniTask PlayEnemyAttackAsync(
+            CombatParticipantId participantId,
+            CancellationToken cancellationToken)
+        {
+            _enemyCombatVisualTarget?.PlayEnemyCombatVisualAttack(participantId);
+            return UniTask.CompletedTask;
         }
 
         public UniTask ShowFloatingDamageAsync(

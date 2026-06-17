@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using SlotRogue.Core.Combat;
 using SlotRogue.UI.GameFlow;
 using UnityEngine;
 using UnityEngine.UI;
@@ -30,14 +31,12 @@ namespace SlotRogue.UI.Tests.GameFlow
                     slotView.Bind(
                         slot.transform,
                         shakeGroup: null,
-                        portrait: null,
                         hudRoot: null,
                         hudText: null,
                         hpFill: null,
                         statusBackground: null,
                         shieldGauge: null,
                         damageAnchor: damageAnchor,
-                        placeholderText: null,
                         clickCollider: null);
                 }
 
@@ -48,6 +47,108 @@ namespace SlotRogue.UI.Tests.GameFlow
             }
             finally
             {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void SetEnemyCombatVisualPrefab_InstantiatesPrefabUnderFormationSlotVisualRoot()
+        {
+            var root = new GameObject("BattleArenaRoot");
+            var combatVisualPrefab = new GameObject("Enemy Combat Visual Prefab");
+            var replacementPrefab = new GameObject("Enemy Combat Visual Replacement Prefab");
+            combatVisualPrefab.AddComponent<TestEnemyCombatVisual>();
+            replacementPrefab.AddComponent<TestEnemyCombatVisual>();
+            try
+            {
+                RunBattleWorldView worldView = root.AddComponent<RunBattleWorldView>();
+                var formationRoot = new GameObject("FormationSlotsRoot");
+                formationRoot.transform.SetParent(root.transform, false);
+
+                EnemyFormationSlotView[] slotViews = new EnemyFormationSlotView[2];
+                for (int index = 0; index < slotViews.Length; index++)
+                {
+                    var slot = new GameObject($"Formation Slot {index + 1}");
+                    slot.transform.SetParent(formationRoot.transform, false);
+                    var visualRoot = new GameObject("VisualRoot");
+                    visualRoot.transform.SetParent(slot.transform, false);
+
+                    slotViews[index] = slot.AddComponent<EnemyFormationSlotView>();
+                    slotViews[index].Bind(
+                        slot.transform,
+                        shakeGroup: null,
+                        hudRoot: null,
+                        hudText: null,
+                        hpFill: null,
+                        statusBackground: null,
+                        shieldGauge: null,
+                        damageAnchor: null,
+                        clickCollider: null,
+                        visualRoot: visualRoot.transform);
+                }
+
+                worldView.EnsureReferences();
+                worldView.SetEnemyCombatVisualPrefab(formationSlot: 1, combatVisualPrefab);
+
+                Assert.That(slotViews[0].transform.Find("VisualRoot").childCount, Is.EqualTo(0));
+                Transform boundVisualRoot = slotViews[1].transform.Find("VisualRoot");
+                Assert.That(boundVisualRoot.childCount, Is.EqualTo(1));
+                Transform firstInstanceTransform = boundVisualRoot.GetChild(0);
+                Assert.That(firstInstanceTransform.name, Does.StartWith(combatVisualPrefab.name));
+                Assert.That(firstInstanceTransform.parent, Is.SameAs(boundVisualRoot));
+                Assert.That(firstInstanceTransform.localPosition, Is.EqualTo(Vector3.zero));
+                Assert.That(firstInstanceTransform.localRotation, Is.EqualTo(Quaternion.identity));
+                var firstVisual = firstInstanceTransform.GetComponent<TestEnemyCombatVisual>();
+                Assert.That(firstVisual, Is.Not.Null);
+                Assert.That(firstVisual.IdleCallCount, Is.EqualTo(1));
+                Assert.That(firstVisual.AttackCallCount, Is.EqualTo(0));
+                var viewModel = new RunBattleScreenViewModel(slotCellCount: 0, enemySlotCount: 2);
+                viewModel.SetEnemySlot(
+                    slotIndex: 0,
+                    new CombatParticipantId(100),
+                    "Enemy 0",
+                    hp: 10,
+                    maxHp: 10,
+                    shield: 0,
+                    selected: false,
+                    interactable: true);
+                viewModel.SetEnemySlot(
+                    slotIndex: 1,
+                    new CombatParticipantId(101),
+                    "Enemy 1",
+                    hp: 10,
+                    maxHp: 10,
+                    shield: 0,
+                    selected: false,
+                    interactable: true);
+                worldView.Render(viewModel.State);
+                worldView.PlayEnemyCombatVisualAttack(new CombatParticipantId(101));
+                Assert.That(firstVisual.AttackCallCount, Is.EqualTo(1));
+                Assert.That(slotViews[0].transform.Find("VisualRoot").childCount, Is.EqualTo(0));
+
+                GameObject firstInstance = firstInstanceTransform.gameObject;
+                worldView.SetEnemyCombatVisualPrefab(formationSlot: 1, replacementPrefab);
+
+                Assert.That(firstInstance == null, Is.True);
+                Assert.That(boundVisualRoot.childCount, Is.EqualTo(1));
+                Transform replacementInstanceTransform = boundVisualRoot.GetChild(0);
+                Assert.That(replacementInstanceTransform.name, Does.StartWith(replacementPrefab.name));
+                var replacementVisual = replacementInstanceTransform.GetComponent<TestEnemyCombatVisual>();
+                Assert.That(replacementVisual, Is.Not.Null);
+                Assert.That(replacementVisual.IdleCallCount, Is.EqualTo(1));
+                Assert.That(replacementVisual.AttackCallCount, Is.EqualTo(0));
+
+                GameObject replacementInstance = replacementInstanceTransform.gameObject;
+                worldView.ClearEnemyCombatVisualPrefabs();
+
+                Assert.That(replacementInstance == null, Is.True);
+                Assert.That(slotViews[0].transform.Find("VisualRoot").childCount, Is.EqualTo(0));
+                Assert.That(boundVisualRoot.childCount, Is.EqualTo(0));
+            }
+            finally
+            {
+                Object.DestroyImmediate(replacementPrefab);
+                Object.DestroyImmediate(combatVisualPrefab);
                 Object.DestroyImmediate(root);
             }
         }
@@ -118,14 +219,12 @@ namespace SlotRogue.UI.Tests.GameFlow
                 view.Bind(
                     root.transform,
                     shakeGroup: null,
-                    portrait: null,
                     hudRoot: null,
                     hudText: null,
                     hpFill: fill,
                     statusBackground: null,
                     shieldGauge: null,
                     damageAnchor: null,
-                    placeholderText: null,
                     clickCollider: null);
 
                 view.SetHpFill(current: 5, max: 10);
@@ -173,6 +272,23 @@ namespace SlotRogue.UI.Tests.GameFlow
             finally
             {
                 Object.DestroyImmediate(root);
+            }
+        }
+
+        private sealed class TestEnemyCombatVisual : MonoBehaviour, IEnemyCombatVisual
+        {
+            public int IdleCallCount { get; private set; }
+
+            public int AttackCallCount { get; private set; }
+
+            public void PlayIdle()
+            {
+                IdleCallCount++;
+            }
+
+            public void PlayAttack()
+            {
+                AttackCallCount++;
             }
         }
     }

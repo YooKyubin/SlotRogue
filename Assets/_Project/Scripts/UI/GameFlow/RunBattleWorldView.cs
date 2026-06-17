@@ -59,10 +59,16 @@ namespace SlotRogue.UI.GameFlow
             _enemyFormationView?.Render(state.EnemySlots);
         }
 
-        public void SetEnemyPortrait(int slotIndex, Sprite portrait)
+        public void SetEnemyCombatVisualPrefab(int formationSlot, GameObject combatVisualPrefab)
         {
             EnsureReferences();
-            _enemyFormationView?.SetPortrait(slotIndex, portrait);
+            _enemyFormationView?.SetCombatVisualPrefab(formationSlot, combatVisualPrefab);
+        }
+
+        public void ClearEnemyCombatVisualPrefabs()
+        {
+            EnsureReferences();
+            _enemyFormationView?.ClearCombatVisualPrefabs();
         }
 
         public void SetEnemySlotClickHandler(int slotIndex, Action action)
@@ -89,6 +95,12 @@ namespace SlotRogue.UI.GameFlow
         {
             EnsureReferences();
             return _enemyFormationView != null ? _enemyFormationView.ResolveDamageAnchor(participantId) : null;
+        }
+
+        public void PlayEnemyCombatVisualAttack(CombatParticipantId participantId)
+        {
+            EnsureReferences();
+            _enemyFormationView?.PlayCombatVisualAttack(participantId);
         }
 
         public ShieldGaugeView ResolveEnemyShieldGauge(CombatParticipantId participantId)
