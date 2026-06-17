@@ -1,6 +1,6 @@
 # Monster Battle View 연결
 
-**Status**: active  
+**Status**: completed  
 **Started**: 2026-06-16  
 **Owner**: _(전투/UI 담당)_  
 **Related design-docs**: [`../../design-docs/game-flow.md`](../../design-docs/game-flow.md), [`../../design-docs/combat-core.md`](../../design-docs/combat-core.md), [`../../adr/0003-combat-presentation-replay.md`](../../adr/0003-combat-presentation-replay.md), [`../../adr/0006-runtime-asset-loading-boundary.md`](../../adr/0006-runtime-asset-loading-boundary.md)
@@ -23,7 +23,7 @@
 - [x] 기존 combat presentation command 경로에 enemy attack animation 명령 연결
 - [x] `ActionStartedPresenter` 명령 전달 단위 테스트 추가
 - [x] 관련 EditMode 테스트 추가 및 `dotnet build SlotRogue.sln --no-restore` 검증
-- [ ] Unity Editor에서 VisualRoot, MoonRabit visual SO, combat visual prefab, Animator, Idle/Attack clip wiring 수동 검증
+- [x] Unity Editor에서 VisualRoot, MoonRabit visual SO, combat visual prefab, Animator, Idle/Attack clip wiring 수동 검증
 
 ## Notes
 
@@ -147,6 +147,7 @@ sequenceDiagram
 
 ## Completion
 
-- **Finished**:
-- **Outcome**:
-- **Follow-ups**:
+- **Finished**: 2026-06-17
+- **Outcome**: `MonsterVisualDefinition.CombatVisualPrefab`이 RunGame 전투 formation slot의 `VisualRoot` 아래에 생성되고, 생성된 prefab의 `IEnemyCombatVisual`을 통해 Idle/Attack 요청을 전달한다. 적 행동 시작은 `CombatEventKind.ActionStarted` → `ActionStartedPresenter` → `ICombatPresentationCommands.PlayEnemyAttackAsync()` → `RunBattleScreenView` → `RunBattleWorldView` → `EnemyFormationView` → `EnemyFormationSlotView.PlayCombatVisualAttack()` 경로로 연결했다. `MoonRabitCombatVisual`은 Animator state `Idle`/`Attack`을 재생하며, Unity Editor에서 MoonRabit prefab, Animator Controller, Idle/Attack clip, Attack→Idle transition wiring을 수동 설정했다.
+- **Verification**: `dotnet build SlotRogue.sln --no-restore`는 기존 `Assembly-CSharp-firstpass.csproj`의 `System.Net.Http` 버전 충돌 경고 1개만 남기고 오류 0개로 통과했다. `dotnet test SlotRogue.sln --no-build`는 종료 코드 0으로 통과했다. `RunBattleWorldViewTests`는 combat visual 생성·재바인딩·정리·participant id 기반 Attack 전달을 검증하고, `ActionStartedPresenterTests`는 presenter가 source participant id로 enemy attack command를 1회 호출하는지 검증한다.
+- **Follow-ups**: 현재는 모든 적 `ActionStarted`가 `PlayAttack()`으로 연결된다. ActionKey/ActionType을 CombatEvent에 포함해 action별 애니메이션을 선택하는 작업, Animation Event 기반 타격 프레임 동기화, 공격 애니메이션 종료 UniTask 대기, Hit/Death 애니메이션은 후속 plan에서 다룬다.

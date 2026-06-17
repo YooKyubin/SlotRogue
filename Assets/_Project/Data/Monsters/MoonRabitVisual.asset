@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a91f27b5e64a4f4b9b78f4c51d26d4b3, type: 3}
   m_Name: MoonRabitVisual
   m_EditorClassIdentifier: 
-  _portrait: {fileID: -855298285791758126, guid: f436e98ca17bb9246b558fb2f522b7b0, type: 3}
+  _portrait: {fileID: 21300000, guid: 75cd71cf93b72704ebaca018392f69a2, type: 3}
   _combatVisualPrefab: {fileID: 100000, guid: 2c98fdcf368046e787fa52ab7af4bc17, type: 3}
