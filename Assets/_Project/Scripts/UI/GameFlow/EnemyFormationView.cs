@@ -53,11 +53,22 @@ namespace SlotRogue.UI.GameFlow
             }
         }
 
-        public void SetPortrait(int slotIndex, Sprite portrait)
+        public void SetCombatVisualPrefab(int formationSlot, GameObject combatVisualPrefab)
         {
-            if (TryGetFormationSlotView(slotIndex, out EnemyFormationSlotView formationSlotView))
+            if (TryGetFormationSlotView(formationSlot, out EnemyFormationSlotView formationSlotView))
             {
-                formationSlotView.SetPortrait(portrait);
+                formationSlotView.SetCombatVisualPrefab(combatVisualPrefab);
+            }
+        }
+
+        public void ClearCombatVisualPrefabs()
+        {
+            for (int slotIndex = 0; slotIndex < SlotCount; slotIndex++)
+            {
+                if (TryGetFormationSlotView(slotIndex, out EnemyFormationSlotView formationSlotView))
+                {
+                    formationSlotView.ClearCombatVisual();
+                }
             }
         }
 
@@ -143,6 +154,19 @@ namespace SlotRogue.UI.GameFlow
             }
 
             return null;
+        }
+
+        public void PlayCombatVisualAttack(CombatParticipantId participantId)
+        {
+            if (participantId.IsValid &&
+                _slotIndexByParticipantId.TryGetValue(participantId.Value, out int slotIndex) &&
+                TryGetFormationSlotView(slotIndex, out EnemyFormationSlotView formationSlotView))
+            {
+                formationSlotView.PlayCombatVisualAttack();
+                return;
+            }
+
+            _warnings.MissingCombatVisualSlot(participantId);
         }
 
         private static void RenderFormationSlot(

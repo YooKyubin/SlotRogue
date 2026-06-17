@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using NUnit.Framework;
 using SlotRogue.Core.Combat;
@@ -131,7 +132,7 @@ namespace SlotRogue.UI.Tests.GameFlow
             EnemyActionPlan plan = planner.PlanNext(Context(enemy));
 
             Assert.That(plan.Effects, Is.Empty);
-            Object.DestroyImmediate(pattern);
+            UnityEngine.Object.DestroyImmediate(pattern);
         }
 
         [Test]
@@ -162,28 +163,20 @@ namespace SlotRogue.UI.Tests.GameFlow
             Assert.That(combatant.Participant.Team, Is.EqualTo(CombatTeam.Enemy));
             Assert.That(combatant.Participant.Id.Value, Is.EqualTo(102));
             AssertPlan(combatant.UpcomingPlan, CombatEffectKind.Damage, 6);
-            Assert.That(typeof(EnemyCombatant).GetProperty("Definition"), Is.Null);
-            Object.DestroyImmediate(definition);
+            UnityEngine.Object.DestroyImmediate(definition);
         }
 
         [Test]
-        public void RunEncounterRosterBuilder_BuildForTier_CreatesEnemyCombatant()
+        public void RunEncounterRosterBuilder_BuildForTier_RequiresMonsterDefinitionSource()
         {
-            RunEncounterRoster roster = RunEncounterRosterBuilder.BuildForTier(
-                SlotRogue.Data.GameFlow.EncounterTier.Normal,
-                level: 1);
-            BattleSystem battle = new();
-            CombatParticipant player = RunCombatParticipantFactory.CreatePlayer(maxHp: 30, currentHp: 30);
-
-            battle.StartBattle(player, new[] { roster.Enemies[0].Combatant });
-
-            Assert.That(roster.Enemies.Count, Is.EqualTo(1));
-            Assert.That(battle.TryGetUpcomingEnemyTurn(roster.Enemies[0].Combatant.Participant.Id, out EnemyUpcomingTurn upcoming), Is.True);
-            AssertPlan(upcoming.Plan, CombatEffectKind.Damage, 4);
+            Assert.Throws<NotSupportedException>(() =>
+                RunEncounterRosterBuilder.BuildForTier(
+                    SlotRogue.Data.GameFlow.EncounterTier.Normal,
+                    level: 1));
         }
 
         [Test]
-        public void EnemyEncounterUnit_StoresCombatantAndFormationSlot()
+        public void EnemyEncounterUnit_StoresCombatantDefinitionAndFormationSlot()
         {
             EnemyCombatant combatant = new(
                 Enemy(id: 101, maxHp: 12),
@@ -191,11 +184,32 @@ namespace SlotRogue.UI.Tests.GameFlow
                 {
                     Plan(new CombatEffect(CombatEffectKind.Damage, 3, CombatEffectTarget.Enemy)),
                 }));
+            MonsterDefinition definition = ScriptableObject.CreateInstance<MonsterDefinition>();
 
-            var unit = new EnemyEncounterUnit(combatant, formationSlot: 2);
+            var unit = new EnemyEncounterUnit(combatant, definition, formationSlot: 2);
 
             Assert.That(unit.Combatant, Is.SameAs(combatant));
+            Assert.That(unit.Definition, Is.SameAs(definition));
             Assert.That(unit.FormationSlot, Is.EqualTo(2));
+            UnityEngine.Object.DestroyImmediate(definition);
+        }
+
+        [Test]
+        public void RunEncounterRosterBuilder_BuildFromMonsterDefinition_StoresSourceDefinition()
+        {
+            MonsterDefinition definition = ScriptableObject.CreateInstance<MonsterDefinition>();
+            definition.maxHp = 17;
+            definition.turnPattern = Pattern(Turn(Action("Attack", Damage(6, CombatTargetMode.SelectedEnemy))));
+
+            RunEncounterRoster roster = RunEncounterRosterBuilder.BuildFromMonsterDefinition(
+                definition,
+                rosterIndex: 0,
+                formationSlot: 2);
+
+            Assert.That(roster.Enemies.Count, Is.EqualTo(1));
+            Assert.That(roster.Enemies[0].Definition, Is.SameAs(definition));
+            Assert.That(roster.Enemies[0].FormationSlot, Is.EqualTo(2));
+            UnityEngine.Object.DestroyImmediate(definition);
         }
 
         [Test]
@@ -213,20 +227,26 @@ namespace SlotRogue.UI.Tests.GameFlow
                 {
                     Plan(new CombatEffect(CombatEffectKind.Shield, 4, CombatEffectTarget.Self)),
                 }));
+            MonsterDefinition firstDefinition = ScriptableObject.CreateInstance<MonsterDefinition>();
+            MonsterDefinition secondDefinition = ScriptableObject.CreateInstance<MonsterDefinition>();
             var source = new[]
             {
-                new EnemyEncounterUnit(first, formationSlot: 1),
-                new EnemyEncounterUnit(second, formationSlot: 0),
+                new EnemyEncounterUnit(first, firstDefinition, formationSlot: 1),
+                new EnemyEncounterUnit(second, secondDefinition, formationSlot: 0),
             };
 
             RunEncounterRoster roster = new(source);
 
-            source[0] = new EnemyEncounterUnit(second, formationSlot: 2);
+            source[0] = new EnemyEncounterUnit(second, secondDefinition, formationSlot: 2);
             Assert.That(roster.Enemies.Count, Is.EqualTo(2));
             Assert.That(roster.Enemies[0].Combatant, Is.SameAs(first));
+            Assert.That(roster.Enemies[0].Definition, Is.SameAs(firstDefinition));
             Assert.That(roster.Enemies[0].FormationSlot, Is.EqualTo(1));
             Assert.That(roster.Enemies[1].Combatant, Is.SameAs(second));
+            Assert.That(roster.Enemies[1].Definition, Is.SameAs(secondDefinition));
             Assert.That(roster.Enemies[0].Combatant.Participant, Is.SameAs(first.Participant));
+            UnityEngine.Object.DestroyImmediate(firstDefinition);
+            UnityEngine.Object.DestroyImmediate(secondDefinition);
         }
 
         private static MonsterTurnPatternDefinition Pattern(params MonsterTurnStepDefinition[] turns)

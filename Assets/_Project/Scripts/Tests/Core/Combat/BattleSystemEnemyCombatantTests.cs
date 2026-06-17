@@ -104,6 +104,27 @@ namespace SlotRogue.Core.Tests.Combat
         }
 
         [Test]
+        public void ApplyPlayerTurn_EnemyActionStartedPrecedesEffectAppliedAndActionCompleted()
+        {
+            CombatParticipant player = Player(maxHp: 30);
+            CombatParticipant enemy = Enemy(id: 100, maxHp: 20);
+            _battle.StartBattle(
+                player,
+                new[] { Combatant(enemy, Plan(CombatEffectKind.Damage, 4, CombatEffectTarget.Enemy)) });
+
+            _battle.ApplyPlayerTurn(System.Array.Empty<CombatEffect>());
+
+            int startedIndex = FindEventIndex(CombatEventKind.ActionStarted, enemy.Id);
+            int effectIndex = FindEventIndex(CombatEventKind.EffectApplied, enemy.Id);
+            int completedIndex = FindEventIndex(CombatEventKind.ActionCompleted, enemy.Id);
+            Assert.That(startedIndex, Is.GreaterThanOrEqualTo(0));
+            Assert.That(effectIndex, Is.GreaterThan(startedIndex));
+            Assert.That(completedIndex, Is.GreaterThan(effectIndex));
+            Assert.That(_battle.Events[startedIndex].Phase, Is.EqualTo(BattlePhase.EnemyTurn));
+            Assert.That(_battle.Events[startedIndex].SourceParticipantId.Value, Is.EqualTo(enemy.Id.Value));
+        }
+
+        [Test]
         public void ApplyPlayerTurn_DirectTargetingRetargetsWhenSelectedEnemyDies()
         {
             CombatParticipant player = Player(maxHp: 30);
@@ -146,6 +167,21 @@ namespace SlotRogue.Core.Tests.Combat
             CombatEffectTarget target)
         {
             return new EnemyActionPlan(new[] { new CombatEffect(kind, amount, target) });
+        }
+
+        private int FindEventIndex(CombatEventKind kind, CombatParticipantId sourceParticipantId)
+        {
+            for (int index = 0; index < _battle.Events.Count; index++)
+            {
+                CombatEvent combatEvent = _battle.Events[index];
+                if (combatEvent.Kind == kind &&
+                    combatEvent.SourceParticipantId.Value == sourceParticipantId.Value)
+                {
+                    return index;
+                }
+            }
+
+            return -1;
         }
 
         private static void AssertPlan(

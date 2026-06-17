@@ -1,5 +1,6 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using SlotRogue.Core.Combat;
 
 namespace SlotRogue.UI.Combat.Presentation
 {
@@ -9,6 +10,13 @@ namespace SlotRogue.UI.Combat.Presentation
 
         private NullCombatPresentationCommands()
         {
+        }
+
+        public UniTask PlayEnemyAttackAsync(
+            CombatParticipantId participantId,
+            CancellationToken cancellationToken)
+        {
+            return UniTask.CompletedTask;
         }
 
         public UniTask ShowFloatingDamageAsync(

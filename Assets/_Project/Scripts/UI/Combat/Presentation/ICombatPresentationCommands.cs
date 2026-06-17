@@ -1,10 +1,15 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using SlotRogue.Core.Combat;
 
 namespace SlotRogue.UI.Combat.Presentation
 {
     public interface ICombatPresentationCommands
     {
+        UniTask PlayEnemyAttackAsync(
+            CombatParticipantId participantId,
+            CancellationToken cancellationToken);
+
         UniTask ShowFloatingDamageAsync(
             FloatingDamageRequest request,
             CancellationToken cancellationToken);

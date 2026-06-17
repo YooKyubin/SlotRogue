@@ -10,6 +10,7 @@
 
 | Plan | Finished | Outcome (한 줄) |
 |------|----------|-----------------|
+| [`feature-monster-battle-view-integration.md`](./feature-monster-battle-view-integration.md) | 2026-06-17 | 몬스터 combat visual prefab 생성과 ActionStarted 기반 Idle/Attack 애니메이션 경로 연결 |
 | [`feature-notifications-weekly-ranking.md`](./feature-notifications-weekly-ranking.md) | 2026-06-14 | 24시간 복귀 알림과 한국 수요일 주간 랭킹 리셋 전 마감 알림 예약 |
 | [`feature-attribute-artifacts.md`](./feature-attribute-artifacts.md) | 2026-06-11 | 구 Artifact 시작 유물 모델을 v20.3 RelicCatalog로 대체 |
 | [`feature-enemy-formation-slot.md`](./feature-enemy-formation-slot.md) | 2026-06-04 | EnemyFormationSlot 프리팹, MonsterDefinition.portrait, 슬롯 DamageAnchor·플로팅 좌표 |
