@@ -282,6 +282,7 @@ namespace SlotRogue.Core.Combat
 
                 IReadOnlyList<EnemyActionEffect> effects = action.Effects;
                 CombatEffect completedEffect = default;
+                bool shouldEndBattle = false;
                 for (int effectIndex = 0; effectIndex < effects.Count; effectIndex++)
                 {
                     EnemyActionEffect actionEffect = effects[effectIndex];
@@ -313,10 +314,16 @@ namespace SlotRogue.Core.Combat
                             targetAfter: targetAfter,
                             sourceParticipantId: source.Id));
 
-                        if (TryEndBattle())
+                        if (IsPlayerTeamDefeated() || AreAllEnemiesDefeated())
                         {
-                            return true;
+                            shouldEndBattle = true;
+                            break;
                         }
+                    }
+
+                    if (shouldEndBattle)
+                    {
+                        break;
                     }
                 }
 
@@ -324,7 +331,14 @@ namespace SlotRogue.Core.Combat
                     CombatEventKind.ActionCompleted,
                     CurrentPhase,
                     completedEffect,
-                    sourceParticipantId: source.Id));
+                    sourceParticipantId: source.Id,
+                    actionName: action.ActionName));
+
+                if (shouldEndBattle)
+                {
+                    TryEndBattle();
+                    return true;
+                }
             }
 
             return false;

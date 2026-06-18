@@ -1,3 +1,7 @@
+using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using NUnit.Framework;
 using SlotRogue.Core.Combat;
 using SlotRogue.UI.GameFlow;
@@ -122,7 +126,12 @@ namespace SlotRogue.UI.Tests.GameFlow
                     selected: false,
                     interactable: true);
                 worldView.Render(viewModel.State);
-                worldView.PlayEnemyCombatVisualAction(new CombatParticipantId(101), "Defend");
+                worldView.PlayEnemyCombatVisualActionUntilEffectPointAsync(
+                        new CombatParticipantId(101),
+                        "Defend",
+                        CancellationToken.None)
+                    .GetAwaiter()
+                    .GetResult();
                 Assert.That(firstVisual.ActionCallCount, Is.EqualTo(1));
                 Assert.That(firstVisual.LastActionName, Is.EqualTo("Defend"));
                 Assert.That(slotViews[0].transform.Find("VisualRoot").childCount, Is.EqualTo(0));
@@ -276,6 +285,112 @@ namespace SlotRogue.UI.Tests.GameFlow
             }
         }
 
+        [Test]
+        public async Task ActionAnimationCompleted_DetachesPlaybackBeforeSignalingContinuation()
+        {
+            var root = new GameObject("Enemy Visual");
+            try
+            {
+                var visual = root.AddComponent<MoonRabitCombatVisual>();
+                var completedPlayback = new EnemyActionPlaybackState();
+                var nextPlayback = new EnemyActionPlaybackState();
+                SetCurrentPlayback(visual, completedPlayback);
+
+                Task continuation = UniTask.Create(async () =>
+                    {
+                        await completedPlayback.WaitForActionCompletedAsync(CancellationToken.None);
+                        SetCurrentPlayback(visual, nextPlayback);
+                    })
+                    .AsTask();
+
+                InvokePrivate(visual, "OnActionAnimationCompleted");
+                await continuation;
+
+                Assert.That(GetCurrentPlayback(visual), Is.SameAs(nextPlayback));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public async Task CancelCurrentPlayback_DetachesPlaybackBeforeSignalingContinuation()
+        {
+            var root = new GameObject("Enemy Visual");
+            try
+            {
+                var visual = root.AddComponent<MoonRabitCombatVisual>();
+                var canceledPlayback = new EnemyActionPlaybackState();
+                var nextPlayback = new EnemyActionPlaybackState();
+                SetCurrentPlayback(visual, canceledPlayback);
+
+                Task continuation = UniTask.Create(async () =>
+                    {
+                        try
+                        {
+                            await canceledPlayback.WaitForActionCompletedAsync(CancellationToken.None);
+                        }
+                        catch (System.OperationCanceledException)
+                        {
+                            SetCurrentPlayback(visual, nextPlayback);
+                        }
+                    })
+                    .AsTask();
+
+                InvokePrivate(visual, "CancelCurrentPlayback");
+                await continuation;
+
+                Assert.That(GetCurrentPlayback(visual), Is.SameAs(nextPlayback));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void ActionAnimationCompleted_DuplicateEventWithoutCurrentPlaybackDoesNothing()
+        {
+            var root = new GameObject("Enemy Visual");
+            try
+            {
+                var visual = root.AddComponent<MoonRabitCombatVisual>();
+                SetCurrentPlayback(visual, new EnemyActionPlaybackState());
+
+                InvokePrivate(visual, "OnActionAnimationCompleted");
+                InvokePrivate(visual, "OnActionAnimationCompleted");
+
+                Assert.That(GetCurrentPlayback(visual), Is.Null);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void EnemyActionPlaybackState_WaitForActionCompletedCompletesWhenMarkedBeforeWait()
+        {
+            using var playback = new EnemyActionPlaybackState();
+
+            playback.MarkActionCompleted();
+
+            Assert.DoesNotThrowAsync(async () =>
+                await playback.WaitForActionCompletedAsync(CancellationToken.None).AsTask());
+        }
+
+        [Test]
+        public void EnemyActionPlaybackState_WaitForActionCompletedCancelsWhenPlaybackIsCanceled()
+        {
+            using var playback = new EnemyActionPlaybackState();
+
+            playback.Cancel();
+
+            Assert.ThrowsAsync<System.OperationCanceledException>(async () =>
+                await playback.WaitForActionCompletedAsync(CancellationToken.None).AsTask());
+        }
+
         private sealed class TestEnemyCombatVisual : MonoBehaviour, IEnemyCombatVisual
         {
             public int IdleCallCount { get; private set; }
@@ -289,11 +404,43 @@ namespace SlotRogue.UI.Tests.GameFlow
                 IdleCallCount++;
             }
 
-            public void PlayAction(string actionName)
+            public UniTask PlayActionUntilEffectPointAsync(
+                string actionName,
+                CancellationToken cancellationToken)
             {
                 ActionCallCount++;
                 LastActionName = actionName;
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask WaitForActionCompletedAsync(CancellationToken cancellationToken)
+            {
+                return UniTask.CompletedTask;
             }
         }
+
+        private static void SetCurrentPlayback(
+            MoonRabitCombatVisual visual,
+            EnemyActionPlaybackState playback)
+        {
+            CurrentPlaybackField.SetValue(visual, playback);
+        }
+
+        private static EnemyActionPlaybackState GetCurrentPlayback(MoonRabitCombatVisual visual)
+        {
+            return (EnemyActionPlaybackState)CurrentPlaybackField.GetValue(visual);
+        }
+
+        private static void InvokePrivate(MoonRabitCombatVisual visual, string methodName)
+        {
+            typeof(MoonRabitCombatVisual)
+                .GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(visual, parameters: null);
+        }
+
+        private static readonly FieldInfo CurrentPlaybackField =
+            typeof(MoonRabitCombatVisual).GetField(
+                "_currentPlayback",
+                BindingFlags.Instance | BindingFlags.NonPublic);
     }
 }

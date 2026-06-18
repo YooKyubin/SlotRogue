@@ -13,6 +13,7 @@ namespace SlotRogue.UI.Combat.Presentation
         private readonly ICombatEventPresenter _shieldPresenter;
         private readonly ICombatEventPresenter _healPresenter;
         private readonly ICombatEventPresenter _actionStartedPresenter;
+        private readonly ICombatEventPresenter _actionCompletedPresenter;
         private readonly ICombatEventPresenter _fallbackPresenter;
 
         public CombatPresentationPipeline(
@@ -23,6 +24,7 @@ namespace SlotRogue.UI.Combat.Presentation
             ICombatEventPresenter shieldPresenter,
             ICombatEventPresenter healPresenter,
             ICombatEventPresenter actionStartedPresenter,
+            ICombatEventPresenter actionCompletedPresenter,
             ICombatEventPresenter fallbackPresenter)
         {
             _phaseChangedPresenter = phaseChangedPresenter;
@@ -32,6 +34,7 @@ namespace SlotRogue.UI.Combat.Presentation
             _shieldPresenter = shieldPresenter;
             _healPresenter = healPresenter;
             _actionStartedPresenter = actionStartedPresenter;
+            _actionCompletedPresenter = actionCompletedPresenter;
             _fallbackPresenter = fallbackPresenter;
         }
 
@@ -45,6 +48,7 @@ namespace SlotRogue.UI.Combat.Presentation
                 new ShieldPresenter(host),
                 new HealPresenter(host),
                 new ActionStartedPresenter(host),
+                new ActionCompletedPresenter(host),
                 new CombatDummyPresenter());
         }
 
@@ -82,6 +86,13 @@ namespace SlotRogue.UI.Combat.Presentation
 
                 case CombatEventKind.ActionStarted:
                     return _actionStartedPresenter.PresentAsync(
+                        combatEvent,
+                        viewModel,
+                        context,
+                        cancellationToken);
+
+                case CombatEventKind.ActionCompleted:
+                    return _actionCompletedPresenter.PresentAsync(
                         combatEvent,
                         viewModel,
                         context,

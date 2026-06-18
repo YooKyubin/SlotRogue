@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
 using UnityEngine;
 
@@ -117,10 +119,30 @@ namespace SlotRogue.UI.GameFlow
             return _enemyFormationView != null ? _enemyFormationView.ResolveDamageAnchor(participantId) : null;
         }
 
-        public void PlayEnemyCombatVisualAction(CombatParticipantId participantId, string actionName)
+        public UniTask PlayEnemyCombatVisualActionUntilEffectPointAsync(
+            CombatParticipantId participantId,
+            string actionName,
+            CancellationToken cancellationToken)
         {
             EnsureReferences();
-            _enemyFormationView?.PlayCombatVisualAction(participantId, actionName);
+            return _enemyFormationView != null
+                ? _enemyFormationView.PlayCombatVisualActionUntilEffectPointAsync(
+                    participantId,
+                    actionName,
+                    cancellationToken)
+                : UniTask.CompletedTask;
+        }
+
+        public UniTask WaitEnemyCombatVisualActionCompletedAsync(
+            CombatParticipantId participantId,
+            CancellationToken cancellationToken)
+        {
+            EnsureReferences();
+            return _enemyFormationView != null
+                ? _enemyFormationView.WaitCombatVisualActionCompletedAsync(
+                    participantId,
+                    cancellationToken)
+                : UniTask.CompletedTask;
         }
 
         public ShieldGaugeView ResolveEnemyShieldGauge(CombatParticipantId participantId)

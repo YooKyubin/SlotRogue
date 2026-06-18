@@ -126,6 +126,32 @@ namespace SlotRogue.Core.Tests.Combat
         }
 
         [Test]
+        public void ApplyPlayerTurn_EnemyActionEndingBattleRecordsActionCompletedBeforeBattleEnded()
+        {
+            CombatParticipant player = Player(maxHp: 4);
+            CombatParticipant enemy = Enemy(id: 100, maxHp: 20);
+            _battle.StartBattle(
+                player,
+                new[] { Combatant(enemy, NamedPlan("Attack", CombatEffectKind.Damage, 4, CombatEffectTarget.Enemy)) });
+
+            _battle.ApplyPlayerTurn(System.Array.Empty<CombatEffect>());
+
+            int startedIndex = FindEventIndex(CombatEventKind.ActionStarted, enemy.Id);
+            int effectIndex = FindEventIndex(CombatEventKind.EffectApplied, enemy.Id);
+            int completedIndex = FindEventIndex(CombatEventKind.ActionCompleted, enemy.Id);
+            int battleEndedIndex = FindFirstEventIndex(CombatEventKind.BattleEnded);
+            Assert.That(startedIndex, Is.GreaterThanOrEqualTo(0));
+            Assert.That(effectIndex, Is.GreaterThan(startedIndex));
+            Assert.That(completedIndex, Is.GreaterThan(effectIndex));
+            Assert.That(battleEndedIndex, Is.GreaterThan(completedIndex));
+            Assert.That(_battle.Events[completedIndex].ActionName, Is.EqualTo("Attack"));
+            Assert.That(_battle.Events.Count(e =>
+                e.Kind == CombatEventKind.ActionCompleted &&
+                e.SourceParticipantId.Value == enemy.Id.Value), Is.EqualTo(1));
+            Assert.That(_battle.EndReason, Is.EqualTo(BattleEndReason.Defeat));
+        }
+
+        [Test]
         public void ApplyPlayerTurn_DirectTargetingRetargetsWhenSelectedEnemyDies()
         {
             CombatParticipant player = Player(maxHp: 30);
@@ -195,6 +221,19 @@ namespace SlotRogue.Core.Tests.Combat
                 CombatEvent combatEvent = _battle.Events[index];
                 if (combatEvent.Kind == kind &&
                     combatEvent.SourceParticipantId.Value == sourceParticipantId.Value)
+                {
+                    return index;
+                }
+            }
+
+            return -1;
+        }
+
+        private int FindFirstEventIndex(CombatEventKind kind)
+        {
+            for (int index = 0; index < _battle.Events.Count; index++)
+            {
+                if (_battle.Events[index].Kind == kind)
                 {
                     return index;
                 }

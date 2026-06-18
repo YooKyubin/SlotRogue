@@ -1,9 +1,16 @@
+using System.Threading;
+using Cysharp.Threading.Tasks;
+
 namespace SlotRogue.UI.GameFlow
 {
     public interface IEnemyCombatVisual
     {
         void PlayIdle();
 
-        void PlayAction(string actionName);
+        UniTask PlayActionUntilEffectPointAsync(
+            string actionName,
+            CancellationToken cancellationToken);
+
+        UniTask WaitForActionCompletedAsync(CancellationToken cancellationToken);
     }
 }
