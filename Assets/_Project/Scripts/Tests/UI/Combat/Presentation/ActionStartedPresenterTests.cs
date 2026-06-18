@@ -1,4 +1,5 @@
 using System.Threading;
+using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
 using SlotRogue.Core.Combat;
@@ -10,7 +11,7 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
     public sealed class ActionStartedPresenterTests
     {
         [Test]
-        public void PresentAsync_EnemyActionStartedRequestsEnemyAttackOnce()
+        public async Task PresentAsync_EnemyActionStartedWaitsUntilEffectPoint()
         {
             var hostObject = new GameObject("Presentation Host");
             try
@@ -21,18 +22,25 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 var combatEvent = new CombatEvent(
                     CombatEventKind.ActionStarted,
                     BattlePhase.EnemyTurn,
-                    sourceParticipantId: sourceParticipantId);
+                    sourceParticipantId: sourceParticipantId,
+                    actionName: "Defend");
 
-                presenter.PresentAsync(
+                Task presentTask = presenter.PresentAsync(
                         combatEvent,
                         new CombatViewModel(),
                         new PresentationContext(isCritical: false, patternName: string.Empty),
                         CancellationToken.None)
-                    .GetAwaiter()
-                    .GetResult();
+                    .AsTask();
 
-                Assert.That(commands.EnemyAttackCallCount, Is.EqualTo(1));
-                Assert.That(commands.LastEnemyAttackParticipantId.Value, Is.EqualTo(sourceParticipantId.Value));
+                await Task.Yield();
+                Assert.That(presentTask.IsCompleted, Is.False);
+
+                commands.CompleteEffectPoint();
+                await presentTask;
+
+                Assert.That(commands.EnemyActionCallCount, Is.EqualTo(1));
+                Assert.That(commands.LastEnemyActionParticipantId.Value, Is.EqualTo(sourceParticipantId.Value));
+                Assert.That(commands.LastEnemyActionName, Is.EqualTo("Defend"));
                 Assert.That(commands.OtherCommandCallCount, Is.EqualTo(0));
             }
             finally
@@ -42,7 +50,38 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
         }
 
         [Test]
-        public void PresentAsync_NonActionStartedEventDoesNotRequestEnemyAttack()
+        public void PresentAsync_EnemyActionStartedCancelsWhileWaiting()
+        {
+            var hostObject = new GameObject("Presentation Host");
+            try
+            {
+                var commands = new RecordingCommands();
+                var presenter = new ActionStartedPresenter(new CombatPresentationHost(hostObject, commands));
+                using var cancellationTokenSource = new CancellationTokenSource();
+                var combatEvent = new CombatEvent(
+                    CombatEventKind.ActionStarted,
+                    BattlePhase.EnemyTurn,
+                    sourceParticipantId: new CombatParticipantId(101),
+                    actionName: "Attack");
+
+                Task presentTask = presenter.PresentAsync(
+                        combatEvent,
+                        new CombatViewModel(),
+                        new PresentationContext(isCritical: false, patternName: string.Empty),
+                        cancellationTokenSource.Token)
+                    .AsTask();
+                cancellationTokenSource.Cancel();
+
+                Assert.ThrowsAsync<System.OperationCanceledException>(async () => await presentTask);
+            }
+            finally
+            {
+                Object.DestroyImmediate(hostObject);
+            }
+        }
+
+        [Test]
+        public void PresentAsync_NonActionStartedEventDoesNotRequestEnemyAction()
         {
             var hostObject = new GameObject("Presentation Host");
             try
@@ -62,7 +101,7 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                     .GetAwaiter()
                     .GetResult();
 
-                Assert.That(commands.EnemyAttackCallCount, Is.EqualTo(0));
+                Assert.That(commands.EnemyActionCallCount, Is.EqualTo(0));
                 Assert.That(commands.OtherCommandCallCount, Is.EqualTo(0));
             }
             finally
@@ -73,19 +112,40 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
 
         private sealed class RecordingCommands : ICombatPresentationCommands
         {
-            public int EnemyAttackCallCount { get; private set; }
+            public int EnemyActionCallCount { get; private set; }
 
             public int OtherCommandCallCount { get; private set; }
 
-            public CombatParticipantId LastEnemyAttackParticipantId { get; private set; }
+            public CombatParticipantId LastEnemyActionParticipantId { get; private set; }
 
-            public UniTask PlayEnemyAttackAsync(
+            public string LastEnemyActionName { get; private set; }
+
+            private readonly UniTaskCompletionSource _effectPointCompletion = new();
+
+            private readonly UniTaskCompletionSource _actionCompletedCompletion = new();
+
+            public void CompleteEffectPoint()
+            {
+                _effectPointCompletion.TrySetResult();
+            }
+
+            public UniTask PlayEnemyActionUntilEffectPointAsync(
+                CombatParticipantId participantId,
+                string actionName,
+                CancellationToken cancellationToken)
+            {
+                EnemyActionCallCount++;
+                LastEnemyActionParticipantId = participantId;
+                LastEnemyActionName = actionName;
+                return WaitAsync(_effectPointCompletion, cancellationToken);
+            }
+
+            public UniTask WaitEnemyActionCompletedAsync(
                 CombatParticipantId participantId,
                 CancellationToken cancellationToken)
             {
-                EnemyAttackCallCount++;
-                LastEnemyAttackParticipantId = participantId;
-                return UniTask.CompletedTask;
+                OtherCommandCallCount++;
+                return WaitAsync(_actionCompletedCompletion, cancellationToken);
             }
 
             public UniTask ShowFloatingDamageAsync(
@@ -135,6 +195,209 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
             {
                 OtherCommandCallCount++;
                 return UniTask.CompletedTask;
+            }
+
+            private static async UniTask WaitAsync(
+                UniTaskCompletionSource completion,
+                CancellationToken cancellationToken)
+            {
+                using CancellationTokenRegistration registration =
+                    cancellationToken.Register(() => completion.TrySetCanceled(cancellationToken));
+                await completion.Task;
+            }
+        }
+    }
+
+    public sealed class ActionCompletedPresenterTests
+    {
+        [Test]
+        public async Task PresentAsync_EnemyActionCompletedWaitsUntilAnimationCompleted()
+        {
+            var hostObject = new GameObject("Presentation Host");
+            try
+            {
+                var commands = new ActionCompletedRecordingCommands();
+                var presenter = new ActionCompletedPresenter(new CombatPresentationHost(hostObject, commands));
+                var sourceParticipantId = new CombatParticipantId(101);
+                var combatEvent = new CombatEvent(
+                    CombatEventKind.ActionCompleted,
+                    BattlePhase.EnemyTurn,
+                    sourceParticipantId: sourceParticipantId,
+                    actionName: "Attack");
+
+                Task presentTask = presenter.PresentAsync(
+                        combatEvent,
+                        new CombatViewModel(),
+                        new PresentationContext(isCritical: false, patternName: string.Empty),
+                        CancellationToken.None)
+                    .AsTask();
+
+                await Task.Yield();
+                Assert.That(presentTask.IsCompleted, Is.False);
+
+                commands.CompleteAction();
+                await presentTask;
+
+                Assert.That(commands.ActionCompletedCallCount, Is.EqualTo(1));
+                Assert.That(commands.LastCompletedParticipantId.Value, Is.EqualTo(sourceParticipantId.Value));
+                Assert.That(commands.OtherCommandCallCount, Is.EqualTo(0));
+            }
+            finally
+            {
+                Object.DestroyImmediate(hostObject);
+            }
+        }
+
+        [Test]
+        public void PresentAsync_EnemyActionCompletedCancelsWhileWaiting()
+        {
+            var hostObject = new GameObject("Presentation Host");
+            try
+            {
+                var commands = new ActionCompletedRecordingCommands();
+                var presenter = new ActionCompletedPresenter(new CombatPresentationHost(hostObject, commands));
+                using var cancellationTokenSource = new CancellationTokenSource();
+                var combatEvent = new CombatEvent(
+                    CombatEventKind.ActionCompleted,
+                    BattlePhase.EnemyTurn,
+                    sourceParticipantId: new CombatParticipantId(101));
+
+                Task presentTask = presenter.PresentAsync(
+                        combatEvent,
+                        new CombatViewModel(),
+                        new PresentationContext(isCritical: false, patternName: string.Empty),
+                        cancellationTokenSource.Token)
+                    .AsTask();
+                cancellationTokenSource.Cancel();
+
+                Assert.ThrowsAsync<System.OperationCanceledException>(async () => await presentTask);
+            }
+            finally
+            {
+                Object.DestroyImmediate(hostObject);
+            }
+        }
+
+        [Test]
+        public void PresentAsync_NonActionCompletedEventDoesNotRequestCompletionWait()
+        {
+            var hostObject = new GameObject("Presentation Host");
+            try
+            {
+                var commands = new ActionCompletedRecordingCommands();
+                var presenter = new ActionCompletedPresenter(new CombatPresentationHost(hostObject, commands));
+                var combatEvent = new CombatEvent(
+                    CombatEventKind.ActionStarted,
+                    BattlePhase.EnemyTurn,
+                    sourceParticipantId: new CombatParticipantId(101));
+
+                presenter.PresentAsync(
+                        combatEvent,
+                        new CombatViewModel(),
+                        new PresentationContext(isCritical: false, patternName: string.Empty),
+                        CancellationToken.None)
+                    .GetAwaiter()
+                    .GetResult();
+
+                Assert.That(commands.ActionCompletedCallCount, Is.EqualTo(0));
+                Assert.That(commands.OtherCommandCallCount, Is.EqualTo(0));
+            }
+            finally
+            {
+                Object.DestroyImmediate(hostObject);
+            }
+        }
+
+        private sealed class ActionCompletedRecordingCommands : ICombatPresentationCommands
+        {
+            private readonly UniTaskCompletionSource _effectPointCompletion = new();
+            private readonly UniTaskCompletionSource _actionCompletedCompletion = new();
+
+            public int ActionCompletedCallCount { get; private set; }
+
+            public int OtherCommandCallCount { get; private set; }
+
+            public CombatParticipantId LastCompletedParticipantId { get; private set; }
+
+            public void CompleteAction()
+            {
+                _actionCompletedCompletion.TrySetResult();
+            }
+
+            public UniTask PlayEnemyActionUntilEffectPointAsync(
+                CombatParticipantId participantId,
+                string actionName,
+                CancellationToken cancellationToken)
+            {
+                OtherCommandCallCount++;
+                return WaitAsync(_effectPointCompletion, cancellationToken);
+            }
+
+            public UniTask WaitEnemyActionCompletedAsync(
+                CombatParticipantId participantId,
+                CancellationToken cancellationToken)
+            {
+                ActionCompletedCallCount++;
+                LastCompletedParticipantId = participantId;
+                return WaitAsync(_actionCompletedCompletion, cancellationToken);
+            }
+
+            public UniTask ShowFloatingDamageAsync(
+                FloatingDamageRequest request,
+                CancellationToken cancellationToken)
+            {
+                OtherCommandCallCount++;
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask ShowShieldGainAsync(
+                ShieldPresentationRequest request,
+                CancellationToken cancellationToken)
+            {
+                OtherCommandCallCount++;
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask ShowShieldHitAsync(
+                ShieldPresentationRequest request,
+                CancellationToken cancellationToken)
+            {
+                OtherCommandCallCount++;
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask ShowShieldBreakAsync(
+                ShieldPresentationRequest request,
+                CancellationToken cancellationToken)
+            {
+                OtherCommandCallCount++;
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask ShowShieldExpireAsync(
+                ShieldPresentationRequest request,
+                CancellationToken cancellationToken)
+            {
+                OtherCommandCallCount++;
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask ShowTurnBannerAsync(
+                string message,
+                float duration,
+                CancellationToken cancellationToken)
+            {
+                OtherCommandCallCount++;
+                return UniTask.CompletedTask;
+            }
+
+            private static async UniTask WaitAsync(
+                UniTaskCompletionSource completion,
+                CancellationToken cancellationToken)
+            {
+                using CancellationTokenRegistration registration =
+                    cancellationToken.Register(() => completion.TrySetCanceled(cancellationToken));
+                await completion.Task;
             }
         }
     }

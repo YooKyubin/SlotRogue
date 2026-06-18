@@ -106,16 +106,17 @@ namespace SlotRogue.UI.GameFlow
                 EnemyActionKey actionKey = new(nextActionKey++);
                 if (action == null)
                 {
-                    plannedActions[index] = new EnemyPlannedAction(actionKey, null);
+                    plannedActions[index] = new EnemyPlannedAction(actionKey, string.Empty, null);
                     continue;
                 }
 
                 presentations.Add(new EnemyActionPresentation(
                     actionKey,
-                    action.DisplayName,
+                    action.ActionName,
                     action.IntentIcon));
                 plannedActions[index] = new EnemyPlannedAction(
                     actionKey,
+                    action.ActionName,
                     ToActionEffects(action.Effect));
             }
 

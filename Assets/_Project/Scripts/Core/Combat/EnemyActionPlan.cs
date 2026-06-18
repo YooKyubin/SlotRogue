@@ -36,6 +36,7 @@ namespace SlotRogue.Core.Combat
             {
                 actions[index] = new EnemyPlannedAction(
                     new EnemyActionKey(index + 1),
+                    string.Empty,
                     new[] { EnemyActionEffect.FromCombatEffect(effects[index]) });
             }
 
@@ -54,8 +55,8 @@ namespace SlotRogue.Core.Combat
             {
                 EnemyPlannedAction action = actions[index];
                 copy[index] = action == null
-                    ? new EnemyPlannedAction(default, null)
-                    : new EnemyPlannedAction(action.ActionKey, action.Effects);
+                    ? new EnemyPlannedAction(default, string.Empty, null)
+                    : new EnemyPlannedAction(action.ActionKey, action.ActionName, action.Effects);
             }
 
             return copy;

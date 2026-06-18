@@ -3,6 +3,8 @@ using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 #if DOTWEEN
 using DG.Tweening;
 #endif
@@ -162,15 +164,28 @@ namespace SlotRogue.UI.GameFlow
             DestroyCombatVisualInstance();
         }
 
-        public void PlayCombatVisualAttack()
+        public UniTask PlayCombatVisualActionUntilEffectPointAsync(
+            string actionName,
+            CancellationToken cancellationToken)
         {
             if (_combatVisual == null)
             {
                 LogMissingCombatVisualWarning(_combatVisualPrefab);
-                return;
+                return UniTask.CompletedTask;
             }
 
-            _combatVisual.PlayAttack();
+            return _combatVisual.PlayActionUntilEffectPointAsync(actionName, cancellationToken);
+        }
+
+        public UniTask WaitCombatVisualActionCompletedAsync(CancellationToken cancellationToken)
+        {
+            if (_combatVisual == null)
+            {
+                LogMissingCombatVisualWarning(_combatVisualPrefab);
+                return UniTask.CompletedTask;
+            }
+
+            return _combatVisual.WaitForActionCompletedAsync(cancellationToken);
         }
 
         private void PlayCombatVisualIdle()

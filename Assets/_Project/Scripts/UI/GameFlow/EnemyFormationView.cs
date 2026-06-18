@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
 using UnityEngine;
 
@@ -175,17 +177,37 @@ namespace SlotRogue.UI.GameFlow
             return null;
         }
 
-        public void PlayCombatVisualAttack(CombatParticipantId participantId)
+        public UniTask PlayCombatVisualActionUntilEffectPointAsync(
+            CombatParticipantId participantId,
+            string actionName,
+            CancellationToken cancellationToken)
         {
             if (participantId.IsValid &&
                 _slotIndexByParticipantId.TryGetValue(participantId.Value, out int slotIndex) &&
                 TryGetFormationSlotView(slotIndex, out EnemyFormationSlotView formationSlotView))
             {
-                formationSlotView.PlayCombatVisualAttack();
-                return;
+                return formationSlotView.PlayCombatVisualActionUntilEffectPointAsync(
+                    actionName,
+                    cancellationToken);
             }
 
             _warnings.MissingCombatVisualSlot(participantId);
+            return UniTask.CompletedTask;
+        }
+
+        public UniTask WaitCombatVisualActionCompletedAsync(
+            CombatParticipantId participantId,
+            CancellationToken cancellationToken)
+        {
+            if (participantId.IsValid &&
+                _slotIndexByParticipantId.TryGetValue(participantId.Value, out int slotIndex) &&
+                TryGetFormationSlotView(slotIndex, out EnemyFormationSlotView formationSlotView))
+            {
+                return formationSlotView.WaitCombatVisualActionCompletedAsync(cancellationToken);
+            }
+
+            _warnings.MissingCombatVisualSlot(participantId);
+            return UniTask.CompletedTask;
         }
 
         private static void RenderFormationSlot(

@@ -6,11 +6,11 @@ namespace SlotRogue.Data.Combat
     [Serializable]
     public sealed class EnemyActionDefinition
     {
-        [SerializeField] private string _displayName = string.Empty;
+        [SerializeField] private string _actionName = string.Empty;
         [SerializeField] private Sprite _intentIcon;
         [SerializeReference] private EnemyEffectDefinition _effect;
 
-        public string DisplayName => _displayName ?? string.Empty;
+        public string ActionName => _actionName ?? string.Empty;
         public Sprite IntentIcon => _intentIcon;
         public EnemyEffectDefinition Effect => _effect;
 
@@ -19,11 +19,11 @@ namespace SlotRogue.Data.Combat
         }
 
         public EnemyActionDefinition(
-            string displayName,
+            string actionName,
             Sprite intentIcon,
             EnemyEffectDefinition effect)
         {
-            _displayName = displayName ?? string.Empty;
+            _actionName = actionName ?? string.Empty;
             _intentIcon = intentIcon;
             _effect = effect;
         }

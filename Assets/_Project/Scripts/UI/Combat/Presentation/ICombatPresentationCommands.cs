@@ -6,7 +6,12 @@ namespace SlotRogue.UI.Combat.Presentation
 {
     public interface ICombatPresentationCommands
     {
-        UniTask PlayEnemyAttackAsync(
+        UniTask PlayEnemyActionUntilEffectPointAsync(
+            CombatParticipantId participantId,
+            string actionName,
+            CancellationToken cancellationToken);
+
+        UniTask WaitEnemyActionCompletedAsync(
             CombatParticipantId participantId,
             CancellationToken cancellationToken);
 

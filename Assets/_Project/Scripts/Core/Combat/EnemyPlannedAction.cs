@@ -7,13 +7,19 @@ namespace SlotRogue.Core.Combat
     {
         private readonly EnemyActionEffect[] _effects;
 
-        public EnemyPlannedAction(EnemyActionKey actionKey, IReadOnlyList<EnemyActionEffect> effects)
+        public EnemyPlannedAction(
+            EnemyActionKey actionKey,
+            string actionName,
+            IReadOnlyList<EnemyActionEffect> effects)
         {
             ActionKey = actionKey;
+            ActionName = actionName ?? string.Empty;
             _effects = Clone(effects);
         }
 
         public EnemyActionKey ActionKey { get; }
+
+        public string ActionName { get; }
 
         public IReadOnlyList<EnemyActionEffect> Effects => Clone(_effects);
 

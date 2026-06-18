@@ -23,12 +23,28 @@ namespace SlotRogue.UI.Combat.Presentation
             _enemyCombatVisualTarget = enemyCombatVisualTarget;
         }
 
-        public UniTask PlayEnemyAttackAsync(
+        public UniTask PlayEnemyActionUntilEffectPointAsync(
+            CombatParticipantId participantId,
+            string actionName,
+            CancellationToken cancellationToken)
+        {
+            return _enemyCombatVisualTarget != null
+                ? _enemyCombatVisualTarget.PlayEnemyCombatVisualActionUntilEffectPointAsync(
+                    participantId,
+                    actionName,
+                    cancellationToken)
+                : UniTask.CompletedTask;
+        }
+
+        public UniTask WaitEnemyActionCompletedAsync(
             CombatParticipantId participantId,
             CancellationToken cancellationToken)
         {
-            _enemyCombatVisualTarget?.PlayEnemyCombatVisualAttack(participantId);
-            return UniTask.CompletedTask;
+            return _enemyCombatVisualTarget != null
+                ? _enemyCombatVisualTarget.WaitEnemyCombatVisualActionCompletedAsync(
+                    participantId,
+                    cancellationToken)
+                : UniTask.CompletedTask;
         }
 
         public UniTask ShowFloatingDamageAsync(

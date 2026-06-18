@@ -14,25 +14,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: SlotRogue.Data::SlotRogue.Data.Combat.MonsterTurnPatternDefinition
   turns:
   - actions:
-    - _displayName: damage
+    - _actionName: Attack
       _intentIcon: {fileID: -6820943923468213308, guid: 9528a7ad3160f354f8e8d9750266adea, type: 3}
       _effect:
         rid: 5421931881862791241
-    - _displayName: shield
+    - _actionName: Defend
       _intentIcon: {fileID: 4880119492350309246, guid: dbe4681e3ea4cbd4b9fb6011982807e0, type: 3}
       _effect:
         rid: 5421931881862791243
-    - _displayName: damage2
+    - _actionName: Attack
       _intentIcon: {fileID: -6820943923468213308, guid: 9528a7ad3160f354f8e8d9750266adea, type: 3}
       _effect:
         rid: 5421931881862791244
   - actions:
-    - _displayName: 
+    - _actionName: Attack
       _intentIcon: {fileID: -6820943923468213308, guid: 9528a7ad3160f354f8e8d9750266adea, type: 3}
       _effect:
         rid: 5421931881862791245
   - actions:
-    - _displayName: 
+    - _actionName: Heal
       _intentIcon: {fileID: 8707594959427059097, guid: f054b3ee2c7a79c42b2c7179b173387e, type: 3}
       _effect:
         rid: 5421931881862791246

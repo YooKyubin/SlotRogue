@@ -84,16 +84,29 @@ namespace SlotRogue.UI.Tests.GameFlow
         }
 
         [Test]
-        public void EnemyActionDefinition_StoresDisplayDataAndPolymorphicEffect()
+        public void EnemyActionDefinition_StoresActionNameAndPolymorphicEffect()
         {
             var action = new EnemyActionDefinition(
                 "Lock Strike",
                 intentIcon: null,
                 new LockSlotEffectDefinition(lockCount: 1, durationTurns: 2));
 
-            Assert.That(action.DisplayName, Is.EqualTo("Lock Strike"));
+            Assert.That(action.ActionName, Is.EqualTo("Lock Strike"));
             Assert.That(action.IntentIcon, Is.Null);
             Assert.That(action.Effect, Is.TypeOf<LockSlotEffectDefinition>());
+        }
+
+        [Test]
+        public void EnemyActionPlannerFactory_CreatePattern_StoresActionNameInPlannedAction()
+        {
+            MonsterTurnPatternDefinition pattern = Pattern(
+                Turn(Action("Defend", Shield(5, CombatTargetMode.Self))));
+            IEnemyActionPlanner planner = new EnemyActionPlannerFactory().Create(pattern);
+            CombatParticipant enemy = Enemy(id: 100, maxHp: 20);
+
+            EnemyActionPlan plan = planner.PlanNext(Context(enemy));
+
+            Assert.That(plan.Actions[0].ActionName, Is.EqualTo("Defend"));
         }
 
         [Test]
@@ -262,10 +275,10 @@ namespace SlotRogue.UI.Tests.GameFlow
         }
 
         private static EnemyActionDefinition Action(
-            string displayName,
+            string actionName,
             EnemyEffectDefinition effect)
         {
-            return new EnemyActionDefinition(displayName, intentIcon: null, effect);
+            return new EnemyActionDefinition(actionName, intentIcon: null, effect);
         }
 
         private static DamageEffectDefinition Damage(

@@ -44,6 +44,7 @@ namespace SlotRogue.Core.Tests.Combat
             {
                 new EnemyPlannedAction(
                     new EnemyActionKey(1),
+                    "Attack",
                     new[]
                     {
                         EnemyActionEffect.FromCombatEffect(
@@ -51,6 +52,7 @@ namespace SlotRogue.Core.Tests.Combat
                     }),
                 new EnemyPlannedAction(
                     new EnemyActionKey(2),
+                    "Defend",
                     new[]
                     {
                         EnemyActionEffect.FromCombatEffect(
@@ -61,7 +63,9 @@ namespace SlotRogue.Core.Tests.Combat
 
             Assert.That(plan.Actions.Count, Is.EqualTo(2));
             Assert.That(plan.Actions[0].ActionKey.Value, Is.EqualTo(1));
+            Assert.That(plan.Actions[0].ActionName, Is.EqualTo("Attack"));
             Assert.That(plan.Actions[1].ActionKey.Value, Is.EqualTo(2));
+            Assert.That(plan.Actions[1].ActionName, Is.EqualTo("Defend"));
             Assert.That(plan.Actions[1].Effects.Count, Is.EqualTo(2));
             Assert.That(plan.Actions[1].Effects[1].Kind, Is.EqualTo(EnemyActionEffectKind.LockSlot));
             Assert.That(plan.Effects.Count, Is.EqualTo(2));
@@ -74,6 +78,7 @@ namespace SlotRogue.Core.Tests.Combat
             {
                 new EnemyPlannedAction(
                     new EnemyActionKey(1),
+                    "Attack",
                     new[]
                     {
                         EnemyActionEffect.FromCombatEffect(
@@ -86,6 +91,27 @@ namespace SlotRogue.Core.Tests.Combat
 
             Assert.That(firstRead, Is.Not.SameAs(secondRead));
             Assert.That(secondRead[0].ActionKey.Value, Is.EqualTo(1));
+            Assert.That(secondRead[0].ActionName, Is.EqualTo("Attack"));
+        }
+
+        [Test]
+        public void FromActions_CopiesActionName()
+        {
+            EnemyActionPlan plan = EnemyActionPlan.FromActions(new[]
+            {
+                new EnemyPlannedAction(
+                    new EnemyActionKey(1),
+                    "Defend",
+                    new[]
+                    {
+                        EnemyActionEffect.FromCombatEffect(
+                            new CombatEffect(CombatEffectKind.Shield, 3, CombatEffectTarget.Self)),
+                    }),
+            });
+
+            IReadOnlyList<EnemyPlannedAction> actions = plan.Actions;
+
+            Assert.That(actions[0].ActionName, Is.EqualTo("Defend"));
         }
 
         [Test]
