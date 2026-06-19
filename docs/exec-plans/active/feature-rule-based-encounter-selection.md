@@ -260,10 +260,21 @@ Dev Override 없음
 - [x] Phase 1: `EncounterTable`, `EncounterDefinition` 데이터 타입 추가 (`EncounterMonsterEntry` 제외)
 - [x] Phase 1: Encounter 데이터 validation 규칙 정리 및 구현 (`MonsterDefinition` null, Weight, Cycle 범위, 1~3마리, ID 빈 값/중복)
 - [ ] Phase 1: 초기 1마리 편성 데이터 작성 (`Normal`, `Elite`, `Boss` MoonRabbit)
-- [ ] Phase 2: `EncounterSelection`, `SelectedEncounterMonster` 경계 타입 추가
-- [ ] Phase 3: `EncounterSelector` 구현 (Tier/Cycle 필터, Weight 선택, runSeed + battleNumber 기반 결정적 선택)
-- [ ] Phase 3: 후보 없음 오류 메시지에 Tier, Cycle, BattleNumber, EncounterTable 이름 포함
-- [ ] Phase 4: `EncounterSelector` EditMode 테스트 추가 (결정성, Tier 제외, Cycle 하한/상한, `MaxCycle == -1`, Weight 경계, 후보 없음)
+- [x] Phase 2: `EncounterSelection`, `SelectedEncounterMonster` 경계 타입 추가
+- [x] Phase 2: `EnemyFormationLayout`으로 1~3마리 formation slot 결정 규칙 분리
+- [x] Phase 2: 선택 결과와 formation layout EditMode 테스트 추가
+- [x] Phase 3: `EncounterSelector` 구현 (Tier/Cycle 필터, Weight 선택, runSeed + battleNumber 기반 결정적 선택)
+- [x] Phase 3: 후보 없음 오류 메시지에 Tier, Cycle, BattleNumber, EncounterTable 이름 포함
+- [x] Phase 4: `EncounterSelector` EditMode 테스트 추가 (결정성, Tier 제외, Cycle 하한/상한, `MaxCycle == -1`, Weight 경계, 후보 없음)
+- [x] Phase 4 완료 조건: `EncounterSelector`가 Tier를 필터링한다.
+- [x] Phase 4 완료 조건: `EncounterSelector`가 Cycle을 필터링한다.
+- [x] Phase 4 완료 조건: Weight 기반으로 편성을 선택한다.
+- [x] Phase 4 완료 조건: 같은 Seed와 BattleNumber에서 결과가 재현된다.
+- [x] Phase 4 완료 조건: `EnemyFormationLayout`으로 슬롯을 결정한다.
+- [x] Phase 4 완료 조건: `EncounterSelection`을 반환한다.
+- [x] Phase 4 완료 조건: 후보가 없으면 명확히 실패한다.
+- [x] Phase 4 완료 조건: EditMode 테스트가 통과한다.
+- [x] Phase 4 완료 조건: 기존 전투 코드는 변경되지 않았다.
 - [ ] Phase 5: `RunEncounterRosterBuilder`에 `EncounterSelection` 기반 빌드 경로 추가
 - [ ] Phase 5: Builder가 여러 `SelectedEncounterMonster`를 순회할 수 있게 하되, 실제 검증은 1마리 편성으로 고정
 - [ ] Phase 6: `BattleSceneCompositionRoot`에서 Dev Override가 있으면 직접 selection 생성, 없으면 `EncounterSelector` 사용
@@ -279,6 +290,14 @@ Dev Override 없음
 - 2026-06-18 작업 2/9에서 `EncounterDefinition`은 `MonsterDefinition[]`만 보관하고 FormationSlot은 보관하지 않는 것으로 조정했다. FormationSlot은 후속 배치 규칙 객체가 몬스터 수와 배열 순서를 기준으로 결정한다.
 - 2026-06-18 작업 2/9 검증: `dotnet build SlotRogue.sln --no-restore` 오류 0개. 기존 Unity/GDK 및 `System.Net.Http` 참조 경고는 남아 있다.
 - 2026-06-18 작업 2/9에서는 `EncounterTable.asset`을 손으로 생성하지 않았다. Unity 직렬화 asset은 Inspector에서 `Create > SlotRogue > GameFlow > Encounter Table`로 만들고 `MoonRabbit` 등 `MonsterDefinition` 참조를 직접 연결한다.
+- 2026-06-20 작업 3/9에서 `SelectedEncounterMonster`, `EncounterSelection`, `EnemyFormationLayout`을 `UI/GameFlow`에 추가했다. `EncounterSelection`은 선택된 몬스터 목록 전달만 담당하며 Weight, Tier, Cycle, Random, 런타임 생성 방법을 알지 않는다.
+- 2026-06-20 작업 3/9 formation slot 구조: `EnemyFormationView`는 `_formationSlotViews` 배열 인덱스를 slot으로 사용하고, `RunEncounterRosterBuilder.ResolveFormationSlot()`은 이 값을 범위 검증한 뒤 그대로 사용한다. 현재 씬은 3개 slot을 보유하며 기존 Dev Override도 중앙 slot으로 `1`을 사용한다.
+- 2026-06-20 작업 3/9 배치 규칙: 1마리는 `{ 1 }`, 2마리는 `{ 0, 2 }`, 3마리는 `{ 0, 1, 2 }`를 반환한다. `EncounterDefinition.Monsters[index]`와 반환 slot 배열의 같은 index를 대응시킨다.
+- 2026-06-20 작업 3/9 검증: `dotnet build SlotRogue.sln --no-restore` 오류 0개. 기존 `System.Net.Http` 참조 경고는 남아 있다. Unity Test Runner는 실행하지 않았다.
+- 2026-06-20 작업 4/9에서 `EncounterSelectionRequest`와 `EncounterSelector`를 추가했다. Selector는 `EncounterTable` 후보를 Tier와 Cycle 범위로 필터링한 뒤, `runSeed`와 `battleNumber`를 명시적인 unchecked FNV-1a 스타일 mixing 함수로 조합해 `0 <= roll < totalWeight` 값을 만들고 누적 Weight 범위로 후보 하나를 선택한다.
+- 2026-06-20 작업 4/9에서 선택된 `EncounterDefinition.Monsters` 순서와 `EnemyFormationLayout.ResolveSlots(monsterCount)` 반환 순서를 index로 대응시켜 `SelectedEncounterMonster[]`를 만든다. Selector는 `EnemyCombatant`, `RunEncounterRoster`, Tier 계산, scaling, 전투 시작을 담당하지 않는다.
+- 2026-06-20 작업 4/9 후보 없음 오류는 table 이름, Tier, Cycle, BattleNumber를 포함한다. 폴백 몬스터나 임시 definition은 만들지 않는다.
+- 2026-06-20 작업 4/9 검증: `dotnet build SlotRogue.sln --no-restore` 오류 0개. 기존 `System.Net.Http` 참조 경고는 남아 있다. 사용자가 Unity EditMode 테스트 통과를 확인했다.
 - `UnityEngine.Random` 전역 상태는 사용하지 않는다. 같은 run seed와 battle number에서 같은 편성이 재현되어야 한다.
 - 후보가 없거나 데이터가 잘못된 상황은 빈 전투나 임시 몬스터로 숨기지 않고 설정 오류로 드러낸다.
 - `RunEncounterRosterBuilder`는 selection을 roster로 조립만 하며, Tier 계산·Cycle 계산·가중치 추첨·밸런스 성장 공식은 담당하지 않는다.
