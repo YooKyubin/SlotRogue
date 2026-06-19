@@ -30,6 +30,7 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private MonsterDefinition _devMonsterDefinitionOverride;
 
         [SerializeField] private EncounterTable _encounterTable;
+        [SerializeField] private WaveScheduleDefinition _waveScheduleDefinition;
 
         [SerializeField] private RunBattleScreenView _view;
         [SerializeField] private FloatingCombatTextLayerView _floatingTextLayerView;
@@ -226,12 +227,13 @@ namespace SlotRogue.UI.GameFlow
                     "Assign an EncounterTable asset before starting battle without Dev Monster Override.");
             }
 
-            int battleNumber = Math.Max(1, GameFlowSession.CurrentBattleNumber);
-            int cycle = CalculateTemporaryCycle(battleNumber);
+            int battleNumber = GameFlowSession.CurrentBattleNumber;
+            WaveSchedule waveSchedule = CreateWaveSchedule();
+            WaveResult wave = waveSchedule.Evaluate(battleNumber);
             var request = new EncounterSelectionRequest(
                 _encounterTable,
-                GameFlowSession.CurrentTier,
-                cycle,
+                wave.Tier,
+                wave.Cycle,
                 GameFlowSession.RunSeed,
                 battleNumber);
             selection = _encounterSelector.Select(request);
@@ -247,9 +249,23 @@ namespace SlotRogue.UI.GameFlow
             });
         }
 
-        private static int CalculateTemporaryCycle(int battleNumber)
+        private WaveSchedule CreateWaveSchedule()
         {
-            return (Math.Max(1, battleNumber) - 1) / 10;
+            if (_waveScheduleDefinition == null)
+            {
+                throw new InvalidOperationException(
+                    "[BattleSceneCompositionRoot] WaveScheduleDefinition is missing. " +
+                    "Assign a WaveScheduleDefinition asset before starting battle without Dev Monster Override.");
+            }
+
+            if (!_waveScheduleDefinition.TryValidate(out string error))
+            {
+                throw new InvalidOperationException(
+                    $"[BattleSceneCompositionRoot] WaveScheduleDefinition '{_waveScheduleDefinition.name}' is invalid:" +
+                    $"{Environment.NewLine}{error}");
+            }
+
+            return WaveSchedule.FromDefinition(_waveScheduleDefinition);
         }
 
         private bool ValidateSceneReferences()

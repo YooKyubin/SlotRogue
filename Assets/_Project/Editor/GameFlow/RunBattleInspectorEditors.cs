@@ -148,8 +148,9 @@ namespace SlotRogue.Editor.GameFlow
             EditorGUILayout.LabelField("Encounter Selection", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
                 "Assign an EncounterTable when Dev Monster Definition Override is empty. " +
-                "The table is selected by EncounterSelector; this inspector does not filter or roll encounters.",
+                "The WaveSchedule provides tier/cycle and EncounterSelector selects from the table.",
                 MessageType.Info);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_waveScheduleDefinition"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_encounterTable"));
 
             EditorGUILayout.Space(6f);
@@ -169,6 +170,7 @@ namespace SlotRogue.Editor.GameFlow
             if (_showAdvancedReferences)
             {
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_view"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("_waveScheduleDefinition"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_encounterTable"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_floatingTextLayerView"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_turnBannerView"));

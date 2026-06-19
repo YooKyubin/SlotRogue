@@ -14,8 +14,8 @@
 
 이번 plan은 1차 작업만 다룬다.
 
-- 포함: EncounterTable 데이터 타입, EncounterSelection 경계 타입, EncounterSelector, selector EditMode 테스트, `RunEncounterRosterBuilder` 선택 결과 입력, `BattleSceneCompositionRoot` 연결, 기존 1마리 전투 유지
-- 제외: WaveSchedule 정식 데이터화, EncounterScaling, EncounterBalanceSettings, 2~3마리 편성 실제 활성화, 보스 페이즈, MonsterCatalog, 기존 `EnemyActionPlan` 구조 변경
+- 포함: EncounterTable 데이터 타입, EncounterSelection 경계 타입, EncounterSelector, selector EditMode 테스트, `RunEncounterRosterBuilder` 선택 결과 입력, `BattleSceneCompositionRoot` 연결, `WaveSchedule` 데이터화, 기존 1마리 전투 유지
+- 제외: EncounterScaling, EncounterBalanceSettings, 2~3마리 편성 실제 활성화, 보스 페이즈, MonsterCatalog, 기존 `EnemyActionPlan` 구조 변경
 
 ## Design Notes
 
@@ -293,6 +293,15 @@ Dev Override 없음
 - [x] Phase 6 완료 조건: Override가 없으면 `EncounterSelector.Select()` 결과를 `RunEncounterRosterBuilder.Build(selection)`에 전달한다.
 - [x] Phase 6 완료 조건: `BattleSystem`, `WaveSchedule`, `EncounterScaling`, 전투 UI/타게팅은 변경하지 않았다.
 - [ ] Phase 6: 기존 1마리 MoonRabbit 전투, Intent UI, Monster Presentation, Action Planner 동작 유지 확인
+- [x] Phase 7: `WaveScheduleDefinition`, `WaveCyclePattern`, `WaveSchedule`, `WaveResult` 추가
+- [x] Phase 7: `BattleSceneCompositionRoot`에서 직접 Tier/Cycle 계산 제거
+- [x] Phase 7: `WaveResult.Tier`와 `WaveResult.Cycle`을 `EncounterSelectionRequest`에 전달
+- [x] Phase 7 완료 조건: Battle 1/5/10/11/20의 기존 Normal/Elite/Boss 주기를 `WaveSchedule`로 표현한다.
+- [x] Phase 7 완료 조건: 단일 Pattern 반복, 여러 Pattern Cycle별 선택, 마지막 Pattern 반복을 테스트한다.
+- [x] Phase 7 완료 조건: 잘못된 battleNumber, 빈 Pattern, 서로 다른 Pattern 길이, null Pattern 실패를 테스트한다.
+- [x] Phase 7 완료 조건: `GameFlowSession.GetTierForBattle()`, `ElitePeriod`, `BossPeriod`를 제거하고 `CurrentTier`는 기본 `WaveSchedule` 결과를 사용한다.
+- [x] Phase 7 완료 조건: 임시 cycle 계산 `(battleNumber - 1) / 10`을 `BattleSceneCompositionRoot`에서 제거했다.
+- [x] Phase 7 완료 조건: `BattleSystem`, EncounterScaling, Intent UI, 타게팅은 변경하지 않았다.
 - [ ] 문서 갱신: `game-flow.md`와 `combat-core.md`에 선택/생성 분리와 후속 WaveSchedule/Scaling 범위 반영
 - [ ] 검증: `dotnet build` 또는 Unity compile, 관련 EditMode 테스트 실행 가능 여부 기록
 
@@ -320,6 +329,13 @@ Dev Override 없음
 - 2026-06-20 작업 6/9 임시 cycle 계산은 `CurrentBattleNumber`가 1-base인 점에 맞춰 `(battleNumber - 1) / 10`을 사용한다. `battleNumber`는 방어적으로 1 이상으로 보정한다.
 - 2026-06-20 작업 6/9에서 `BuildFromMonsterDefinition()`과 `BuildForTier()`는 제거하지 않았다. production 호출부는 `BattleSceneCompositionRoot`에서 selection 경로로 대체됐지만, 기존 테스트와 후속 정리 기준으로 남겨둔다. 제거는 7/9 이후 dead API 여부를 다시 확인한 뒤 결정한다.
 - 2026-06-20 작업 6/9 검증: `dotnet build SlotRogue.sln --no-restore` 오류 0개. 기존 `System.Net.Http` 참조 경고는 남아 있다. Unity 수동 플레이 검증은 실행하지 않았다.
+- 2026-06-20 작업 7/9에서 `WaveScheduleDefinition` SO와 `WaveCyclePattern` 데이터를 추가했다. 데이터 구조는 `WaveScheduleDefinition._patterns[]` 아래에 각 `WaveCyclePattern._tiers[]`를 보관하는 형태이며, 문자열 패턴 파싱은 사용하지 않는다.
+- 2026-06-20 작업 7/9에서 `WaveSchedule`과 `WaveResult`를 `UI/GameFlow`에 추가했다. `WaveSchedule`은 1-base `battleNumber`를 받아 `cycle = (battleNumber - 1) / patternLength`, `positionInCycle = (battleNumber - 1) % patternLength`를 계산하고, `patternIndex = Min(cycle, patternCount - 1)`로 마지막 pattern을 반복한다.
+- 2026-06-20 작업 7/9 기본 pattern은 기존 주기 보존을 위해 `Normal, Normal, Normal, Normal, Elite, Normal, Normal, Normal, Normal, Boss` 10칸이다. `Assets/_Project/Data/WaveScheduleDefault.asset`을 추가하고 `20_RunGameScene`의 `BattleSceneCompositionRoot._waveScheduleDefinition`에 연결했다.
+- 2026-06-20 작업 7/9에서 `BattleSceneCompositionRoot`는 더 이상 `GameFlowSession.CurrentTier`나 임시 cycle 계산을 사용하지 않는다. Dev Override가 비어 있을 때 `WaveSchedule.FromDefinition(_waveScheduleDefinition).Evaluate(battleNumber)`를 호출하고, `wave.Tier`, `wave.Cycle`, `RunSeed`, `battleNumber`로 selector 요청을 만든다. `battleNumber`는 1-base 값을 그대로 넘기며 0 이하는 `WaveSchedule`에서 실패한다.
+- 2026-06-20 작업 7/9에서 `GameFlowSession.GetTierForBattle()`, `ElitePeriod`, `BossPeriod`를 제거했다. 다른 호출부는 `CurrentTier`, `CurrentBattleGrantsArtifact`, `CurrentEncounterTitle`만 남아 있으며, 이들은 기본 `WaveSchedule`로 기존 5/10 주기 결과를 유지한다.
+- 2026-06-20 작업 7/9 테스트로 `WaveScheduleTests`를 추가했다. Battle 1/5/10/11/20, 단일 pattern 반복, 여러 pattern의 cycle별 선택, 마지막 pattern 반복, battleNumber 유효성, 빈/null pattern, 서로 다른 pattern 길이 실패를 확인한다.
+- 2026-06-20 작업 7/9 검증: `dotnet build SlotRogue.sln --no-restore`를 실행했으나 Unity가 생성한 `.csproj`가 신규 `.cs` 파일을 아직 include하지 않아 `WaveSchedule`, `WaveScheduleDefinition` 등을 찾지 못하는 컴파일 오류가 발생했다. `.csproj`는 프로젝트 규칙상 커밋 대상이 아니므로 수정하지 않았고, Unity 재생성 또는 Editor compile 후 재검증이 필요하다.
 - `UnityEngine.Random` 전역 상태는 사용하지 않는다. 같은 run seed와 battle number에서 같은 편성이 재현되어야 한다.
 - 후보가 없거나 데이터가 잘못된 상황은 빈 전투나 임시 몬스터로 숨기지 않고 설정 오류로 드러낸다.
 - `RunEncounterRosterBuilder`는 selection을 roster로 조립만 하며, Tier 계산·Cycle 계산·가중치 추첨·밸런스 성장 공식은 담당하지 않는다.
@@ -327,7 +343,6 @@ Dev Override 없음
 
 ## Follow-up Candidates
 
-- `WaveSchedule` 데이터화: 기존 `GetTierForBattle()` 규칙을 `WaveResult(Tier, Cycle, PositionInCycle)` 평가로 분리
 - `EncounterScaling`: Core 순수 공식 + Data `EncounterBalanceSettings` SO 변환 구조 추가
 - 다수 적 편성 활성화: 1/2/3마리 편성 실전 검증과 타겟팅 UX 정리
 - Encounter 데이터 authoring 보강: Inspector validation, 에디터 생성 메뉴, 샘플 table 확장

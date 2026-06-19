@@ -12,7 +12,7 @@ _Last updated: 2026-06-20_
 
 **게임 플로우 루프** — [`feature-game-flow-loop`](./exec-plans/active/feature-game-flow-loop.md): 게임 시작 → 시작 유물 → 전투 → 보상 → 다음 전투로 이어지는 무한모드 루프. 전투 진입은 `CurrentBattleNumber`/`EncounterTier` 기반 `RunEncounterRosterBuilder.BuildForTier()` 단일 경로로 정리했으며, 전투 코드는 수정하지 않고 기존 API로 연결한다.
 
-**규칙 기반 Encounter 선택** — [`feature-rule-based-encounter-selection`](./exec-plans/active/feature-rule-based-encounter-selection.md): 기존 `MonsterDefinition` 기반 전투 생성 흐름 앞에 EncounterTable/Selector를 추가해 Tier·Cycle·Weight·runSeed 기준으로 몬스터 편성을 결정한다. 현재 선택 데이터, formation layout, 결정적 `EncounterSelector`, `EncounterSelection` 기반 roster builder, `BattleSceneCompositionRoot` 연결까지 추가했으며, EncounterTable asset 연결과 수동 플레이 검증은 남아 있다.
+**규칙 기반 Encounter 선택** — [`feature-rule-based-encounter-selection`](./exec-plans/active/feature-rule-based-encounter-selection.md): 기존 `MonsterDefinition` 기반 전투 생성 흐름 앞에 EncounterTable/Selector를 추가해 Tier·Cycle·Weight·runSeed 기준으로 몬스터 편성을 결정한다. 현재 선택 데이터, formation layout, 결정적 `EncounterSelector`, `EncounterSelection` 기반 roster builder, `BattleSceneCompositionRoot` 연결, `WaveScheduleDefinition` 기반 Tier/Cycle 평가까지 추가했으며, 수동 플레이 검증은 남아 있다.
 
 **유물 v23 런타임 단일화** — [ADR-0005](./adr/0005-relic-v23-runtime-model.md): v23 80종을 `RelicCatalog`에 등록하고 `OwnedRelics` 전체를 `RelicEffectRunner`로 연결했다. 시작 화면은 S-01~S-06 중 3종을 중복 없이 제시한다. 기존 전투 코어와 동작 계약이 다른 화상·감염 및 연계 유물은 보상풀에서 임시 제외했으며 전투 담당 구현 요청이 남아 있다.
 
