@@ -275,11 +275,23 @@ Dev Override 없음
 - [x] Phase 4 완료 조건: 후보가 없으면 명확히 실패한다.
 - [x] Phase 4 완료 조건: EditMode 테스트가 통과한다.
 - [x] Phase 4 완료 조건: 기존 전투 코드는 변경되지 않았다.
-- [ ] Phase 5: `RunEncounterRosterBuilder`에 `EncounterSelection` 기반 빌드 경로 추가
-- [ ] Phase 5: Builder가 여러 `SelectedEncounterMonster`를 순회할 수 있게 하되, 실제 검증은 1마리 편성으로 고정
-- [ ] Phase 6: `BattleSceneCompositionRoot`에서 Dev Override가 있으면 직접 selection 생성, 없으면 `EncounterSelector` 사용
-- [ ] Phase 6: 기존 `GameFlowSession.GetTierForBattle()` 결과와 임시 cycle 계산으로 selector 요청 구성
-- [ ] Phase 6: 같은 runSeed와 battleNumber에서 같은 Encounter가 선택되는지 검증
+- [x] Phase 5: `RunEncounterRosterBuilder`에 `EncounterSelection` 기반 빌드 경로 추가
+- [x] Phase 5: Builder가 여러 `SelectedEncounterMonster`를 순회할 수 있게 하되, 실제 연결은 후속 단계로 유지
+- [x] Phase 5 완료 조건: 1마리 `EncounterSelection`으로 `EnemyEncounterUnit` 1개를 생성한다.
+- [x] Phase 5 완료 조건: 2마리 `EncounterSelection`으로 `EnemyEncounterUnit` 2개를 생성한다.
+- [x] Phase 5 완료 조건: `MonsterDefinition` 순서를 유지한다.
+- [x] Phase 5 완료 조건: `SelectedEncounterMonster.FormationSlot`을 그대로 유지한다.
+- [x] Phase 5 완료 조건: null `EncounterSelection`은 명확히 실패한다.
+- [x] Phase 5 완료 조건: 각 몬스터가 별도 `EnemyCombatant`로 생성된다.
+- [x] Phase 5 완료 조건: 기존 행동 Planner와 presentation map 정보를 유지한다.
+- [x] Phase 5 완료 조건: `BattleSceneCompositionRoot`, `BattleSystem`, `WaveSchedule`, `EncounterScaling`은 변경하지 않았다.
+- [x] Phase 6: `BattleSceneCompositionRoot`에서 Dev Override가 있으면 직접 selection 생성, 없으면 `EncounterSelector` 사용
+- [x] Phase 6: 기존 `GameFlowSession.GetTierForBattle()` 결과와 임시 cycle 계산으로 selector 요청 구성
+- [x] Phase 6: 같은 runSeed와 battleNumber에서 같은 Encounter가 선택되는지 코드 경로 구성
+- [x] Phase 6 완료 조건: `BattleSceneCompositionRoot`에 `EncounterTable` 직렬화 참조를 추가했다.
+- [x] Phase 6 완료 조건: Dev Override 경로를 유지하고 `EnemyFormationLayout.ResolveSlots(1)`로 slot을 결정한다.
+- [x] Phase 6 완료 조건: Override가 없으면 `EncounterSelector.Select()` 결과를 `RunEncounterRosterBuilder.Build(selection)`에 전달한다.
+- [x] Phase 6 완료 조건: `BattleSystem`, `WaveSchedule`, `EncounterScaling`, 전투 UI/타게팅은 변경하지 않았다.
 - [ ] Phase 6: 기존 1마리 MoonRabbit 전투, Intent UI, Monster Presentation, Action Planner 동작 유지 확인
 - [ ] 문서 갱신: `game-flow.md`와 `combat-core.md`에 선택/생성 분리와 후속 WaveSchedule/Scaling 범위 반영
 - [ ] 검증: `dotnet build` 또는 Unity compile, 관련 EditMode 테스트 실행 가능 여부 기록
@@ -298,6 +310,16 @@ Dev Override 없음
 - 2026-06-20 작업 4/9에서 선택된 `EncounterDefinition.Monsters` 순서와 `EnemyFormationLayout.ResolveSlots(monsterCount)` 반환 순서를 index로 대응시켜 `SelectedEncounterMonster[]`를 만든다. Selector는 `EnemyCombatant`, `RunEncounterRoster`, Tier 계산, scaling, 전투 시작을 담당하지 않는다.
 - 2026-06-20 작업 4/9 후보 없음 오류는 table 이름, Tier, Cycle, BattleNumber를 포함한다. 폴백 몬스터나 임시 definition은 만들지 않는다.
 - 2026-06-20 작업 4/9 검증: `dotnet build SlotRogue.sln --no-restore` 오류 0개. 기존 `System.Net.Http` 참조 경고는 남아 있다. 사용자가 Unity EditMode 테스트 통과를 확인했다.
+- 2026-06-20 작업 5/9에서 `RunEncounterRosterBuilder.Build(EncounterSelection selection)`을 추가했다. Builder는 선택, Tier/Cycle 계산, Weight/Random, FormationSlot 계산을 하지 않고 `SelectedEncounterMonster` 순서와 `FormationSlot` 값을 그대로 사용해 `RunEncounterRoster`를 조립한다.
+- 2026-06-20 작업 5/9에서 기존 `BuildFromMonsterDefinition()`은 삭제하지 않고 새 private `BuildUnit()` helper를 공유하도록 정리했다. 이 helper는 기존처럼 `EnemyCombatantFactory.CreateWithPresentation(definition, rosterIndex)`를 호출하고, 반환된 `Combatant`와 `PresentationMap`을 `EnemyEncounterUnit`에 그대로 전달한다.
+- 2026-06-20 작업 5/9에서 `EnemyCombatantFactoryTests`에 selection 기반 Builder 테스트를 추가했다. 1마리/2마리 생성, definition 순서, formation slot 유지, null selection 실패, 별도 enemy combatant 생성, presentation map 유지를 확인한다.
+- 2026-06-20 작업 5/9 검증: `dotnet build SlotRogue.sln --no-restore` 오류 0개. 기존 `System.Net.Http` 참조 경고는 남아 있다. Unity Test Runner는 실행하지 않았다.
+- 2026-06-20 기준 6/9 연결 대상은 `BattleSceneCompositionRoot`다. Dev Override가 있으면 기존 단일 경로를 유지하거나 selection으로 감싸 Builder에 넘기고, Override가 없으면 `EncounterSelector.Select()` 결과를 `RunEncounterRosterBuilder.Build(selection)`에 전달해야 한다.
+- 2026-06-20 작업 6/9에서 `GameFlowSession.RunSeed`를 추가했다. `StartNewRun()`에서 `Environment.TickCount`로 런마다 한 번 생성하며, 같은 런 안에서는 `CurrentBattleNumber`와 함께 deterministic selector 입력으로 사용한다. 추후 시드 입력/저장 UX가 필요하면 `WaveSchedule` 또는 run setup 단계로 이동한다.
+- 2026-06-20 작업 6/9에서 `BattleSceneCompositionRoot`에 `[SerializeField] private EncounterTable _encounterTable;`을 추가했다. Dev Override가 있으면 `_encounterTable` 없이도 단일 `EncounterSelection`을 만들어 `RunEncounterRosterBuilder.Build(selection)`을 호출한다. Dev Override가 없고 `_encounterTable`이 비어 있으면 명확한 `InvalidOperationException`을 던진다.
+- 2026-06-20 작업 6/9 임시 cycle 계산은 `CurrentBattleNumber`가 1-base인 점에 맞춰 `(battleNumber - 1) / 10`을 사용한다. `battleNumber`는 방어적으로 1 이상으로 보정한다.
+- 2026-06-20 작업 6/9에서 `BuildFromMonsterDefinition()`과 `BuildForTier()`는 제거하지 않았다. production 호출부는 `BattleSceneCompositionRoot`에서 selection 경로로 대체됐지만, 기존 테스트와 후속 정리 기준으로 남겨둔다. 제거는 7/9 이후 dead API 여부를 다시 확인한 뒤 결정한다.
+- 2026-06-20 작업 6/9 검증: `dotnet build SlotRogue.sln --no-restore` 오류 0개. 기존 `System.Net.Http` 참조 경고는 남아 있다. Unity 수동 플레이 검증은 실행하지 않았다.
 - `UnityEngine.Random` 전역 상태는 사용하지 않는다. 같은 run seed와 battle number에서 같은 편성이 재현되어야 한다.
 - 후보가 없거나 데이터가 잘못된 상황은 빈 전투나 임시 몬스터로 숨기지 않고 설정 오류로 드러낸다.
 - `RunEncounterRosterBuilder`는 selection을 roster로 조립만 하며, Tier 계산·Cycle 계산·가중치 추첨·밸런스 성장 공식은 담당하지 않는다.

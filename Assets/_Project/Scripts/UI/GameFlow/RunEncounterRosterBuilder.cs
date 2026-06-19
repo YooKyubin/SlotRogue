@@ -47,18 +47,50 @@ namespace SlotRogue.UI.GameFlow
             int formationSlot)
         {
             var combatantFactory = new EnemyCombatantFactory();
+
+            return new RunEncounterRoster(new[]
+            {
+                BuildUnit(combatantFactory, definition, rosterIndex, formationSlot),
+            });
+        }
+
+        public static RunEncounterRoster Build(EncounterSelection selection)
+        {
+            if (selection == null)
+            {
+                throw new ArgumentNullException(nameof(selection));
+            }
+
+            var combatantFactory = new EnemyCombatantFactory();
+            var enemies = new EnemyEncounterUnit[selection.Monsters.Count];
+            for (int index = 0; index < selection.Monsters.Count; index++)
+            {
+                SelectedEncounterMonster monster = selection.Monsters[index];
+                enemies[index] = BuildUnit(
+                    combatantFactory,
+                    monster.Definition,
+                    index,
+                    monster.FormationSlot);
+            }
+
+            return new RunEncounterRoster(enemies);
+        }
+
+        private static EnemyEncounterUnit BuildUnit(
+            EnemyCombatantFactory combatantFactory,
+            MonsterDefinition definition,
+            int rosterIndex,
+            int formationSlot)
+        {
             EnemyCombatantBuildResult buildResult = combatantFactory.CreateWithPresentation(
                 definition,
                 rosterIndex);
 
-            return new RunEncounterRoster(new[]
-            {
-                new EnemyEncounterUnit(
-                    buildResult.Combatant,
-                    definition,
-                    formationSlot,
-                    buildResult.PresentationMap),
-            });
+            return new EnemyEncounterUnit(
+                buildResult.Combatant,
+                definition,
+                formationSlot,
+                buildResult.PresentationMap);
         }
 
         private static int TierMaxHp(EncounterTier tier, int level)

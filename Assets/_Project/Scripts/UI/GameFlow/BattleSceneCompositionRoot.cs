@@ -3,6 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
 using SlotRogue.Data.Combat;
+using SlotRogue.Data.GameFlow;
 using SlotRogue.Slot.Core;
 using SlotRogue.Slot.ViewModels;
 using SlotRogue.UI.Combat;
@@ -28,6 +29,8 @@ namespace SlotRogue.UI.GameFlow
         // path supplies MonsterDefinition assets.
         [SerializeField] private MonsterDefinition _devMonsterDefinitionOverride;
 
+        [SerializeField] private EncounterTable _encounterTable;
+
         [SerializeField] private RunBattleScreenView _view;
         [SerializeField] private FloatingCombatTextLayerView _floatingTextLayerView;
         [SerializeField] private TurnBannerView _turnBannerView;
@@ -36,6 +39,7 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private SlotPresentationManager _slotPresentationManager;
 
         private BattleFlowController _battleFlowController;
+        private readonly EncounterSelector _encounterSelector = new();
         private readonly RunBattleResultRecorder _resultRecorder = new();
         private CancellationTokenSource _battleStartCts;
         private CancellationTokenSource _presentationCts;
@@ -206,19 +210,46 @@ namespace SlotRogue.UI.GameFlow
 
         private RunEncounterRoster CreateEncounterRoster()
         {
+            EncounterSelection selection;
             if (_devMonsterDefinitionOverride != null)
             {
                 // TEMPORARY TEST HOOK: this bypasses the tier-based infinite-mode builder
                 // only while manually verifying MonsterDefinition/MonsterTurnPattern assets.
-                return RunEncounterRosterBuilder.BuildFromMonsterDefinition(
-                    _devMonsterDefinitionOverride,
-                    rosterIndex: 0,
-                    formationSlot: 1);
+                selection = CreateDevOverrideSelection(_devMonsterDefinitionOverride);
+                return RunEncounterRosterBuilder.Build(selection);
             }
 
-            return RunEncounterRosterBuilder.BuildForTier(
+            if (_encounterTable == null)
+            {
+                throw new InvalidOperationException(
+                    "[BattleSceneCompositionRoot] EncounterTable is missing. " +
+                    "Assign an EncounterTable asset before starting battle without Dev Monster Override.");
+            }
+
+            int battleNumber = Math.Max(1, GameFlowSession.CurrentBattleNumber);
+            int cycle = CalculateTemporaryCycle(battleNumber);
+            var request = new EncounterSelectionRequest(
+                _encounterTable,
                 GameFlowSession.CurrentTier,
-                GameFlowSession.CurrentBattleNumber);
+                cycle,
+                GameFlowSession.RunSeed,
+                battleNumber);
+            selection = _encounterSelector.Select(request);
+            return RunEncounterRosterBuilder.Build(selection);
+        }
+
+        private static EncounterSelection CreateDevOverrideSelection(MonsterDefinition definition)
+        {
+            int formationSlot = EnemyFormationLayout.ResolveSlots(monsterCount: 1)[0];
+            return new EncounterSelection(new[]
+            {
+                new SelectedEncounterMonster(definition, formationSlot),
+            });
+        }
+
+        private static int CalculateTemporaryCycle(int battleNumber)
+        {
+            return (Math.Max(1, battleNumber) - 1) / 10;
         }
 
         private bool ValidateSceneReferences()

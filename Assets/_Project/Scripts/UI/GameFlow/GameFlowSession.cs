@@ -32,6 +32,9 @@ namespace SlotRogue.UI.GameFlow
         /// <summary>현재 진행 중인 전투 번호(1-base).</summary>
         public static int CurrentBattleNumber { get; private set; }
 
+        /// <summary>런 동안 Encounter 선택 재현성에 사용하는 시드.</summary>
+        public static int RunSeed { get; private set; }
+
         /// <summary>
         /// 런 동안 유지되는 가변 심볼 풀(가방). 슬롯은 이 풀의 개수에 비례해 심볼을 뽑습니다.
         /// 인스턴스는 불변(식별자 유지)이며 새 런 시작 시 개수만 Reset합니다.
@@ -173,6 +176,7 @@ namespace SlotRogue.UI.GameFlow
             PlayerCurrentHp = DefaultPlayerMaxHp;
             BattleIndex = 0;
             CurrentBattleNumber = 1;
+            RunSeed = GenerateRunSeed();
             Victories = 0;
             RewardsClaimed = 0;
             DamageBonus = 0;
@@ -360,6 +364,11 @@ namespace SlotRogue.UI.GameFlow
             }
 
             return builder.ToString();
+        }
+
+        private static int GenerateRunSeed()
+        {
+            return Environment.TickCount;
         }
     }
 }

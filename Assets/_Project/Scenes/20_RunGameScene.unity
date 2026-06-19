@@ -1985,7 +1985,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6e104991686d4fdb91228d49a8d5a087, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.BattleSceneCompositionRoot
-  _devMonsterDefinitionOverride: {fileID: 11400000, guid: 7d9da94086c8940418db8d32ab6a1b40, type: 2}
+  _devMonsterDefinitionOverride: {fileID: 0}
+  _encounterTable: {fileID: 11400000, guid: 65910ce9864d4bd4f9e95d95b407b117, type: 2}
   _view: {fileID: 1537428643}
   _floatingTextLayerView: {fileID: 3782469260917267955}
   _turnBannerView: {fileID: 3782469260917267954}
