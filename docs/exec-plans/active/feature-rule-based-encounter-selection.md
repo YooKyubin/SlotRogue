@@ -97,8 +97,8 @@ sequenceDiagram
     Session->>Schedule: battleNumber로 Tier / ThemeSectionIndex 계산 요청
     Schedule-->>Session: EncounterTier, ThemeSectionIndex 반환
 
-    Session->>Selector: battleNumber, seed, tier, cycle로 편성 선택 요청
-    Selector->>Table: 조건에 맞는 EncounterDefinition 조회 요청
+    Session->>Selector: battleNumber, seed, tier, themeGroupIndex로 편성 선택 요청
+    Selector->>Table: ThemeGroupIndex에 해당하는 EncounterDefinition 조회 요청
     Table-->>Selector: 후보 편성 목록 반환
     Selector-->>Session: EncounterSelection 반환
 
@@ -258,16 +258,16 @@ Dev Override 없음
 
 - [x] Phase 0: 현재 `BattleSceneCompositionRoot.CreateEncounterRoster()`와 `RunEncounterRosterBuilder` 진입점, Dev Override 경로, MoonRabbit 1마리 기준 동작 확인
 - [x] Phase 1: `EncounterTable`, `EncounterDefinition` 데이터 타입 추가 (`EncounterMonsterEntry` 제외)
-- [x] Phase 1: Encounter 데이터 validation 규칙 정리 및 구현 (`MonsterDefinition` null, Weight, Cycle 범위, 1~3마리, ID 빈 값/중복)
+- [x] Phase 1: Encounter 데이터 validation 규칙 정리 및 구현 (`MonsterDefinition` null, Weight, 과거 Cycle 범위, 1~3마리, ID 빈 값/중복 — Cycle 범위는 9/9에서 제거)
 - [ ] Phase 1: 초기 1마리 편성 데이터 작성 (`Normal`, `Elite`, `Boss` MoonRabbit)
 - [x] Phase 2: `EncounterSelection`, `SelectedEncounterMonster` 경계 타입 추가
 - [x] Phase 2: `EnemyFormationLayout`으로 1~3마리 formation slot 결정 규칙 분리
 - [x] Phase 2: 선택 결과와 formation layout EditMode 테스트 추가
-- [x] Phase 3: `EncounterSelector` 구현 (Tier/Cycle 필터, Weight 선택, runSeed + battleNumber 기반 결정적 선택)
-- [x] Phase 3: 후보 없음 오류 메시지에 Tier, Cycle, BattleNumber, EncounterTable 이름 포함
+- [x] Phase 3: `EncounterSelector` 구현 (과거 Tier/Cycle 필터, Weight 선택, runSeed + battleNumber 기반 결정적 선택 — Cycle 필터는 9/9에서 제거)
+- [x] Phase 3: 후보 없음 오류 메시지에 Tier, 과거 Cycle, BattleNumber, EncounterTable 이름 포함 (9/9 이후 ThemeGroupIndex 포함)
 - [x] Phase 4: `EncounterSelector` EditMode 테스트 추가 (결정성, Tier 제외, 과거 Cycle 하한/상한, `MaxCycle == -1`, Weight 경계, 후보 없음 — Cycle 조건은 9/9에서 제거)
 - [x] Phase 4 완료 조건: `EncounterSelector`가 Tier를 필터링한다.
-- [x] Phase 4 완료 조건: `EncounterSelector`가 Cycle을 필터링한다.
+- [x] Phase 4 완료 조건: `EncounterSelector`가 과거 Cycle을 필터링한다. (9/9에서 제거)
 - [x] Phase 4 완료 조건: Weight 기반으로 편성을 선택한다.
 - [x] Phase 4 완료 조건: 같은 Seed와 BattleNumber에서 결과가 재현된다.
 - [x] Phase 4 완료 조건: `EnemyFormationLayout`으로 슬롯을 결정한다.
@@ -294,10 +294,10 @@ Dev Override 없음
 - [x] Phase 6 완료 조건: `BattleSystem`, `WaveSchedule`, `EncounterScaling`, 전투 UI/타게팅은 변경하지 않았다.
 - [ ] Phase 6: 기존 1마리 MoonRabbit 전투, Intent UI, Monster Presentation, Action Planner 동작 유지 확인
 - [x] Phase 7: `WaveScheduleDefinition`, `WaveCyclePattern`, `WaveSchedule`, `WaveResult` 추가
-- [x] Phase 7: `BattleSceneCompositionRoot`에서 직접 Tier/Cycle 계산 제거
+- [x] Phase 7: `BattleSceneCompositionRoot`에서 직접 Tier/구간 index 계산 제거
 - [x] Phase 7: 과거 `WaveResult.Tier`와 `WaveResult.Cycle`을 `EncounterSelectionRequest`에 전달 (9/9에서 `EncounterTier`와 `ThemeSectionIndex` 명칭으로 정리)
 - [x] Phase 7 완료 조건: Battle 1/5/10/11/20의 기존 Normal/Elite/Boss 주기를 `WaveSchedule`로 표현한다.
-- [x] Phase 7 완료 조건: 단일 Pattern 반복, 여러 Pattern Cycle별 선택, 마지막 Pattern 반복을 테스트한다.
+- [x] Phase 7 완료 조건: 단일 Pattern 반복, 여러 Pattern 구간별 선택, 마지막 Pattern 반복을 테스트한다.
 - [x] Phase 7 완료 조건: 잘못된 battleNumber, 빈 Pattern, 서로 다른 Pattern 길이, null Pattern 실패를 테스트한다.
 - [x] Phase 7 완료 조건: `GameFlowSession.GetTierForBattle()`, `ElitePeriod`, `BossPeriod`를 제거하고 `CurrentTier`는 기본 `WaveSchedule` 결과를 사용한다.
 - [x] Phase 7 완료 조건: 임시 cycle 계산 `(battleNumber - 1) / 10`을 `BattleSceneCompositionRoot`에서 제거했다.
@@ -307,7 +307,7 @@ Dev Override 없음
 - [x] Phase 8: `RunEncounterRosterBuilder`가 `EncounterBuildContext`와 balance config를 받아 HP scaling 결과로 roster를 생성하는 경로 추가
 - [x] Phase 8: `EnemyCombatantFactory.CreateWithPresentation()`에 scaled max HP 입력 overload 추가
 - [x] Phase 8 완료 조건: Normal 기본 배율, Elite 배율, Boss 배율을 테스트한다.
-- [x] Phase 8 완료 조건: BattleNumber 증가와 Cycle 증가를 테스트한다.
+- [x] Phase 8 완료 조건: BattleNumber 증가와 구간 index 증가를 테스트한다.
 - [x] Phase 8 완료 조건: 잘못된 scaling 입력은 명확히 실패한다.
 - [x] Phase 8 완료 조건: 실제 생성된 `EnemyCombatant.Participant.MaxHp`에 계산 결과가 적용된다.
 - [x] Phase 8 완료 조건: `MonsterDefinition.maxHp`는 원본 base HP로 유지하고 수정하지 않는다.
@@ -315,8 +315,8 @@ Dev Override 없음
 - [x] Phase 9: Cycle 기반 Encounter 필터 제거, EncounterTable ThemeGroup 구조, EncounterThemeIndexSelector 연결
 - [x] Phase 9: WaveSchedule 결과 명칭을 ThemeSectionIndex / PositionInWave로 정리
 - [x] Phase 9: ThemeGroup 선택과 EncounterSelector 필터 EditMode 테스트 추가
-- [ ] 문서 갱신: `game-flow.md`와 `combat-core.md`에 선택/생성 분리와 후속 WaveSchedule/Scaling 범위 반영
-- [ ] 검증: `dotnet build` 또는 Unity compile, 관련 EditMode 테스트 실행 가능 여부 기록
+- [x] 문서 갱신: `game-flow.md`와 `combat-core.md`에 선택/생성 분리와 후속 WaveSchedule/Scaling 범위 반영
+- [ ] 검증: Unity compile, 관련 EditMode 테스트 실행 가능 여부 기록
 
 ## Notes
 
@@ -324,11 +324,11 @@ Dev Override 없음
 - 2026-06-18 작업 2/9에서 `EncounterDefinition`은 `MonsterDefinition[]`만 보관하고 FormationSlot은 보관하지 않는 것으로 조정했다. FormationSlot은 후속 배치 규칙 객체가 몬스터 수와 배열 순서를 기준으로 결정한다.
 - 2026-06-18 작업 2/9 검증: `dotnet build SlotRogue.sln --no-restore` 오류 0개. 기존 Unity/GDK 및 `System.Net.Http` 참조 경고는 남아 있다.
 - 2026-06-18 작업 2/9에서는 `EncounterTable.asset`을 손으로 생성하지 않았다. Unity 직렬화 asset은 Inspector에서 `Create > SlotRogue > GameFlow > Encounter Table`로 만들고 `MoonRabbit` 등 `MonsterDefinition` 참조를 직접 연결한다.
-- 2026-06-20 작업 3/9에서 `SelectedEncounterMonster`, `EncounterSelection`, `EnemyFormationLayout`을 `UI/GameFlow`에 추가했다. `EncounterSelection`은 선택된 몬스터 목록 전달만 담당하며 Weight, Tier, Cycle, Random, 런타임 생성 방법을 알지 않는다.
+- 2026-06-20 작업 3/9에서 `SelectedEncounterMonster`, `EncounterSelection`, `EnemyFormationLayout`을 `UI/GameFlow`에 추가했다. `EncounterSelection`은 선택된 몬스터 목록 전달만 담당하며 Weight, Tier, ThemeGroup, Random, 런타임 생성 방법을 알지 않는다.
 - 2026-06-20 작업 3/9 formation slot 구조: `EnemyFormationView`는 `_formationSlotViews` 배열 인덱스를 slot으로 사용하고, `RunEncounterRosterBuilder.ResolveFormationSlot()`은 이 값을 범위 검증한 뒤 그대로 사용한다. 현재 씬은 3개 slot을 보유하며 기존 Dev Override도 중앙 slot으로 `1`을 사용한다.
 - 2026-06-20 작업 3/9 배치 규칙: 1마리는 `{ 1 }`, 2마리는 `{ 0, 2 }`, 3마리는 `{ 0, 1, 2 }`를 반환한다. `EncounterDefinition.Monsters[index]`와 반환 slot 배열의 같은 index를 대응시킨다.
 - 2026-06-20 작업 3/9 검증: `dotnet build SlotRogue.sln --no-restore` 오류 0개. 기존 `System.Net.Http` 참조 경고는 남아 있다. Unity Test Runner는 실행하지 않았다.
-- 2026-06-20 작업 4/9에서 `EncounterSelectionRequest`와 `EncounterSelector`를 추가했다. Selector는 `EncounterTable` 후보를 Tier와 Cycle 범위로 필터링한 뒤, `runSeed`와 `battleNumber`를 명시적인 unchecked FNV-1a 스타일 mixing 함수로 조합해 `0 <= roll < totalWeight` 값을 만들고 누적 Weight 범위로 후보 하나를 선택한다.
+- 2026-06-20 작업 4/9에서 `EncounterSelectionRequest`와 `EncounterSelector`를 추가했다. 당시 Selector는 `EncounterTable` 후보를 Tier와 Cycle 범위로 필터링한 뒤, `runSeed`와 `battleNumber`를 명시적인 unchecked FNV-1a 스타일 mixing 함수로 조합해 `0 <= roll < totalWeight` 값을 만들고 누적 Weight 범위로 후보 하나를 선택했다. 9/9 이후에는 ThemeGroup 후보 목록에서 Tier와 Weight만 사용한다.
 - 2026-06-20 작업 4/9에서 선택된 `EncounterDefinition.Monsters` 순서와 `EnemyFormationLayout.ResolveSlots(monsterCount)` 반환 순서를 index로 대응시켜 `SelectedEncounterMonster[]`를 만든다. Selector는 `EnemyCombatant`, `RunEncounterRoster`, Tier 계산, scaling, 전투 시작을 담당하지 않는다.
 - 2026-06-20 작업 4/9 후보 없음 오류는 table 이름, Tier, Cycle, BattleNumber를 포함한다. 폴백 몬스터나 임시 definition은 만들지 않는다.
 - 2026-06-20 작업 4/9 검증: `dotnet build SlotRogue.sln --no-restore` 오류 0개. 기존 `System.Net.Http` 참조 경고는 남아 있다. 사용자가 Unity EditMode 테스트 통과를 확인했다.
@@ -351,20 +351,21 @@ Dev Override 없음
 - 2026-06-20 작업 7/9 검증: `dotnet build SlotRogue.sln --no-restore`를 실행했으나 Unity가 생성한 `.csproj`가 신규 `.cs` 파일을 아직 include하지 않아 `WaveSchedule`, `WaveScheduleDefinition` 등을 찾지 못하는 컴파일 오류가 발생했다. `.csproj`는 프로젝트 규칙상 커밋 대상이 아니므로 수정하지 않았고, Unity 재생성 또는 Editor compile 후 재검증이 필요하다.
 - 2026-06-20 작업 8/9에서 `EncounterBalanceSettings`를 `Data/GameFlow`에 추가했다. 설정값은 battle당 HP 증가 계수, cycle당 HP 증가 계수, Normal/Elite/Boss tier HP 배율이며, `CreateConfig()`로 Core의 `EncounterBalanceConfig` 값 객체를 만든다.
 - 2026-06-20 작업 8/9에서 `EncounterScaling`은 Core 순수 계산으로 추가했다. 현재 공식은 `round(baseMaxHp * (1 + (battleNumber - 1) * hpIncreasePerBattle + themeSectionIndex * hpIncreasePerThemeSection) * tierHpMultiplier)`이며, 결과는 최소 1 이상이다.
-- 2026-06-20 작업 8/9에서 Core가 `SlotRogue.Data`를 참조하지 않도록 `EncounterScaleRequest`는 `EncounterTier` enum 대신 이미 선택된 `tierHpMultiplier`를 입력으로 받는다. `EncounterBuildContext`는 UI/GameFlow 계층에서 `EncounterTier`, `BattleNumber`, `Cycle`을 묶고 config에서 tier 배율을 선택한다.
+- 2026-06-20 작업 8/9에서 Core가 `SlotRogue.Data`를 참조하지 않도록 `EncounterScaleRequest`는 `EncounterTier` enum 대신 이미 선택된 `tierHpMultiplier`를 입력으로 받는다. `EncounterBuildContext`는 UI/GameFlow 계층에서 `EncounterTier`, `BattleNumber`, `ThemeSectionIndex`를 묶고 config에서 tier 배율을 선택한다.
 - 2026-06-20 작업 8/9에서 `BattleSceneCompositionRoot`는 `EncounterBalanceSettingsDefault.asset`을 받아 config를 만들고, Dev Override와 일반 selector 경로 모두 `RunEncounterRosterBuilder.Build(selection, buildContext, balanceConfig)`를 사용한다.
 - 2026-06-20 작업 8/9에서 `EnemyCombatantFactory.CreateWithPresentation(definition, rosterIndex, maxHp)` overload를 추가했다. 기존 overload는 `definition.maxHp`를 그대로 사용하므로 기존 단위 테스트와 수동 생성 경로는 유지된다.
 - 2026-06-20 작업 8/9에서는 공격력과 행동 Effect 수치 스케일링을 제외했다. 현재 행동 수치는 `MonsterTurnPatternDefinition`과 각 `EnemyEffectDefinition`의 authored 값에 남아 있으며, 공격 scaling은 후속 단계에서 effect별 정책과 원샷 방지/다수 적 분배 기준을 같이 정해야 한다.
 - 2026-06-20 작업 8/9 검증: `dotnet build SlotRogue.sln --no-restore`를 실행했으나 Unity가 생성한 `.csproj`가 신규 `.cs` 파일(`EncounterBuildContext`, `EncounterBalanceConfig`, `EncounterBalanceSettings` 등)을 아직 include하지 않아 컴파일 오류가 발생했다. `rg -g "*.csproj"`로도 신규 타입이 프로젝트 파일에 없음을 확인했다. `.csproj`는 자동 생성물이므로 수정하지 않았고, Unity Editor에서 project file 재생성/compile 후 EditMode 테스트 재검증이 필요하다.
 - `UnityEngine.Random` 전역 상태는 사용하지 않는다. 같은 run seed와 battle number에서 같은 편성이 재현되어야 한다.
 - 후보가 없거나 데이터가 잘못된 상황은 빈 전투나 임시 몬스터로 숨기지 않고 설정 오류로 드러낸다.
-- `RunEncounterRosterBuilder`는 selection을 roster로 조립만 하며, Tier 계산·Cycle 계산·가중치 추첨·밸런스 성장 공식은 담당하지 않는다.
+- `RunEncounterRosterBuilder`는 selection을 roster로 조립만 하며, Tier 계산·ThemeGroup 선택·가중치 추첨·밸런스 성장 공식은 담당하지 않는다.
 - 2026-06-20 작업 9/9에서 `EncounterDefinition.MinCycle`, `EncounterDefinition.MaxCycle`, `EncounterSelectionRequest.Cycle`, `EncounterSelector`의 Cycle 후보 필터와 관련 테스트를 제거했다.
 - 2026-06-20 작업 9/9에서 `EncounterTable`은 private 직렬화 타입 `ThemeGroup` 배열을 보관하고, `ThemeGroupCount`와 `GetEncounters(themeGroupIndex)`로 접근한다. 기존 `_encounters` 직렬화 데이터는 자동 마이그레이션하지 않고, 에셋에서 ThemeGroup으로 다시 설정한다.
 - 2026-06-20 작업 9/9에서 `EncounterThemeIndexSelector`를 추가했다. 이 타입은 `EncounterTable`과 `ScriptableObject`를 알지 않고 `RunSeed + ThemeSectionIndex + ThemeGroupCount`만으로 `ThemeGroupIndex`를 결정한다. 현재 `.csproj` 자동 생성 상태에서 새 파일 include 문제가 있어 기존 `EncounterSelector.cs` 안의 별도 순수 타입으로 둔다.
 - 2026-06-21 작업 9/9 후속에서 `EncounterThemeIndexSelector`는 `ThemeGroupCount > 1`일 때 직전 `ThemeSectionIndex`의 최종 선택 결과를 재계산하고, 이번 raw 선택이 같으면 다음 index로 넘겨 인접 theme section의 테마 반복을 방지한다. 별도 런타임 상태는 저장하지 않는다.
 - 2026-06-20 작업 9/9에서 `WaveResult.Tier/Cycle/PositionInCycle`을 `EncounterTier/ThemeSectionIndex/PositionInWave`로 정리했다. HP scaling 입력 이름도 `ThemeSectionIndex`와 `HpIncreasePerThemeSection`으로 바꿨고, 기존 `_hpIncreasePerCycle` 설정값은 `FormerlySerializedAs`로 유지한다.
 - 2026-06-20 작업 9/9 검증: `dotnet build SlotRogue.sln --no-restore` 오류 0개. 기존 `System.Net.Http` 참조 경고는 남아 있다. 관련 테스트 실행은 사용자가 직접 수행하기로 했다.
+- 2026-06-21 문서 마무리: `game-flow.md`, `combat-core.md`, `STATUS.md`, 본 plan의 현재 흐름 설명을 ThemeGroup/ThemeSectionIndex 기준으로 정리했다. Unity compile과 EditMode 테스트는 사용자가 직접 수행한다.
 - 2~3마리 데이터 구조는 허용하되 실제 활성화와 검증은 후속 plan에서 진행한다. 다수 적 활성화 전에는 타겟 선택, 사망 후 행동 취소, Intent 다중 표시, 애니메이션 동기화 검증이 필요하다.
 
 ## Follow-up Candidates

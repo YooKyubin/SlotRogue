@@ -134,7 +134,7 @@ BATTLE 1 (Normal)
 → ...
 ```
 
-전투 진입 시 `BattleSceneCompositionRoot`는 `GameFlowSession.RunSeed`, `CurrentBattleNumber`, `WaveResult.EncounterTier`, `WaveResult.ThemeSectionIndex`를 사용한다. `EncounterThemeIndexSelector`가 `RunSeed + ThemeSectionIndex + ThemeGroupCount`로 `ThemeGroupIndex`를 결정하고, `EncounterSelector`는 `EncounterTable.GetEncounters(ThemeGroupIndex)` 결과에서 현재 tier 후보를 Weight 기반으로 결정적으로 선택한다. 선택 결과는 `SelectedEncounterMonster` 목록이며, 각 항목은 원본 `MonsterDefinition`과 `FormationSlot`을 가진다.
+전투 진입 시 `BattleSceneCompositionRoot`는 `GameFlowSession.RunSeed`, `CurrentBattleNumber`, `WaveResult.EncounterTier`, `WaveResult.ThemeSectionIndex`를 사용한다. `EncounterThemeIndexSelector`가 `RunSeed + ThemeSectionIndex + ThemeGroupCount`로 `ThemeGroupIndex`를 결정하고, `EncounterSelector`는 `EncounterTable.GetEncounters(ThemeGroupIndex)` 결과에서 현재 tier 후보를 Weight 기반으로 결정적으로 선택한다. `EncounterThemeIndexSelector`는 `ThemeGroupCount > 1`일 때 직전 theme section 결과를 재계산해 인접한 10전투 구간이 같은 ThemeGroup을 반복하지 않도록 보정한다. 선택 결과는 `SelectedEncounterMonster` 목록이며, 각 항목은 원본 `MonsterDefinition`과 `FormationSlot`을 가진다.
 
 `RunEncounterRosterBuilder`는 선택 결과를 받아 `EnemyCombatantFactory`와 `EnemyActionPlannerFactory`로 `RunEncounterRoster`를 조립한다. Builder는 Encounter 선택, Weight 추첨, tier 계산, formation slot 계산, HP 성장 공식을 직접 수행하지 않는다.
 
