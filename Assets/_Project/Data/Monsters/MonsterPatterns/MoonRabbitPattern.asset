@@ -14,18 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: SlotRogue.Data::SlotRogue.Data.Combat.MonsterTurnPatternDefinition
   turns:
   - actions:
-    - _actionName: Attack
-      _intentIcon: {fileID: -6820943923468213308, guid: 9528a7ad3160f354f8e8d9750266adea, type: 3}
-      _effect:
-        rid: 5421931881862791241
     - _actionName: Defend
       _intentIcon: {fileID: 4880119492350309246, guid: dbe4681e3ea4cbd4b9fb6011982807e0, type: 3}
       _effect:
         rid: 5421931881862791243
-    - _actionName: Attack
-      _intentIcon: {fileID: -6820943923468213308, guid: 9528a7ad3160f354f8e8d9750266adea, type: 3}
-      _effect:
-        rid: 5421931881862791244
   - actions:
     - _actionName: Attack
       _intentIcon: {fileID: -6820943923468213308, guid: 9528a7ad3160f354f8e8d9750266adea, type: 3}
@@ -39,26 +31,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 5421931881862791241
-      type: {class: DamageEffectDefinition, ns: SlotRogue.Data.Combat, asm: SlotRogue.Data}
-      data:
-        _amount: 4
-        _target:
-          _targetMode: 1
-          _targetParticipantId: 0
     - rid: 5421931881862791243
       type: {class: ShieldEffectDefinition, ns: SlotRogue.Data.Combat, asm: SlotRogue.Data}
       data:
-        _amount: 5
-        _target:
-          _targetMode: 0
-          _targetParticipantId: 0
-    - rid: 5421931881862791244
-      type: {class: DamageEffectDefinition, ns: SlotRogue.Data.Combat, asm: SlotRogue.Data}
-      data:
         _amount: 2
         _target:
-          _targetMode: 1
+          _targetMode: 0
           _targetParticipantId: 0
     - rid: 5421931881862791245
       type: {class: DamageEffectDefinition, ns: SlotRogue.Data.Combat, asm: SlotRogue.Data}
