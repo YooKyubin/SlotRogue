@@ -46,10 +46,24 @@ namespace SlotRogue.UI.GameFlow
             int rosterIndex,
             int formationSlot)
         {
+            return BuildFromMonsterDefinition(
+                definition,
+                rosterIndex,
+                formationSlot,
+                maxHpOverride: null);
+        }
+
+        public static RunEncounterRoster BuildFromMonsterDefinition(
+            MonsterDefinition definition,
+            int rosterIndex,
+            int formationSlot,
+            int? maxHpOverride)
+        {
             var combatantFactory = new EnemyCombatantFactory();
             EnemyCombatantBuildResult buildResult = combatantFactory.CreateWithPresentation(
                 definition,
-                rosterIndex);
+                rosterIndex,
+                maxHpOverride);
 
             return new RunEncounterRoster(new[]
             {

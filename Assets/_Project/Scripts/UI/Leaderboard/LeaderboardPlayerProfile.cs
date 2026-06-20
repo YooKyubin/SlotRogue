@@ -74,4 +74,37 @@ namespace SlotRogue.UI.Leaderboard
             PlayerPrefs.Save();
         }
     }
+
+    internal static class LeaderboardPlayerCosmeticStore
+    {
+        private const string ProfileIconKey = "SlotRogue.Leaderboard.Profile.IconId";
+        private const string MessageKey = "SlotRogue.Leaderboard.Profile.Message";
+        private const string DefaultMessage = "허접ㅋ";
+
+        internal static string ProfileIconId =>
+            PlayerPrefs.GetString(ProfileIconKey, string.Empty);
+
+        internal static string Message
+        {
+            get
+            {
+                string message = PlayerPrefs.GetString(MessageKey, DefaultMessage);
+                return string.IsNullOrWhiteSpace(message) ? DefaultMessage : message.Trim();
+            }
+        }
+
+        internal static void SaveProfileIcon(string profileIconId)
+        {
+            PlayerPrefs.SetString(ProfileIconKey, profileIconId ?? string.Empty);
+            PlayerPrefs.Save();
+        }
+
+        internal static void SaveMessage(string message)
+        {
+            PlayerPrefs.SetString(
+                MessageKey,
+                string.IsNullOrWhiteSpace(message) ? DefaultMessage : message.Trim());
+            PlayerPrefs.Save();
+        }
+    }
 }

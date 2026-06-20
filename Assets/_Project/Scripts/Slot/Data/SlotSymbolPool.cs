@@ -18,7 +18,7 @@ namespace SlotRogue.Slot.Data
         // 유물 수치 보정 비율(피해 +4 vs +7, 회복 +3 vs +5)과 기대값 기준 동급이 된다.
 
         /// <summary>고확률 심볼(체리/클로버/종)의 시작 개수.</summary>
-        public const int DefaultHighProbabilityCount = 6;
+        public const int DefaultHighProbabilityCount = 8;
 
         /// <summary>저확률 심볼(레몬/다이아/7)의 시작 개수.</summary>
         public const int DefaultLowProbabilityCount = 4;

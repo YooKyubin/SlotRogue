@@ -6,6 +6,8 @@ namespace SlotRogue.UI.GameFlow
 {
     public sealed class RunBattleActionView : MonoBehaviour
     {
+        private const string SpinButtonName = "Spin Button";
+
         private static readonly Color PatternHitColor = new(1f, 0.82f, 0.23f, 1f);
         private static readonly Color BaseAttackColor = new(0.66f, 0.82f, 1f, 1f);
 
@@ -16,9 +18,17 @@ namespace SlotRogue.UI.GameFlow
         private Color _slotResultDefaultColor = Color.white;
         private Color _attackResultDefaultColor = Color.white;
         private bool _hasCachedDefaults;
+        private Button _subscribedSpinButton;
 
         public event Action SpinRequested;
-        public bool HasRequiredControls => _spinButton != null;
+        public bool HasRequiredControls
+        {
+            get
+            {
+                EnsureReferences();
+                return _spinButton != null;
+            }
+        }
 
         private void Awake()
         {
@@ -54,11 +64,16 @@ namespace SlotRogue.UI.GameFlow
 
         private void SubscribeButtons()
         {
-            UnsubscribeButtons();
+            if (_subscribedSpinButton == _spinButton)
+            {
+                return;
+            }
 
+            UnsubscribeButtons();
             if (_spinButton != null)
             {
                 _spinButton.onClick.AddListener(HandleSpinClicked);
+                _subscribedSpinButton = _spinButton;
             }
         }
 
@@ -68,6 +83,12 @@ namespace SlotRogue.UI.GameFlow
             _attackResultText ??=
                 ResolveText("Attack Power Text") ??
                 ResolveText("Attack Result Value");
+
+            if (_spinButton == null)
+            {
+                _spinButton = ResolveButton(SpinButtonName);
+                SubscribeButtons();
+            }
         }
 
         private Text ResolveText(string objectName)
@@ -77,13 +98,21 @@ namespace SlotRogue.UI.GameFlow
             return found != null ? found.GetComponent<Text>() : null;
         }
 
+        private Button ResolveButton(string objectName)
+        {
+            Transform searchRoot = transform.root != null ? transform.root : transform;
+            Transform found = SceneComponentResolver.FindDeepChild(searchRoot, objectName);
+            return found != null ? found.GetComponent<Button>() : null;
+        }
+
         private void UnsubscribeButtons()
         {
-            if (_spinButton != null)
+            if (_subscribedSpinButton != null)
             {
-                _spinButton.onClick.RemoveListener(HandleSpinClicked);
+                _subscribedSpinButton.onClick.RemoveListener(HandleSpinClicked);
             }
 
+            _subscribedSpinButton = null;
         }
 
         private void RenderButtons(RunBattleActionMode mode, bool spinInteractable)

@@ -202,7 +202,9 @@ namespace SlotRogue.UI.GameFlow
                     contribution.RelicId,
                     contribution.RelicName,
                     _relicIconResolver?.Invoke(contribution.RelicId),
-                    definition?.Description ?? $"{contribution.RelicName} 발동",
+                    definition?.Description ?? ResolveRelicDescription(
+                        contribution.RelicId,
+                        contribution.RelicName),
                     BuildRelicValueText(
                         previousAttackPower,
                         attackPower,
@@ -213,6 +215,13 @@ namespace SlotRogue.UI.GameFlow
             }
 
             return results;
+        }
+
+        private static string ResolveRelicDescription(string relicId, string relicName)
+        {
+            return TutorialBattleDefinition.TryGetRelicDescription(relicId, out string description)
+                ? description
+                : $"{relicName} 발동";
         }
 
         private static string BuildRelicValueText(

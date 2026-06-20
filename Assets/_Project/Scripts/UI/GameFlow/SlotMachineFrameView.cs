@@ -34,6 +34,7 @@ namespace SlotRogue.UI.GameFlow
         private readonly bool[] _reelSpinning = new bool[ReelCount];
         private Coroutine _activeRoutine;
         private RectTransform _reelFrameRoot;
+        private Vector2 _lastConfiguredReelFrameSize;
         private int _animationVersion;
 
         public void Bind(Image animationImage, Sprite[] slotMachineSprites = null)
@@ -193,6 +194,26 @@ namespace SlotRogue.UI.GameFlow
 
             ConfigureAnimationImage(_animationImage);
             ApplyFrame(0);
+        }
+
+        private void LateUpdate()
+        {
+            if (!UsesSplitReelFrames() || _reelFrameRoot == null)
+            {
+                return;
+            }
+
+            Vector2 currentSize = ResolveRectSize(_reelFrameRoot);
+            if (!HasPositiveSize(currentSize) ||
+                (currentSize - _lastConfiguredReelFrameSize).sqrMagnitude < 0.01f)
+            {
+                return;
+            }
+
+            for (int reelIndex = 0; reelIndex < ReelCount; reelIndex++)
+            {
+                ConfigureReelFrameImage(reelIndex, _reelFrameImages[reelIndex]);
+            }
         }
 
         private IEnumerator PlaySpinRoutine(int animationVersion)
@@ -355,7 +376,7 @@ namespace SlotRogue.UI.GameFlow
             RectTransform root = FindReelFrameRoot();
             if (root == null)
             {
-                root = CreateReelFrameRoot();
+                return;
             }
 
             _reelFrameRoot = root;
@@ -366,7 +387,7 @@ namespace SlotRogue.UI.GameFlow
                 Image image = FindReelFrameImage(reelIndex);
                 if (image == null)
                 {
-                    image = CreateReelFrameImage(reelIndex);
+                    continue;
                 }
 
                 _reelFrameImages[reelIndex] = image;
@@ -413,14 +434,6 @@ namespace SlotRogue.UI.GameFlow
             return existing as RectTransform;
         }
 
-        private RectTransform CreateReelFrameRoot()
-        {
-            var gameObject = new GameObject(ReelFrameRootName, typeof(RectTransform));
-            var rectTransform = (RectTransform)gameObject.transform;
-            rectTransform.SetParent(transform, false);
-            return rectTransform;
-        }
-
         private Image FindReelFrameImage(int reelIndex)
         {
             if (_reelFrameImages[reelIndex] != null)
@@ -432,16 +445,6 @@ namespace SlotRogue.UI.GameFlow
                 ? _reelFrameRoot.Find(ReelFrameImageName(reelIndex))
                 : null;
             return existing != null ? existing.GetComponent<Image>() : null;
-        }
-
-        private Image CreateReelFrameImage(int reelIndex)
-        {
-            var gameObject = new GameObject(
-                ReelFrameImageName(reelIndex),
-                typeof(RectTransform),
-                typeof(Image));
-            gameObject.transform.SetParent(_reelFrameRoot, false);
-            return gameObject.GetComponent<Image>();
         }
 
         private void ConfigureReelFrameRoot(RectTransform root)
@@ -459,6 +462,7 @@ namespace SlotRogue.UI.GameFlow
                 root.pivot = reference.pivot;
                 root.anchoredPosition = reference.anchoredPosition;
                 root.sizeDelta = reference.sizeDelta;
+                root.localScale = reference.localScale;
             }
             else
             {
@@ -471,9 +475,9 @@ namespace SlotRogue.UI.GameFlow
                     ReelFrameNativeWidth(1) * 3f +
                     ReelFrameNativeWidth(ReelCount - 1),
                     ReelFrameNativeHeight());
+                root.localScale = Vector3.one;
             }
 
-            root.localScale = Vector3.one;
             root.SetAsFirstSibling();
         }
 
@@ -491,23 +495,34 @@ namespace SlotRogue.UI.GameFlow
                 ReelFrameNativeWidth(0) +
                 ReelFrameNativeWidth(1) * 3f +
                 ReelFrameNativeWidth(ReelCount - 1);
-            float rootWidth = ResolveRectSize(_reelFrameRoot).x;
-            float rootHeight = ResolveRectSize(_reelFrameRoot).y;
-            float scale = totalNativeWidth > 0f && rootWidth > 0f ? rootWidth / totalNativeWidth : 1f;
-            float width = ReelFrameNativeWidth(reelIndex) * scale;
+            float nativeHeight = ReelFrameNativeHeight();
+            float width = ReelFrameNativeWidth(reelIndex);
 
-            float left = -rootWidth * 0.5f;
+            float left = -totalNativeWidth * 0.5f;
             for (int index = 0; index < reelIndex; index++)
             {
-                left += ReelFrameNativeWidth(index) * scale;
+                left += ReelFrameNativeWidth(index);
             }
 
             rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
             rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
             rectTransform.pivot = new Vector2(0.5f, 0.5f);
             rectTransform.anchoredPosition = new Vector2(left + width * 0.5f, 0f);
-            rectTransform.sizeDelta = new Vector2(width, rootHeight > 0f ? rootHeight : ReelFrameNativeHeight());
+            rectTransform.sizeDelta = new Vector2(width, nativeHeight);
             rectTransform.localScale = Vector3.one;
+
+            Vector2 rootSize = ResolveRectSize(_reelFrameRoot);
+            if (!HasPositiveSize(rootSize))
+            {
+                rootSize = ResolveRectSize(FindReelOverlay());
+            }
+
+            if (!HasPositiveSize(rootSize))
+            {
+                rootSize = new Vector2(totalNativeWidth, nativeHeight);
+            }
+
+            _lastConfiguredReelFrameSize = rootSize;
         }
 
         private RectTransform FindReelOverlay()
@@ -539,7 +554,18 @@ namespace SlotRogue.UI.GameFlow
             }
 
             Vector2 size = rectTransform.rect.size;
-            return size.x > 0f && size.y > 0f ? size : rectTransform.sizeDelta;
+            if (HasPositiveSize(size))
+            {
+                return size;
+            }
+
+            size = rectTransform.sizeDelta;
+            return HasPositiveSize(size) ? size : Vector2.zero;
+        }
+
+        private static bool HasPositiveSize(Vector2 size)
+        {
+            return size.x > 0f && size.y > 0f;
         }
 
         private static string ReelFrameImageName(int reelIndex)

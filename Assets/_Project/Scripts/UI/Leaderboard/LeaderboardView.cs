@@ -1,29 +1,42 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using SlotRogue.Relics.Pool;
+using SlotRogue.Slot.Data;
+using SlotRogue.UI.GameFlow;
+using TMPro;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UI;
 
 namespace SlotRogue.UI.Leaderboard
 {
     public sealed class LeaderboardView : MonoBehaviour
     {
-        private static readonly Color OverlayColor = new(0.025f, 0.035f, 0.07f, 0.97f);
-        private static readonly Color PanelColor = new(0.08f, 0.12f, 0.22f, 1f);
-        private static readonly Color ButtonColor = new(0.18f, 0.42f, 0.72f, 1f);
-        private static readonly Color AccentColor = new(0.95f, 0.76f, 0.2f, 1f);
+        [SerializeField] private Button _openButton;
+        [SerializeField] private GameObject _panel;
+        [SerializeField] private Button _closeButton;
+        [SerializeField] private Button _refreshButton;
+        [SerializeField] private GameObject _entriesViewport;
+        [SerializeField] private Transform _entriesContainer;
+        [SerializeField] private Text _entriesText;
+        [SerializeField] private TMP_Text _entriesTmpText;
+        [SerializeField] private Text _statusText;
+        [SerializeField] private TMP_Text _statusTmpText;
+        [SerializeField] private InputField _nameInput;
+        [SerializeField] private Button _saveProfileButton;
+        [SerializeField] private GameObject _detailPanel;
+        [SerializeField] private Text _detailTitleText;
+        [SerializeField] private TMP_Text _detailTitleTmpText;
+        [SerializeField] private Text _detailText;
+        [SerializeField] private TMP_Text _detailTmpText;
+        [SerializeField] private Button _detailCloseButton;
+        [SerializeField] private LeaderboardEntryRowBinding[] _entryRows =
+            Array.Empty<LeaderboardEntryRowBinding>();
 
-        private Button _openButton;
-        private GameObject _panel;
-        private Text _titleText;
-        private InputField _nameInput;
-        private Button _saveProfileButton;
-        private Text _saveProfileButtonText;
-        private Button _refreshButton;
-        private Button _closeButton;
-        private GameObject _entriesViewport;
-        private Text _entriesText;
-        private Text _statusText;
+        private readonly List<RowClickBinding> _rowClickBindings = new();
+        private UnityAction _detailCloseAction;
+        private bool _detailCloseSubscribed;
         private bool _subscribed;
         private bool _showLauncher = true;
 
@@ -33,28 +46,20 @@ namespace SlotRogue.UI.Leaderboard
 
         public event Action RefreshRequested;
 
-        public event Action<string> PlayerProfileSubmitted;
-
-        public static LeaderboardView CreateRuntime(Transform canvasTransform)
+        public bool EnsureRuntimeLayout()
         {
-            var host = new GameObject("LeaderboardView", typeof(RectTransform));
-            RectTransform hostRect = (RectTransform)host.transform;
-            hostRect.SetParent(canvasTransform, false);
-            Stretch(hostRect);
+            ResolvePlacedReferences();
+            HideProfileEditControls();
 
-            LeaderboardView view = host.AddComponent<LeaderboardView>();
-            view.EnsureRuntimeLayout();
-            return view;
-        }
-
-        public void EnsureRuntimeLayout()
-        {
-            if (_openButton == null || _panel == null)
+            if (!HasRequiredReferences())
             {
-                BuildRuntimeLayout();
+                Debug.LogError(
+                    "[LeaderboardView] Leaderboard Open Button, Leaderboard Panel, and Close Button must be placed in the hierarchy.");
+                return false;
             }
 
             SubscribeButtons();
+            return true;
         }
 
         public void SetLauncherVisible(bool isVisible)
@@ -68,7 +73,11 @@ namespace SlotRogue.UI.Leaderboard
 
         public void Render(LeaderboardViewState state)
         {
-            EnsureRuntimeLayout();
+            if (!EnsureRuntimeLayout())
+            {
+                return;
+            }
+
             bool isProfileRequired = state?.IsProfileRequired == true;
             bool isVisible = state?.IsVisible == true && !isProfileRequired;
 
@@ -80,168 +89,246 @@ namespace SlotRogue.UI.Leaderboard
 
             if (!isVisible || state == null)
             {
+                HideDetailPanel();
                 return;
             }
 
-            transform.SetAsLastSibling();
-            if (_titleText != null)
-            {
-                _titleText.text = "SLOT ROGUE LEADERBOARD";
-            }
-
-            if (_nameInput != null && !_nameInput.isFocused)
-            {
-                _nameInput.text = state.PlayerName;
-            }
-
-            if (_entriesText != null)
-            {
-                _entriesText.text = BuildEntriesText(state.Entries);
-            }
-
-            if (_saveProfileButtonText != null)
-            {
-                _saveProfileButtonText.text = "SAVE";
-            }
-
-            if (_refreshButton != null)
-            {
-                _refreshButton.gameObject.SetActive(true);
-            }
-
-            if (_closeButton != null)
-            {
-                _closeButton.gameObject.SetActive(true);
-            }
-
-            if (_entriesViewport != null)
-            {
-                _entriesViewport.SetActive(true);
-            }
-
-            if (_statusText != null)
-            {
-                _statusText.text = state.StatusMessage;
-            }
-
-            SetInteractable(_saveProfileButton, !state.IsLoading);
+            _panel.transform.SetAsLastSibling();
+            RenderEntries(state.Entries);
+            SetText(_statusText, _statusTmpText, state.StatusMessage);
             SetInteractable(_refreshButton, !state.IsLoading);
         }
 
         private void OnDestroy()
         {
             UnsubscribeButtons();
+            UnsubscribeRowButtons();
+            UnsubscribeDetailCloseButton();
         }
 
-        private void BuildRuntimeLayout()
+        private void ResolvePlacedReferences()
         {
-            Font font = FindFont(transform.root);
-            RemoveStaleRuntimeLayout();
+            _openButton ??= FindButton("Leaderboard Open Button", "Ranking Button");
+            _panel ??= FindDescendant("Leaderboard Panel")?.gameObject ??
+                FindDescendant("Ranking Panel")?.gameObject;
+            _closeButton ??= FindButton("Close Button", "Leaderboard Close Button");
+            _refreshButton ??= FindButton("Refresh Button", "Leaderboard Refresh Button");
+            _entriesViewport ??= FindDescendant("Leaderboard Entries Viewport")?.gameObject ??
+                FindDescendant("Leaderboard List Viewport")?.gameObject;
+            _entriesContainer ??= FindDescendant("Leaderboard Entries") ??
+                FindDescendant("Leaderboard Entry List") ??
+                FindDescendant("Ranking Entry List") ??
+                _entriesViewport?.transform;
+            _entriesText ??= FindDescendant("Leaderboard Entries")?.GetComponent<Text>();
+            _entriesTmpText ??= FindDescendant("Leaderboard Entries")?.GetComponent<TMP_Text>();
+            _statusText ??= FindDescendant("Leaderboard Status")?.GetComponent<Text>();
+            _statusTmpText ??= FindDescendant("Leaderboard Status")?.GetComponent<TMP_Text>();
+            _nameInput ??= FindDescendant("Player Name Input")?.GetComponent<InputField>() ??
+                FindDescendant("Nickname Input")?.GetComponent<InputField>();
+            _saveProfileButton ??= FindButton("Save Name Button", "Save Profile Button");
+            _detailPanel ??= FindDescendant("Leaderboard Detail Panel")?.gameObject ??
+                FindDescendant("Entry Detail Panel")?.gameObject ??
+                FindDescendant("Detail Panel")?.gameObject;
+            _detailTitleText ??= FindText("Leaderboard Detail Title", "Detail Title");
+            _detailTitleTmpText ??= FindTmpText("Leaderboard Detail Title", "Detail Title");
+            _detailText ??= FindText("Leaderboard Detail Text", "Detail Text");
+            _detailTmpText ??= FindTmpText("Leaderboard Detail Text", "Detail Text");
+            _detailCloseButton ??= FindButton("Detail Close Button", "Close Detail Button");
 
-            _openButton = CreateButton(
-                "Leaderboard Open Button",
-                transform,
-                font,
-                "LEADERBOARD",
-                new Vector2(0.66f, 0.91f),
-                new Vector2(0.96f, 0.98f));
+            ResolveEntryRows();
 
-            RectTransform panelRect = CreateRect("Leaderboard Panel", transform);
-            Stretch(panelRect);
-            Image overlay = panelRect.gameObject.AddComponent<Image>();
-            overlay.color = OverlayColor;
-            _panel = panelRect.gameObject;
-
-            RectTransform contentPanel = CreateRect("Leaderboard Content", panelRect);
-            SetAnchors(
-                contentPanel,
-                new Vector2(0.04f, 0.08f),
-                new Vector2(0.96f, 0.92f));
-            Image panelImage = contentPanel.gameObject.AddComponent<Image>();
-            panelImage.color = PanelColor;
-
-            _titleText = CreateText(
-                "Leaderboard Title",
-                contentPanel,
-                font,
-                48,
-                TextAnchor.MiddleCenter,
-                new Vector2(0.06f, 0.88f),
-                new Vector2(0.65f, 0.98f));
-            _titleText.text = "SLOT ROGUE LEADERBOARD";
-            _titleText.color = AccentColor;
-
-            _refreshButton = CreateButton(
-                "Refresh Button",
-                contentPanel,
-                font,
-                "REFRESH",
-                new Vector2(0.67f, 0.90f),
-                new Vector2(0.82f, 0.97f));
-            _closeButton = CreateButton(
-                "Close Button",
-                contentPanel,
-                font,
-                "X",
-                new Vector2(0.84f, 0.90f),
-                new Vector2(0.94f, 0.97f));
-
-            _nameInput = CreateInputField(
-                "Nickname Input",
-                contentPanel,
-                font,
-                new Vector2(0.06f, 0.79f),
-                new Vector2(0.70f, 0.87f));
-            _saveProfileButton = CreateButton(
-                "Save Profile Button",
-                contentPanel,
-                font,
-                "SAVE",
-                new Vector2(0.72f, 0.79f),
-                new Vector2(0.94f, 0.87f));
-            _saveProfileButtonText =
-                _saveProfileButton.GetComponentInChildren<Text>(includeInactive: true);
-
-            _entriesText = CreateScrollableEntries(
-                contentPanel,
-                font,
-                new Vector2(0.07f, 0.12f),
-                new Vector2(0.93f, 0.76f));
-            _entriesViewport = _entriesText.transform.parent.gameObject;
-
-            _statusText = CreateText(
-                "Leaderboard Status",
-                contentPanel,
-                font,
-                25,
-                TextAnchor.MiddleCenter,
-                new Vector2(0.07f, 0.03f),
-                new Vector2(0.93f, 0.11f));
-            _statusText.color = new Color(0.75f, 0.82f, 0.94f, 1f);
-
-            _panel.SetActive(false);
-        }
-
-        private void RemoveStaleRuntimeLayout()
-        {
-            for (int index = transform.childCount - 1; index >= 0; index--)
+            if (_detailPanel != null)
             {
-                Transform child = transform.GetChild(index);
-                if (child.name != "Leaderboard Open Button" &&
-                    child.name != "Leaderboard Panel")
+                _detailPanel.SetActive(false);
+            }
+        }
+
+        private bool HasRequiredReferences()
+        {
+            return _openButton != null &&
+                _panel != null &&
+                _closeButton != null;
+        }
+
+        private void HideProfileEditControls()
+        {
+            if (_nameInput != null)
+            {
+                _nameInput.gameObject.SetActive(false);
+            }
+
+            if (_saveProfileButton != null)
+            {
+                _saveProfileButton.gameObject.SetActive(false);
+            }
+
+            if (_refreshButton != null)
+            {
+                _refreshButton.gameObject.SetActive(false);
+            }
+        }
+
+        private void ResolveEntryRows()
+        {
+            if (HasSerializedRows())
+            {
+                for (int index = 0; index < _entryRows.Length; index++)
+                {
+                    _entryRows[index]?.Resolve();
+                }
+
+                return;
+            }
+
+            var rowRoots = new List<Transform>();
+            CollectEntryRowsFromContainer(rowRoots);
+            if (rowRoots.Count == 0)
+            {
+                CollectEntryRowsByName(rowRoots);
+            }
+
+            _entryRows = new LeaderboardEntryRowBinding[rowRoots.Count];
+            for (int index = 0; index < rowRoots.Count; index++)
+            {
+                _entryRows[index] = new LeaderboardEntryRowBinding(rowRoots[index]);
+                _entryRows[index].Resolve();
+            }
+        }
+
+        private bool HasSerializedRows()
+        {
+            if (_entryRows == null || _entryRows.Length == 0)
+            {
+                return false;
+            }
+
+            for (int index = 0; index < _entryRows.Length; index++)
+            {
+                if (_entryRows[index]?.Root != null)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private void CollectEntryRowsFromContainer(List<Transform> rows)
+        {
+            if (_entriesContainer == null)
+            {
+                return;
+            }
+
+            for (int index = 0; index < _entriesContainer.childCount; index++)
+            {
+                Transform child = _entriesContainer.GetChild(index);
+                if (IsLegacyEntriesText(child))
                 {
                     continue;
                 }
 
-                if (Application.isPlaying)
+                if (LooksLikeEntryRow(child))
                 {
-                    Destroy(child.gameObject);
-                }
-                else
-                {
-                    DestroyImmediate(child.gameObject);
+                    rows.Add(child);
                 }
             }
+        }
+
+        private void CollectEntryRowsByName(List<Transform> rows)
+        {
+            Transform searchRoot = _panel != null ? _panel.transform : transform;
+            Transform[] descendants =
+                searchRoot.GetComponentsInChildren<Transform>(includeInactive: true);
+            for (int index = 0; index < descendants.Length; index++)
+            {
+                Transform candidate = descendants[index];
+                if (candidate == searchRoot ||
+                    rows.Contains(candidate) ||
+                    IsLegacyEntriesText(candidate) ||
+                    !LooksLikeEntryRow(candidate))
+                {
+                    continue;
+                }
+
+                rows.Add(candidate);
+            }
+        }
+
+        private bool LooksLikeEntryRow(Transform candidate)
+        {
+            if (candidate == null)
+            {
+                return false;
+            }
+
+            string name = candidate.name;
+            bool rowName =
+                ContainsOrdinalIgnoreCase(name, "row") ||
+                ContainsOrdinalIgnoreCase(name, "entry") ||
+                ContainsOrdinalIgnoreCase(name, "ranker") ||
+                ContainsOrdinalIgnoreCase(name, "ranking item");
+            if (!rowName)
+            {
+                return false;
+            }
+
+            if (ContainsOrdinalIgnoreCase(name, "viewport") ||
+                ContainsOrdinalIgnoreCase(name, "text") ||
+                ContainsOrdinalIgnoreCase(name, "title") ||
+                ContainsOrdinalIgnoreCase(name, "status"))
+            {
+                return false;
+            }
+
+            return candidate.GetComponentInChildren<Button>(includeInactive: true) != null ||
+                candidate.GetComponentsInChildren<Text>(includeInactive: true).Length > 0 ||
+                candidate.GetComponentsInChildren<TMP_Text>(includeInactive: true).Length > 0;
+        }
+
+        private bool IsLegacyEntriesText(Transform candidate)
+        {
+            if (candidate == null)
+            {
+                return false;
+            }
+
+            return (_entriesText != null && candidate == _entriesText.transform) ||
+                (_entriesTmpText != null && candidate == _entriesTmpText.transform);
+        }
+
+        private void RenderEntries(IReadOnlyList<LeaderboardEntryData> entries)
+        {
+            IReadOnlyList<LeaderboardEntryData> safeEntries =
+                entries ?? Array.Empty<LeaderboardEntryData>();
+            UnsubscribeRowButtons();
+
+            if (_entryRows != null && _entryRows.Length > 0)
+            {
+                SetText(_entriesText, _entriesTmpText, string.Empty);
+                for (int index = 0; index < _entryRows.Length; index++)
+                {
+                    LeaderboardEntryRowBinding row = _entryRows[index];
+                    if (row == null || row.Root == null)
+                    {
+                        continue;
+                    }
+
+                    if (index >= safeEntries.Count)
+                    {
+                        row.Root.SetActive(false);
+                        continue;
+                    }
+
+                    LeaderboardEntryData entry = safeEntries[index];
+                    row.Render(entry);
+                    SubscribeRowButton(row, entry);
+                }
+
+                return;
+            }
+
+            SetText(_entriesText, _entriesTmpText, BuildEntriesText(safeEntries));
         }
 
         private void SubscribeButtons()
@@ -252,9 +339,13 @@ namespace SlotRogue.UI.Leaderboard
             }
 
             _openButton.onClick.AddListener(HandleOpenClicked);
-            _saveProfileButton.onClick.AddListener(HandleSaveProfileClicked);
-            _refreshButton.onClick.AddListener(HandleRefreshClicked);
             _closeButton.onClick.AddListener(HandleCloseClicked);
+            if (_refreshButton != null)
+            {
+                _refreshButton.onClick.AddListener(HandleRefreshClicked);
+            }
+
+            SubscribeDetailCloseButton();
             _subscribed = true;
         }
 
@@ -270,9 +361,9 @@ namespace SlotRogue.UI.Leaderboard
                 _openButton.onClick.RemoveListener(HandleOpenClicked);
             }
 
-            if (_saveProfileButton != null)
+            if (_closeButton != null)
             {
-                _saveProfileButton.onClick.RemoveListener(HandleSaveProfileClicked);
+                _closeButton.onClick.RemoveListener(HandleCloseClicked);
             }
 
             if (_refreshButton != null)
@@ -280,22 +371,63 @@ namespace SlotRogue.UI.Leaderboard
                 _refreshButton.onClick.RemoveListener(HandleRefreshClicked);
             }
 
-            if (_closeButton != null)
+            _subscribed = false;
+        }
+
+        private void SubscribeRowButton(
+            LeaderboardEntryRowBinding row,
+            LeaderboardEntryData entry)
+        {
+            if (row.DetailButton == null)
             {
-                _closeButton.onClick.RemoveListener(HandleCloseClicked);
+                return;
             }
 
-            _subscribed = false;
+            UnityAction action = () => ShowEntryDetails(entry);
+            row.DetailButton.onClick.AddListener(action);
+            _rowClickBindings.Add(new RowClickBinding(row.DetailButton, action));
+        }
+
+        private void UnsubscribeRowButtons()
+        {
+            for (int index = 0; index < _rowClickBindings.Count; index++)
+            {
+                RowClickBinding binding = _rowClickBindings[index];
+                if (binding.Button != null)
+                {
+                    binding.Button.onClick.RemoveListener(binding.Action);
+                }
+            }
+
+            _rowClickBindings.Clear();
+        }
+
+        private void SubscribeDetailCloseButton()
+        {
+            if (_detailCloseSubscribed || _detailCloseButton == null)
+            {
+                return;
+            }
+
+            _detailCloseAction = HideDetailPanel;
+            _detailCloseButton.onClick.AddListener(_detailCloseAction);
+            _detailCloseSubscribed = true;
+        }
+
+        private void UnsubscribeDetailCloseButton()
+        {
+            if (!_detailCloseSubscribed || _detailCloseButton == null)
+            {
+                return;
+            }
+
+            _detailCloseButton.onClick.RemoveListener(_detailCloseAction);
+            _detailCloseSubscribed = false;
         }
 
         private void HandleOpenClicked()
         {
             OpenRequested?.Invoke();
-        }
-
-        private void HandleSaveProfileClicked()
-        {
-            PlayerProfileSubmitted?.Invoke(_nameInput?.text ?? string.Empty);
         }
 
         private void HandleRefreshClicked()
@@ -305,7 +437,31 @@ namespace SlotRogue.UI.Leaderboard
 
         private void HandleCloseClicked()
         {
+            HideDetailPanel();
             CloseRequested?.Invoke();
+        }
+
+        private void ShowEntryDetails(LeaderboardEntryData entry)
+        {
+            string detail = BuildEntryDetails(entry);
+            if (_detailPanel != null)
+            {
+                _detailPanel.SetActive(true);
+                _detailPanel.transform.SetAsLastSibling();
+                SetText(_detailTitleText, _detailTitleTmpText, entry.PlayerName);
+                SetText(_detailText, _detailTmpText, detail);
+                return;
+            }
+
+            SetText(_statusText, _statusTmpText, detail);
+        }
+
+        private void HideDetailPanel()
+        {
+            if (_detailPanel != null)
+            {
+                _detailPanel.SetActive(false);
+            }
         }
 
         private static string BuildEntriesText(IReadOnlyList<LeaderboardEntryData> entries)
@@ -319,204 +475,228 @@ namespace SlotRogue.UI.Leaderboard
             for (int index = 0; index < entries.Count; index++)
             {
                 LeaderboardEntryData entry = entries[index];
-                string marker = entry.IsCurrentPlayer ? "* " : string.Empty;
-                string relics = entry.RelicIds.Count == 0
-                    ? "-"
-                    : string.Join(", ", entry.RelicIds);
+                if (index > 0)
+                {
+                    builder.AppendLine();
+                    builder.AppendLine();
+                }
 
-                builder.Append(marker);
+                builder.Append(entry.IsCurrentPlayer ? "* " : string.Empty);
                 builder.Append('#');
                 builder.Append(entry.Rank);
                 builder.Append(' ');
                 builder.Append(entry.PlayerName);
-                builder.Append("\n   SCORE ");
-                builder.Append(Math.Round(entry.Score));
-                builder.Append("  WAVE ");
+                builder.AppendLine();
+                builder.Append("Wave : ");
                 builder.Append(entry.Wave);
-                builder.Append("  RELICS ");
-                builder.Append(relics);
-
-                if (index < entries.Count - 1)
+                if (!string.IsNullOrWhiteSpace(entry.Message))
                 {
-                    builder.Append('\n');
-                    builder.Append('\n');
+                    builder.Append("  ");
+                    builder.Append(entry.Message);
                 }
             }
 
             return builder.ToString();
         }
 
-        private static Font FindFont(Transform root)
+        private static string BuildEntryDetails(LeaderboardEntryData entry)
         {
-            Text existingText = root != null
-                ? root.GetComponentInChildren<Text>(includeInactive: true)
-                : null;
-            if (existingText != null && existingText.font != null)
+            var builder = new StringBuilder();
+            builder.Append(entry.PlayerName);
+            builder.Append(" / Wave : ");
+            builder.Append(entry.Wave);
+            builder.AppendLine();
+            builder.AppendLine();
+
+            builder.AppendLine("유물");
+            if (entry.RelicIds == null || entry.RelicIds.Count == 0)
             {
-                return existingText.font;
+                builder.AppendLine("- 없음");
+            }
+            else
+            {
+                for (int index = 0; index < entry.RelicIds.Count; index++)
+                {
+                    string relicId = entry.RelicIds[index];
+                    RelicDefinition relic = RelicCatalog.GetById(relicId);
+                    builder.Append("- ");
+                    builder.Append(string.IsNullOrWhiteSpace(relic?.Name)
+                        ? relicId
+                        : relic.Name);
+                    builder.AppendLine();
+                }
             }
 
-            return Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            builder.AppendLine();
+            builder.AppendLine("심볼");
+            if (entry.SymbolCounts == null || entry.SymbolCounts.Count == 0)
+            {
+                builder.AppendLine("- 기록 없음");
+            }
+            else
+            {
+                for (int index = 0; index < entry.SymbolCounts.Count; index++)
+                {
+                    LeaderboardSymbolCount count = entry.SymbolCounts[index];
+                    if (count == null || count.Count <= 0)
+                    {
+                        continue;
+                    }
+
+                    builder.Append("- ");
+                    builder.Append(FormatSymbolName(count));
+                    builder.Append(" x");
+                    builder.Append(count.Count);
+                    builder.AppendLine();
+                }
+            }
+
+            return builder.ToString().TrimEnd();
         }
 
-        private static InputField CreateInputField(
-            string objectName,
-            Transform parent,
-            Font font,
-            Vector2 anchorMin,
-            Vector2 anchorMax)
+        private static string FormatSymbolName(LeaderboardSymbolCount count)
         {
-            RectTransform rectTransform = CreateRect(objectName, parent);
-            SetAnchors(rectTransform, anchorMin, anchorMax);
-
-            Image background = rectTransform.gameObject.AddComponent<Image>();
-            background.color = new Color(0.02f, 0.04f, 0.08f, 1f);
-
-            InputField input = rectTransform.gameObject.AddComponent<InputField>();
-            Text text = CreateText(
-                "Text",
-                rectTransform,
-                font,
-                28,
-                TextAnchor.MiddleLeft,
-                new Vector2(0.04f, 0f),
-                new Vector2(0.96f, 1f));
-            Text placeholder = CreateText(
-                "Placeholder",
-                rectTransform,
-                font,
-                28,
-                TextAnchor.MiddleLeft,
-                new Vector2(0.04f, 0f),
-                new Vector2(0.96f, 1f));
-            placeholder.text = "Nickname";
-            placeholder.color = new Color(0.55f, 0.6f, 0.7f, 1f);
-
-            input.textComponent = text;
-            input.placeholder = placeholder;
-            input.targetGraphic = background;
-            input.lineType = InputField.LineType.SingleLine;
-            input.characterLimit = 50;
-            return input;
+            return count != null && count.TryGetSymbol(out SlotSymbolType symbol)
+                ? RelicDisplay.SymbolKorean(symbol)
+                : count?.Symbol ?? string.Empty;
         }
 
-        private static Text CreateScrollableEntries(
-            Transform parent,
-            Font font,
-            Vector2 anchorMin,
-            Vector2 anchorMax)
+        private Button FindButton(params string[] names)
         {
-            RectTransform viewportRect = CreateRect("Leaderboard Entries Viewport", parent);
-            SetAnchors(viewportRect, anchorMin, anchorMax);
-
-            Image viewportImage = viewportRect.gameObject.AddComponent<Image>();
-            viewportImage.color = new Color(0f, 0f, 0f, 0.01f);
-            Mask mask = viewportRect.gameObject.AddComponent<Mask>();
-            mask.showMaskGraphic = false;
-
-            ScrollRect scrollRect = viewportRect.gameObject.AddComponent<ScrollRect>();
-            scrollRect.horizontal = false;
-            scrollRect.vertical = true;
-            scrollRect.movementType = ScrollRect.MovementType.Clamped;
-            scrollRect.scrollSensitivity = 48f;
-            scrollRect.viewport = viewportRect;
-
-            RectTransform contentRect = CreateRect("Leaderboard Entries", viewportRect);
-            contentRect.anchorMin = new Vector2(0f, 1f);
-            contentRect.anchorMax = new Vector2(1f, 1f);
-            contentRect.pivot = new Vector2(0.5f, 1f);
-            contentRect.anchoredPosition = Vector2.zero;
-            contentRect.sizeDelta = Vector2.zero;
-
-            Text text = contentRect.gameObject.AddComponent<Text>();
-            text.font = font;
-            text.fontSize = 27;
-            text.alignment = TextAnchor.UpperLeft;
-            text.color = Color.white;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            text.verticalOverflow = VerticalWrapMode.Overflow;
-            text.raycastTarget = false;
-
-            ContentSizeFitter fitter = contentRect.gameObject.AddComponent<ContentSizeFitter>();
-            fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
-            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-            scrollRect.content = contentRect;
-            return text;
+            Transform found = FindDescendant(names);
+            return found != null ? found.GetComponent<Button>() : null;
         }
 
-        private static Button CreateButton(
-            string objectName,
-            Transform parent,
-            Font font,
-            string label,
-            Vector2 anchorMin,
-            Vector2 anchorMax)
+        private Text FindText(params string[] names)
         {
-            RectTransform rectTransform = CreateRect(objectName, parent);
-            SetAnchors(rectTransform, anchorMin, anchorMax);
-
-            Image image = rectTransform.gameObject.AddComponent<Image>();
-            image.color = ButtonColor;
-
-            Button button = rectTransform.gameObject.AddComponent<Button>();
-            button.targetGraphic = image;
-
-            Text text = CreateText(
-                $"{objectName} Text",
-                rectTransform,
-                font,
-                26,
-                TextAnchor.MiddleCenter,
-                Vector2.zero,
-                Vector2.one);
-            text.text = label;
-            return button;
+            Transform found = FindDescendant(names);
+            return found != null ? found.GetComponent<Text>() : null;
         }
 
-        private static Text CreateText(
-            string objectName,
-            Transform parent,
-            Font font,
-            int fontSize,
-            TextAnchor alignment,
-            Vector2 anchorMin,
-            Vector2 anchorMax)
+        private TMP_Text FindTmpText(params string[] names)
         {
-            RectTransform rectTransform = CreateRect(objectName, parent);
-            SetAnchors(rectTransform, anchorMin, anchorMax);
-
-            Text text = rectTransform.gameObject.AddComponent<Text>();
-            text.font = font;
-            text.fontSize = fontSize;
-            text.alignment = alignment;
-            text.color = Color.white;
-            text.raycastTarget = false;
-            return text;
+            Transform found = FindDescendant(names);
+            return found != null ? found.GetComponent<TMP_Text>() : null;
         }
 
-        private static RectTransform CreateRect(string objectName, Transform parent)
+        private Transform FindDescendant(params string[] names)
         {
-            var gameObject = new GameObject(objectName, typeof(RectTransform));
-            var rectTransform = (RectTransform)gameObject.transform;
-            rectTransform.SetParent(parent, false);
-            return rectTransform;
+            Transform[] descendants =
+                GetComponentsInChildren<Transform>(includeInactive: true);
+            for (int nameIndex = 0; nameIndex < names.Length; nameIndex++)
+            {
+                string expected = names[nameIndex];
+                for (int index = 0; index < descendants.Length; index++)
+                {
+                    Transform descendant = descendants[index];
+                    if (string.Equals(
+                            descendant.name,
+                            expected,
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        return descendant;
+                    }
+                }
+            }
+
+            return null;
         }
 
-        private static void Stretch(RectTransform rectTransform)
+        private static Text FindTextInChildren(Transform root, params string[] names)
         {
-            SetAnchors(rectTransform, Vector2.zero, Vector2.one);
+            Transform found = FindNamedChild(root, names);
+            return found != null
+                ? found.GetComponent<Text>()
+                : FindComponentByName<Text>(root, names);
         }
 
-        private static void SetAnchors(
-            RectTransform rectTransform,
-            Vector2 anchorMin,
-            Vector2 anchorMax)
+        private static TMP_Text FindTmpTextInChildren(Transform root, params string[] names)
         {
-            rectTransform.anchorMin = anchorMin;
-            rectTransform.anchorMax = anchorMax;
-            rectTransform.offsetMin = Vector2.zero;
-            rectTransform.offsetMax = Vector2.zero;
+            Transform found = FindNamedChild(root, names);
+            return found != null
+                ? found.GetComponent<TMP_Text>()
+                : FindComponentByName<TMP_Text>(root, names);
+        }
+
+        private static Button FindButtonInChildren(Transform root, params string[] names)
+        {
+            Transform found = FindNamedChild(root, names);
+            return found != null
+                ? found.GetComponent<Button>()
+                : FindComponentByName<Button>(root, names);
+        }
+
+        private static Image FindImageInChildren(Transform root, params string[] names)
+        {
+            Transform found = FindNamedChild(root, names);
+            return found != null
+                ? found.GetComponent<Image>()
+                : FindComponentByName<Image>(root, names);
+        }
+
+        private static Transform FindNamedChild(Transform root, params string[] names)
+        {
+            if (root == null)
+            {
+                return null;
+            }
+
+            Transform[] descendants =
+                root.GetComponentsInChildren<Transform>(includeInactive: true);
+            for (int nameIndex = 0; nameIndex < names.Length; nameIndex++)
+            {
+                string expected = names[nameIndex];
+                for (int index = 0; index < descendants.Length; index++)
+                {
+                    if (string.Equals(
+                            descendants[index].name,
+                            expected,
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        return descendants[index];
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static T FindComponentByName<T>(Transform root, params string[] names)
+            where T : Component
+        {
+            if (root == null)
+            {
+                return null;
+            }
+
+            T[] components = root.GetComponentsInChildren<T>(includeInactive: true);
+            for (int index = 0; index < components.Length; index++)
+            {
+                string objectName = components[index].gameObject.name;
+                for (int nameIndex = 0; nameIndex < names.Length; nameIndex++)
+                {
+                    if (ContainsOrdinalIgnoreCase(objectName, names[nameIndex]))
+                    {
+                        return components[index];
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static void SetText(Text text, TMP_Text tmpText, string value)
+        {
+            string safeValue = value ?? string.Empty;
+            if (text != null)
+            {
+                text.text = safeValue;
+            }
+
+            if (tmpText != null)
+            {
+                tmpText.text = safeValue;
+            }
         }
 
         private static void SetInteractable(Selectable selectable, bool interactable)
@@ -527,5 +707,123 @@ namespace SlotRogue.UI.Leaderboard
             }
         }
 
+        private static bool ContainsOrdinalIgnoreCase(string value, string part)
+        {
+            return !string.IsNullOrEmpty(value) &&
+                !string.IsNullOrEmpty(part) &&
+                value.IndexOf(part, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        [Serializable]
+        private sealed class LeaderboardEntryRowBinding
+        {
+            [SerializeField] internal GameObject Root;
+            [SerializeField] internal Text PlayerNameText;
+            [SerializeField] internal TMP_Text PlayerNameTmpText;
+            [SerializeField] internal Text WaveText;
+            [SerializeField] internal TMP_Text WaveTmpText;
+            [SerializeField] internal Text MessageText;
+            [SerializeField] internal TMP_Text MessageTmpText;
+            [SerializeField] internal Button DetailButton;
+            [SerializeField] internal Image ProfileImage;
+
+            internal LeaderboardEntryRowBinding()
+            {
+            }
+
+            internal LeaderboardEntryRowBinding(Transform root)
+            {
+                Root = root != null ? root.gameObject : null;
+            }
+
+            internal void Resolve()
+            {
+                if (Root == null)
+                {
+                    return;
+                }
+
+                Transform root = Root.transform;
+                PlayerNameText ??= FindTextInChildren(
+                    root,
+                    "Player Name",
+                    "Nickname",
+                    "Profile Name",
+                    "Name Text");
+                PlayerNameTmpText ??= FindTmpTextInChildren(
+                    root,
+                    "Player Name",
+                    "Nickname",
+                    "Profile Name",
+                    "Name Text");
+                WaveText ??= FindTextInChildren(
+                    root,
+                    "Wave",
+                    "Max Wave",
+                    "Wave Text",
+                    "Best Wave");
+                WaveTmpText ??= FindTmpTextInChildren(
+                    root,
+                    "Wave",
+                    "Max Wave",
+                    "Wave Text",
+                    "Best Wave");
+                MessageText ??= FindTextInChildren(
+                    root,
+                    "Message",
+                    "Comment",
+                    "Speech",
+                    "Bubble",
+                    "Phrase",
+                    "Ment");
+                MessageTmpText ??= FindTmpTextInChildren(
+                    root,
+                    "Message",
+                    "Comment",
+                    "Speech",
+                    "Bubble",
+                    "Phrase",
+                    "Ment");
+                DetailButton ??= FindButtonInChildren(
+                    root,
+                    "Detail Button",
+                    "Details Button",
+                    "Info Button",
+                    "Inspect Button",
+                    "Left Button");
+                ProfileImage ??= FindImageInChildren(
+                    root,
+                    "Profile Image",
+                    "Profile Icon",
+                    "Portrait",
+                    "Avatar");
+            }
+
+            internal void Render(LeaderboardEntryData entry)
+            {
+                Root.SetActive(true);
+                SetText(PlayerNameText, PlayerNameTmpText, entry.PlayerName);
+                SetText(WaveText, WaveTmpText, $"Wave : {entry.Wave}");
+                SetText(MessageText, MessageTmpText, entry.Message);
+
+                if (ProfileImage != null)
+                {
+                    ProfileImage.enabled = true;
+                }
+            }
+        }
+
+        private readonly struct RowClickBinding
+        {
+            internal RowClickBinding(Button button, UnityAction action)
+            {
+                Button = button;
+                Action = action;
+            }
+
+            internal Button Button { get; }
+
+            internal UnityAction Action { get; }
+        }
     }
 }

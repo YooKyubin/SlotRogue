@@ -1,7 +1,7 @@
 # 보상형 광고
 
 **Status**: accepted
-**Last updated**: 2026-06-14
+**Last updated**: 2026-06-19
 
 ## Purpose
 
@@ -16,6 +16,7 @@ LevelPlay Rewarded 광고를 게임오버 부활과 보상 리롤, 추가 보상
 | A3 | [ADR-0012](../adr/0012-leaderboard-nickname-only-profile.md) | 부활 가능 첫 패배는 제출을 보류하고 최종 패배가 확정될 때 자동 제출한다. |
 | A4 | [ADR-0014](../adr/0014-defeat-revive-window-and-relic-contribution.md) | 첫 패배는 5초 부활 유예 화면을 거친 뒤 결과를 확정한다. |
 | A5 | [ADR-0015](../adr/0015-remove-ads-rewarded-skip-iap.md) | `remove_ads` 구매자는 동일한 횟수 제한과 보상을 유지한 채 광고 시청만 건너뛴다. |
+| A6 | [ADR-0018](../adr/0018-defeat-result-symbol-pattern-stats.md) | 최종 패배 결과에는 심볼별 족보 등장 횟수, 기본 공격력, 유물 공격력을 표시한다. |
 
 ## Runtime flow
 
@@ -49,7 +50,7 @@ BootScene / AdsManager.Awake
 
 첫 패배에서 `GameFlowSession`은 진행 중인 런과 결과 데이터를 유지한다. `RunDefeatView`는 몬스터 초상화와 5초 카운트다운, 광고 부활 버튼을 표시한다. 제한 시간 안에 버튼을 누르면 카운트다운을 멈추고 광고 결과를 기다린다. 부활 광고 보상을 받으면 현재 `BattleSystem`을 유지해 몬스터 HP·실드·상태이상·다음 행동 순서를 보존하고, 플레이어 HP만 최대 HP의 절반으로 복구한 뒤 플레이어 턴부터 재개한다.
 
-시간 초과, 광고 표시 실패, 보상 없는 종료에는 현재 snapshot을 최종 패배로 제출하고 결과 화면을 표시한다. 이미 부활한 런이 다시 패배하면 유예 없이 즉시 최종 패배로 확정한다. `GameFlowSession.HasRevivedThisRun`이 현재 런 결과의 부활 여부를 유지한다.
+시간 초과, 광고 표시 실패, 보상 없는 종료에는 현재 snapshot을 최종 패배로 제출하고 결과 화면을 표시한다. 이미 부활한 런이 다시 패배하면 유예 없이 즉시 최종 패배로 확정한다. `GameFlowSession.HasRevivedThisRun`이 현재 런 결과의 부활 여부를 유지한다. 최종 결과 화면은 보유 유물 목록 대신 심볼별 족보 등장 횟수, 기본 공격력, 유물 공격력을 표시한다.
 
 ## UI boundary
 

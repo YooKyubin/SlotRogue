@@ -26,6 +26,8 @@
 | [0014](./0014-defeat-revive-window-and-relic-contribution.md) | 패배는 부활 유예 후 확정하고 유물 기여도는 명목 효과량으로 집계한다 | accepted | 2026-06-13 | — |
 | [0015](./0015-remove-ads-rewarded-skip-iap.md) | 광고 제거 IAP를 보상형 광고 시청 스킵으로 정의한다 | accepted | 2026-06-14 | — |
 | [0016](./0016-local-notifications-weekly-ranking-reset.md) | 알림은 로컬 예약하고 주간 랭킹은 한국 수요일에 리셋한다 | accepted | 2026-06-14 | — |
+| [0017](./0017-first-run-tutorial-run-game-mode.md) | 최초 튜토리얼은 RunGame 튜토리얼 모드로 처리한다 | accepted | 2026-06-19 | — |
+| [0018](./0018-defeat-result-symbol-pattern-stats.md) | 패배 결과에는 심볼별 족보 통계를 표시한다 | accepted | 2026-06-19 | 0014 일부 |
 
 ---
 

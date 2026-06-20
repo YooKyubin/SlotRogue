@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using SlotRogue.Relics.Pool;
+using SlotRogue.Slot.Data;
 
 namespace SlotRogue.UI.GameFlow
 {
@@ -64,6 +65,31 @@ namespace SlotRogue.UI.GameFlow
         public int Block { get; }
 
         public int Heal { get; }
+    }
+
+    public readonly struct SlotSymbolContributionSnapshot
+    {
+        public SlotSymbolContributionSnapshot(
+            SlotSymbolType symbol,
+            int patternCount,
+            int baseAttackPower,
+            int relicAttackPower)
+        {
+            Symbol = symbol;
+            PatternCount = Math.Max(0, patternCount);
+            BaseAttackPower = Math.Max(0, baseAttackPower);
+            RelicAttackPower = Math.Max(0, relicAttackPower);
+        }
+
+        public SlotSymbolType Symbol { get; }
+
+        public int PatternCount { get; }
+
+        public int BaseAttackPower { get; }
+
+        public int RelicAttackPower { get; }
+
+        public int TotalAttackPower => BaseAttackPower + RelicAttackPower;
     }
 
     internal sealed class RelicContributionAccumulator
@@ -218,6 +244,213 @@ namespace SlotRogue.UI.GameFlow
                     Damage,
                     Block,
                     Heal);
+            }
+        }
+    }
+
+    internal sealed class SlotSymbolContributionAccumulator
+    {
+        private readonly Dictionary<SlotSymbolType, MutableSymbolContribution> _entries =
+            new();
+
+        internal void Clear()
+        {
+            _entries.Clear();
+        }
+
+        internal void RecordTurn(
+            IReadOnlyList<SlotPatternMatch> matches,
+            SlotCombatRequest baseRequest,
+            IReadOnlyList<RelicContributionDelta> relicDeltas,
+            int attackCount)
+        {
+            if (matches == null || matches.Count == 0)
+            {
+                return;
+            }
+
+            RecordBaseAttack(matches, baseRequest);
+            RecordRelicAttack(matches, relicDeltas, attackCount);
+        }
+
+        private void RecordBaseAttack(
+            IReadOnlyList<SlotPatternMatch> matches,
+            SlotCombatRequest baseRequest)
+        {
+            int remainingPatternValue = CalculateTotalPatternValue(matches);
+            int remainingBaseAttackPower = CalculateAttackPower(baseRequest);
+
+            for (int index = 0; index < matches.Count; index++)
+            {
+                SlotPatternMatch match = matches[index];
+                if (match == null)
+                {
+                    continue;
+                }
+
+                int patternValue = Math.Max(0, match.CalculatedValue);
+                int attackPower = 0;
+
+                if (patternValue > 0 && remainingPatternValue > 0)
+                {
+                    attackPower = remainingPatternValue == patternValue
+                        ? remainingBaseAttackPower
+                        : (int)((long)remainingBaseAttackPower * patternValue / remainingPatternValue);
+                    remainingPatternValue -= patternValue;
+                    remainingBaseAttackPower -= attackPower;
+                }
+
+                MutableSymbolContribution entry = GetOrCreate(match.Symbol);
+                entry.PatternCount++;
+                entry.BaseAttackPower += attackPower;
+            }
+        }
+
+        private void RecordRelicAttack(
+            IReadOnlyList<SlotPatternMatch> matches,
+            IReadOnlyList<RelicContributionDelta> relicDeltas,
+            int attackCount)
+        {
+            if (relicDeltas == null || relicDeltas.Count == 0)
+            {
+                return;
+            }
+
+            int normalizedAttackCount = Math.Max(1, attackCount);
+            for (int index = 0; index < relicDeltas.Count; index++)
+            {
+                RelicContributionDelta delta = relicDeltas[index];
+                if (delta.DamagePerHit <= 0 ||
+                    delta.TriggerPatternIndex < 0 ||
+                    delta.TriggerPatternIndex >= matches.Count)
+                {
+                    continue;
+                }
+
+                SlotPatternMatch match = matches[delta.TriggerPatternIndex];
+                if (match == null)
+                {
+                    continue;
+                }
+
+                MutableSymbolContribution entry = GetOrCreate(match.Symbol);
+                entry.RelicAttackPower += delta.DamagePerHit * normalizedAttackCount;
+            }
+        }
+
+        internal void Add(IReadOnlyList<SlotSymbolContributionSnapshot> snapshots)
+        {
+            if (snapshots == null)
+            {
+                return;
+            }
+
+            for (int index = 0; index < snapshots.Count; index++)
+            {
+                SlotSymbolContributionSnapshot snapshot = snapshots[index];
+                MutableSymbolContribution entry = GetOrCreate(snapshot.Symbol);
+                entry.PatternCount += snapshot.PatternCount;
+                entry.BaseAttackPower += snapshot.BaseAttackPower;
+                entry.RelicAttackPower += snapshot.RelicAttackPower;
+            }
+        }
+
+        internal IReadOnlyList<SlotSymbolContributionSnapshot> Snapshot()
+        {
+            var snapshots = new List<SlotSymbolContributionSnapshot>(_entries.Count);
+            foreach (MutableSymbolContribution entry in _entries.Values)
+            {
+                snapshots.Add(entry.ToSnapshot());
+            }
+
+            return snapshots;
+        }
+
+        internal IReadOnlyList<SlotSymbolContributionSnapshot> SnapshotForSymbols(
+            IReadOnlyList<SlotSymbolType> symbols)
+        {
+            if (symbols == null || symbols.Count == 0)
+            {
+                return Array.Empty<SlotSymbolContributionSnapshot>();
+            }
+
+            var snapshots = new List<SlotSymbolContributionSnapshot>(symbols.Count);
+            var addedSymbols = new HashSet<SlotSymbolType>();
+            for (int index = 0; index < symbols.Count; index++)
+            {
+                SlotSymbolType symbol = symbols[index];
+                if (!addedSymbols.Add(symbol))
+                {
+                    continue;
+                }
+
+                snapshots.Add(_entries.TryGetValue(symbol, out MutableSymbolContribution entry)
+                    ? entry.ToSnapshot()
+                    : new SlotSymbolContributionSnapshot(symbol, 0, 0, 0));
+            }
+
+            return snapshots;
+        }
+
+        private MutableSymbolContribution GetOrCreate(SlotSymbolType symbol)
+        {
+            if (_entries.TryGetValue(symbol, out MutableSymbolContribution entry))
+            {
+                return entry;
+            }
+
+            entry = new MutableSymbolContribution(symbol);
+            _entries.Add(symbol, entry);
+            return entry;
+        }
+
+        private static int CalculateTotalPatternValue(IReadOnlyList<SlotPatternMatch> matches)
+        {
+            int total = 0;
+            for (int index = 0; index < matches.Count; index++)
+            {
+                SlotPatternMatch match = matches[index];
+                if (match != null)
+                {
+                    total += Math.Max(0, match.CalculatedValue);
+                }
+            }
+
+            return total;
+        }
+
+        private static int CalculateAttackPower(SlotCombatRequest request)
+        {
+            if (request == null || request.Damage <= 0)
+            {
+                return 0;
+            }
+
+            return request.Damage * Math.Max(1, request.AttackCount);
+        }
+
+        private sealed class MutableSymbolContribution
+        {
+            internal MutableSymbolContribution(SlotSymbolType symbol)
+            {
+                Symbol = symbol;
+            }
+
+            internal SlotSymbolType Symbol { get; }
+
+            internal int PatternCount { get; set; }
+
+            internal int BaseAttackPower { get; set; }
+
+            internal int RelicAttackPower { get; set; }
+
+            internal SlotSymbolContributionSnapshot ToSnapshot()
+            {
+                return new SlotSymbolContributionSnapshot(
+                    Symbol,
+                    PatternCount,
+                    BaseAttackPower,
+                    RelicAttackPower);
             }
         }
     }

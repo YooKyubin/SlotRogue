@@ -59,5 +59,20 @@ namespace SlotRogue.UI.Iap
             PlayerPrefs.Save();
             Changed?.Invoke(true);
         }
+
+        public static void ResetForDebug()
+        {
+            Initialize();
+            bool wasRemoved = _isRemoved;
+
+            _isRemoved = false;
+            PlayerPrefs.DeleteKey(LocalCacheKey);
+            PlayerPrefs.Save();
+
+            if (wasRemoved)
+            {
+                Changed?.Invoke(false);
+            }
+        }
     }
 }

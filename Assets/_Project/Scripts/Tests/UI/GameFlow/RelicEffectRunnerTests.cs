@@ -225,6 +225,23 @@ namespace SlotRogue.UI.Tests.GameFlow
         }
 
         [Test]
+        public void SymbolRelic_TriggersOncePerMatchingLine_WhenSameSymbolMatchesMultipleLines()
+        {
+            var owned = new[] { RelicCatalog.GetById("S-03") }; // 종 치료제: 종 3개 이상 → 회복 +2
+            var matches = new[]
+            {
+                Single(SlotSymbolType.Bell, 3), // 가로
+                Single(SlotSymbolType.Bell, 3), // 세로
+                Single(SlotSymbolType.Bell, 3), // 대각선
+            };
+
+            RelicResolveResult result = _runner.Resolve(matches, owned, FullHp());
+
+            Assert.That(result.HealAmount, Is.EqualTo(6));
+            Assert.That(result.Contributions, Has.Count.EqualTo(3));
+        }
+
+        [Test]
         public void NonPhase1Relic_IsIgnored()
         {
             var owned = new[] { RelicCatalog.GetById("R-05") }; // 패시브 배율(Phase 2)

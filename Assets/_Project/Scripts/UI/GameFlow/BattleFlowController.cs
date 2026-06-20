@@ -25,10 +25,12 @@ namespace SlotRogue.UI.GameFlow
         private readonly BattleScreenController _screenController;
         private readonly CancellationToken _presentationCancellationToken;
         private readonly RelicContributionAccumulator _relicContributions = new();
+        private readonly SlotSymbolContributionAccumulator _slotSymbolContributions = new();
 
         private BattleFlowContext _context;
         private bool _battleCompleted;
         private bool _turnRunning;
+        private bool _spinInputBlocked;
 
         internal BattleFlowController(
             BattleSystem battle,
@@ -55,12 +57,16 @@ namespace SlotRogue.UI.GameFlow
 
         public event Action<BattleFlowResult> BattleCompleted;
 
+        internal event Action<BattleTutorialSignal> TutorialSignalRaised;
+
         public void BeginBattle(BattleFlowContext context)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _battleCompleted = false;
             _turnRunning = false;
+            _spinInputBlocked = false;
             _relicContributions.Clear();
+            _slotSymbolContributions.Clear();
 
             _slotTurnController.SetupImmediate();
             _battle.StartBattle(_context.Player, ExtractEnemyCombatants(_context.EncounterRoster));
@@ -74,6 +80,7 @@ namespace SlotRogue.UI.GameFlow
                 _context.RunDefenseBonus,
                 () => _battlePresentationController.IsBusy,
                 () => _turnRunning);
+            TutorialSignalRaised?.Invoke(BattleTutorialSignal.BattleStarted);
         }
 
         public void DevApplyStatusTurn(
@@ -112,9 +119,22 @@ namespace SlotRogue.UI.GameFlow
 
             _battleCompleted = false;
             _relicContributions.Clear();
+            _slotSymbolContributions.Clear();
             _combatViewModel.SyncFrom(_battle);
+            _slotTurnController.SetupImmediate();
             _screenController.ResumeBattle();
             return true;
+        }
+
+        internal void SetSpinInputBlocked(bool blocked)
+        {
+            _spinInputBlocked = blocked;
+            _screenController.SetSpinInputBlocked(blocked);
+        }
+
+        internal void SetTargetSelectionBlocked(bool blocked)
+        {
+            _screenController.SetTargetSelectionBlocked(blocked);
         }
 
         private void HandleSpinRequested()
@@ -150,6 +170,11 @@ namespace SlotRogue.UI.GameFlow
                 _relicContributions.RecordTurn(
                     relicResult.Contributions,
                     requestResult.FinalRequest.AttackCount);
+                _slotSymbolContributions.RecordTurn(
+                    slotTurnResult.PatternMatches,
+                    requestResult.BaseRequest,
+                    relicResult.Contributions,
+                    requestResult.FinalRequest.AttackCount);
 
                 _screenController.UpdateTurnResult(slotTurnResult, requestResult);
 
@@ -167,6 +192,7 @@ namespace SlotRogue.UI.GameFlow
                     relicResult,
                     requestResult,
                     _presentationCancellationToken);
+                TutorialSignalRaised?.Invoke(BattleTutorialSignal.SlotPresentationCompleted);
 
                 BattleApplyResult result = _battle.ApplyPlayerTurn(playerEffects, selectedTargetId);
                 if (result.Accepted)
@@ -264,6 +290,7 @@ namespace SlotRogue.UI.GameFlow
         {
             return !_battleCompleted
                 && !_turnRunning
+                && !_spinInputBlocked
                 && _battle.CanApplyPlayerTurn
                 && !_battlePresentationController.IsBusy;
         }
@@ -291,10 +318,20 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
+            if (combatEvent.Kind == CombatEventKind.EffectApplied &&
+                combatEvent.Phase == BattlePhase.EnemyTurn &&
+                combatEvent.IsPlayerParticipant &&
+                combatEvent.Effect.Kind == CombatEffectKind.Damage)
+            {
+                TutorialSignalRaised?.Invoke(BattleTutorialSignal.EnemyAttackReceived);
+                return;
+            }
+
             if (combatEvent.Kind == CombatEventKind.PhaseChanged &&
                 combatEvent.Phase == BattlePhase.PlayerTurn)
             {
                 _screenController.RefreshVisibleIntentsFromBattle();
+                TutorialSignalRaised?.Invoke(BattleTutorialSignal.EnemyTurnCompleted);
             }
         }
 
@@ -310,7 +347,8 @@ namespace SlotRogue.UI.GameFlow
             BattleCompleted?.Invoke(new BattleFlowResult(
                 _battle.EndReason,
                 _battle.Player.CurrentHp,
-                _relicContributions.Snapshot()));
+                _relicContributions.Snapshot(),
+                _slotSymbolContributions.Snapshot()));
         }
 
         private static EnemyCombatant[] ExtractEnemyCombatants(RunEncounterRoster roster)

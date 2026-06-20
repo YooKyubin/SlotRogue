@@ -97,6 +97,11 @@ namespace SlotRogue.UI.SlotPresentation
             _slotCellSpinView?.StopImmediate(result);
         }
 
+        public void SetSymbolSprites(Sprite[] symbolSprites, Sprite[] spinSymbolSprites)
+        {
+            _slotCellSpinView?.SetSymbolSprites(symbolSprites, spinSymbolSprites);
+        }
+
         public void SkipCurrent()
         {
             _skipRequested = true;
