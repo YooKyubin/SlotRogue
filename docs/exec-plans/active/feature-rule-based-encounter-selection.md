@@ -14,8 +14,8 @@
 
 이번 plan은 1차 작업만 다룬다.
 
-- 포함: EncounterTable 데이터 타입, EncounterSelection 경계 타입, EncounterSelector, selector EditMode 테스트, `RunEncounterRosterBuilder` 선택 결과 입력, `BattleSceneCompositionRoot` 연결, `WaveSchedule` 데이터화, 기존 1마리 전투 유지
-- 제외: EncounterScaling, EncounterBalanceSettings, 2~3마리 편성 실제 활성화, 보스 페이즈, MonsterCatalog, 기존 `EnemyActionPlan` 구조 변경
+- 포함: EncounterTable 데이터 타입, EncounterSelection 경계 타입, EncounterSelector, selector EditMode 테스트, `RunEncounterRosterBuilder` 선택 결과 입력, `BattleSceneCompositionRoot` 연결, `WaveSchedule` 데이터화, HP 전용 `EncounterScaling`, 기존 1마리 전투 유지
+- 제외: 공격력/행동 Effect 수치 스케일링, 2~3마리 편성 실제 활성화, 보스 페이즈, MonsterCatalog, 기존 `EnemyActionPlan` 구조 변경
 
 ## Design Notes
 
@@ -302,6 +302,16 @@ Dev Override 없음
 - [x] Phase 7 완료 조건: `GameFlowSession.GetTierForBattle()`, `ElitePeriod`, `BossPeriod`를 제거하고 `CurrentTier`는 기본 `WaveSchedule` 결과를 사용한다.
 - [x] Phase 7 완료 조건: 임시 cycle 계산 `(battleNumber - 1) / 10`을 `BattleSceneCompositionRoot`에서 제거했다.
 - [x] Phase 7 완료 조건: `BattleSystem`, EncounterScaling, Intent UI, 타게팅은 변경하지 않았다.
+- [x] Phase 8: `EncounterBalanceSettings` SO와 Core `EncounterBalanceConfig` 변환 구조 추가
+- [x] Phase 8: Core `EncounterScaleRequest`, `EncounterScaleResult`, `EncounterScaling` 추가
+- [x] Phase 8: `RunEncounterRosterBuilder`가 `EncounterBuildContext`와 balance config를 받아 HP scaling 결과로 roster를 생성하는 경로 추가
+- [x] Phase 8: `EnemyCombatantFactory.CreateWithPresentation()`에 scaled max HP 입력 overload 추가
+- [x] Phase 8 완료 조건: Normal 기본 배율, Elite 배율, Boss 배율을 테스트한다.
+- [x] Phase 8 완료 조건: BattleNumber 증가와 Cycle 증가를 테스트한다.
+- [x] Phase 8 완료 조건: 잘못된 scaling 입력은 명확히 실패한다.
+- [x] Phase 8 완료 조건: 실제 생성된 `EnemyCombatant.Participant.MaxHp`에 계산 결과가 적용된다.
+- [x] Phase 8 완료 조건: `MonsterDefinition.maxHp`는 원본 base HP로 유지하고 수정하지 않는다.
+- [x] Phase 8 완료 조건: 공격력 또는 행동 Effect 수치 스케일링은 구현하지 않았다.
 - [ ] 문서 갱신: `game-flow.md`와 `combat-core.md`에 선택/생성 분리와 후속 WaveSchedule/Scaling 범위 반영
 - [ ] 검증: `dotnet build` 또는 Unity compile, 관련 EditMode 테스트 실행 가능 여부 기록
 
@@ -336,6 +346,13 @@ Dev Override 없음
 - 2026-06-20 작업 7/9에서 `GameFlowSession.GetTierForBattle()`, `ElitePeriod`, `BossPeriod`를 제거했다. 다른 호출부는 `CurrentTier`, `CurrentBattleGrantsArtifact`, `CurrentEncounterTitle`만 남아 있으며, 이들은 기본 `WaveSchedule`로 기존 5/10 주기 결과를 유지한다.
 - 2026-06-20 작업 7/9 테스트로 `WaveScheduleTests`를 추가했다. Battle 1/5/10/11/20, 단일 pattern 반복, 여러 pattern의 cycle별 선택, 마지막 pattern 반복, battleNumber 유효성, 빈/null pattern, 서로 다른 pattern 길이 실패를 확인한다.
 - 2026-06-20 작업 7/9 검증: `dotnet build SlotRogue.sln --no-restore`를 실행했으나 Unity가 생성한 `.csproj`가 신규 `.cs` 파일을 아직 include하지 않아 `WaveSchedule`, `WaveScheduleDefinition` 등을 찾지 못하는 컴파일 오류가 발생했다. `.csproj`는 프로젝트 규칙상 커밋 대상이 아니므로 수정하지 않았고, Unity 재생성 또는 Editor compile 후 재검증이 필요하다.
+- 2026-06-20 작업 8/9에서 `EncounterBalanceSettings`를 `Data/GameFlow`에 추가했다. 설정값은 battle당 HP 증가 계수, cycle당 HP 증가 계수, Normal/Elite/Boss tier HP 배율이며, `CreateConfig()`로 Core의 `EncounterBalanceConfig` 값 객체를 만든다.
+- 2026-06-20 작업 8/9에서 `EncounterScaling`은 Core 순수 계산으로 추가했다. 공식은 `round(baseMaxHp * (1 + (battleNumber - 1) * hpIncreasePerBattle + cycle * hpIncreasePerCycle) * tierHpMultiplier)`이며, 결과는 최소 1 이상이다.
+- 2026-06-20 작업 8/9에서 Core가 `SlotRogue.Data`를 참조하지 않도록 `EncounterScaleRequest`는 `EncounterTier` enum 대신 이미 선택된 `tierHpMultiplier`를 입력으로 받는다. `EncounterBuildContext`는 UI/GameFlow 계층에서 `EncounterTier`, `BattleNumber`, `Cycle`을 묶고 config에서 tier 배율을 선택한다.
+- 2026-06-20 작업 8/9에서 `BattleSceneCompositionRoot`는 `EncounterBalanceSettingsDefault.asset`을 받아 config를 만들고, Dev Override와 일반 selector 경로 모두 `RunEncounterRosterBuilder.Build(selection, buildContext, balanceConfig)`를 사용한다.
+- 2026-06-20 작업 8/9에서 `EnemyCombatantFactory.CreateWithPresentation(definition, rosterIndex, maxHp)` overload를 추가했다. 기존 overload는 `definition.maxHp`를 그대로 사용하므로 기존 단위 테스트와 수동 생성 경로는 유지된다.
+- 2026-06-20 작업 8/9에서는 공격력과 행동 Effect 수치 스케일링을 제외했다. 현재 행동 수치는 `MonsterTurnPatternDefinition`과 각 `EnemyEffectDefinition`의 authored 값에 남아 있으며, 공격 scaling은 후속 단계에서 effect별 정책과 원샷 방지/다수 적 분배 기준을 같이 정해야 한다.
+- 2026-06-20 작업 8/9 검증: `dotnet build SlotRogue.sln --no-restore`를 실행했으나 Unity가 생성한 `.csproj`가 신규 `.cs` 파일(`EncounterBuildContext`, `EncounterBalanceConfig`, `EncounterBalanceSettings` 등)을 아직 include하지 않아 컴파일 오류가 발생했다. `rg -g "*.csproj"`로도 신규 타입이 프로젝트 파일에 없음을 확인했다. `.csproj`는 자동 생성물이므로 수정하지 않았고, Unity Editor에서 project file 재생성/compile 후 EditMode 테스트 재검증이 필요하다.
 - `UnityEngine.Random` 전역 상태는 사용하지 않는다. 같은 run seed와 battle number에서 같은 편성이 재현되어야 한다.
 - 후보가 없거나 데이터가 잘못된 상황은 빈 전투나 임시 몬스터로 숨기지 않고 설정 오류로 드러낸다.
 - `RunEncounterRosterBuilder`는 selection을 roster로 조립만 하며, Tier 계산·Cycle 계산·가중치 추첨·밸런스 성장 공식은 담당하지 않는다.

@@ -31,6 +31,7 @@ namespace SlotRogue.UI.GameFlow
 
         [SerializeField] private EncounterTable _encounterTable;
         [SerializeField] private WaveScheduleDefinition _waveScheduleDefinition;
+        [SerializeField] private EncounterBalanceSettings _encounterBalanceSettings;
 
         [SerializeField] private RunBattleScreenView _view;
         [SerializeField] private FloatingCombatTextLayerView _floatingTextLayerView;
@@ -211,13 +212,18 @@ namespace SlotRogue.UI.GameFlow
 
         private RunEncounterRoster CreateEncounterRoster()
         {
-            EncounterSelection selection;
+            int battleNumber = GameFlowSession.CurrentBattleNumber;
+            WaveSchedule waveSchedule = CreateWaveSchedule();
+            WaveResult wave = waveSchedule.Evaluate(battleNumber);
+            var buildContext = new EncounterBuildContext(wave.Tier, battleNumber, wave.Cycle);
+            EncounterBalanceConfig balanceConfig = CreateEncounterBalanceConfig();
+
             if (_devMonsterDefinitionOverride != null)
             {
                 // TEMPORARY TEST HOOK: this bypasses the tier-based infinite-mode builder
                 // only while manually verifying MonsterDefinition/MonsterTurnPattern assets.
-                selection = CreateDevOverrideSelection(_devMonsterDefinitionOverride);
-                return RunEncounterRosterBuilder.Build(selection);
+                EncounterSelection encounterSelection = CreateDevOverrideSelection(_devMonsterDefinitionOverride);
+                return RunEncounterRosterBuilder.Build(encounterSelection, buildContext, balanceConfig);
             }
 
             if (_encounterTable == null)
@@ -227,17 +233,14 @@ namespace SlotRogue.UI.GameFlow
                     "Assign an EncounterTable asset before starting battle without Dev Monster Override.");
             }
 
-            int battleNumber = GameFlowSession.CurrentBattleNumber;
-            WaveSchedule waveSchedule = CreateWaveSchedule();
-            WaveResult wave = waveSchedule.Evaluate(battleNumber);
             var request = new EncounterSelectionRequest(
                 _encounterTable,
                 wave.Tier,
                 wave.Cycle,
                 GameFlowSession.RunSeed,
                 battleNumber);
-            selection = _encounterSelector.Select(request);
-            return RunEncounterRosterBuilder.Build(selection);
+            EncounterSelection selection = _encounterSelector.Select(request);
+            return RunEncounterRosterBuilder.Build(selection, buildContext, balanceConfig);
         }
 
         private static EncounterSelection CreateDevOverrideSelection(MonsterDefinition definition)
@@ -266,6 +269,18 @@ namespace SlotRogue.UI.GameFlow
             }
 
             return WaveSchedule.FromDefinition(_waveScheduleDefinition);
+        }
+
+        private EncounterBalanceConfig CreateEncounterBalanceConfig()
+        {
+            if (_encounterBalanceSettings == null)
+            {
+                throw new InvalidOperationException(
+                    "[BattleSceneCompositionRoot] EncounterBalanceSettings is missing. " +
+                    "Assign an EncounterBalanceSettings asset before starting battle.");
+            }
+
+            return _encounterBalanceSettings.CreateConfig();
         }
 
         private bool ValidateSceneReferences()

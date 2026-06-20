@@ -152,6 +152,7 @@ namespace SlotRogue.Editor.GameFlow
                 MessageType.Info);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_waveScheduleDefinition"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_encounterTable"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_encounterBalanceSettings"));
 
             EditorGUILayout.Space(6f);
             DrawBindingSummary();
@@ -172,6 +173,7 @@ namespace SlotRogue.Editor.GameFlow
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_view"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_waveScheduleDefinition"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_encounterTable"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("_encounterBalanceSettings"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_floatingTextLayerView"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_turnBannerView"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_spinLeverView"));
