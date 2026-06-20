@@ -48,7 +48,7 @@ namespace SlotRogue.UI.GameFlow
         /// <summary>현재 전투의 등급.</summary>
         public static EncounterTier CurrentTier =>
             CurrentBattleNumber > 0
-                ? DefaultWaveSchedule.Evaluate(CurrentBattleNumber).Tier
+                ? DefaultWaveSchedule.Evaluate(CurrentBattleNumber).EncounterTier
                 : EncounterTier.Normal;
 
         /// <summary>현재(직전) 전투가 유물 보상을 주는가 (엘리트/보스만).</summary>

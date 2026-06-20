@@ -4,10 +4,15 @@ namespace SlotRogue.Core.Combat
 {
     public readonly struct EncounterScaleRequest
     {
+        public int BaseMaxHp { get; }
+        public int BattleNumber { get; }
+        public int ThemeSectionIndex { get; }
+        public float TierHpMultiplier { get; }
+
         public EncounterScaleRequest(
             int baseMaxHp,
             int battleNumber,
-            int cycle,
+            int themeSectionIndex,
             float tierHpMultiplier)
         {
             if (baseMaxHp <= 0)
@@ -20,9 +25,9 @@ namespace SlotRogue.Core.Combat
                 throw new ArgumentOutOfRangeException(nameof(battleNumber));
             }
 
-            if (cycle < 0)
+            if (themeSectionIndex < 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(cycle));
+                throw new ArgumentOutOfRangeException(nameof(themeSectionIndex));
             }
 
             if (tierHpMultiplier <= 0f)
@@ -32,16 +37,8 @@ namespace SlotRogue.Core.Combat
 
             BaseMaxHp = baseMaxHp;
             BattleNumber = battleNumber;
-            Cycle = cycle;
+            ThemeSectionIndex = themeSectionIndex;
             TierHpMultiplier = tierHpMultiplier;
         }
-
-        public int BaseMaxHp { get; }
-
-        public int BattleNumber { get; }
-
-        public int Cycle { get; }
-
-        public float TierHpMultiplier { get; }
     }
 }

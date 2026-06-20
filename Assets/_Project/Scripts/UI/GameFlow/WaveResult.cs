@@ -4,17 +4,17 @@ namespace SlotRogue.UI.GameFlow
 {
     public readonly struct WaveResult
     {
-        public EncounterTier Tier { get; }
+        public EncounterTier EncounterTier { get; }
 
-        public int Cycle { get; }
+        public int ThemeSectionIndex { get; }
 
-        public int PositionInCycle { get; }
+        public int PositionInWave { get; }
 
-        public WaveResult(EncounterTier tier, int cycle, int positionInCycle)
+        public WaveResult(EncounterTier encounterTier, int themeSectionIndex, int positionInWave)
         {
-            Tier = tier;
-            Cycle = cycle;
-            PositionInCycle = positionInCycle;
+            EncounterTier = encounterTier;
+            ThemeSectionIndex = themeSectionIndex;
+            PositionInWave = positionInWave;
         }
     }
 }

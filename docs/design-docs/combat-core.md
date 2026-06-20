@@ -147,14 +147,14 @@ GameFlow는 `EnemyActionPlannerFactory`와 `EnemyCombatantFactory`로 `MonsterDe
 
 ### Encounter scaling
 
-`MonsterDefinition.maxHp`는 원본 base HP다. 전투 시작 시 GameFlow가 `EncounterBuildContext`(`EncounterTier`, `BattleNumber`, `Cycle`)와 `EncounterBalanceSettings.CreateConfig()` 결과를 사용해 Core `EncounterScaling`에 HP 계산을 요청한다. `EncounterScaling`은 `EncounterBalanceConfig`와 `EncounterScaleRequest`만 사용하며 `ScriptableObject`, `SlotRogue.Data`, `EncounterTier`를 참조하지 않는다.
+`MonsterDefinition.maxHp`는 원본 base HP다. 전투 시작 시 GameFlow가 `EncounterBuildContext`(`EncounterTier`, `BattleNumber`, `ThemeSectionIndex`)와 `EncounterBalanceSettings.CreateConfig()` 결과를 사용해 Core `EncounterScaling`에 HP 계산을 요청한다. `EncounterScaling`은 `EncounterBalanceConfig`와 `EncounterScaleRequest`만 사용하며 `ScriptableObject`, `SlotRogue.Data`, `EncounterTier`를 참조하지 않는다.
 
 현재 공식은 HP만 다룬다.
 
 ```text
 MaxHp = round(
     BaseHp
-    * (1 + (BattleNumber - 1) * HpIncreasePerBattle + Cycle * HpIncreasePerCycle)
+    * (1 + (BattleNumber - 1) * HpIncreasePerBattle + ThemeSectionIndex * HpIncreasePerThemeSection)
     * TierHpMultiplier)
 ```
 

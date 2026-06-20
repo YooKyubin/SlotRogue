@@ -134,11 +134,11 @@ BATTLE 1 (Normal)
 → ...
 ```
 
-전투 진입 시 `BattleSceneCompositionRoot`는 `GameFlowSession.RunSeed`, `CurrentBattleNumber`, `WaveResult.Tier`, `WaveResult.Cycle`을 사용해 `EncounterSelectionRequest`를 만들고, `EncounterSelector`가 연결된 `EncounterTable`에서 현재 tier에 맞는 후보를 Weight 기반으로 결정적으로 선택한다. 선택 결과는 `SelectedEncounterMonster` 목록이며, 각 항목은 원본 `MonsterDefinition`과 `FormationSlot`을 가진다.
+전투 진입 시 `BattleSceneCompositionRoot`는 `GameFlowSession.RunSeed`, `CurrentBattleNumber`, `WaveResult.EncounterTier`, `WaveResult.ThemeSectionIndex`를 사용한다. `EncounterThemeIndexSelector`가 `RunSeed + ThemeSectionIndex + ThemeGroupCount`로 `ThemeGroupIndex`를 결정하고, `EncounterSelector`는 `EncounterTable.GetEncounters(ThemeGroupIndex)` 결과에서 현재 tier 후보를 Weight 기반으로 결정적으로 선택한다. 선택 결과는 `SelectedEncounterMonster` 목록이며, 각 항목은 원본 `MonsterDefinition`과 `FormationSlot`을 가진다.
 
 `RunEncounterRosterBuilder`는 선택 결과를 받아 `EnemyCombatantFactory`와 `EnemyActionPlannerFactory`로 `RunEncounterRoster`를 조립한다. Builder는 Encounter 선택, Weight 추첨, tier 계산, formation slot 계산, HP 성장 공식을 직접 수행하지 않는다.
 
-적 HP는 `MonsterDefinition.maxHp`를 원본 base HP로 유지하고, `EncounterBalanceSettings`가 만든 Core `EncounterBalanceConfig`와 `EncounterScaling`으로 런타임 max HP를 계산한다. `EncounterBalanceSettingsDefault`의 초기 값은 battle당 HP 증가, cycle당 HP 증가, Normal/Elite/Boss tier HP 배율을 보관한다. 계산 결과만 `EnemyCombatantFactory`에 전달되며, `MonsterDefinition` asset 자체는 수정하지 않는다.
+적 HP는 `MonsterDefinition.maxHp`를 원본 base HP로 유지하고, `EncounterBalanceSettings`가 만든 Core `EncounterBalanceConfig`와 `EncounterScaling`으로 런타임 max HP를 계산한다. `EncounterBalanceSettingsDefault`의 초기 값은 battle당 HP 증가, theme section당 HP 증가, Normal/Elite/Boss tier HP 배율을 보관한다. 계산 결과만 `EnemyCombatantFactory`에 전달되며, `MonsterDefinition` asset 자체는 수정하지 않는다.
 
 Dev Monster Override가 설정되어 있으면 `EncounterSelector`와 `EncounterTable` 선택을 건너뛰고 override `MonsterDefinition` 하나로 `EncounterSelection`을 만든다. 이 경우에도 최종 roster 생성은 일반 경로와 동일하게 `RunEncounterRosterBuilder.Build(selection, context, balance)`를 사용한다.
 

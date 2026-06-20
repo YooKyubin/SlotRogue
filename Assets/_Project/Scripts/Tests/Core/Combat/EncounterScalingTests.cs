@@ -14,7 +14,7 @@ namespace SlotRogue.Core.Tests.Combat
             EncounterScaleResult result = scaling.Scale(new EncounterScaleRequest(
                 baseMaxHp: 20,
                 battleNumber: 1,
-                cycle: 0,
+                themeSectionIndex: 0,
                 tierHpMultiplier: 1f));
 
             Assert.That(result.MaxHp, Is.EqualTo(20));
@@ -28,7 +28,7 @@ namespace SlotRogue.Core.Tests.Combat
             EncounterScaleResult result = scaling.Scale(new EncounterScaleRequest(
                 baseMaxHp: 20,
                 battleNumber: 1,
-                cycle: 0,
+                themeSectionIndex: 0,
                 tierHpMultiplier: 1.5f));
 
             Assert.That(result.MaxHp, Is.EqualTo(30));
@@ -42,7 +42,7 @@ namespace SlotRogue.Core.Tests.Combat
             EncounterScaleResult result = scaling.Scale(new EncounterScaleRequest(
                 baseMaxHp: 20,
                 battleNumber: 1,
-                cycle: 0,
+                themeSectionIndex: 0,
                 tierHpMultiplier: 2f));
 
             Assert.That(result.MaxHp, Is.EqualTo(40));
@@ -56,21 +56,21 @@ namespace SlotRogue.Core.Tests.Combat
             EncounterScaleResult result = scaling.Scale(new EncounterScaleRequest(
                 baseMaxHp: 20,
                 battleNumber: 3,
-                cycle: 0,
+                themeSectionIndex: 0,
                 tierHpMultiplier: 1f));
 
             Assert.That(result.MaxHp, Is.EqualTo(24));
         }
 
         [Test]
-        public void Scale_CycleIncrease_AddsCycleGrowth()
+        public void Scale_ThemeSectionIncrease_AddsThemeSectionGrowth()
         {
-            var scaling = new EncounterScaling(Config(hpIncreasePerCycle: 0.25f));
+            var scaling = new EncounterScaling(Config(hpIncreasePerThemeSection: 0.25f));
 
             EncounterScaleResult result = scaling.Scale(new EncounterScaleRequest(
                 baseMaxHp: 20,
                 battleNumber: 1,
-                cycle: 2,
+                themeSectionIndex: 2,
                 tierHpMultiplier: 1f));
 
             Assert.That(result.MaxHp, Is.EqualTo(30));
@@ -82,17 +82,17 @@ namespace SlotRogue.Core.Tests.Combat
             var scaling = new EncounterScaling(Config());
 
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                new EncounterScaleRequest(baseMaxHp: 0, battleNumber: 1, cycle: 0, tierHpMultiplier: 1f));
+                new EncounterScaleRequest(baseMaxHp: 0, battleNumber: 1, themeSectionIndex: 0, tierHpMultiplier: 1f));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                new EncounterScaleRequest(baseMaxHp: 10, battleNumber: 0, cycle: 0, tierHpMultiplier: 1f));
+                new EncounterScaleRequest(baseMaxHp: 10, battleNumber: 0, themeSectionIndex: 0, tierHpMultiplier: 1f));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                new EncounterScaleRequest(baseMaxHp: 10, battleNumber: 1, cycle: -1, tierHpMultiplier: 1f));
+                new EncounterScaleRequest(baseMaxHp: 10, battleNumber: 1, themeSectionIndex: -1, tierHpMultiplier: 1f));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                new EncounterScaleRequest(baseMaxHp: 10, battleNumber: 1, cycle: 0, tierHpMultiplier: 0f));
+                new EncounterScaleRequest(baseMaxHp: 10, battleNumber: 1, themeSectionIndex: 0, tierHpMultiplier: 0f));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 new EncounterBalanceConfig(
                     hpIncreasePerBattle: -0.1f,
-                    hpIncreasePerCycle: 0f,
+                    hpIncreasePerThemeSection: 0f,
                     normalTierHpMultiplier: 1f,
                     eliteTierHpMultiplier: 1f,
                     bossTierHpMultiplier: 1f));
@@ -100,20 +100,20 @@ namespace SlotRogue.Core.Tests.Combat
             Assert.DoesNotThrow(() => scaling.Scale(new EncounterScaleRequest(
                 baseMaxHp: 10,
                 battleNumber: 1,
-                cycle: 0,
+                themeSectionIndex: 0,
                 tierHpMultiplier: 1f)));
         }
 
         private static EncounterBalanceConfig Config(
             float hpIncreasePerBattle = 0f,
-            float hpIncreasePerCycle = 0f,
+            float hpIncreasePerThemeSection = 0f,
             float normalTierHpMultiplier = 1f,
             float eliteTierHpMultiplier = 1f,
             float bossTierHpMultiplier = 1f)
         {
             return new EncounterBalanceConfig(
                 hpIncreasePerBattle,
-                hpIncreasePerCycle,
+                hpIncreasePerThemeSection,
                 normalTierHpMultiplier,
                 eliteTierHpMultiplier,
                 bossTierHpMultiplier);

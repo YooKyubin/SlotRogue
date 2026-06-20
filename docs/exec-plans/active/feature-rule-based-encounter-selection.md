@@ -8,7 +8,7 @@
 
 ## Goal
 
-기존 `MonsterDefinition` → `EnemyCombatantFactory` → `EnemyEncounterUnit` → `RunEncounterRoster` 생성 흐름은 유지하고, 그 앞단에 규칙 기반 Encounter 선택 레이어를 추가한다. 1차 완료 상태는 `EncounterTable`에서 Tier/Cycle/Weight 조건으로 1마리 편성을 결정적으로 선택하고, `BattleSceneCompositionRoot`가 Dev Override를 유지한 채 선택 결과를 기존 전투 roster 생성 경로로 전달하는 것이다.
+기존 `MonsterDefinition` → `EnemyCombatantFactory` → `EnemyEncounterUnit` → `RunEncounterRoster` 생성 흐름은 유지하고, 그 앞단에 규칙 기반 Encounter 선택 레이어를 추가한다. 현재 완료 기준은 `EncounterTable`의 ThemeGroup별 편성에서 Tier/Weight 조건으로 몬스터 편성을 결정적으로 선택하고, `BattleSceneCompositionRoot`가 Dev Override를 유지한 채 선택 결과를 기존 전투 roster 생성 경로로 전달하는 것이다.
 
 ## Scope
 
@@ -37,7 +37,7 @@ GameFlowSession
 
 ```mermaid
 flowchart TD
-    A["GameFlowSession<br/>책임: 현재 전투 번호, 런 시드 제공"] --> B["WaveSchedule<br/>책임: battleNumber 기준으로<br/>EncounterTier / Cycle 결정"]
+    A["GameFlowSession<br/>책임: 현재 전투 번호, 런 시드 제공"] --> B["WaveSchedule<br/>책임: battleNumber 기준으로<br/>EncounterTier / ThemeSectionIndex 결정"]
 
     B --> C["EncounterSelector<br/>책임: 현재 조건에 맞는 편성 선택"]
     D["EncounterTable<br/>책임: 등장 가능한 편성 목록 보관"] --> C
@@ -65,7 +65,7 @@ flowchart TD
 ```mermaid
 flowchart LR
     A["GameFlowSession"] --- A1["전투 번호 / 시드 관리"]
-    B["WaveSchedule"] --- B1["이번 전투의 Tier, Cycle 계산"]
+    B["WaveSchedule"] --- B1["이번 전투의 Tier, ThemeSectionIndex 계산"]
     C["EncounterTable"] --- C1["편성 후보 데이터 보관"]
     D["EncounterSelector"] --- D1["조건에 맞는 편성 1개 선택"]
     E["EncounterSelection"] --- E1["선택 결과 전달"]
@@ -94,8 +94,8 @@ sequenceDiagram
     participant PlannerFactory as EnemyActionPlannerFactory
     participant Battle as BattleSystem
 
-    Session->>Schedule: battleNumber로 Tier / Cycle 계산 요청
-    Schedule-->>Session: EncounterTier, Cycle 반환
+    Session->>Schedule: battleNumber로 Tier / ThemeSectionIndex 계산 요청
+    Schedule-->>Session: EncounterTier, ThemeSectionIndex 반환
 
     Session->>Selector: battleNumber, seed, tier, cycle로 편성 선택 요청
     Selector->>Table: 조건에 맞는 EncounterDefinition 조회 요청
@@ -265,7 +265,7 @@ Dev Override 없음
 - [x] Phase 2: 선택 결과와 formation layout EditMode 테스트 추가
 - [x] Phase 3: `EncounterSelector` 구현 (Tier/Cycle 필터, Weight 선택, runSeed + battleNumber 기반 결정적 선택)
 - [x] Phase 3: 후보 없음 오류 메시지에 Tier, Cycle, BattleNumber, EncounterTable 이름 포함
-- [x] Phase 4: `EncounterSelector` EditMode 테스트 추가 (결정성, Tier 제외, Cycle 하한/상한, `MaxCycle == -1`, Weight 경계, 후보 없음)
+- [x] Phase 4: `EncounterSelector` EditMode 테스트 추가 (결정성, Tier 제외, 과거 Cycle 하한/상한, `MaxCycle == -1`, Weight 경계, 후보 없음 — Cycle 조건은 9/9에서 제거)
 - [x] Phase 4 완료 조건: `EncounterSelector`가 Tier를 필터링한다.
 - [x] Phase 4 완료 조건: `EncounterSelector`가 Cycle을 필터링한다.
 - [x] Phase 4 완료 조건: Weight 기반으로 편성을 선택한다.
@@ -295,7 +295,7 @@ Dev Override 없음
 - [ ] Phase 6: 기존 1마리 MoonRabbit 전투, Intent UI, Monster Presentation, Action Planner 동작 유지 확인
 - [x] Phase 7: `WaveScheduleDefinition`, `WaveCyclePattern`, `WaveSchedule`, `WaveResult` 추가
 - [x] Phase 7: `BattleSceneCompositionRoot`에서 직접 Tier/Cycle 계산 제거
-- [x] Phase 7: `WaveResult.Tier`와 `WaveResult.Cycle`을 `EncounterSelectionRequest`에 전달
+- [x] Phase 7: 과거 `WaveResult.Tier`와 `WaveResult.Cycle`을 `EncounterSelectionRequest`에 전달 (9/9에서 `EncounterTier`와 `ThemeSectionIndex` 명칭으로 정리)
 - [x] Phase 7 완료 조건: Battle 1/5/10/11/20의 기존 Normal/Elite/Boss 주기를 `WaveSchedule`로 표현한다.
 - [x] Phase 7 완료 조건: 단일 Pattern 반복, 여러 Pattern Cycle별 선택, 마지막 Pattern 반복을 테스트한다.
 - [x] Phase 7 완료 조건: 잘못된 battleNumber, 빈 Pattern, 서로 다른 Pattern 길이, null Pattern 실패를 테스트한다.
@@ -312,6 +312,9 @@ Dev Override 없음
 - [x] Phase 8 완료 조건: 실제 생성된 `EnemyCombatant.Participant.MaxHp`에 계산 결과가 적용된다.
 - [x] Phase 8 완료 조건: `MonsterDefinition.maxHp`는 원본 base HP로 유지하고 수정하지 않는다.
 - [x] Phase 8 완료 조건: 공격력 또는 행동 Effect 수치 스케일링은 구현하지 않았다.
+- [x] Phase 9: Cycle 기반 Encounter 필터 제거, EncounterTable ThemeGroup 구조, EncounterThemeIndexSelector 연결
+- [x] Phase 9: WaveSchedule 결과 명칭을 ThemeSectionIndex / PositionInWave로 정리
+- [x] Phase 9: ThemeGroup 선택과 EncounterSelector 필터 EditMode 테스트 추가
 - [ ] 문서 갱신: `game-flow.md`와 `combat-core.md`에 선택/생성 분리와 후속 WaveSchedule/Scaling 범위 반영
 - [ ] 검증: `dotnet build` 또는 Unity compile, 관련 EditMode 테스트 실행 가능 여부 기록
 
@@ -342,12 +345,12 @@ Dev Override 없음
 - 2026-06-20 작업 7/9에서 `WaveScheduleDefinition` SO와 `WaveCyclePattern` 데이터를 추가했다. 데이터 구조는 `WaveScheduleDefinition._patterns[]` 아래에 각 `WaveCyclePattern._tiers[]`를 보관하는 형태이며, 문자열 패턴 파싱은 사용하지 않는다.
 - 2026-06-20 작업 7/9에서 `WaveSchedule`과 `WaveResult`를 `UI/GameFlow`에 추가했다. `WaveSchedule`은 1-base `battleNumber`를 받아 `cycle = (battleNumber - 1) / patternLength`, `positionInCycle = (battleNumber - 1) % patternLength`를 계산하고, `patternIndex = Min(cycle, patternCount - 1)`로 마지막 pattern을 반복한다.
 - 2026-06-20 작업 7/9 기본 pattern은 기존 주기 보존을 위해 `Normal, Normal, Normal, Normal, Elite, Normal, Normal, Normal, Normal, Boss` 10칸이다. `Assets/_Project/Data/WaveScheduleDefault.asset`을 추가하고 `20_RunGameScene`의 `BattleSceneCompositionRoot._waveScheduleDefinition`에 연결했다.
-- 2026-06-20 작업 7/9에서 `BattleSceneCompositionRoot`는 더 이상 `GameFlowSession.CurrentTier`나 임시 cycle 계산을 사용하지 않는다. Dev Override가 비어 있을 때 `WaveSchedule.FromDefinition(_waveScheduleDefinition).Evaluate(battleNumber)`를 호출하고, `wave.Tier`, `wave.Cycle`, `RunSeed`, `battleNumber`로 selector 요청을 만든다. `battleNumber`는 1-base 값을 그대로 넘기며 0 이하는 `WaveSchedule`에서 실패한다.
+- 2026-06-20 작업 7/9에서 `BattleSceneCompositionRoot`는 더 이상 `GameFlowSession.CurrentTier`나 직접 구간 계산을 사용하지 않는다. Dev Override가 비어 있을 때 `WaveSchedule.FromDefinition(_waveScheduleDefinition).Evaluate(battleNumber)`를 호출하고, Wave 결과와 `RunSeed`, `battleNumber`로 selector 요청을 만든다. `battleNumber`는 1-base 값을 그대로 넘기며 0 이하는 `WaveSchedule`에서 실패한다.
 - 2026-06-20 작업 7/9에서 `GameFlowSession.GetTierForBattle()`, `ElitePeriod`, `BossPeriod`를 제거했다. 다른 호출부는 `CurrentTier`, `CurrentBattleGrantsArtifact`, `CurrentEncounterTitle`만 남아 있으며, 이들은 기본 `WaveSchedule`로 기존 5/10 주기 결과를 유지한다.
 - 2026-06-20 작업 7/9 테스트로 `WaveScheduleTests`를 추가했다. Battle 1/5/10/11/20, 단일 pattern 반복, 여러 pattern의 cycle별 선택, 마지막 pattern 반복, battleNumber 유효성, 빈/null pattern, 서로 다른 pattern 길이 실패를 확인한다.
 - 2026-06-20 작업 7/9 검증: `dotnet build SlotRogue.sln --no-restore`를 실행했으나 Unity가 생성한 `.csproj`가 신규 `.cs` 파일을 아직 include하지 않아 `WaveSchedule`, `WaveScheduleDefinition` 등을 찾지 못하는 컴파일 오류가 발생했다. `.csproj`는 프로젝트 규칙상 커밋 대상이 아니므로 수정하지 않았고, Unity 재생성 또는 Editor compile 후 재검증이 필요하다.
 - 2026-06-20 작업 8/9에서 `EncounterBalanceSettings`를 `Data/GameFlow`에 추가했다. 설정값은 battle당 HP 증가 계수, cycle당 HP 증가 계수, Normal/Elite/Boss tier HP 배율이며, `CreateConfig()`로 Core의 `EncounterBalanceConfig` 값 객체를 만든다.
-- 2026-06-20 작업 8/9에서 `EncounterScaling`은 Core 순수 계산으로 추가했다. 공식은 `round(baseMaxHp * (1 + (battleNumber - 1) * hpIncreasePerBattle + cycle * hpIncreasePerCycle) * tierHpMultiplier)`이며, 결과는 최소 1 이상이다.
+- 2026-06-20 작업 8/9에서 `EncounterScaling`은 Core 순수 계산으로 추가했다. 현재 공식은 `round(baseMaxHp * (1 + (battleNumber - 1) * hpIncreasePerBattle + themeSectionIndex * hpIncreasePerThemeSection) * tierHpMultiplier)`이며, 결과는 최소 1 이상이다.
 - 2026-06-20 작업 8/9에서 Core가 `SlotRogue.Data`를 참조하지 않도록 `EncounterScaleRequest`는 `EncounterTier` enum 대신 이미 선택된 `tierHpMultiplier`를 입력으로 받는다. `EncounterBuildContext`는 UI/GameFlow 계층에서 `EncounterTier`, `BattleNumber`, `Cycle`을 묶고 config에서 tier 배율을 선택한다.
 - 2026-06-20 작업 8/9에서 `BattleSceneCompositionRoot`는 `EncounterBalanceSettingsDefault.asset`을 받아 config를 만들고, Dev Override와 일반 selector 경로 모두 `RunEncounterRosterBuilder.Build(selection, buildContext, balanceConfig)`를 사용한다.
 - 2026-06-20 작업 8/9에서 `EnemyCombatantFactory.CreateWithPresentation(definition, rosterIndex, maxHp)` overload를 추가했다. 기존 overload는 `definition.maxHp`를 그대로 사용하므로 기존 단위 테스트와 수동 생성 경로는 유지된다.
@@ -356,6 +359,12 @@ Dev Override 없음
 - `UnityEngine.Random` 전역 상태는 사용하지 않는다. 같은 run seed와 battle number에서 같은 편성이 재현되어야 한다.
 - 후보가 없거나 데이터가 잘못된 상황은 빈 전투나 임시 몬스터로 숨기지 않고 설정 오류로 드러낸다.
 - `RunEncounterRosterBuilder`는 selection을 roster로 조립만 하며, Tier 계산·Cycle 계산·가중치 추첨·밸런스 성장 공식은 담당하지 않는다.
+- 2026-06-20 작업 9/9에서 `EncounterDefinition.MinCycle`, `EncounterDefinition.MaxCycle`, `EncounterSelectionRequest.Cycle`, `EncounterSelector`의 Cycle 후보 필터와 관련 테스트를 제거했다.
+- 2026-06-20 작업 9/9에서 `EncounterTable`은 private 직렬화 타입 `ThemeGroup` 배열을 보관하고, `ThemeGroupCount`와 `GetEncounters(themeGroupIndex)`로 접근한다. 기존 `_encounters` 직렬화 데이터는 자동 마이그레이션하지 않고, 에셋에서 ThemeGroup으로 다시 설정한다.
+- 2026-06-20 작업 9/9에서 `EncounterThemeIndexSelector`를 추가했다. 이 타입은 `EncounterTable`과 `ScriptableObject`를 알지 않고 `RunSeed + ThemeSectionIndex + ThemeGroupCount`만으로 `ThemeGroupIndex`를 결정한다. 현재 `.csproj` 자동 생성 상태에서 새 파일 include 문제가 있어 기존 `EncounterSelector.cs` 안의 별도 순수 타입으로 둔다.
+- 2026-06-21 작업 9/9 후속에서 `EncounterThemeIndexSelector`는 `ThemeGroupCount > 1`일 때 직전 `ThemeSectionIndex`의 최종 선택 결과를 재계산하고, 이번 raw 선택이 같으면 다음 index로 넘겨 인접 theme section의 테마 반복을 방지한다. 별도 런타임 상태는 저장하지 않는다.
+- 2026-06-20 작업 9/9에서 `WaveResult.Tier/Cycle/PositionInCycle`을 `EncounterTier/ThemeSectionIndex/PositionInWave`로 정리했다. HP scaling 입력 이름도 `ThemeSectionIndex`와 `HpIncreasePerThemeSection`으로 바꿨고, 기존 `_hpIncreasePerCycle` 설정값은 `FormerlySerializedAs`로 유지한다.
+- 2026-06-20 작업 9/9 검증: `dotnet build SlotRogue.sln --no-restore` 오류 0개. 기존 `System.Net.Http` 참조 경고는 남아 있다. 관련 테스트 실행은 사용자가 직접 수행하기로 했다.
 - 2~3마리 데이터 구조는 허용하되 실제 활성화와 검증은 후속 plan에서 진행한다. 다수 적 활성화 전에는 타겟 선택, 사망 후 행동 취소, Intent 다중 표시, 애니메이션 동기화 검증이 필요하다.
 
 ## Follow-up Candidates

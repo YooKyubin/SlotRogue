@@ -62,11 +62,11 @@ namespace SlotRogue.UI.GameFlow
             }
 
             int zeroBasedBattle = battleNumber - 1;
-            int cycle = zeroBasedBattle / _patternLength;
-            int positionInCycle = zeroBasedBattle % _patternLength;
-            int patternIndex = Math.Min(cycle, _patterns.Length - 1);
-            EncounterTier tier = _patterns[patternIndex][positionInCycle];
-            return new WaveResult(tier, cycle, positionInCycle);
+            int themeSectionIndex = zeroBasedBattle / _patternLength;
+            int positionInWave = zeroBasedBattle % _patternLength;
+            int patternIndex = Math.Min(themeSectionIndex, _patterns.Length - 1);
+            EncounterTier encounterTier = _patterns[patternIndex][positionInWave];
+            return new WaveResult(encounterTier, themeSectionIndex, positionInWave);
         }
 
         private static EncounterTier[][] CopyAndValidate(

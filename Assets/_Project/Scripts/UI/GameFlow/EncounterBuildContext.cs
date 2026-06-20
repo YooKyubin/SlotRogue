@@ -9,28 +9,28 @@ namespace SlotRogue.UI.GameFlow
         public EncounterBuildContext(
             EncounterTier tier,
             int battleNumber,
-            int cycle)
+            int themeSectionIndex)
         {
             if (battleNumber <= 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(battleNumber));
             }
 
-            if (cycle < 0)
+            if (themeSectionIndex < 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(cycle));
+                throw new ArgumentOutOfRangeException(nameof(themeSectionIndex));
             }
 
             Tier = tier;
             BattleNumber = battleNumber;
-            Cycle = cycle;
+            ThemeSectionIndex = themeSectionIndex;
         }
 
         public EncounterTier Tier { get; }
 
         public int BattleNumber { get; }
 
-        public int Cycle { get; }
+        public int ThemeSectionIndex { get; }
 
         public float ResolveTierHpMultiplier(EncounterBalanceConfig config)
         {

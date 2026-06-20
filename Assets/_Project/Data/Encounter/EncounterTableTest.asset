@@ -12,28 +12,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f47b949da574b01be6ee3a49c3cc69e, type: 3}
   m_Name: EncounterTableTest
   m_EditorClassIdentifier: SlotRogue.Data::SlotRogue.Data.GameFlow.EncounterTable
-  _encounters:
-  - _id: E-MOONRABBIT-NORMAL-SINGLE
-    _tier: 0
-    _monsters:
-    - {fileID: 11400000, guid: 7d9da94086c8940418db8d32ab6a1b40, type: 2}
-    _weight: 1
-    _minCycle: 0
-    _maxCycle: -1
-  - _id: E-MOONRABBIT-ELITE-SINGLE
-    _tier: 1
-    _monsters:
-    - {fileID: 11400000, guid: 7d9da94086c8940418db8d32ab6a1b40, type: 2}
-    - {fileID: 11400000, guid: 7d9da94086c8940418db8d32ab6a1b40, type: 2}
-    _weight: 1
-    _minCycle: 0
-    _maxCycle: -1
-  - _id: E-MOONRABBIT-BOSS-SINGLE
-    _tier: 2
-    _monsters:
-    - {fileID: 11400000, guid: 7d9da94086c8940418db8d32ab6a1b40, type: 2}
-    - {fileID: 11400000, guid: 7d9da94086c8940418db8d32ab6a1b40, type: 2}
-    - {fileID: 11400000, guid: 7d9da94086c8940418db8d32ab6a1b40, type: 2}
-    _weight: 1
-    _minCycle: 0
-    _maxCycle: -1
+  _themeGroups:
+  - _encounters:
+    - _id: E-MOONRABBIT-NORMAL-SINGLE
+      _tier: 0
+      _monsters:
+      - {fileID: 11400000, guid: 7d9da94086c8940418db8d32ab6a1b40, type: 2}
+      _weight: 1
+    - _id: E-MOONRABBIT-ELITE-SINGLE
+      _tier: 1
+      _monsters:
+      - {fileID: 11400000, guid: 7d9da94086c8940418db8d32ab6a1b40, type: 2}
+      - {fileID: 11400000, guid: 7d9da94086c8940418db8d32ab6a1b40, type: 2}
+      _weight: 1
+    - _id: E-MOONRABBIT-BOSS-SINGLE
+      _tier: 2
+      _monsters:
+      - {fileID: 11400000, guid: 7d9da94086c8940418db8d32ab6a1b40, type: 2}
+      - {fileID: 11400000, guid: 7d9da94086c8940418db8d32ab6a1b40, type: 2}
+      - {fileID: 11400000, guid: 7d9da94086c8940418db8d32ab6a1b40, type: 2}
+      _weight: 1

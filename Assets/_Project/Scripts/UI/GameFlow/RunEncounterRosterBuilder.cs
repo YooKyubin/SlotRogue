@@ -78,7 +78,7 @@ namespace SlotRogue.UI.GameFlow
                 EncounterScaleResult scaleResult = scaling.Scale(new EncounterScaleRequest(
                     monster.Definition.maxHp,
                     buildContext.BattleNumber,
-                    buildContext.Cycle,
+                    buildContext.ThemeSectionIndex,
                     buildContext.ResolveTierHpMultiplier(balanceConfig)));
                 enemies[index] = BuildUnit(
                     combatantFactory,

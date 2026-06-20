@@ -9,10 +9,55 @@ namespace SlotRogue.Data.GameFlow
         menuName = "SlotRogue/GameFlow/Encounter Table")]
     public sealed class EncounterTable : ScriptableObject
     {
-        [SerializeField] private EncounterDefinition[] _encounters;
+        [Serializable]
+        private sealed class ThemeGroup
+        {
+            [SerializeField] private EncounterDefinition[] _encounters;
 
-        public IReadOnlyList<EncounterDefinition> Encounters =>
-            _encounters ?? Array.Empty<EncounterDefinition>();
+            public ThemeGroup()
+            {
+            }
+
+            public ThemeGroup(EncounterDefinition[] encounters)
+            {
+                _encounters = encounters;
+            }
+
+            public IReadOnlyList<EncounterDefinition> Encounters =>
+                _encounters ?? Array.Empty<EncounterDefinition>();
+
+            public bool HasSerializedEncounters => _encounters != null;
+        }
+
+        // ThemeGroup array index is the theme identity. Reordering groups changes
+        // deterministic selection results for the same run seed.
+        [SerializeField] private ThemeGroup[] _themeGroups;
+
+        public int ThemeGroupCount => _themeGroups?.Length ?? 0;
+
+        public IReadOnlyList<EncounterDefinition> GetEncounters(int themeGroupIndex)
+        {
+            if (_themeGroups == null)
+            {
+                throw new InvalidOperationException("EncounterTable theme group array cannot be null.");
+            }
+
+            if (themeGroupIndex < 0 || themeGroupIndex >= _themeGroups.Length)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(themeGroupIndex),
+                    themeGroupIndex,
+                    $"ThemeGroupIndex must be between 0 and {_themeGroups.Length - 1}.");
+            }
+
+            ThemeGroup group = _themeGroups[themeGroupIndex];
+            if (group == null)
+            {
+                throw new InvalidOperationException($"ThemeGroup[{themeGroupIndex}] cannot be null.");
+            }
+
+            return group.Encounters;
+        }
 
         public bool TryValidate(out string error)
         {
@@ -32,34 +77,63 @@ namespace SlotRogue.Data.GameFlow
 
         private void AppendValidationErrors(List<string> errors)
         {
-            if (_encounters == null)
+            if (_themeGroups == null)
             {
-                errors.Add("Encounter array cannot be null.");
+                errors.Add("ThemeGroup array cannot be null.");
                 return;
             }
 
-            var ids = new HashSet<string>(StringComparer.Ordinal);
-            for (int index = 0; index < _encounters.Length; index++)
+            if (_themeGroups.Length == 0)
             {
-                EncounterDefinition encounter = _encounters[index];
-                string prefix = $"Encounter[{index}]";
-                if (encounter == null)
+                errors.Add("At least one ThemeGroup is required.");
+            }
+
+            var ids = new HashSet<string>(StringComparer.Ordinal);
+            for (int groupIndex = 0; groupIndex < _themeGroups.Length; groupIndex++)
+            {
+                ThemeGroup group = _themeGroups[groupIndex];
+                string groupPrefix = $"ThemeGroup[{groupIndex}]";
+                if (group == null)
                 {
-                    errors.Add($"{prefix}: EncounterDefinition cannot be null.");
+                    errors.Add($"{groupPrefix}: ThemeGroup cannot be null.");
                     continue;
                 }
 
-                if (string.IsNullOrWhiteSpace(encounter.Id))
+                if (!group.HasSerializedEncounters)
                 {
-                    errors.Add($"{prefix}: Id cannot be empty.");
-                }
-                else if (!ids.Add(encounter.Id))
-                {
-                    errors.Add($"{prefix}: Duplicate encounter id '{encounter.Id}'.");
+                    errors.Add($"{groupPrefix}: Encounter array cannot be null.");
+                    continue;
                 }
 
-                encounter.AppendValidationErrors(errors, prefix);
+                IReadOnlyList<EncounterDefinition> encounters = group.Encounters;
+                if (encounters.Count == 0)
+                {
+                    errors.Add($"{groupPrefix}: At least one EncounterDefinition is required.");
+                }
+
+                for (int encounterIndex = 0; encounterIndex < encounters.Count; encounterIndex++)
+                {
+                    EncounterDefinition encounter = encounters[encounterIndex];
+                    string prefix = $"{groupPrefix}.Encounter[{encounterIndex}]";
+                    if (encounter == null)
+                    {
+                        errors.Add($"{prefix}: EncounterDefinition cannot be null.");
+                        continue;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(encounter.Id))
+                    {
+                        errors.Add($"{prefix}: Id cannot be empty.");
+                    }
+                    else if (!ids.Add(encounter.Id))
+                    {
+                        errors.Add($"{prefix}: Duplicate encounter id '{encounter.Id}'.");
+                    }
+
+                    encounter.AppendValidationErrors(errors, prefix);
+                }
             }
         }
+
     }
 }

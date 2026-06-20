@@ -7,8 +7,6 @@ namespace SlotRogue.UI.GameFlow
 {
     public sealed class EncounterSelector
     {
-        private const int UnlimitedMaxCycle = -1;
-
         public EncounterSelection Select(EncounterSelectionRequest request)
         {
             IReadOnlyList<EncounterDefinition> candidates = FilterCandidates(request);
@@ -16,7 +14,8 @@ namespace SlotRogue.UI.GameFlow
             {
                 throw new InvalidOperationException(
                     $"No encounter candidates found. Table='{request.Table.name}', " +
-                    $"Tier={request.Tier}, Cycle={request.Cycle}, BattleNumber={request.BattleNumber}.");
+                    $"Tier={request.Tier}, ThemeGroupIndex={request.ThemeGroupIndex}, " +
+                    $"BattleNumber={request.BattleNumber}.");
             }
 
             int totalWeight = CalculateTotalWeight(candidates);
@@ -37,7 +36,7 @@ namespace SlotRogue.UI.GameFlow
         private static IReadOnlyList<EncounterDefinition> FilterCandidates(EncounterSelectionRequest request)
         {
             var candidates = new List<EncounterDefinition>();
-            IReadOnlyList<EncounterDefinition> encounters = request.Table.Encounters;
+            IReadOnlyList<EncounterDefinition> encounters = request.Table.GetEncounters(request.ThemeGroupIndex);
             for (int index = 0; index < encounters.Count; index++)
             {
                 EncounterDefinition encounter = encounters[index];
@@ -47,16 +46,6 @@ namespace SlotRogue.UI.GameFlow
                 }
 
                 if (encounter.Tier != request.Tier)
-                {
-                    continue;
-                }
-
-                if (encounter.MinCycle > request.Cycle)
-                {
-                    continue;
-                }
-
-                if (encounter.MaxCycle != UnlimitedMaxCycle && request.Cycle > encounter.MaxCycle)
                 {
                     continue;
                 }
@@ -133,6 +122,73 @@ namespace SlotRogue.UI.GameFlow
                 uint hash = 2166136261u;
                 hash = Mix(hash, (uint)runSeed);
                 hash = Mix(hash, (uint)battleNumber);
+                hash ^= hash >> 16;
+                hash *= 2246822519u;
+                hash ^= hash >> 13;
+                hash *= 3266489917u;
+                hash ^= hash >> 16;
+                return hash;
+            }
+        }
+
+        private static uint Mix(uint hash, uint value)
+        {
+            unchecked
+            {
+                hash ^= value;
+                hash *= 16777619u;
+                return hash;
+            }
+        }
+    }
+
+    public sealed class EncounterThemeIndexSelector
+    {
+        public int Select(int runSeed, int themeSectionIndex, int themeGroupCount)
+        {
+            if (themeSectionIndex < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(themeSectionIndex));
+            }
+
+            if (themeGroupCount <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(themeGroupCount));
+            }
+
+            if (themeGroupCount == 1)
+            {
+                return 0;
+            }
+
+            int selected = SelectRaw(runSeed, themeSectionIndex, themeGroupCount);
+            if (themeSectionIndex == 0)
+            {
+                return selected;
+            }
+
+            int previous = Select(runSeed, themeSectionIndex - 1, themeGroupCount);
+            if (selected == previous)
+            {
+                return (selected + 1) % themeGroupCount;
+            }
+
+            return selected;
+        }
+
+        private static int SelectRaw(int runSeed, int themeSectionIndex, int themeGroupCount)
+        {
+            uint seed = CombineSeed(runSeed, themeSectionIndex);
+            return (int)(seed % (uint)themeGroupCount);
+        }
+
+        private static uint CombineSeed(int runSeed, int themeSectionIndex)
+        {
+            unchecked
+            {
+                uint hash = 2166136261u;
+                hash = Mix(hash, (uint)runSeed);
+                hash = Mix(hash, (uint)themeSectionIndex);
                 hash ^= hash >> 16;
                 hash *= 2246822519u;
                 hash ^= hash >> 13;

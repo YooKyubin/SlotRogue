@@ -9,14 +9,10 @@ namespace SlotRogue.Data.GameFlow
     public sealed class EncounterDefinition
     {
         private const int MaxMonsterCount = 3;
-        private const int UnlimitedMaxCycle = -1;
-
         [SerializeField] private string _id = string.Empty;
         [SerializeField] private EncounterTier _tier;
         [SerializeField] private MonsterDefinition[] _monsters;
         [SerializeField] private int _weight = 1;
-        [SerializeField] private int _minCycle;
-        [SerializeField] private int _maxCycle = UnlimitedMaxCycle;
 
         public string Id => _id ?? string.Empty;
 
@@ -25,10 +21,6 @@ namespace SlotRogue.Data.GameFlow
         public IReadOnlyList<MonsterDefinition> Monsters => _monsters ?? Array.Empty<MonsterDefinition>();
 
         public int Weight => _weight;
-
-        public int MinCycle => _minCycle;
-
-        public int MaxCycle => _maxCycle;
 
         public bool TryValidate(out string error)
         {
@@ -50,21 +42,6 @@ namespace SlotRogue.Data.GameFlow
             if (_weight < 1)
             {
                 errors.Add($"{label}: Weight must be 1 or greater.");
-            }
-
-            if (_minCycle < 0)
-            {
-                errors.Add($"{label}: MinCycle cannot be negative.");
-            }
-
-            if (_maxCycle < UnlimitedMaxCycle)
-            {
-                errors.Add($"{label}: MaxCycle must be -1 or greater.");
-            }
-
-            if (_maxCycle != UnlimitedMaxCycle && _maxCycle < _minCycle)
-            {
-                errors.Add($"{label}: MaxCycle cannot be smaller than MinCycle unless it is -1.");
             }
 
             if (_monsters == null)

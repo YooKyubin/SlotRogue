@@ -332,10 +332,10 @@ namespace SlotRogue.UI.Tests.GameFlow
             {
                 new SelectedEncounterMonster(definition, formationSlot: 1),
             });
-            var context = new EncounterBuildContext(EncounterTier.Elite, battleNumber: 3, cycle: 1);
+            var context = new EncounterBuildContext(EncounterTier.Elite, battleNumber: 3, themeSectionIndex: 1);
             var config = new EncounterBalanceConfig(
                 hpIncreasePerBattle: 0.1f,
-                hpIncreasePerCycle: 0.25f,
+                hpIncreasePerThemeSection: 0.25f,
                 normalTierHpMultiplier: 1f,
                 eliteTierHpMultiplier: 1.5f,
                 bossTierHpMultiplier: 2f);
@@ -356,7 +356,7 @@ namespace SlotRogue.UI.Tests.GameFlow
             EncounterBalanceConfig config = settings.CreateConfig();
 
             Assert.That(config.HpIncreasePerBattle, Is.EqualTo(0.05f));
-            Assert.That(config.HpIncreasePerCycle, Is.EqualTo(0.25f));
+            Assert.That(config.HpIncreasePerThemeSection, Is.EqualTo(0.25f));
             Assert.That(config.NormalTierHpMultiplier, Is.EqualTo(1f));
             Assert.That(config.EliteTierHpMultiplier, Is.EqualTo(1.35f));
             Assert.That(config.BossTierHpMultiplier, Is.EqualTo(1.8f));

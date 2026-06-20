@@ -9,71 +9,93 @@ namespace SlotRogue.UI.Tests.GameFlow
     public sealed class WaveScheduleTests
     {
         [Test]
-        public void Evaluate_Battle1_ReturnsNormalCycle0Position0()
+        public void Evaluate_Battle1_ReturnsNormalThemeSection0Position0()
         {
             WaveResult result = WaveSchedule.CreateDefault().Evaluate(1);
 
-            Assert.That(result.Tier, Is.EqualTo(EncounterTier.Normal));
-            Assert.That(result.Cycle, Is.EqualTo(0));
-            Assert.That(result.PositionInCycle, Is.EqualTo(0));
+            Assert.That(result.EncounterTier, Is.EqualTo(EncounterTier.Normal));
+            Assert.That(result.ThemeSectionIndex, Is.EqualTo(0));
+            Assert.That(result.PositionInWave, Is.EqualTo(0));
         }
 
         [Test]
-        public void Evaluate_Battle5_ReturnsEliteCycle0Position4()
+        public void Evaluate_Battle5_ReturnsEliteThemeSection0Position4()
         {
             WaveResult result = WaveSchedule.CreateDefault().Evaluate(5);
 
-            Assert.That(result.Tier, Is.EqualTo(EncounterTier.Elite));
-            Assert.That(result.Cycle, Is.EqualTo(0));
-            Assert.That(result.PositionInCycle, Is.EqualTo(4));
+            Assert.That(result.EncounterTier, Is.EqualTo(EncounterTier.Elite));
+            Assert.That(result.ThemeSectionIndex, Is.EqualTo(0));
+            Assert.That(result.PositionInWave, Is.EqualTo(4));
         }
 
         [Test]
-        public void Evaluate_Battle10_ReturnsBossCycle0Position9()
+        public void Evaluate_Battle10_ReturnsBossThemeSection0Position9()
         {
             WaveResult result = WaveSchedule.CreateDefault().Evaluate(10);
 
-            Assert.That(result.Tier, Is.EqualTo(EncounterTier.Boss));
-            Assert.That(result.Cycle, Is.EqualTo(0));
-            Assert.That(result.PositionInCycle, Is.EqualTo(9));
+            Assert.That(result.EncounterTier, Is.EqualTo(EncounterTier.Boss));
+            Assert.That(result.ThemeSectionIndex, Is.EqualTo(0));
+            Assert.That(result.PositionInWave, Is.EqualTo(9));
         }
 
         [Test]
-        public void Evaluate_Battle11_ReturnsNormalCycle1Position0()
+        public void Evaluate_Battle11_ReturnsNormalThemeSection1Position0()
         {
             WaveResult result = WaveSchedule.CreateDefault().Evaluate(11);
 
-            Assert.That(result.Tier, Is.EqualTo(EncounterTier.Normal));
-            Assert.That(result.Cycle, Is.EqualTo(1));
-            Assert.That(result.PositionInCycle, Is.EqualTo(0));
+            Assert.That(result.EncounterTier, Is.EqualTo(EncounterTier.Normal));
+            Assert.That(result.ThemeSectionIndex, Is.EqualTo(1));
+            Assert.That(result.PositionInWave, Is.EqualTo(0));
         }
 
         [Test]
-        public void Evaluate_Battle20_ReturnsBossCycle1Position9()
+        public void Evaluate_Battle20_ReturnsBossThemeSection1Position9()
         {
             WaveResult result = WaveSchedule.CreateDefault().Evaluate(20);
 
-            Assert.That(result.Tier, Is.EqualTo(EncounterTier.Boss));
-            Assert.That(result.Cycle, Is.EqualTo(1));
-            Assert.That(result.PositionInCycle, Is.EqualTo(9));
+            Assert.That(result.EncounterTier, Is.EqualTo(EncounterTier.Boss));
+            Assert.That(result.ThemeSectionIndex, Is.EqualTo(1));
+            Assert.That(result.PositionInWave, Is.EqualTo(9));
         }
 
         [Test]
-        public void Evaluate_SinglePattern_RepeatsForEveryCycle()
+        public void Evaluate_Battles1Through10_ReturnSameThemeSectionIndex()
+        {
+            WaveSchedule schedule = WaveSchedule.CreateDefault();
+
+            for (int battleNumber = 1; battleNumber <= 10; battleNumber++)
+            {
+                Assert.That(schedule.Evaluate(battleNumber).ThemeSectionIndex, Is.EqualTo(0));
+            }
+        }
+
+        [Test]
+        public void Evaluate_PositionInWave_RepeatsEveryTenBattles()
+        {
+            WaveSchedule schedule = WaveSchedule.CreateDefault();
+
+            Assert.That(schedule.Evaluate(1).PositionInWave, Is.EqualTo(0));
+            Assert.That(schedule.Evaluate(10).PositionInWave, Is.EqualTo(9));
+            Assert.That(schedule.Evaluate(11).PositionInWave, Is.EqualTo(0));
+            Assert.That(schedule.Evaluate(20).PositionInWave, Is.EqualTo(9));
+        }
+
+        [Test]
+        public void Evaluate_SinglePattern_RepeatsForEveryThemeSection()
         {
             var schedule = new WaveSchedule(new[]
             {
                 Pattern(EncounterTier.Normal, EncounterTier.Elite),
             });
 
-            Assert.That(schedule.Evaluate(1).Tier, Is.EqualTo(EncounterTier.Normal));
-            Assert.That(schedule.Evaluate(2).Tier, Is.EqualTo(EncounterTier.Elite));
-            Assert.That(schedule.Evaluate(3).Tier, Is.EqualTo(EncounterTier.Normal));
-            Assert.That(schedule.Evaluate(4).Tier, Is.EqualTo(EncounterTier.Elite));
+            Assert.That(schedule.Evaluate(1).EncounterTier, Is.EqualTo(EncounterTier.Normal));
+            Assert.That(schedule.Evaluate(2).EncounterTier, Is.EqualTo(EncounterTier.Elite));
+            Assert.That(schedule.Evaluate(3).EncounterTier, Is.EqualTo(EncounterTier.Normal));
+            Assert.That(schedule.Evaluate(4).EncounterTier, Is.EqualTo(EncounterTier.Elite));
         }
 
         [Test]
-        public void Evaluate_MultiplePatterns_SelectsPatternByCycle()
+        public void Evaluate_MultiplePatterns_SelectsPatternByThemeSection()
         {
             var schedule = new WaveSchedule(new[]
             {
@@ -81,14 +103,14 @@ namespace SlotRogue.UI.Tests.GameFlow
                 Pattern(EncounterTier.Boss, EncounterTier.Normal),
             });
 
-            Assert.That(schedule.Evaluate(1).Tier, Is.EqualTo(EncounterTier.Normal));
-            Assert.That(schedule.Evaluate(2).Tier, Is.EqualTo(EncounterTier.Elite));
-            Assert.That(schedule.Evaluate(3).Tier, Is.EqualTo(EncounterTier.Boss));
-            Assert.That(schedule.Evaluate(4).Tier, Is.EqualTo(EncounterTier.Normal));
+            Assert.That(schedule.Evaluate(1).EncounterTier, Is.EqualTo(EncounterTier.Normal));
+            Assert.That(schedule.Evaluate(2).EncounterTier, Is.EqualTo(EncounterTier.Elite));
+            Assert.That(schedule.Evaluate(3).EncounterTier, Is.EqualTo(EncounterTier.Boss));
+            Assert.That(schedule.Evaluate(4).EncounterTier, Is.EqualTo(EncounterTier.Normal));
         }
 
         [Test]
-        public void Evaluate_CycleAfterLastPattern_RepeatsLastPattern()
+        public void Evaluate_ThemeSectionAfterLastPattern_RepeatsLastPattern()
         {
             var schedule = new WaveSchedule(new[]
             {
@@ -96,9 +118,9 @@ namespace SlotRogue.UI.Tests.GameFlow
                 Pattern(EncounterTier.Elite, EncounterTier.Boss),
             });
 
-            Assert.That(schedule.Evaluate(5).Tier, Is.EqualTo(EncounterTier.Elite));
-            Assert.That(schedule.Evaluate(6).Tier, Is.EqualTo(EncounterTier.Boss));
-            Assert.That(schedule.Evaluate(7).Tier, Is.EqualTo(EncounterTier.Elite));
+            Assert.That(schedule.Evaluate(5).EncounterTier, Is.EqualTo(EncounterTier.Elite));
+            Assert.That(schedule.Evaluate(6).EncounterTier, Is.EqualTo(EncounterTier.Boss));
+            Assert.That(schedule.Evaluate(7).EncounterTier, Is.EqualTo(EncounterTier.Elite));
         }
 
         [TestCase(0)]

@@ -1,5 +1,6 @@
 using SlotRogue.Core.Combat;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace SlotRogue.Data.GameFlow
 {
@@ -9,7 +10,8 @@ namespace SlotRogue.Data.GameFlow
     public sealed class EncounterBalanceSettings : ScriptableObject
     {
         [SerializeField] private float _hpIncreasePerBattle = 0.05f;
-        [SerializeField] private float _hpIncreasePerCycle = 0.25f;
+        [SerializeField, FormerlySerializedAs("_hpIncreasePerCycle")]
+        private float _hpIncreasePerThemeSection = 0.25f;
         [SerializeField] private float _normalTierHpMultiplier = 1f;
         [SerializeField] private float _eliteTierHpMultiplier = 1.35f;
         [SerializeField] private float _bossTierHpMultiplier = 1.8f;
@@ -18,7 +20,7 @@ namespace SlotRogue.Data.GameFlow
         {
             return new EncounterBalanceConfig(
                 _hpIncreasePerBattle,
-                _hpIncreasePerCycle,
+                _hpIncreasePerThemeSection,
                 _normalTierHpMultiplier,
                 _eliteTierHpMultiplier,
                 _bossTierHpMultiplier);

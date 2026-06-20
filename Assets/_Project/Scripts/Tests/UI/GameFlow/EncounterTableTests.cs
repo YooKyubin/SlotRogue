@@ -1,3 +1,4 @@
+using System;
 using System.Reflection;
 using NUnit.Framework;
 using SlotRogue.Data.Combat;
@@ -16,14 +17,12 @@ namespace SlotRogue.UI.Tests.GameFlow
                 "E-NORMAL-MOON-RABBIT",
                 EncounterTier.Normal,
                 new[] { monster },
-                weight: 1,
-                minCycle: 0,
-                maxCycle: -1);
+                weight: 1);
 
             bool valid = encounter.TryValidate(out string error);
 
             Assert.That(valid, Is.True, error);
-            Object.DestroyImmediate(monster);
+            UnityEngine.Object.DestroyImmediate(monster);
         }
 
         [Test]
@@ -42,44 +41,72 @@ namespace SlotRogue.UI.Tests.GameFlow
 
             Assert.That(valid, Is.False);
             StringAssert.Contains("Monster count", error);
-            Object.DestroyImmediate(first);
-            Object.DestroyImmediate(second);
-            Object.DestroyImmediate(third);
-            Object.DestroyImmediate(fourth);
+            UnityEngine.Object.DestroyImmediate(first);
+            UnityEngine.Object.DestroyImmediate(second);
+            UnityEngine.Object.DestroyImmediate(third);
+            UnityEngine.Object.DestroyImmediate(fourth);
         }
 
         [Test]
-        public void EncounterDefinition_InvalidCycleRange_FailsValidation()
+        public void EncounterDefinition_DoesNotExposeCycleRange()
         {
-            MonsterDefinition monster = CreateMonster();
-            EncounterDefinition encounter = CreateEncounter(
-                "E-BAD-CYCLE",
-                EncounterTier.Elite,
-                new[] { monster },
-                minCycle: 3,
-                maxCycle: 2);
-
-            bool valid = encounter.TryValidate(out string error);
-
-            Assert.That(valid, Is.False);
-            StringAssert.Contains("MaxCycle", error);
-            Object.DestroyImmediate(monster);
+            Assert.That(typeof(EncounterDefinition).GetProperty("MinCycle"), Is.Null);
+            Assert.That(typeof(EncounterDefinition).GetProperty("MaxCycle"), Is.Null);
         }
 
         [Test]
-        public void EncounterTable_DuplicateIds_FailValidation()
+        public void EncounterTable_ThemeGroupCount_ReturnsGroupLength()
         {
             MonsterDefinition monster = CreateMonster();
             EncounterTable table = CreateTable(
-                CreateEncounter("E-DUPLICATE", EncounterTier.Normal, new[] { monster }),
-                CreateEncounter("E-DUPLICATE", EncounterTier.Boss, new[] { monster }));
+                Group(CreateEncounter("E-A", EncounterTier.Normal, new[] { monster })),
+                Group(CreateEncounter("E-B", EncounterTier.Elite, new[] { monster })));
+
+            Assert.That(table.ThemeGroupCount, Is.EqualTo(2));
+            UnityEngine.Object.DestroyImmediate(table);
+            UnityEngine.Object.DestroyImmediate(monster);
+        }
+
+        [Test]
+        public void EncounterTable_GetEncounters_ReturnsRequestedThemeGroup()
+        {
+            MonsterDefinition monster = CreateMonster();
+            EncounterDefinition first = CreateEncounter("E-A", EncounterTier.Normal, new[] { monster });
+            EncounterDefinition second = CreateEncounter("E-B", EncounterTier.Normal, new[] { monster });
+            EncounterTable table = CreateTable(Group(first), Group(second));
+
+            Assert.That(table.GetEncounters(1)[0], Is.SameAs(second));
+            UnityEngine.Object.DestroyImmediate(table);
+            UnityEngine.Object.DestroyImmediate(monster);
+        }
+
+        [Test]
+        public void EncounterTable_GetEncounters_InvalidIndex_Fails()
+        {
+            MonsterDefinition monster = CreateMonster();
+            EncounterTable table = CreateTable(
+                Group(CreateEncounter("E-A", EncounterTier.Normal, new[] { monster })));
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => table.GetEncounters(-1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => table.GetEncounters(1));
+            UnityEngine.Object.DestroyImmediate(table);
+            UnityEngine.Object.DestroyImmediate(monster);
+        }
+
+        [Test]
+        public void EncounterTable_DuplicateIdsAcrossThemeGroups_FailValidation()
+        {
+            MonsterDefinition monster = CreateMonster();
+            EncounterTable table = CreateTable(
+                Group(CreateEncounter("E-DUPLICATE", EncounterTier.Normal, new[] { monster })),
+                Group(CreateEncounter("E-DUPLICATE", EncounterTier.Boss, new[] { monster })));
 
             bool valid = table.TryValidate(out string error);
 
             Assert.That(valid, Is.False);
             StringAssert.Contains("Duplicate encounter id", error);
-            Object.DestroyImmediate(table);
-            Object.DestroyImmediate(monster);
+            UnityEngine.Object.DestroyImmediate(table);
+            UnityEngine.Object.DestroyImmediate(monster);
         }
 
         [Test]
@@ -87,26 +114,38 @@ namespace SlotRogue.UI.Tests.GameFlow
         {
             MonsterDefinition monster = CreateMonster();
             EncounterTable table = CreateTable(
-                CreateEncounter(string.Empty, EncounterTier.Normal, new[] { monster }));
+                Group(CreateEncounter(string.Empty, EncounterTier.Normal, new[] { monster })));
 
             bool valid = table.TryValidate(out string error);
 
             Assert.That(valid, Is.False);
             StringAssert.Contains("Id cannot be empty", error);
-            Object.DestroyImmediate(table);
-            Object.DestroyImmediate(monster);
+            UnityEngine.Object.DestroyImmediate(table);
+            UnityEngine.Object.DestroyImmediate(monster);
         }
 
         [Test]
-        public void EncounterTable_NullEncounterArray_FailsValidation()
+        public void EncounterTable_NullThemeGroupArray_FailsValidation()
         {
-            EncounterTable table = CreateTable(null);
+            EncounterTable table = ScriptableObject.CreateInstance<EncounterTable>();
 
             bool valid = table.TryValidate(out string error);
 
             Assert.That(valid, Is.False);
-            StringAssert.Contains("Encounter array cannot be null", error);
-            Object.DestroyImmediate(table);
+            StringAssert.Contains("ThemeGroup array cannot be null", error);
+            UnityEngine.Object.DestroyImmediate(table);
+        }
+
+        [Test]
+        public void EncounterTable_EmptyThemeGroup_FailsValidation()
+        {
+            EncounterTable table = CreateTable(Group());
+
+            bool valid = table.TryValidate(out string error);
+
+            Assert.That(valid, Is.False);
+            StringAssert.Contains("At least one EncounterDefinition", error);
+            UnityEngine.Object.DestroyImmediate(table);
         }
 
         [Test]
@@ -122,13 +161,33 @@ namespace SlotRogue.UI.Tests.GameFlow
             return ScriptableObject.CreateInstance<MonsterDefinition>();
         }
 
-        private static EncounterTable CreateTable(params EncounterDefinition[] encounters)
+        private static EncounterDefinition[] Group(params EncounterDefinition[] encounters)
+        {
+            return encounters;
+        }
+
+        private static EncounterTable CreateTable(params EncounterDefinition[][] groups)
         {
             EncounterTable table = ScriptableObject.CreateInstance<EncounterTable>();
-            FieldInfo field = typeof(EncounterTable).GetField(
+            Type groupType = typeof(EncounterTable).GetNestedType(
+                "ThemeGroup",
+                BindingFlags.NonPublic);
+            Array themeGroups = Array.CreateInstance(groupType, groups.Length);
+            FieldInfo encountersField = groupType.GetField(
                 "_encounters",
                 BindingFlags.Instance | BindingFlags.NonPublic);
-            field.SetValue(table, encounters);
+
+            for (int index = 0; index < groups.Length; index++)
+            {
+                object group = Activator.CreateInstance(groupType, nonPublic: true);
+                encountersField.SetValue(group, groups[index]);
+                themeGroups.SetValue(group, index);
+            }
+
+            FieldInfo field = typeof(EncounterTable).GetField(
+                "_themeGroups",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            field.SetValue(table, themeGroups);
             return table;
         }
 
@@ -136,17 +195,13 @@ namespace SlotRogue.UI.Tests.GameFlow
             string id,
             EncounterTier tier,
             MonsterDefinition[] monsters,
-            int weight = 1,
-            int minCycle = 0,
-            int maxCycle = -1)
+            int weight = 1)
         {
             var encounter = new EncounterDefinition();
             SetField(encounter, "_id", id);
             SetField(encounter, "_tier", tier);
             SetField(encounter, "_monsters", monsters);
             SetField(encounter, "_weight", weight);
-            SetField(encounter, "_minCycle", minCycle);
-            SetField(encounter, "_maxCycle", maxCycle);
             return encounter;
         }
 

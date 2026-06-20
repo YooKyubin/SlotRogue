@@ -9,7 +9,7 @@ namespace SlotRogue.UI.GameFlow
 
         public EncounterTier Tier { get; }
 
-        public int Cycle { get; }
+        public int ThemeGroupIndex { get; }
 
         public int RunSeed { get; }
 
@@ -18,13 +18,13 @@ namespace SlotRogue.UI.GameFlow
         public EncounterSelectionRequest(
             EncounterTable table,
             EncounterTier tier,
-            int cycle,
+            int themeGroupIndex,
             int runSeed,
             int battleNumber)
         {
             Table = table != null ? table : throw new ArgumentNullException(nameof(table));
             Tier = tier;
-            Cycle = cycle;
+            ThemeGroupIndex = themeGroupIndex;
             RunSeed = runSeed;
             BattleNumber = battleNumber;
         }

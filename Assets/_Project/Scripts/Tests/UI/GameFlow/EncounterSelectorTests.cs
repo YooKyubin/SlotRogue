@@ -18,10 +18,16 @@ namespace SlotRogue.UI.Tests.GameFlow
             MonsterDefinition second = CreateMonster();
             EncounterTable table = CreateTable(
                 "DeterministicTable",
-                CreateEncounter("FIRST", EncounterTier.Normal, new[] { first }, weight: 1),
-                CreateEncounter("SECOND", EncounterTier.Normal, new[] { second }, weight: 1));
+                Group(
+                    CreateEncounter("FIRST", EncounterTier.Normal, new[] { first }, weight: 1),
+                    CreateEncounter("SECOND", EncounterTier.Normal, new[] { second }, weight: 1)));
             var selector = new EncounterSelector();
-            var request = new EncounterSelectionRequest(table, EncounterTier.Normal, cycle: 0, runSeed: 1234, battleNumber: 7);
+            var request = new EncounterSelectionRequest(
+                table,
+                EncounterTier.Normal,
+                themeGroupIndex: 0,
+                runSeed: 1234,
+                battleNumber: 7);
 
             EncounterSelection firstSelection = selector.Select(request);
             EncounterSelection secondSelection = selector.Select(request);
@@ -31,73 +37,49 @@ namespace SlotRogue.UI.Tests.GameFlow
         }
 
         [Test]
-        public void Select_DifferentTier_ExcludesCandidate()
+        public void Select_UsesOnlyRequestedThemeGroup()
+        {
+            MonsterDefinition firstGroupMonster = CreateMonster();
+            MonsterDefinition secondGroupMonster = CreateMonster();
+            EncounterTable table = CreateTable(
+                "ThemeGroupTable",
+                Group(CreateEncounter("GROUP-0", EncounterTier.Normal, new[] { firstGroupMonster })),
+                Group(CreateEncounter("GROUP-1", EncounterTier.Normal, new[] { secondGroupMonster })));
+            var selector = new EncounterSelector();
+
+            EncounterSelection selection = selector.Select(new EncounterSelectionRequest(
+                table,
+                EncounterTier.Normal,
+                themeGroupIndex: 1,
+                runSeed: 1,
+                battleNumber: 1));
+
+            Assert.That(selection.Monsters[0].Definition, Is.SameAs(secondGroupMonster));
+            Destroy(table, firstGroupMonster, secondGroupMonster);
+        }
+
+        [Test]
+        public void Select_DifferentTier_ExcludesCandidateInsideThemeGroup()
         {
             MonsterDefinition normal = CreateMonster();
             MonsterDefinition elite = CreateMonster();
             EncounterTable table = CreateTable(
                 "TierTable",
-                CreateEncounter("NORMAL", EncounterTier.Normal, new[] { normal }),
-                CreateEncounter("ELITE", EncounterTier.Elite, new[] { elite }));
+                Group(
+                    CreateEncounter("NORMAL", EncounterTier.Normal, new[] { normal }),
+                    CreateEncounter("ELITE", EncounterTier.Elite, new[] { elite })));
             var selector = new EncounterSelector();
 
             EncounterSelection selection = selector.Select(
-                new EncounterSelectionRequest(table, EncounterTier.Elite, cycle: 0, runSeed: 1, battleNumber: 1));
+                new EncounterSelectionRequest(
+                    table,
+                    EncounterTier.Elite,
+                    themeGroupIndex: 0,
+                    runSeed: 1,
+                    battleNumber: 1));
 
             Assert.That(selection.Monsters[0].Definition, Is.SameAs(elite));
             Destroy(table, normal, elite);
-        }
-
-        [Test]
-        public void Select_MinCycle_ExcludesFutureCandidate()
-        {
-            MonsterDefinition current = CreateMonster();
-            MonsterDefinition future = CreateMonster();
-            EncounterTable table = CreateTable(
-                "MinCycleTable",
-                CreateEncounter("CURRENT", EncounterTier.Normal, new[] { current }, minCycle: 0),
-                CreateEncounter("FUTURE", EncounterTier.Normal, new[] { future }, minCycle: 2));
-            var selector = new EncounterSelector();
-
-            EncounterSelection selection = selector.Select(
-                new EncounterSelectionRequest(table, EncounterTier.Normal, cycle: 1, runSeed: 1, battleNumber: 1));
-
-            Assert.That(selection.Monsters[0].Definition, Is.SameAs(current));
-            Destroy(table, current, future);
-        }
-
-        [Test]
-        public void Select_MaxCycle_ExcludesExpiredCandidate()
-        {
-            MonsterDefinition expired = CreateMonster();
-            MonsterDefinition current = CreateMonster();
-            EncounterTable table = CreateTable(
-                "MaxCycleTable",
-                CreateEncounter("EXPIRED", EncounterTier.Normal, new[] { expired }, maxCycle: 1),
-                CreateEncounter("CURRENT", EncounterTier.Normal, new[] { current }, maxCycle: 3));
-            var selector = new EncounterSelector();
-
-            EncounterSelection selection = selector.Select(
-                new EncounterSelectionRequest(table, EncounterTier.Normal, cycle: 2, runSeed: 1, battleNumber: 1));
-
-            Assert.That(selection.Monsters[0].Definition, Is.SameAs(current));
-            Destroy(table, expired, current);
-        }
-
-        [Test]
-        public void Select_UnlimitedMaxCycle_KeepsCandidate()
-        {
-            MonsterDefinition unlimited = CreateMonster();
-            EncounterTable table = CreateTable(
-                "UnlimitedCycleTable",
-                CreateEncounter("UNLIMITED", EncounterTier.Normal, new[] { unlimited }, maxCycle: -1));
-            var selector = new EncounterSelector();
-
-            EncounterSelection selection = selector.Select(
-                new EncounterSelectionRequest(table, EncounterTier.Normal, cycle: 99, runSeed: 1, battleNumber: 1));
-
-            Assert.That(selection.Monsters[0].Definition, Is.SameAs(unlimited));
-            Destroy(table, unlimited);
         }
 
         [Test]
@@ -108,11 +90,16 @@ namespace SlotRogue.UI.Tests.GameFlow
             MonsterDefinition third = CreateMonster();
             EncounterTable table = CreateTable(
                 "OrderTable",
-                CreateEncounter("THREE", EncounterTier.Normal, new[] { first, second, third }));
+                Group(CreateEncounter("THREE", EncounterTier.Normal, new[] { first, second, third })));
             var selector = new EncounterSelector();
 
             EncounterSelection selection = selector.Select(
-                new EncounterSelectionRequest(table, EncounterTier.Normal, cycle: 0, runSeed: 1, battleNumber: 1));
+                new EncounterSelectionRequest(
+                    table,
+                    EncounterTier.Normal,
+                    themeGroupIndex: 0,
+                    runSeed: 1,
+                    battleNumber: 1));
 
             Assert.That(selection.Monsters[0].Definition, Is.SameAs(first));
             Assert.That(selection.Monsters[1].Definition, Is.SameAs(second));
@@ -128,11 +115,16 @@ namespace SlotRogue.UI.Tests.GameFlow
             MonsterDefinition third = CreateMonster();
             EncounterTable table = CreateTable(
                 "FormationTable",
-                CreateEncounter("THREE", EncounterTier.Normal, new[] { first, second, third }));
+                Group(CreateEncounter("THREE", EncounterTier.Normal, new[] { first, second, third })));
             var selector = new EncounterSelector();
 
             EncounterSelection selection = selector.Select(
-                new EncounterSelectionRequest(table, EncounterTier.Normal, cycle: 0, runSeed: 1, battleNumber: 1));
+                new EncounterSelectionRequest(
+                    table,
+                    EncounterTier.Normal,
+                    themeGroupIndex: 0,
+                    runSeed: 1,
+                    battleNumber: 1));
 
             Assert.That(selection.Monsters[0].FormationSlot, Is.EqualTo(0));
             Assert.That(selection.Monsters[1].FormationSlot, Is.EqualTo(1));
@@ -146,22 +138,40 @@ namespace SlotRogue.UI.Tests.GameFlow
             MonsterDefinition elite = CreateMonster();
             EncounterTable table = CreateTable(
                 "MissingCandidateTable",
-                CreateEncounter("ELITE", EncounterTier.Elite, new[] { elite }));
+                Group(CreateEncounter("ELITE", EncounterTier.Elite, new[] { elite })));
             var selector = new EncounterSelector();
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
                 () => selector.Select(new EncounterSelectionRequest(
                     table,
                     EncounterTier.Normal,
-                    cycle: 3,
+                    themeGroupIndex: 0,
                     runSeed: 1,
                     battleNumber: 12)));
 
             StringAssert.Contains("MissingCandidateTable", exception.Message);
             StringAssert.Contains("Normal", exception.Message);
-            StringAssert.Contains("Cycle=3", exception.Message);
+            StringAssert.Contains("ThemeGroupIndex=0", exception.Message);
             StringAssert.Contains("BattleNumber=12", exception.Message);
             Destroy(table, elite);
+        }
+
+        [Test]
+        public void Select_InvalidThemeGroupIndex_Fails()
+        {
+            MonsterDefinition monster = CreateMonster();
+            EncounterTable table = CreateTable(
+                "InvalidGroupTable",
+                Group(CreateEncounter("NORMAL", EncounterTier.Normal, new[] { monster })));
+            var selector = new EncounterSelector();
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => selector.Select(new EncounterSelectionRequest(
+                table,
+                EncounterTier.Normal,
+                themeGroupIndex: 1,
+                runSeed: 1,
+                battleNumber: 1)));
+            Destroy(table, monster);
         }
 
         [Test]
@@ -182,6 +192,96 @@ namespace SlotRogue.UI.Tests.GameFlow
             Destroy(firstMonster, secondMonster);
         }
 
+        [Test]
+        public void ThemeIndexSelector_SameInput_ReturnsSameIndex()
+        {
+            var selector = new EncounterThemeIndexSelector();
+
+            int first = selector.Select(runSeed: 1234, themeSectionIndex: 2, themeGroupCount: 4);
+            int second = selector.Select(runSeed: 1234, themeSectionIndex: 2, themeGroupCount: 4);
+
+            Assert.That(second, Is.EqualTo(first));
+        }
+
+        [Test]
+        public void ThemeIndexSelector_ReturnsIndexInsideThemeGroupCount()
+        {
+            var selector = new EncounterThemeIndexSelector();
+
+            for (int themeSectionIndex = 0; themeSectionIndex < 32; themeSectionIndex++)
+            {
+                int result = selector.Select(runSeed: 77, themeSectionIndex, themeGroupCount: 5);
+
+                Assert.That(result, Is.GreaterThanOrEqualTo(0));
+                Assert.That(result, Is.LessThan(5));
+            }
+        }
+
+        [Test]
+        public void ThemeIndexSelector_SingleThemeGroup_ReturnsZero()
+        {
+            var selector = new EncounterThemeIndexSelector();
+
+            Assert.That(selector.Select(runSeed: 1, themeSectionIndex: 0, themeGroupCount: 1), Is.EqualTo(0));
+            Assert.That(selector.Select(runSeed: 999, themeSectionIndex: 20, themeGroupCount: 1), Is.EqualTo(0));
+        }
+
+        [Test]
+        public void ThemeIndexSelector_DifferentThemeSectionIndex_CanReturnDifferentResult()
+        {
+            var selector = new EncounterThemeIndexSelector();
+            bool foundDifferent = false;
+            int first = selector.Select(runSeed: 1234, themeSectionIndex: 0, themeGroupCount: 4);
+
+            for (int themeSectionIndex = 1; themeSectionIndex < 16; themeSectionIndex++)
+            {
+                int next = selector.Select(runSeed: 1234, themeSectionIndex, themeGroupCount: 4);
+                if (next != first)
+                {
+                    foundDifferent = true;
+                    break;
+                }
+            }
+
+            Assert.That(foundDifferent, Is.True);
+        }
+
+        [TestCase(2)]
+        [TestCase(3)]
+        [TestCase(5)]
+        public void ThemeIndexSelector_AdjacentThemeSections_DoNotRepeatTheme(int themeGroupCount)
+        {
+            var selector = new EncounterThemeIndexSelector();
+            int previous = selector.Select(runSeed: 1234, themeSectionIndex: 0, themeGroupCount);
+
+            for (int themeSectionIndex = 1; themeSectionIndex < 32; themeSectionIndex++)
+            {
+                int current = selector.Select(runSeed: 1234, themeSectionIndex, themeGroupCount);
+
+                Assert.That(current, Is.Not.EqualTo(previous));
+                previous = current;
+            }
+        }
+
+        [TestCase(0)]
+        [TestCase(-1)]
+        public void ThemeIndexSelector_InvalidThemeGroupCount_Fails(int themeGroupCount)
+        {
+            var selector = new EncounterThemeIndexSelector();
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                selector.Select(runSeed: 1, themeSectionIndex: 0, themeGroupCount));
+        }
+
+        [Test]
+        public void ThemeIndexSelector_InvalidThemeSectionIndex_Fails()
+        {
+            var selector = new EncounterThemeIndexSelector();
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                selector.Select(runSeed: 1, themeSectionIndex: -1, themeGroupCount: 2));
+        }
+
         private static EncounterDefinition InvokeSelectWeightedCandidate(
             IReadOnlyList<EncounterDefinition> candidates,
             int roll)
@@ -198,11 +298,34 @@ namespace SlotRogue.UI.Tests.GameFlow
             return ScriptableObject.CreateInstance<MonsterDefinition>();
         }
 
-        private static EncounterTable CreateTable(string name, params EncounterDefinition[] encounters)
+        private static EncounterDefinition[] Group(params EncounterDefinition[] encounters)
+        {
+            return encounters;
+        }
+
+        private static EncounterTable CreateTable(string name, params EncounterDefinition[][] groups)
         {
             EncounterTable table = ScriptableObject.CreateInstance<EncounterTable>();
             table.name = name;
-            SetField(table, "_encounters", encounters);
+            Type groupType = typeof(EncounterTable).GetNestedType(
+                "ThemeGroup",
+                BindingFlags.NonPublic);
+            Array themeGroups = Array.CreateInstance(groupType, groups.Length);
+            FieldInfo encountersField = groupType.GetField(
+                "_encounters",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+
+            for (int index = 0; index < groups.Length; index++)
+            {
+                object group = Activator.CreateInstance(groupType, nonPublic: true);
+                encountersField.SetValue(group, groups[index]);
+                themeGroups.SetValue(group, index);
+            }
+
+            FieldInfo field = typeof(EncounterTable).GetField(
+                "_themeGroups",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            field.SetValue(table, themeGroups);
             return table;
         }
 
@@ -210,17 +333,13 @@ namespace SlotRogue.UI.Tests.GameFlow
             string id,
             EncounterTier tier,
             MonsterDefinition[] monsters,
-            int weight = 1,
-            int minCycle = 0,
-            int maxCycle = -1)
+            int weight = 1)
         {
             var encounter = new EncounterDefinition();
             SetField(encounter, "_id", id);
             SetField(encounter, "_tier", tier);
             SetField(encounter, "_monsters", monsters);
             SetField(encounter, "_weight", weight);
-            SetField(encounter, "_minCycle", minCycle);
-            SetField(encounter, "_maxCycle", maxCycle);
             return encounter;
         }
 

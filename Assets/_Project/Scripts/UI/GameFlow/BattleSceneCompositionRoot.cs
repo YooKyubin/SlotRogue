@@ -42,6 +42,7 @@ namespace SlotRogue.UI.GameFlow
 
         private BattleFlowController _battleFlowController;
         private readonly EncounterSelector _encounterSelector = new();
+        private readonly EncounterThemeIndexSelector _themeIndexSelector = new();
         private readonly RunBattleResultRecorder _resultRecorder = new();
         private CancellationTokenSource _battleStartCts;
         private CancellationTokenSource _presentationCts;
@@ -215,7 +216,10 @@ namespace SlotRogue.UI.GameFlow
             int battleNumber = GameFlowSession.CurrentBattleNumber;
             WaveSchedule waveSchedule = CreateWaveSchedule();
             WaveResult wave = waveSchedule.Evaluate(battleNumber);
-            var buildContext = new EncounterBuildContext(wave.Tier, battleNumber, wave.Cycle);
+            var buildContext = new EncounterBuildContext(
+                wave.EncounterTier,
+                battleNumber,
+                wave.ThemeSectionIndex);
             EncounterBalanceConfig balanceConfig = CreateEncounterBalanceConfig();
 
             if (_devMonsterDefinitionOverride != null)
@@ -233,10 +237,14 @@ namespace SlotRogue.UI.GameFlow
                     "Assign an EncounterTable asset before starting battle without Dev Monster Override.");
             }
 
+            int themeGroupIndex = _themeIndexSelector.Select(
+                GameFlowSession.RunSeed,
+                wave.ThemeSectionIndex,
+                _encounterTable.ThemeGroupCount);
             var request = new EncounterSelectionRequest(
                 _encounterTable,
-                wave.Tier,
-                wave.Cycle,
+                wave.EncounterTier,
+                themeGroupIndex,
                 GameFlowSession.RunSeed,
                 battleNumber);
             EncounterSelection selection = _encounterSelector.Select(request);
