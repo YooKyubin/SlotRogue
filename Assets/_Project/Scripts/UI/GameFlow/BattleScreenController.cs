@@ -23,6 +23,8 @@ namespace SlotRogue.UI.GameFlow
         private int _runDamageBonus;
         private int _runDefenseBonus;
         private bool _battleCompleted;
+        private bool _spinInputBlocked;
+        private bool _targetSelectionBlocked;
         private bool _isBound;
 
         internal BattleScreenController(RunBattleScreenView view)
@@ -59,6 +61,8 @@ namespace SlotRogue.UI.GameFlow
             _isPresentationBusy = isPresentationBusy ?? throw new ArgumentNullException(nameof(isPresentationBusy));
             _isTurnRunning = isTurnRunning ?? throw new ArgumentNullException(nameof(isTurnRunning));
             _battleCompleted = false;
+            _spinInputBlocked = false;
+            _targetSelectionBlocked = false;
             _enemyVisibleIntentState.Clear();
 
             _targetSelectionController = new BattleTargetSelectionController(
@@ -66,7 +70,7 @@ namespace SlotRogue.UI.GameFlow
                 _view,
                 _encounterRoster,
                 _isPresentationBusy,
-                _isTurnRunning,
+                () => _isTurnRunning() || _targetSelectionBlocked,
                 Refresh);
             _targetSelectionController.ResolveSelectedEnemyId();
             _enemyVisibleIntentState.RefreshFromBattle(_battle, _battle.Enemies, _encounterRoster);
@@ -83,6 +87,21 @@ namespace SlotRogue.UI.GameFlow
         internal void SetSpinInteractable(bool interactable)
         {
             _viewModel.SetSpinInteractable(interactable);
+        }
+
+        internal void SetSpinInputBlocked(bool blocked)
+        {
+            _spinInputBlocked = blocked;
+            if (_battle != null && _battle.CurrentPhase != BattlePhase.NotInBattle)
+            {
+                UpdateSpinButtonState();
+            }
+        }
+
+        internal void SetTargetSelectionBlocked(bool blocked)
+        {
+            _targetSelectionBlocked = blocked;
+            Refresh();
         }
 
         internal void UpdateTurnResult(
@@ -154,7 +173,7 @@ namespace SlotRogue.UI.GameFlow
                     _encounterRoster,
                     selectedTargetId,
                     _isPresentationBusy(),
-                    _isTurnRunning());
+                    _isTurnRunning() || _targetSelectionBlocked);
             });
 
             UpdateSpinButtonState();
@@ -288,7 +307,8 @@ namespace SlotRogue.UI.GameFlow
             bool canSpin = _battle.CurrentPhase != BattlePhase.NotInBattle
                 && _battle.CanApplyPlayerTurn
                 && !_isPresentationBusy()
-                && !_isTurnRunning();
+                && !_isTurnRunning()
+                && !_spinInputBlocked;
 
             _viewModel.SetActionMode(RunBattleActionMode.Spin, canSpin);
         }

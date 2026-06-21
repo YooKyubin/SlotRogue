@@ -167,6 +167,92 @@ namespace SlotRogue.UI.Tests.GameFlow
             var reward = new RunRewardDefinition(relic);
 
             Assert.That(reward.IconKey, Is.EqualTo(relic.IconKey));
+            Assert.That(reward.ModifierIconKey, Is.Empty);
+        }
+
+        [Test]
+        public void RelicSelectionDescription_UsesTmpSpriteTag()
+        {
+            RelicDefinition relic = RelicCatalog.GetById("S-01");
+
+            string description = RelicDisplay.BuildSelectionDescription(relic);
+
+            Assert.That(description, Does.Contain(
+                "<sprite index=" +
+                SlotSymbolIconKeys.TmpSpriteIndexFor(SlotSymbolType.Cherry) +
+                "> <color=" +
+                RelicDisplay.SymbolColorHex(SlotSymbolType.Cherry) +
+                ">체리</color>"));
+            Assert.That(description, Does.Not.Contain("[시작"));
+            Assert.That(description, Does.Not.Contain("체리 3개"));
+        }
+
+        [Test]
+        public void RelicSelectionDescription_UsesSymbolColorText()
+        {
+            RelicDefinition relic = RelicCatalog.GetById("S-04");
+
+            string description = RelicDisplay.BuildSelectionDescription(relic);
+
+            Assert.That(description, Does.Contain(
+                "<sprite index=" +
+                SlotSymbolIconKeys.TmpSpriteIndexFor(SlotSymbolType.Lemon) +
+                "> <color=" +
+                RelicDisplay.SymbolColorHex(SlotSymbolType.Lemon) +
+                ">레몬</color>"));
+        }
+
+        [Test]
+        public void TmpSpriteIndexes_FollowSlotSymbolOrder()
+        {
+            Assert.That(
+                SlotSymbolIconKeys.TmpSpriteIndexFor(SlotSymbolType.Cherry),
+                Is.EqualTo(0));
+            Assert.That(
+                SlotSymbolIconKeys.TmpSpriteIndexFor(SlotSymbolType.Lemon),
+                Is.EqualTo(5));
+        }
+
+        [TestCase(SlotSymbolType.Cherry, SlotSymbolIconKeys.Cherry)]
+        [TestCase(SlotSymbolType.Seven, SlotSymbolIconKeys.Seven)]
+        [TestCase(SlotSymbolType.Diamond, SlotSymbolIconKeys.Diamond)]
+        [TestCase(SlotSymbolType.Bell, SlotSymbolIconKeys.Bell)]
+        [TestCase(SlotSymbolType.Clover, SlotSymbolIconKeys.Clover)]
+        [TestCase(SlotSymbolType.Lemon, SlotSymbolIconKeys.Lemon)]
+        public void SymbolReward_CopiesSymbolIconKey(
+            SlotSymbolType symbol,
+            string expectedIconKey)
+        {
+            var reward = new RunRewardDefinition(
+                symbol,
+                1,
+                "Symbol",
+                "Add symbol");
+
+            Assert.That(reward.IconKey, Is.EqualTo(expectedIconKey));
+            Assert.That(reward.ModifierIconKey, Is.EqualTo(RewardModifierIconKeys.AddOne));
+        }
+
+        [Test]
+        public void SymbolRemoveReward_UsesRemoveModifierIcon()
+        {
+            var reward = new RunRewardDefinition(
+                SlotSymbolType.Cherry,
+                -1,
+                "Cherry",
+                "Remove cherry");
+
+            Assert.That(reward.ModifierIconKey, Is.EqualTo(RewardModifierIconKeys.RemoveOne));
+        }
+
+        [Test]
+        public void IconSheetAddresses_FollowAddressableNames()
+        {
+            Assert.That(RelicIconKeys.SheetAddress, Is.EqualTo("Relic Sheet Highlight"));
+            Assert.That(SlotSymbolIconKeys.NormalSheetAddress, Is.EqualTo("Symbol Sheet Normal"));
+            Assert.That(SlotSymbolIconKeys.AnimationSheetAddress, Is.EqualTo("Symbol Sheet Animation"));
+            Assert.That(SlotSymbolIconKeys.HighlightSheetAddress, Is.EqualTo("Symbol Sheet Highlight"));
+            Assert.That(SlotSymbolIconKeys.TmpSpriteAssetAddress, Is.EqualTo("Symbols-Sheet-TMP"));
         }
 
         [Test]
@@ -313,6 +399,65 @@ namespace SlotRogue.UI.Tests.GameFlow
             }
         }
 
+        [Test]
+        public void RunInventory_Open_ShowsCurrentSymbolPoolCounts()
+        {
+            GameFlowSession.StartNewRun();
+            var viewModel = new RunInventoryViewModel();
+
+            viewModel.Open();
+
+            Assert.That(viewModel.State.IsOpen, Is.True);
+            Assert.That(viewModel.State.ActiveTab, Is.EqualTo(RunInventoryTab.SymbolPool));
+            Assert.That(viewModel.State.Symbols.Count, Is.EqualTo(SlotSymbolPool.Symbols.Count));
+            AssertInventorySymbolCount(viewModel.State, SlotSymbolType.Cherry, 6);
+            AssertInventorySymbolCount(viewModel.State, SlotSymbolType.Seven, 4);
+        }
+
+        [Test]
+        public void RunInventory_Refresh_ReflectsSymbolReward()
+        {
+            GameFlowSession.StartNewRun();
+            var viewModel = new RunInventoryViewModel();
+            GameFlowSession.ApplySymbolReward(SlotSymbolType.Lemon, 2);
+
+            viewModel.Open();
+
+            AssertInventorySymbolCount(viewModel.State, SlotSymbolType.Lemon, 6);
+            Assert.That(viewModel.State.Summary, Does.Contain("심볼 32개"));
+        }
+
+        [Test]
+        public void RunInventory_RelicTab_ShowsAllOwnedRelics()
+        {
+            GameFlowSession.StartNewRun();
+            var viewModel = new RunInventoryViewModel();
+            GameFlowSession.SelectStarterRelic(RelicCatalog.GetById("S-01"));
+            GameFlowSession.AddRelic(RelicCatalog.GetById("C-01"));
+
+            viewModel.Open();
+            viewModel.SelectTab(RunInventoryTab.Relics);
+
+            Assert.That(viewModel.State.ActiveTab, Is.EqualTo(RunInventoryTab.Relics));
+            Assert.That(viewModel.State.Relics.Count, Is.EqualTo(2));
+            Assert.That(viewModel.State.Relics[0].Id, Is.EqualTo("S-01"));
+            Assert.That(viewModel.State.Relics[1].Id, Is.EqualTo("C-01"));
+            Assert.That(viewModel.State.Relics[0].Description, Does.Contain("체리"));
+        }
+
+        [Test]
+        public void RunInventory_Close_HidesPanelButKeepsSnapshot()
+        {
+            GameFlowSession.StartNewRun();
+            var viewModel = new RunInventoryViewModel();
+            viewModel.Open();
+
+            viewModel.Close();
+
+            Assert.That(viewModel.State.IsOpen, Is.False);
+            Assert.That(viewModel.State.Symbols.Count, Is.EqualTo(SlotSymbolPool.Symbols.Count));
+        }
+
         private static RunRewardDefinition FindRewardByRelicId(
             IReadOnlyList<RunRewardDefinition> rewards,
             string relicId)
@@ -326,6 +471,23 @@ namespace SlotRogue.UI.Tests.GameFlow
             }
 
             return null;
+        }
+
+        private static void AssertInventorySymbolCount(
+            RunInventoryViewState state,
+            SlotSymbolType symbol,
+            int expectedCount)
+        {
+            foreach (RunInventorySymbolViewState item in state.Symbols)
+            {
+                if (item.Symbol == symbol)
+                {
+                    Assert.That(item.Count, Is.EqualTo(expectedCount));
+                    return;
+                }
+            }
+
+            Assert.Fail($"심볼이 인벤토리에 없습니다: {symbol}");
         }
     }
 }

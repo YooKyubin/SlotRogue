@@ -40,6 +40,9 @@
 - [x] 심볼 풀 시작 개수 차등(고확률 체리/클로버/종 6, 저확률 레몬/다이아/7 4) 적용 + EditMode 테스트
 - [x] 보상 등급 분기: 일반전 = 심볼 추가/제거, 엘리트/보스 = 유물 선택 + EditMode 테스트
 - [x] 슬롯 심볼 native size 기준 1.25배 표시와 작은 족보 순차 확대·원복·패턴별 유물 공격력 연출 복구
+- [x] 일반전 심볼 보상 카드에 Addressable 심볼 아이콘과 +/- 배지 표시
+- [x] 슬롯머신 일반/스핀 심볼과 유물/심볼 보상 아이콘 Addressable 키 변경 반영
+- [x] 전투 `Relic Inventory Origin` 버튼에서 심볼 풀/유물 탭 인벤토리 표시
 - [ ] Unity Editor에서 `GameStart`부터 Play 검증
 
 ## Notes
@@ -75,6 +78,17 @@
 - 2026-06-12: `RunRewardCatalog.ForTier`를 등급 분기로 변경 — 일반전은 심볼 추가(+1)/제거(-1, 최소 1개 유지) 보상, 엘리트는 Common+Uncommon 유물, 보스는 Uncommon 이상 유물. `RunRewardViewModel`/`GameFlowSession.ApplySymbolReward` 기존 경로 재사용으로 View 수정 없음. `dotnet build` 4개 asm 경고/오류 0, EditMode 테스트는 Unity Test Runner 실행 보류.
 - 2026-06-13: 릴 심볼 표시 크기를 기존 대비 1.25배로 복구했다. 패턴 View가 숨겨진 레거시 셀이 아니라 현재 보이는 릴 심볼을 확대하고 원래 크기로 복귀하도록 연결했으며, 유물 발동 패턴 인덱스를 보존해 `패턴 → 해당 유물과 누적 공격력 증가 → 다음 패턴` 순서로 큐를 재생한다. Addressable 유물 아이콘을 전투 진입 시 캐시하고 `dotnet build SlotRogue.slnx --no-restore` 경고·오류 0개를 확인했다. Unity Play 검증은 보류.
 - 2026-06-14: 심볼 1.25배의 기준을 셀/기존 고정 크기가 아니라 각 Sprite의 `Image.SetNativeSize()` 결과로 정정했다. 정적 심볼과 세로로 긴 스핀 심볼 모두 자신의 native width/height를 유지한 채 1.25배 표시한다.
+- 2026-06-17: 일반전 심볼 보상에 `slot/icons/symbols` Addressable 심볼 시트와 `ui/icons/reward-symbol-delta` +/- 배지를 연결했다. 유물 보상에서는 배지를 숨기며, 슬롯머신 릴 심볼 Sprite 배열은 ADR-0007에 따라 프리팹 직렬화 참조를 유지한다. `dotnet build SlotRogue.slnx --no-restore` 경고·오류 0개를 확인했다. Unity Play 검증은 보류.
+- 2026-06-18: Addressable 이름 변경에 맞춰 유물 선택/보상은 `Relic Sheet Highlight`, 심볼 보상은 `Symbol Sheet Highlight`, 슬롯머신 정적 릴은 `Symbol Sheet Normal`, 스핀 중 릴은 `Symbol Sheet Animation`을 사용하도록 수정했다. 전투 시작 조립 단계에서 슬롯 심볼 Sprite 배열을 로드해 `SlotPresentationManager`에 주입하고, 로드 실패 시 기존 프리팹 직렬화 참조를 유지한다. `dotnet build SlotRogue.slnx --no-restore` 경고·오류 0개를 확인했다. Unity Play 검증은 보류.
+- 2026-06-18: `Symbol Sheet Normal`과 `Symbol Sheet Animation`에 `default` label을 추가하고, Boot preload에서 유물/심볼/배지/슬롯 sub-sprite 키를 `AddressableSpriteCache`에 명시적으로 올리도록 수정했다. RunGame 아이콘 렌더러와 슬롯 심볼 로더는 cache hit 시 즉시 Sprite를 사용하므로 씬 전환 뒤 placeholder에서 실제 이미지로 바뀌는 현상을 방지한다. `dotnet build SlotRogue.slnx --no-restore` 경고·오류 0개를 확인했다. Unity Play 검증은 보류.
+- 2026-06-18: 패배 화면 진입 때 슬롯 릴 overlay가 비활성화된 뒤 부활 복귀에서 `BeginBattle()`을 다시 타지 않아 심볼이 보이지 않던 문제를 수정했다. revive 성공 시 기존 전투 상태를 유지한 채 슬롯 심볼 Sprite를 재주입하고 `SlotTurnController.SetupImmediate()`로 슬롯 face를 복구하며, authored reel presenter는 재활성화 때 display 릴을 다시 표시한다. `dotnet build SlotRogue.slnx --no-restore` 경고·오류 0개를 확인했다. Unity Play 검증은 보류.
+- 2026-06-18: 시작 유물 선택과 유물 보상 카드 설명에서 체리/레몬/클로버 등 트리거 심볼 이름을 텍스트 대신 `Symbol Sheet Normal` 아이콘으로 표시하도록 수정했다. 카드 메인 심볼 보상 이미지는 `Symbol Sheet Highlight`를 유지한다. `RelicDisplay.BuildSelectionDescription()`은 `<sprite name="...">` TMP 태그를 넣고, `GameFlowOptionView`가 설명 TMP에 런타임 `TMP_SpriteAsset`을 연결한다. `dotnet build SlotRogue.slnx --no-restore` 경고·오류 0개, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0을 확인했다. Unity Play 검증은 보류.
+- 2026-06-18: 런타임 생성 `TMP_SpriteAsset`이 material 할당 뒤 legacy upgrade 경로를 타며 `spriteInfoList` null로 예외가 나던 문제를 수정했다. 생성 시 TMP SpriteAsset 버전을 명시하고 lookup table 생성 뒤 material을 연결한다. `dotnet build SlotRogue.slnx --no-restore` 경고·오류 0개, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0을 확인했다. Unity Play 검증은 보류.
+- 2026-06-18: 유물 설명 TMP sprite tag 아이콘이 Sprite pivot 기준으로 배치되어 글자보다 아래로 처져 보이던 문제를 수정했다. 런타임 `TMP_SpriteAsset` glyph metric은 pivot을 쓰지 않고 baseline 기준으로 정렬한다. `dotnet build SlotRogue.slnx --no-restore` 경고·오류 0개를 확인했다. Unity Play 검증은 보류.
+- 2026-06-18: 유물 설명 카드에서 `[등급 · 역할]` 헤더와 별도 대상 줄을 제거하고 원문 설명만 표시하도록 수정했다. 선택/보상 카드에서는 원문 설명 안의 첫 심볼 이름만 TMP sprite tag로 치환한다. `dotnet build SlotRogue.slnx --no-restore` 경고·오류 0개, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0을 확인했다. Unity Play 검증은 보류.
+- 2026-06-18: 유물 설명 심볼 아이콘은 런타임 생성 TMP SpriteAsset 대신 `Symbols-Sheet-TMP` Addressable `TMP_SpriteAsset`을 로드해 사용하도록 변경했다. 설명 태그는 에셋 내부 이름 의존을 피하기 위해 `<sprite index=...>`를 사용한다. `dotnet build SlotRogue.slnx --no-restore` 경고·오류 0개, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0을 확인했다. Unity Play 검증은 보류.
+- 2026-06-18: `Symbols-Sheet-TMP`의 glyph bearing을 baseline 기준으로 보정하고, 유물 설명 심볼 치환 결과를 `아이콘 + 심볼 대표색 이름`으로 변경했다. `dotnet build SlotRogue.slnx --no-restore` 경고·오류 0개, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0을 확인했다. Unity Play 검증은 보류.
+- 2026-06-18: `40_SlotMachineArea`의 `Relic Inventory Origin`을 런타임 버튼으로 연결하고, `RunInventoryViewModel`/`RunInventoryView`로 심볼 풀 현재 개수와 보유 유물 전체를 탭으로 표시한다. `dotnet build SlotRogue.slnx --no-restore` 경고·오류 0개, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0을 확인했다. Unity Play 검증은 보류.
 
 ## Completion
 

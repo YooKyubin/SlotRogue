@@ -19,8 +19,9 @@ namespace SlotRogue.UI.GameFlow
             Kind = RunRewardKind.Relic;
             Relic = relic;
             DisplayName = relic != null ? relic.Name : "유물";
-            Description = RelicDisplay.BuildDescription(relic);
+            Description = RelicDisplay.BuildSelectionDescription(relic);
             IconKey = relic != null ? relic.IconKey : string.Empty;
+            ModifierIconKey = string.Empty;
         }
 
         /// <summary>스탯/효과 보상.</summary>
@@ -31,9 +32,10 @@ namespace SlotRogue.UI.GameFlow
             DisplayName = displayName;
             Description = description;
             IconKey = string.Empty;
+            ModifierIconKey = string.Empty;
         }
 
-        /// <summary>슬롯 풀 심볼 추가 보상.</summary>
+        /// <summary>슬롯 풀 심볼 추가/제거 보상.</summary>
         public RunRewardDefinition(SlotSymbolType symbol, int amount, string displayName, string description)
         {
             Kind = RunRewardKind.Symbol;
@@ -41,7 +43,8 @@ namespace SlotRogue.UI.GameFlow
             Amount = amount;
             DisplayName = displayName;
             Description = description;
-            IconKey = string.Empty;
+            IconKey = SlotSymbolIconKeys.For(symbol);
+            ModifierIconKey = RewardModifierIconKeys.ForAmount(amount);
         }
 
         public RunRewardKind Kind { get; }
@@ -59,6 +62,8 @@ namespace SlotRogue.UI.GameFlow
         public string Description { get; }
 
         public string IconKey { get; }
+
+        public string ModifierIconKey { get; }
 
         public bool Equals(RunRewardDefinition other)
         {
@@ -103,6 +108,110 @@ namespace SlotRogue.UI.GameFlow
                     _ => (hashCode * 397) ^ (int)Type,
                 };
             }
+        }
+    }
+
+    public static class SlotSymbolIconKeys
+    {
+        public const string HighlightSheetAddress = "Symbol Sheet Highlight";
+        public const string NormalSheetAddress = "Symbol Sheet Normal";
+        public const string AnimationSheetAddress = "Symbol Sheet Animation";
+        public const string TmpSpriteAssetAddress = "Symbols-Sheet-TMP";
+
+        public const string Cherry = HighlightSheetAddress + "[icon-Sheet2_0]";
+        public const string Seven = HighlightSheetAddress + "[icon-Sheet2_1]";
+        public const string Diamond = HighlightSheetAddress + "[icon-Sheet2_2]";
+        public const string Bell = HighlightSheetAddress + "[icon-Sheet2_3]";
+        public const string Clover = HighlightSheetAddress + "[icon-Sheet2_4]";
+        public const string Lemon = HighlightSheetAddress + "[icon-Sheet2_5]";
+
+        public static readonly string[] HighlightSpriteKeys =
+        {
+            Cherry,
+            Seven,
+            Diamond,
+            Bell,
+            Clover,
+            Lemon,
+        };
+
+        public static readonly string[] NormalSpriteKeys =
+        {
+            NormalSheetAddress + "[Icon-Sheet_0]",
+            NormalSheetAddress + "[Icon-Sheet_1]",
+            NormalSheetAddress + "[Icon-Sheet_2]",
+            NormalSheetAddress + "[Icon-Sheet_3]",
+            NormalSheetAddress + "[Icon-Sheet_4]",
+            NormalSheetAddress + "[Icon-Sheet_5]",
+        };
+
+        public static readonly string[] AnimationSpriteKeys =
+        {
+            AnimationSheetAddress + "[icon-Sheet-ani_0]",
+            AnimationSheetAddress + "[icon-Sheet-ani_1]",
+            AnimationSheetAddress + "[icon-Sheet-ani_2]",
+            AnimationSheetAddress + "[icon-Sheet-ani_3]",
+            AnimationSheetAddress + "[icon-Sheet-ani_4]",
+            AnimationSheetAddress + "[icon-Sheet-ani_5]",
+        };
+
+        public static string For(SlotSymbolType symbol)
+        {
+            switch (symbol)
+            {
+                case SlotSymbolType.Seven:
+                    return Seven;
+                case SlotSymbolType.Diamond:
+                    return Diamond;
+                case SlotSymbolType.Bell:
+                    return Bell;
+                case SlotSymbolType.Clover:
+                    return Clover;
+                case SlotSymbolType.Lemon:
+                    return Lemon;
+                default:
+                    return Cherry;
+            }
+        }
+
+        public static string NormalFor(SlotSymbolType symbol)
+        {
+            int index = (int)symbol;
+            if (index >= 0 && index < NormalSpriteKeys.Length)
+            {
+                return NormalSpriteKeys[index];
+            }
+
+            return NormalSpriteKeys[0];
+        }
+
+        public static int TmpSpriteIndexFor(SlotSymbolType symbol)
+        {
+            int index = (int)symbol;
+            if (index >= 0 && index < NormalSpriteKeys.Length)
+            {
+                return index;
+            }
+
+            return 0;
+        }
+    }
+
+    public static class RewardModifierIconKeys
+    {
+        public const string SheetAddress = "ui/icons/reward-symbol-delta";
+
+        public const string AddOne = SheetAddress + "[icon_relicplus_0]";
+        public const string RemoveOne = SheetAddress + "[icon_relicplus_1]";
+
+        public static string ForAmount(int amount)
+        {
+            if (amount > 0)
+            {
+                return AddOne;
+            }
+
+            return amount < 0 ? RemoveOne : string.Empty;
         }
     }
 }

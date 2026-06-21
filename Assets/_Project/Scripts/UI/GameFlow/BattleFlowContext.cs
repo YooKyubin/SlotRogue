@@ -41,12 +41,15 @@ namespace SlotRogue.UI.GameFlow
         public BattleFlowResult(
             BattleEndReason endReason,
             int remainingPlayerHp,
-            IReadOnlyList<RelicContributionSnapshot> relicContributions)
+            IReadOnlyList<RelicContributionSnapshot> relicContributions,
+            IReadOnlyList<SlotSymbolContributionSnapshot> slotSymbolContributions)
         {
             EndReason = endReason;
             RemainingPlayerHp = remainingPlayerHp;
             RelicContributions =
                 relicContributions ?? Array.Empty<RelicContributionSnapshot>();
+            SlotSymbolContributions =
+                slotSymbolContributions ?? Array.Empty<SlotSymbolContributionSnapshot>();
         }
 
         public BattleEndReason EndReason { get; }
@@ -54,5 +57,7 @@ namespace SlotRogue.UI.GameFlow
         public int RemainingPlayerHp { get; }
 
         public IReadOnlyList<RelicContributionSnapshot> RelicContributions { get; }
+
+        public IReadOnlyList<SlotSymbolContributionSnapshot> SlotSymbolContributions { get; }
     }
 }

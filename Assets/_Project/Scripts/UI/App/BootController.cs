@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Cysharp.Threading.Tasks;
+using SlotRogue.Relics.Pool;
+using SlotRogue.UI.GameFlow;
 using SlotRogue.UI.Iap;
 using SlotRogue.UI.Leaderboard;
 using UnityEngine;
@@ -72,6 +75,7 @@ namespace SlotRogue.UI.App
 
             await InitializeAddressablesAsync();
             await LoadDefaultAddressablesAsync();
+            await LoadPresentationSpritesAsync();
             _completed = true;
         }
 
@@ -121,6 +125,54 @@ namespace SlotRogue.UI.App
 
             Debug.LogWarning(
                 $"[BootAssetPreloader] Default Addressables preload failed: {FailureReason(_defaultAssetsHandle)}");
+        }
+
+        private static async UniTask LoadPresentationSpritesAsync()
+        {
+            IReadOnlyList<string> keys = BuildPresentationSpriteKeys();
+            await AddressableSpriteCache.PreloadAsync(keys, CancellationToken.None);
+        }
+
+        private static IReadOnlyList<string> BuildPresentationSpriteKeys()
+        {
+            var keys = new List<string>();
+
+            AddRange(keys, RelicIconKeys.All);
+            foreach (RelicDefinition relic in RelicCatalog.All)
+            {
+                AddUnique(keys, relic.IconKey);
+            }
+
+            AddRange(keys, SlotSymbolIconKeys.HighlightSpriteKeys);
+            AddRange(keys, SlotSymbolIconKeys.NormalSpriteKeys);
+            AddRange(keys, SlotSymbolIconKeys.AnimationSpriteKeys);
+            AddUnique(keys, RewardModifierIconKeys.AddOne);
+            AddUnique(keys, RewardModifierIconKeys.RemoveOne);
+
+            return keys;
+        }
+
+        private static void AddRange(List<string> keys, IReadOnlyList<string> source)
+        {
+            if (source == null)
+            {
+                return;
+            }
+
+            for (int index = 0; index < source.Count; index++)
+            {
+                AddUnique(keys, source[index]);
+            }
+        }
+
+        private static void AddUnique(List<string> keys, string key)
+        {
+            if (string.IsNullOrEmpty(key) || keys.Contains(key))
+            {
+                return;
+            }
+
+            keys.Add(key);
         }
 
         private static string FailureReason(AsyncOperationHandle handle)

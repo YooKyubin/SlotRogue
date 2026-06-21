@@ -3,7 +3,7 @@
 **Status**: accepted
 **Date**: 2026-06-13
 **Supersedes**: none
-**Superseded by**: none
+**Superseded by**: ADR-0018 (최종 결과 통계 표시 항목)
 **Related design-docs**: [`game-flow.md`](../design-docs/game-flow.md), [`rewarded-ads.md`](../design-docs/rewarded-ads.md)
 
 ---
@@ -38,3 +38,7 @@
 - 광고 표시 실패와 보상 없는 종료를 SceneRoot에 알리는 종료 event가 필요하다.
 - 전투 결과는 전투 중 누적된 유물 기여 snapshot을 포함해야 한다.
 - 기여도 수치는 실제 HP 변화가 아니라 비교 가능한 명목 효과량이다.
+
+## Notes
+
+- 2026-06-19: 최종 패배 결과 화면의 기본 표시 항목은 [ADR-0018](./0018-defeat-result-symbol-pattern-stats.md)에 따라 심볼별 족보 통계로 대체한다. 유물 기여도 누적 모델은 내부 데이터로 유지한다.

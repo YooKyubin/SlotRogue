@@ -2,7 +2,7 @@ namespace SlotRogue.Relics.Pool
 {
     public static class RelicIconKeys
     {
-        public const string SheetAddress = "relic/icons/base";
+        public const string SheetAddress = "Relic Sheet Highlight";
 
         public const string Slot00 = SheetAddress + "[RelicIcon-Sheet2_0]";
         public const string Slot01 = SheetAddress + "[RelicIcon-Sheet2_1]";
@@ -22,6 +22,26 @@ namespace SlotRogue.Relics.Pool
         public const string Slot15 = SheetAddress + "[RelicIcon-Sheet2_15]";
 
         public const string Default = Slot00;
+
+        public static readonly string[] All =
+        {
+            Slot00,
+            Slot01,
+            Slot02,
+            Slot03,
+            Slot04,
+            Slot05,
+            Slot06,
+            Slot07,
+            Slot08,
+            Slot09,
+            Slot10,
+            Slot11,
+            Slot12,
+            Slot13,
+            Slot14,
+            Slot15,
+        };
 
         public static string DefaultFor(RelicRole role)
         {

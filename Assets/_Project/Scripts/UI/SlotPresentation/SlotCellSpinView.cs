@@ -42,6 +42,19 @@ namespace SlotRogue.UI.SlotPresentation
             }
         }
 
+        public void SetSymbolSprites(Sprite[] symbolSprites, Sprite[] spinSymbolSprites)
+        {
+            if (symbolSprites != null && symbolSprites.Length > 0)
+            {
+                _symbolSprites = symbolSprites;
+            }
+
+            if (spinSymbolSprites != null && spinSymbolSprites.Length > 0)
+            {
+                _spinSymbolSprites = spinSymbolSprites;
+            }
+        }
+
         public void StopImmediate(SlotSpinResult spinResult = null)
         {
             EnsureReferences();

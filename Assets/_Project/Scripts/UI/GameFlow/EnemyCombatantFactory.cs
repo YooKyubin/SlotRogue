@@ -25,13 +25,24 @@ namespace SlotRogue.UI.GameFlow
 
         public EnemyCombatantBuildResult CreateWithPresentation(MonsterDefinition definition, int rosterIndex)
         {
+            return CreateWithPresentation(definition, rosterIndex, maxHpOverride: null);
+        }
+
+        public EnemyCombatantBuildResult CreateWithPresentation(
+            MonsterDefinition definition,
+            int rosterIndex,
+            int? maxHpOverride)
+        {
             if (definition == null)
             {
                 throw new ArgumentNullException(nameof(definition));
             }
 
             EnemyActionPlannerBuildResult plannerResult = _plannerFactory.Build(definition.turnPattern);
-            EnemyCombatant combatant = Create(rosterIndex, definition.maxHp, plannerResult.Planner);
+            EnemyCombatant combatant = Create(
+                rosterIndex,
+                maxHpOverride ?? definition.maxHp,
+                plannerResult.Planner);
             return new EnemyCombatantBuildResult(combatant, plannerResult.PresentationMap);
         }
 

@@ -32,6 +32,7 @@ namespace SlotRogue.UI.RunGame
         [SerializeField] private Text _rankingButtonText;
         [SerializeField] private Button _homeButton;
         [SerializeField] private Text _homeButtonText;
+        [SerializeField] private bool _allowRuntimeLayoutFallback;
 
         private Sprite _monsterPortrait;
         private bool _subscribed;
@@ -51,7 +52,11 @@ namespace SlotRogue.UI.RunGame
 
         public void OnEnter()
         {
-            EnsureRuntimeLayout();
+            if (!EnsureRuntimeLayout())
+            {
+                return;
+            }
+
             gameObject.SetActive(true);
             transform.SetAsLastSibling();
         }
@@ -73,7 +78,11 @@ namespace SlotRogue.UI.RunGame
 
         public void Render(RunDefeatViewState state)
         {
-            EnsureRuntimeLayout();
+            if (!EnsureRuntimeLayout())
+            {
+                return;
+            }
+
             SetText(_titleText, state.Title);
             SetText(_countdownText, state.CountdownLabel);
             SetText(_summaryText, state.Summary);
@@ -100,15 +109,23 @@ namespace SlotRogue.UI.RunGame
             }
         }
 
-        public void EnsureRuntimeLayout()
+        public bool EnsureRuntimeLayout()
         {
             ResolveSceneReferences();
-            if (_layoutRoot == null)
+            if (!HasRequiredReferences())
             {
+                if (!_allowRuntimeLayoutFallback)
+                {
+                    Debug.LogError(
+                        "[RunDefeatView] Required defeat result UI objects must be placed in the hierarchy.");
+                    return false;
+                }
+
                 BuildRuntimeLayout();
             }
 
             SubscribeButtons();
+            return HasRequiredReferences();
         }
 
         private void ResolveSceneReferences()
@@ -122,13 +139,33 @@ namespace SlotRogue.UI.RunGame
             _reviveButtonText ??= FindChildComponent<Text>("Revive Button Text");
             _resultRoot ??= FindDeepChild(transform, "Run Result Root")?.gameObject;
             _summaryText ??= FindChildComponent<Text>("Defeat Summary");
-            _contributionText ??= FindChildComponent<Text>("Relic Contribution Text");
+            _contributionText ??= FindChildComponent<Text>("Symbol Contribution Text") ??
+                FindChildComponent<Text>("Relic Contribution Text");
             _newRunButton ??= FindChildComponent<Button>("New Run Button");
             _newRunButtonText ??= FindChildComponent<Text>("New Run Button Text");
             _rankingButton ??= FindChildComponent<Button>("Ranking Button");
             _rankingButtonText ??= FindChildComponent<Text>("Ranking Button Text");
             _homeButton ??= FindChildComponent<Button>("Home Button");
             _homeButtonText ??= FindChildComponent<Text>("Home Button Text");
+        }
+
+        private bool HasRequiredReferences()
+        {
+            return _layoutRoot != null &&
+                _titleText != null &&
+                _reviveOfferRoot != null &&
+                _countdownText != null &&
+                _reviveButton != null &&
+                _reviveButtonText != null &&
+                _resultRoot != null &&
+                _summaryText != null &&
+                _contributionText != null &&
+                _newRunButton != null &&
+                _newRunButtonText != null &&
+                _rankingButton != null &&
+                _rankingButtonText != null &&
+                _homeButton != null &&
+                _homeButtonText != null;
         }
 
         private void BuildRuntimeLayout()
@@ -217,13 +254,13 @@ namespace SlotRogue.UI.RunGame
                 new Vector2(0.96f, 0.98f));
 
             Text heading = CreateText(
-                "Relic Contribution Heading",
+                "Symbol Contribution Heading",
                 root,
                 font,
                 30,
                 new Vector2(0.04f, 0.69f),
                 new Vector2(0.96f, 0.77f));
-            heading.text = "RELIC CONTRIBUTION";
+            heading.text = "SYMBOL STATS";
             heading.color = new Color(1f, 0.82f, 0.38f, 1f);
 
             _contributionText = CreateScrollableText(
@@ -270,7 +307,7 @@ namespace SlotRogue.UI.RunGame
             Vector2 anchorMin,
             Vector2 anchorMax)
         {
-            RectTransform viewport = CreateRect("Relic Contribution Viewport", parent);
+            RectTransform viewport = CreateRect("Symbol Contribution Viewport", parent);
             SetAnchors(viewport, anchorMin, anchorMax);
             Image viewportImage = viewport.gameObject.AddComponent<Image>();
             viewportImage.color = new Color(0.035f, 0.025f, 0.045f, 0.92f);
@@ -283,7 +320,7 @@ namespace SlotRogue.UI.RunGame
             scrollRect.movementType = ScrollRect.MovementType.Clamped;
             scrollRect.viewport = viewport;
 
-            RectTransform content = CreateRect("Relic Contribution Text", viewport);
+            RectTransform content = CreateRect("Symbol Contribution Text", viewport);
             content.anchorMin = new Vector2(0f, 1f);
             content.anchorMax = new Vector2(1f, 1f);
             content.pivot = new Vector2(0.5f, 1f);
