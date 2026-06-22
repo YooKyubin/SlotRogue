@@ -14,10 +14,30 @@ MonoBehaviour:
   m_EditorClassIdentifier: SlotRogue.Data::SlotRogue.Data.GameFlow.EncounterTable
   _themeGroups:
   - _encounters:
-    - _id: E-MOONRABBIT-NORMAL-SINGLE
+    - _id: E-MOONRABBIT1-NORMAL-SINGLE
       _tier: 0
       _monsters:
       - {fileID: 11400000, guid: 7d9da94086c8940418db8d32ab6a1b40, type: 2}
+      _weight: 1
+    - _id: E-MOONRABBIT2-NORMAL-SINGLE
+      _tier: 0
+      _monsters:
+      - {fileID: 11400000, guid: 30c87869371d79043aeea5db8eb9ad83, type: 2}
+      _weight: 1
+    - _id: E-MOONRABBIT3-NORMAL-SINGLE
+      _tier: 0
+      _monsters:
+      - {fileID: 11400000, guid: 9aba4a62116a466d931814709dba11ef, type: 2}
+      _weight: 1
+    - _id: E-MOONRABBIT4-NORMAL-SINGLE
+      _tier: 0
+      _monsters:
+      - {fileID: 11400000, guid: fb54df2e7e4d4361b881ed6eb11561e4, type: 2}
+      _weight: 1
+    - _id: E-MOONRABBIT5-NORMAL-SINGLE
+      _tier: 0
+      _monsters:
+      - {fileID: 11400000, guid: ce6e60edb23f41e89118126e045cdf32, type: 2}
       _weight: 1
     - _id: E-MOONRABBIT-ELITE-SINGLE
       _tier: 1

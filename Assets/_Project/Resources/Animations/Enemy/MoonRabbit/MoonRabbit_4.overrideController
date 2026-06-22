@@ -1,0 +1,13 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!221 &22100000
+AnimatorOverrideController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: MoonRabbit_4
+  m_Controller: {fileID: 9100000, guid: 0858cb471b5540f42b8c70edf3f0b44b, type: 2}
+  m_Clips:
+  - m_OriginalClip: {fileID: 7400000, guid: 789393d4fac79874ba2bebf51ede1c4d, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: a80f69c62db04633afab902ccf145c85, type: 2}

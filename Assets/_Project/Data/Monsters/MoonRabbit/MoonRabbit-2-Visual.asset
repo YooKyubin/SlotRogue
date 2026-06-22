@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a91f27b5e64a4f4b9b78f4c51d26d4b3, type: 3}
-  m_Name: MoonRabbitVisual
+  m_Name: MoonRabbit-2-Visual
   m_EditorClassIdentifier: 
-  _portrait: {fileID: 21300000, guid: 75cd71cf93b72704ebaca018392f69a2, type: 3}
-  _combatVisualPrefab: {fileID: 8382574871650428895, guid: 22f2142b8608af34d8a94e1df101c9d6, type: 3}
+  _portrait: {fileID: -3742014675881055386, guid: d730748875aef9c4f8c36d8315e43a17, type: 3}
+  _combatVisualPrefab: {fileID: 8382574871650428895, guid: d6f8b6deeee422b4b8608921ccb2e8b6, type: 3}
