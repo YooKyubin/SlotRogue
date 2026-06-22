@@ -10,6 +10,7 @@ namespace SlotRogue.UI.GameFlow
         internal void Record(BattleFlowResult result)
         {
             GameFlowSession.RecordRelicContributions(result.RelicContributions);
+            GameFlowSession.RecordSlotSymbolContributions(result.SlotSymbolContributions);
 
             if (result.EndReason == BattleEndReason.Victory)
             {
@@ -30,7 +31,8 @@ namespace SlotRogue.UI.GameFlow
             _pendingDefeatSnapshot = LeaderboardRunSnapshot.Capture(
                 GameFlowSession.Victories,
                 GameFlowSession.CurrentBattleNumber,
-                GameFlowSession.OwnedRelics);
+                GameFlowSession.OwnedRelics,
+                GameFlowSession.SlotPool);
 
             if (!GameFlowSession.CanRevive)
             {
@@ -54,7 +56,8 @@ namespace SlotRogue.UI.GameFlow
                 LeaderboardRunSnapshot.Capture(
                     GameFlowSession.Victories,
                     GameFlowSession.CurrentBattleNumber,
-                    GameFlowSession.OwnedRelics);
+                    GameFlowSession.OwnedRelics,
+                    GameFlowSession.SlotPool);
 
             GameFlowSession.CompleteBattleDefeat();
             SlotRogueLeaderboardService.QueueRunSubmission(snapshot);

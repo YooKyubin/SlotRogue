@@ -30,14 +30,24 @@ namespace SlotRogue.Slot.Core
         /// 가변 심볼 풀을 사용하려면 <paramref name="pool"/>을 전달합니다.
         /// null이면 종래의 균등 추첨(고정 6심볼)을 사용합니다.
         /// </summary>
-        public SlotMachineService(Random random, SlotSymbolPool pool)
+        public SlotMachineService(
+            Random random,
+            SlotSymbolPool pool,
+            Func<SlotSpinResult> spinOverride = null)
         {
             _random = random ?? new Random();
             _pool = pool;
+            _spinOverride = spinOverride;
         }
 
         public SlotSpinResult Spin()
         {
+            SlotSpinResult overriddenResult = _spinOverride?.Invoke();
+            if (overriddenResult != null)
+            {
+                return overriddenResult;
+            }
+
             return Spin(luck: 0, jackpotExclude: null);
         }
 
@@ -141,5 +151,6 @@ namespace SlotRogue.Slot.Core
 
         private readonly Random _random;
         private readonly SlotSymbolPool _pool;
+        private readonly Func<SlotSpinResult> _spinOverride;
     }
 }

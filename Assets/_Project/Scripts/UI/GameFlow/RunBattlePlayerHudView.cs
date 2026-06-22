@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 #if DOTWEEN
@@ -10,12 +11,25 @@ namespace SlotRogue.UI.GameFlow
     {
         private const string PlayerHpFillSlotId = "battle/player-hp-fill";
         private const string PlayerShieldFillSlotId = "battle/player-shield-fill";
+        private const string PlayerHpGaugeName = "Player HP Gauge";
+        private const string PlayerShieldGaugeName = "Player Shield Gauge";
+        private const string PlayerHpFillName = "Player HP Gauge Fill";
+        private const string PlayerShieldFillName = "Player Shield Gauge Fill";
+        private const string PlayerHpTextName = "Player HP Text";
+        private const string PlayerShieldTextName = "Player Shield Text";
         private const float FillTweenDuration = 0.35f;
 
         [SerializeField] private Text _hudText;
+        [SerializeField] private TMP_Text _hpText;
+        [SerializeField] private TMP_Text _shieldText;
         [SerializeField] private Image _hpFill;
         [SerializeField] private Image _shieldFill;
+        [SerializeField] private RectTransform _hpGaugeRoot;
+        [SerializeField] private RectTransform _shieldGaugeRoot;
 
+        private Vector2 _hpGaugeDefaultPosition;
+        private float _hpSingleRowYOffset;
+        private bool _layoutCached;
         private bool _hpFillRendered;
         private bool _shieldFillRendered;
 #if DOTWEEN
@@ -46,7 +60,10 @@ namespace SlotRogue.UI.GameFlow
         public void Render(RunBattleScreenState state)
         {
             EnsureReferences();
+            ApplyShieldVisibility(state.PlayerShield > 0);
             SetText(_hudText, state.PlayerHudText);
+            SetText(_hpText, state.PlayerHp.ToString());
+            SetText(_shieldText, state.PlayerShield.ToString());
 #if DOTWEEN
             SetBarFill(_hpFill, state.PlayerHp, state.PlayerMaxHp, ref _hpFillRendered, ref _hpFillTween);
             SetBarFill(_shieldFill, state.PlayerShield, state.PlayerShieldMax, ref _shieldFillRendered, ref _shieldFillTween);
@@ -58,28 +75,135 @@ namespace SlotRogue.UI.GameFlow
 
         private void EnsureReferences()
         {
-            _hpFill ??= FindImageSlot(PlayerHpFillSlotId);
-            _shieldFill ??= FindImageSlot(PlayerShieldFillSlotId);
+            _hpFill ??= FindImageSlot(PlayerHpFillSlotId, PlayerHpFillName);
+            _hpFill ??= FindImageByName(PlayerHpFillName);
+            _shieldFill ??= FindImageSlot(PlayerShieldFillSlotId, PlayerShieldFillName);
+            _shieldFill ??= FindImageByName(PlayerShieldFillName);
+            _hpGaugeRoot ??= FindRectTransform(PlayerHpGaugeName);
+            _hpGaugeRoot ??= _hpFill != null ? _hpFill.rectTransform.parent as RectTransform : null;
+            _shieldGaugeRoot ??= FindRectTransform(PlayerShieldGaugeName);
+            _shieldGaugeRoot ??= _shieldFill != null ? _shieldFill.rectTransform.parent as RectTransform : null;
+            _hpText ??= FindTmpText(PlayerHpTextName);
+            _shieldText ??= FindTmpText(PlayerShieldTextName);
         }
 
-        private Image FindImageSlot(string slotId)
+        private Image FindImageSlot(string slotId, string preferredObjectName)
         {
             Transform searchRoot = transform.root != null ? transform.root : transform;
             GameFlowImageSlot[] slots = searchRoot.GetComponentsInChildren<GameFlowImageSlot>(true);
+            Image fallback = null;
             for (int index = 0; index < slots.Length; index++)
             {
                 if (slots[index].SlotId == slotId)
                 {
-                    return slots[index].Image != null
+                    Image image = slots[index].Image != null
                         ? slots[index].Image
                         : slots[index].GetComponent<Image>();
+
+                    if (image != null && image.name == preferredObjectName)
+                    {
+                        return image;
+                    }
+
+                    fallback ??= image;
                 }
             }
 
-            return null;
+            return fallback;
+        }
+
+        private Image FindImageByName(string objectName)
+        {
+            Transform found = FindChild(objectName);
+            return found != null ? found.GetComponent<Image>() : null;
+        }
+
+        private TMP_Text FindTmpText(string objectName)
+        {
+            Transform found = FindChild(objectName);
+            return found != null ? found.GetComponent<TMP_Text>() : null;
+        }
+
+        private RectTransform FindRectTransform(string objectName)
+        {
+            Transform found = FindChild(objectName);
+            return found as RectTransform;
+        }
+
+        private Transform FindChild(string objectName)
+        {
+            Transform searchRoot = transform.root != null ? transform.root : transform;
+            return SceneComponentResolver.FindDeepChild(searchRoot, objectName);
+        }
+
+        private void ApplyShieldVisibility(bool hasShield)
+        {
+            CacheLayoutIfNeeded();
+
+            if (_shieldGaugeRoot != null)
+            {
+                _shieldGaugeRoot.gameObject.SetActive(hasShield);
+            }
+
+            if (_hpGaugeRoot != null)
+            {
+                Vector2 offset = hasShield ? Vector2.zero : new Vector2(0f, _hpSingleRowYOffset);
+                _hpGaugeRoot.anchoredPosition = _hpGaugeDefaultPosition + offset;
+            }
+        }
+
+        private void CacheLayoutIfNeeded()
+        {
+            if (_layoutCached)
+            {
+                return;
+            }
+
+            _hpGaugeDefaultPosition = _hpGaugeRoot != null
+                ? _hpGaugeRoot.anchoredPosition
+                : Vector2.zero;
+            _hpSingleRowYOffset = _hpGaugeRoot != null
+                ? -ComputeAverageChildY(_hpGaugeRoot)
+                : 0f;
+
+            if (Mathf.Abs(_hpSingleRowYOffset) <= 0.001f)
+            {
+                _hpSingleRowYOffset = 6f;
+            }
+
+            _layoutCached = true;
+        }
+
+        private static float ComputeAverageChildY(RectTransform root)
+        {
+            if (root == null || root.childCount <= 0)
+            {
+                return 0f;
+            }
+
+            float sum = 0f;
+            int count = 0;
+            for (int index = 0; index < root.childCount; index++)
+            {
+                if (root.GetChild(index) is RectTransform child)
+                {
+                    sum += child.anchoredPosition.y;
+                    count++;
+                }
+            }
+
+            return count > 0 ? sum / count : 0f;
         }
 
         private static void SetText(Text text, string value)
+        {
+            if (text != null)
+            {
+                text.text = value;
+            }
+        }
+
+        private static void SetText(TMP_Text text, string value)
         {
             if (text != null)
             {

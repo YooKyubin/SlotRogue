@@ -40,27 +40,48 @@ namespace SlotRogue.UI.GameFlow
                         continue;
                     }
 
+                    if (relic.Id == TutorialBattleDefinition.TrainingBatteryRelicId)
+                    {
+                        ApplyTrainingBattery(
+                            relic,
+                            patternMatches,
+                            ref additionalDamage,
+                            ref additionalBlock,
+                            activated,
+                            contributions);
+                        continue;
+                    }
+
                     if (!IsTriggered(relic, patternMatches, context))
                     {
                         continue;
                     }
 
-                    int triggerPatternIndex = FindTriggerPatternIndex(relic, patternMatches);
-                    int damageBefore = additionalDamage;
-                    int blockBefore = additionalBlock;
-                    int healBefore = healAmount;
-                    bool applied = ApplyEffect(
-                        relic, context, ref additionalDamage, ref additionalBlock, ref healAmount, statuses);
-                    if (applied)
+                    // 가로/세로/대각선처럼 한 스핀에 같은 족보가 여러 줄로 나오면, 그 줄 수만큼 반복 발동한다.
+                    IReadOnlyList<int> triggerPatternIndices = FindAllTriggerPatternIndices(relic, patternMatches);
+                    if (triggerPatternIndices.Count == 0)
                     {
-                        activated.Add(relic.Name);
-                        contributions.Add(new RelicContributionDelta(
-                            relic.Id,
-                            relic.Name,
-                            additionalDamage - damageBefore,
-                            additionalBlock - blockBefore,
-                            healAmount - healBefore,
-                            triggerPatternIndex));
+                        triggerPatternIndices = new[] { -1 };
+                    }
+
+                    for (int occurrenceIndex = 0; occurrenceIndex < triggerPatternIndices.Count; occurrenceIndex++)
+                    {
+                        int damageBefore = additionalDamage;
+                        int blockBefore = additionalBlock;
+                        int healBefore = healAmount;
+                        bool applied = ApplyEffect(
+                            relic, context, ref additionalDamage, ref additionalBlock, ref healAmount, statuses);
+                        if (applied)
+                        {
+                            AddActivatedName(activated, relic.Name);
+                            contributions.Add(new RelicContributionDelta(
+                                relic.Id,
+                                relic.Name,
+                                additionalDamage - damageBefore,
+                                additionalBlock - blockBefore,
+                                healAmount - healBefore,
+                                triggerPatternIndices[occurrenceIndex]));
+                        }
                     }
                 }
             }
@@ -75,6 +96,87 @@ namespace SlotRogue.UI.GameFlow
         }
 
         // ── 조건 판정 ────────────────────────────────────────────────────
+
+        private static void ApplyTrainingBattery(
+            RelicDefinition relic,
+            IReadOnlyList<SlotPatternMatch> patternMatches,
+            ref int additionalDamage,
+            ref int additionalBlock,
+            List<string> activated,
+            List<RelicContributionDelta> contributions)
+        {
+            int cherryPatternIndex = FindSymbolPatternIndex(
+                patternMatches,
+                SlotSymbolType.Cherry,
+                TutorialBattleDefinition.TrainingBatteryRequiredCount);
+            if (cherryPatternIndex >= 0)
+            {
+                additionalDamage += TutorialBattleDefinition.TrainingBatteryDamage;
+                AddActivatedName(activated, relic.Name);
+                contributions.Add(new RelicContributionDelta(
+                    relic.Id,
+                    relic.Name,
+                    damagePerHit: TutorialBattleDefinition.TrainingBatteryDamage,
+                    block: 0,
+                    heal: 0,
+                    triggerPatternIndex: cherryPatternIndex));
+            }
+
+            int lemonPatternIndex = FindSymbolPatternIndex(
+                patternMatches,
+                SlotSymbolType.Lemon,
+                TutorialBattleDefinition.TrainingBatteryRequiredCount);
+            if (lemonPatternIndex >= 0)
+            {
+                additionalBlock += TutorialBattleDefinition.TrainingBatteryBlock;
+                AddActivatedName(activated, relic.Name);
+                contributions.Add(new RelicContributionDelta(
+                    relic.Id,
+                    relic.Name,
+                    damagePerHit: 0,
+                    block: TutorialBattleDefinition.TrainingBatteryBlock,
+                    heal: 0,
+                    triggerPatternIndex: lemonPatternIndex));
+            }
+        }
+
+        private static int FindSymbolPatternIndex(
+            IReadOnlyList<SlotPatternMatch> matches,
+            SlotSymbolType symbol,
+            int requiredCount)
+        {
+            if (matches == null)
+            {
+                return -1;
+            }
+
+            int minLength = requiredCount < 1 ? 1 : requiredCount;
+            for (int index = 0; index < matches.Count; index++)
+            {
+                SlotPatternMatch match = matches[index];
+                if (match?.MatchedCells != null &&
+                    match.Symbol == symbol &&
+                    match.MatchedCells.Count >= minLength)
+                {
+                    return index;
+                }
+            }
+
+            return -1;
+        }
+
+        private static void AddActivatedName(List<string> activated, string name)
+        {
+            for (int index = 0; index < activated.Count; index++)
+            {
+                if (activated[index] == name)
+                {
+                    return;
+                }
+            }
+
+            activated.Add(name);
+        }
 
         private static bool IsTriggered(
             RelicDefinition relic,
@@ -228,13 +330,13 @@ namespace SlotRogue.UI.GameFlow
             return false;
         }
 
-        private static int FindTriggerPatternIndex(
+        private static IReadOnlyList<int> FindAllTriggerPatternIndices(
             RelicDefinition relic,
             IReadOnlyList<SlotPatternMatch> matches)
         {
             if (relic == null || matches == null || matches.Count == 0)
             {
-                return -1;
+                return System.Array.Empty<int>();
             }
 
             switch (relic.TriggerType)
@@ -242,10 +344,11 @@ namespace SlotRogue.UI.GameFlow
                 case RelicTriggerType.MatchSymbol:
                     if (!relic.TriggerSymbol.HasValue)
                     {
-                        return -1;
+                        return System.Array.Empty<int>();
                     }
 
                     int minLength = relic.RequiredCount < 1 ? 1 : relic.RequiredCount;
+                    var symbolOccurrences = new List<int>();
                     for (int index = 0; index < matches.Count; index++)
                     {
                         SlotPatternMatch match = matches[index];
@@ -253,16 +356,16 @@ namespace SlotRogue.UI.GameFlow
                             match.Symbol == relic.TriggerSymbol.Value &&
                             match.MatchedCells.Count >= minLength)
                         {
-                            return index;
+                            symbolOccurrences.Add(index);
                         }
                     }
 
-                    return -1;
+                    return symbolOccurrences;
 
                 case RelicTriggerType.MatchTag:
                     if (!relic.TriggerTag.HasValue)
                     {
-                        return -1;
+                        return System.Array.Empty<int>();
                     }
 
                     int requiredCount = relic.RequiredCount < 1 ? 1 : relic.RequiredCount;
@@ -283,17 +386,17 @@ namespace SlotRogue.UI.GameFlow
 
                         if (matchedCells.Count >= requiredCount)
                         {
-                            return index;
+                            return new[] { index };
                         }
                     }
 
-                    return -1;
+                    return System.Array.Empty<int>();
 
                 case RelicTriggerType.Conditional:
-                    return 0;
+                    return new[] { 0 };
 
                 default:
-                    return -1;
+                    return System.Array.Empty<int>();
             }
         }
 

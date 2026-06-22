@@ -46,11 +46,29 @@ namespace SlotRogue.UI.GameFlow
             int rosterIndex,
             int formationSlot)
         {
+            return BuildFromMonsterDefinition(
+                definition,
+                rosterIndex,
+                formationSlot,
+                maxHpOverride: null);
+        }
+
+        public static RunEncounterRoster BuildFromMonsterDefinition(
+            MonsterDefinition definition,
+            int rosterIndex,
+            int formationSlot,
+            int? maxHpOverride)
+        {
             var combatantFactory = new EnemyCombatantFactory();
 
             return new RunEncounterRoster(new[]
             {
-                BuildUnit(combatantFactory, definition, rosterIndex, formationSlot),
+                BuildUnit(
+                    combatantFactory,
+                    definition,
+                    rosterIndex,
+                    formationSlot,
+                    maxHpOverride ?? definition.maxHp),
             });
         }
 

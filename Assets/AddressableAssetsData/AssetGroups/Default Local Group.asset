@@ -16,14 +16,26 @@ MonoBehaviour:
   m_GUID: 94987ebf8eac0ae40b8196063ce421eb
   m_SerializeEntries:
   - m_GUID: 28d4f719a07d2f948952c95a683f1862
-    m_Address: relic/icons/base2
+    m_Address: Relic Sheet Normal
     m_ReadOnly: 0
     m_SerializedLabels:
     - default
     - relic-icon
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 45418c8b9a277bf49a4bff2b54b7b962
+    m_Address: Symbol Sheet Highlight
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - default
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4c21c67aa51b19b4fa5582b99f4b787c
+    m_Address: ui/icons/reward-symbol-delta
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - default
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 9623568b693406747ae5884f6096b2e7
-    m_Address: relic/icons/base
+    m_Address: Relic Sheet Highlight
     m_ReadOnly: 0
     m_SerializedLabels:
     - default
@@ -31,6 +43,24 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: ade757b05a113bc4abad410e56f1ee2d
     m_Address: slot/catalog/patterns
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - default
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c938b3e401f206a43bc8e4b6697d72eb
+    m_Address: Symbol Sheet Normal
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - default
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cbecda5b44bc239428396b50af071622
+    m_Address: Symbol Sheet Animation
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - default
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 7c96e312b9763b84ba9908c5e00beb60
+    m_Address: Symbols-Sheet-TMP
     m_ReadOnly: 0
     m_SerializedLabels:
     - default

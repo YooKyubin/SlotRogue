@@ -25,6 +25,14 @@ namespace SlotRogue.UI.GameFlow
 
         public EnemyCombatantBuildResult CreateWithPresentation(MonsterDefinition definition, int rosterIndex)
         {
+            return CreateWithPresentation(definition, rosterIndex, maxHpOverride: null);
+        }
+
+        public EnemyCombatantBuildResult CreateWithPresentation(
+            MonsterDefinition definition,
+            int rosterIndex,
+            int? maxHpOverride)
+        {
             if (definition == null)
             {
                 throw new ArgumentNullException(nameof(definition));

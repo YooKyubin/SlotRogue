@@ -8,7 +8,7 @@ namespace SlotRogue.UI.GameFlow
 {
     public static class GameFlowSession
     {
-        private const int DefaultPlayerMaxHp = 30;
+        private const int DefaultPlayerMaxHp = 100;
 
         // ── 무한모드 진행 (Infinite Mode) ───────────────────────────────
         // v1 출시 스코프. 맵/노드 없이 인덱스 기반으로 전투를 반복하며,
@@ -78,6 +78,8 @@ namespace SlotRogue.UI.GameFlow
 
         public static bool HasRun { get; private set; }
 
+        public static bool IsTutorialRun { get; private set; }
+
         public static int PlayerMaxHp { get; private set; }
 
         public static int PlayerCurrentHp { get; private set; }
@@ -107,6 +109,7 @@ namespace SlotRogue.UI.GameFlow
         // 시작 유물 + 보상으로 획득한 유물을 누적한다. 전투마다 RelicTurnResolver가 소비한다.
         private static readonly List<RelicDefinition> _ownedRelics = new();
         private static readonly RelicContributionAccumulator _relicContributions = new();
+        private static readonly SlotSymbolContributionAccumulator _slotSymbolContributions = new();
 
         /// <summary>이 런에서 보유한 v23 유물 목록(시작 유물 포함).</summary>
         public static IReadOnlyList<RelicDefinition> OwnedRelics => _ownedRelics;
@@ -160,10 +163,23 @@ namespace SlotRogue.UI.GameFlow
 
         public static void StartNewRun()
         {
+            StartRun(isTutorialRun: false);
+        }
+
+        public static void StartTutorialRun()
+        {
+            StartRun(isTutorialRun: true);
+        }
+
+        private static void StartRun(bool isTutorialRun)
+        {
             HasRun = true;
+            IsTutorialRun = isTutorialRun;
             IsInfiniteMode = true; // v1: 무한모드. 스토리모드 재개 시 별도 진입점에서 false 설정.
-            PlayerMaxHp = DefaultPlayerMaxHp;
-            PlayerCurrentHp = DefaultPlayerMaxHp;
+            PlayerMaxHp = isTutorialRun
+                ? TutorialBattleDefinition.PlayerMaxHp
+                : DefaultPlayerMaxHp;
+            PlayerCurrentHp = PlayerMaxHp;
             BattleIndex = 0;
             CurrentBattleNumber = 1;
             RunSeed = GenerateRunSeed();
@@ -175,7 +191,13 @@ namespace SlotRogue.UI.GameFlow
             IsDefeatPending = false;
             _ownedRelics.Clear();
             _relicContributions.Clear();
+            _slotSymbolContributions.Clear();
             SlotPool.Reset();
+
+            if (isTutorialRun)
+            {
+                _ownedRelics.Add(TutorialBattleDefinition.TrainingBatteryRelic);
+            }
         }
 
         public static void EnsureRunStarted()
@@ -216,8 +238,14 @@ namespace SlotRogue.UI.GameFlow
 
         public static void CompleteBattleDefeat()
         {
+            EndRun();
+        }
+
+        public static void EndRun()
+        {
             IsDefeatPending = false;
             HasRun = false;
+            IsTutorialRun = false;
         }
 
         public static void ApplyReward(RunRewardType rewardType)
@@ -279,10 +307,22 @@ namespace SlotRogue.UI.GameFlow
             _relicContributions.Add(contributions);
         }
 
+        public static void RecordSlotSymbolContributions(
+            IReadOnlyList<SlotSymbolContributionSnapshot> contributions)
+        {
+            _slotSymbolContributions.Add(contributions);
+        }
+
         public static IReadOnlyList<RelicContributionSnapshot>
             GetRelicContributionSummary()
         {
             return _relicContributions.SnapshotForRelics(_ownedRelics);
+        }
+
+        public static IReadOnlyList<SlotSymbolContributionSnapshot>
+            GetSlotSymbolContributionSummary()
+        {
+            return _slotSymbolContributions.SnapshotForSymbols(SlotSymbolPool.Symbols);
         }
 
         public static string BuildRelicContributionSummary()
@@ -316,6 +356,38 @@ namespace SlotRogue.UI.GameFlow
                 builder.Append(contribution.Block);
                 builder.Append("  HEAL ");
                 builder.Append(contribution.Heal);
+            }
+
+            return builder.ToString();
+        }
+
+        public static string BuildSlotSymbolContributionSummary()
+        {
+            IReadOnlyList<SlotSymbolContributionSnapshot> contributions =
+                GetSlotSymbolContributionSummary();
+            if (contributions.Count == 0)
+            {
+                return "NO SYMBOLS";
+            }
+
+            var builder = new System.Text.StringBuilder();
+            for (int index = 0; index < contributions.Count; index++)
+            {
+                SlotSymbolContributionSnapshot contribution = contributions[index];
+                if (index > 0)
+                {
+                    builder.AppendLine();
+                }
+
+                builder.Append(RelicDisplay.SymbolKorean(contribution.Symbol));
+                builder.Append("  족보 ");
+                builder.Append(contribution.PatternCount);
+                builder.Append("회  기본 ");
+                builder.Append(contribution.BaseAttackPower);
+                builder.Append("  유물 ");
+                builder.Append(contribution.RelicAttackPower);
+                builder.Append("  합계 ");
+                builder.Append(contribution.TotalAttackPower);
             }
 
             return builder.ToString();

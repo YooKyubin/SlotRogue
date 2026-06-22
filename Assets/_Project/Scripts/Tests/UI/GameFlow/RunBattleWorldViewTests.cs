@@ -202,6 +202,77 @@ namespace SlotRogue.UI.Tests.GameFlow
         }
 
         [Test]
+        public void PlayerHudRender_HidesShieldGaugeAndCentersHpWhenShieldIsZero()
+        {
+            var root = new GameObject("UI_HUDCanvas");
+            try
+            {
+                RunBattlePlayerHudView view = root.AddComponent<RunBattlePlayerHudView>();
+                (RectTransform hpGauge, _) = CreatePlayerHudGauge(
+                    root.transform,
+                    "Player HP Gauge",
+                    "Player HP Gauge Fill",
+                    "battle/player-hp-fill",
+                    childYOffset: -6f);
+                (RectTransform shieldGauge, _) = CreatePlayerHudGauge(
+                    root.transform,
+                    "Player Shield Gauge",
+                    "Player Shield Gauge Fill",
+                    "battle/player-shield-fill",
+                    childYOffset: 6f);
+
+                var viewModel = new RunBattleScreenViewModel(slotCellCount: 0, enemySlotCount: 0);
+                viewModel.SetPlayerHud("12/30", hp: 12, maxHp: 30, shield: 0, shieldMax: 30);
+
+                view.Render(viewModel.State);
+
+                Assert.That(shieldGauge.gameObject.activeSelf, Is.False);
+                Assert.That(hpGauge.anchoredPosition.y, Is.EqualTo(6f).Within(0.001f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void PlayerHudRender_ShowsShieldGaugeAndRestoresHpPositionWhenShieldIsPositive()
+        {
+            var root = new GameObject("UI_HUDCanvas");
+            try
+            {
+                RunBattlePlayerHudView view = root.AddComponent<RunBattlePlayerHudView>();
+                (RectTransform hpGauge, _) = CreatePlayerHudGauge(
+                    root.transform,
+                    "Player HP Gauge",
+                    "Player HP Gauge Fill",
+                    "battle/player-hp-fill",
+                    childYOffset: -6f);
+                (RectTransform shieldGauge, Image shieldFill) = CreatePlayerHudGauge(
+                    root.transform,
+                    "Player Shield Gauge",
+                    "Player Shield Gauge Fill",
+                    "battle/player-shield-fill",
+                    childYOffset: 6f);
+
+                var viewModel = new RunBattleScreenViewModel(slotCellCount: 0, enemySlotCount: 0);
+                viewModel.SetPlayerHud("12/30", hp: 12, maxHp: 30, shield: 0, shieldMax: 30);
+                view.Render(viewModel.State);
+
+                viewModel.SetPlayerHud("12/30", hp: 12, maxHp: 30, shield: 8, shieldMax: 20);
+                view.Render(viewModel.State);
+
+                Assert.That(shieldGauge.gameObject.activeSelf, Is.True);
+                Assert.That(hpGauge.anchoredPosition.y, Is.EqualTo(0f).Within(0.001f));
+                Assert.That(shieldFill.fillAmount, Is.EqualTo(0.4f).Within(0.001f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void EnemyHpRender_ResizesFromFixedLeftEdgeWithoutSprite()
         {
             var root = new GameObject("Enemy");
@@ -442,5 +513,38 @@ namespace SlotRogue.UI.Tests.GameFlow
             typeof(EnemyAnimatorCombatVisual).GetField(
                 "_currentPlayback",
                 BindingFlags.Instance | BindingFlags.NonPublic);
+
+        private static (RectTransform Gauge, Image Fill) CreatePlayerHudGauge(
+            Transform parent,
+            string gaugeName,
+            string fillName,
+            string slotId,
+            float childYOffset)
+        {
+            var gauge = new GameObject(gaugeName, typeof(RectTransform));
+            RectTransform gaugeRect = gauge.GetComponent<RectTransform>();
+            gaugeRect.SetParent(parent, false);
+            gaugeRect.anchoredPosition = Vector2.zero;
+            gaugeRect.sizeDelta = new Vector2(100f, 18f);
+
+            var icon = new GameObject($"{gaugeName} Icon", typeof(RectTransform));
+            RectTransform iconRect = icon.GetComponent<RectTransform>();
+            iconRect.SetParent(gauge.transform, false);
+            iconRect.anchoredPosition = new Vector2(0f, childYOffset);
+
+            var fillObject = new GameObject(
+                fillName,
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(Image),
+                typeof(GameFlowImageSlot));
+            RectTransform fillRect = fillObject.GetComponent<RectTransform>();
+            fillRect.SetParent(gauge.transform, false);
+            fillRect.anchoredPosition = new Vector2(0f, childYOffset);
+            Image fill = fillObject.GetComponent<Image>();
+            fillObject.GetComponent<GameFlowImageSlot>().Bind(slotId, fill);
+
+            return (gaugeRect, fill);
+        }
     }
 }

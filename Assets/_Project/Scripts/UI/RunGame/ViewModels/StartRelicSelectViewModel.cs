@@ -49,7 +49,7 @@ namespace SlotRogue.UI.RunGame.ViewModels
                 options[index] = new StartRelicOptionViewState(
                     relic.Id,
                     relic.Name,
-                    RelicDisplay.BuildDescription(relic),
+                    RelicDisplay.BuildSelectionDescription(relic),
                     relic.IconKey);
             }
 

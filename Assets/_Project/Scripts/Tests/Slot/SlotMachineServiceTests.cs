@@ -32,5 +32,36 @@ namespace SlotRogue.Slot.Tests
                 Assert.That(firstResult.Symbols[index], Is.EqualTo(secondResult.Symbols[index]));
             }
         }
+
+        [Test]
+        public void Spin_WithOverride_UsesProvidedResult()
+        {
+            var overrideResult = new SlotSpinResult(new[]
+            {
+                SlotSymbolType.Lemon,
+                SlotSymbolType.Lemon,
+                SlotSymbolType.Lemon,
+                SlotSymbolType.Lemon,
+                SlotSymbolType.Lemon,
+                SlotSymbolType.Lemon,
+                SlotSymbolType.Lemon,
+                SlotSymbolType.Lemon,
+                SlotSymbolType.Lemon,
+                SlotSymbolType.Lemon,
+                SlotSymbolType.Lemon,
+                SlotSymbolType.Lemon,
+                SlotSymbolType.Lemon,
+                SlotSymbolType.Lemon,
+                SlotSymbolType.Lemon,
+            });
+            var service = new SlotMachineService(
+                new Random(7),
+                null,
+                () => overrideResult);
+
+            SlotSpinResult result = service.Spin();
+
+            Assert.That(result, Is.SameAs(overrideResult));
+        }
     }
 }

@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using SlotRogue.Slot.Data;
 using SlotRogue.UI.Leaderboard;
 using UnityEditor;
 using UnityEngine;
@@ -13,14 +14,26 @@ namespace SlotRogue.UI.Tests.Leaderboard
         {
             var source = new LeaderboardMetadataPayload(
                 12,
-                new[] { "S-01", "C-04", "C-04" });
+                new[] { "S-01", "C-04", "C-04" },
+                new[]
+                {
+                    new LeaderboardSymbolCount(SlotSymbolType.Cherry.ToString(), 9),
+                    new LeaderboardSymbolCount(SlotSymbolType.Seven.ToString(), 3),
+                },
+                "profile-01",
+                "허접ㅋ");
 
             string json = JsonUtility.ToJson(source);
             LeaderboardMetadataPayload parsed = LeaderboardMetadataCodec.Parse(json, 1);
 
-            Assert.That(parsed.SchemaVersion, Is.EqualTo(2));
+            Assert.That(parsed.SchemaVersion, Is.EqualTo(3));
             Assert.That(parsed.Wave, Is.EqualTo(12));
             Assert.That(parsed.RelicIds, Is.EqualTo(new[] { "S-01", "C-04", "C-04" }));
+            Assert.That(parsed.SymbolCounts.Length, Is.EqualTo(2));
+            Assert.That(parsed.SymbolCounts[0].Symbol, Is.EqualTo("Cherry"));
+            Assert.That(parsed.SymbolCounts[0].Count, Is.EqualTo(9));
+            Assert.That(parsed.ProfileIconId, Is.EqualTo("profile-01"));
+            Assert.That(parsed.Message, Is.EqualTo("허접ㅋ"));
         }
 
         [Test]
@@ -30,6 +43,7 @@ namespace SlotRogue.UI.Tests.Leaderboard
 
             Assert.That(parsed.Wave, Is.EqualTo(7));
             Assert.That(parsed.RelicIds, Is.Empty);
+            Assert.That(parsed.SymbolCounts, Is.Empty);
         }
 
         [Test]
@@ -44,6 +58,7 @@ namespace SlotRogue.UI.Tests.Leaderboard
             Assert.That(parsed.SchemaVersion, Is.EqualTo(1));
             Assert.That(parsed.Wave, Is.EqualTo(9));
             Assert.That(parsed.RelicIds, Is.EqualTo(new[] { "S-01" }));
+            Assert.That(parsed.SymbolCounts, Is.Empty);
         }
 
         [TestCase("", false)]
@@ -58,47 +73,42 @@ namespace SlotRogue.UI.Tests.Leaderboard
         }
 
         [Test]
-        public void LeaderboardView_RebuildsStaleGeneratedLayoutAsHidden()
+        public void LeaderboardView_DoesNotCreateMissingRuntimeLayout()
         {
-            var canvasObject = new GameObject("Canvas", typeof(RectTransform), typeof(Canvas));
             var hostObject = new GameObject("LeaderboardView", typeof(RectTransform));
-            hostObject.transform.SetParent(canvasObject.transform, false);
-            var staleButton = new GameObject("Leaderboard Open Button", typeof(RectTransform));
-            staleButton.transform.SetParent(hostObject.transform, false);
-            var stalePanel = new GameObject("Leaderboard Panel", typeof(RectTransform));
-            stalePanel.transform.SetParent(hostObject.transform, false);
-            stalePanel.SetActive(true);
 
             try
             {
                 LeaderboardView view = hostObject.AddComponent<LeaderboardView>();
 
-                view.EnsureRuntimeLayout();
+                bool ready = view.EnsureRuntimeLayout();
 
-                Transform panel = hostObject.transform.Find("Leaderboard Panel");
-                Assert.That(panel, Is.Not.Null);
-                Assert.That(panel.gameObject.activeSelf, Is.False);
-                Assert.That(hostObject.transform.childCount, Is.EqualTo(2));
+                Assert.That(ready, Is.False);
+                Assert.That(hostObject.transform.childCount, Is.Zero);
             }
             finally
             {
-                Object.DestroyImmediate(canvasObject);
+                Object.DestroyImmediate(hostObject);
             }
         }
 
         [Test]
-        public void LeaderboardView_HidesRuntimePanelWhenProfileIsRequired()
+        public void LeaderboardView_HidesPlacedPanelWhenProfileIsRequired()
         {
-            var canvasObject = new GameObject("Canvas", typeof(RectTransform), typeof(Canvas));
             var hostObject = new GameObject("LeaderboardView", typeof(RectTransform));
-            hostObject.transform.SetParent(canvasObject.transform, false);
-            hostObject.SetActive(false);
+            GameObject openButton = CreateButton("Leaderboard Open Button", hostObject.transform);
+            GameObject panel = new GameObject("Leaderboard Panel", typeof(RectTransform));
+            panel.transform.SetParent(hostObject.transform, false);
+            panel.SetActive(true);
+            CreateButton("Close Button", panel.transform);
+            var entries = new GameObject("Leaderboard Entries", typeof(RectTransform));
+            entries.transform.SetParent(panel.transform, false);
+            entries.AddComponent<Text>();
 
             try
             {
                 LeaderboardView view = hostObject.AddComponent<LeaderboardView>();
-                hostObject.SetActive(true);
-                view.EnsureRuntimeLayout();
+                Assert.That(view.EnsureRuntimeLayout(), Is.True);
 
                 view.Render(new LeaderboardViewState(
                     true,
@@ -108,14 +118,14 @@ namespace SlotRogue.UI.Tests.Leaderboard
                     "A nickname is required before playing.",
                     System.Array.Empty<LeaderboardEntryData>()));
 
-                Transform panel = hostObject.transform.Find("Leaderboard Panel");
                 Assert.That(hostObject.activeSelf, Is.True);
                 Assert.That(panel, Is.Not.Null);
-                Assert.That(panel.gameObject.activeSelf, Is.False);
+                Assert.That(panel.activeSelf, Is.False);
+                Assert.That(openButton.activeSelf, Is.False);
             }
             finally
             {
-                Object.DestroyImmediate(canvasObject);
+                Object.DestroyImmediate(hostObject);
             }
         }
 
@@ -160,6 +170,15 @@ namespace SlotRogue.UI.Tests.Leaderboard
             }
 
             return null;
+        }
+
+        private static GameObject CreateButton(string objectName, Transform parent)
+        {
+            var gameObject = new GameObject(objectName, typeof(RectTransform));
+            gameObject.transform.SetParent(parent, false);
+            gameObject.AddComponent<Image>();
+            gameObject.AddComponent<Button>();
+            return gameObject;
         }
     }
 }

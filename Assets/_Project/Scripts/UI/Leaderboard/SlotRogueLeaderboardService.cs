@@ -6,6 +6,7 @@ using Unity.Services.Authentication;
 using Unity.Services.Core;
 using Unity.Services.Leaderboards;
 using Unity.Services.Leaderboards.Models;
+using UnityEngine;
 
 namespace SlotRogue.UI.Leaderboard
 {
@@ -74,7 +75,24 @@ namespace SlotRogue.UI.Leaderboard
 
         internal static void QueueRunSubmission(LeaderboardRunSnapshot snapshot)
         {
-            _lastSubmissionTask = SubmitRunAsync(snapshot).AsTask();
+            if (!LeaderboardBestRunStore.ShouldSubmit(snapshot))
+            {
+                return;
+            }
+
+            _lastSubmissionTask = SubmitBestRunAsync(snapshot).AsTask();
+        }
+
+        private static async UniTask<LeaderboardServiceResult> SubmitBestRunAsync(
+            LeaderboardRunSnapshot snapshot)
+        {
+            LeaderboardServiceResult result = await SubmitRunAsync(snapshot);
+            if (result.Success)
+            {
+                LeaderboardBestRunStore.Save(snapshot);
+            }
+
+            return result;
         }
 
         internal static async UniTask<LeaderboardServiceResult<IReadOnlyList<LeaderboardEntryData>>>
@@ -113,7 +131,7 @@ namespace SlotRogue.UI.Leaderboard
                     for (int index = 0; index < page.Results.Count; index++)
                     {
                         LeaderboardEntry entry = page.Results[index];
-                        int fallbackWave = Math.Max(1, (int)Math.Floor(entry.Score) + 1);
+                        int fallbackWave = Math.Max(1, (int)Math.Floor(entry.Score));
                         LeaderboardMetadataPayload metadata =
                             LeaderboardMetadataCodec.Parse(entry.Metadata, fallbackWave);
 
@@ -123,6 +141,9 @@ namespace SlotRogue.UI.Leaderboard
                             entry.Score,
                             metadata.Wave,
                             metadata.RelicIds,
+                            metadata.SymbolCounts,
+                            metadata.ProfileIconId,
+                            metadata.Message,
                             string.Equals(
                                 entry.PlayerId,
                                 currentPlayerId,
@@ -209,6 +230,28 @@ namespace SlotRogue.UI.Leaderboard
             return string.IsNullOrWhiteSpace(message)
                 ? "Leaderboard service is unavailable."
                 : message;
+        }
+    }
+
+    internal static class LeaderboardBestRunStore
+    {
+        private const string BestWaveKey = "SlotRogue.Leaderboard.BestWave";
+
+        internal static bool ShouldSubmit(LeaderboardRunSnapshot snapshot)
+        {
+            return snapshot.Score >= PlayerPrefs.GetInt(BestWaveKey, 0);
+        }
+
+        internal static void Save(LeaderboardRunSnapshot snapshot)
+        {
+            int bestWave = PlayerPrefs.GetInt(BestWaveKey, 0);
+            if (snapshot.Score < bestWave)
+            {
+                return;
+            }
+
+            PlayerPrefs.SetInt(BestWaveKey, snapshot.Score);
+            PlayerPrefs.Save();
         }
     }
 }

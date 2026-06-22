@@ -186,7 +186,8 @@ namespace SlotRogue.UI.RunGame.ViewModels
                     index,
                     reward.DisplayName,
                     reward.Description,
-                    reward.IconKey);
+                    reward.IconKey,
+                    reward.ModifierIconKey);
             }
 
             State = new RunRewardViewState(
@@ -378,12 +379,14 @@ namespace SlotRogue.UI.RunGame.ViewModels
             int index,
             string title,
             string description,
-            string iconKey)
+            string iconKey,
+            string modifierIconKey)
         {
             Index = index;
             Title = title ?? string.Empty;
             Description = description ?? string.Empty;
             IconKey = iconKey ?? string.Empty;
+            ModifierIconKey = modifierIconKey ?? string.Empty;
         }
 
         public int Index { get; }
@@ -393,5 +396,7 @@ namespace SlotRogue.UI.RunGame.ViewModels
         public string Description { get; }
 
         public string IconKey { get; }
+
+        public string ModifierIconKey { get; }
     }
 }

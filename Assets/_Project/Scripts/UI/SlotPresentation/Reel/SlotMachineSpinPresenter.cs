@@ -248,6 +248,14 @@ namespace SlotRogue.UI.SlotPresentation.Reel
             PrepareAuthoredRestDisplay();
         }
 
+        private void OnEnable()
+        {
+            if (_built && ReelsAreDisplay)
+            {
+                ShowReels();
+            }
+        }
+
         private void PrepareAuthoredRestDisplay()
         {
             if (!HasAuthoredReels())

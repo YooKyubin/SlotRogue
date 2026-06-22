@@ -5,6 +5,7 @@ using SlotRogue.Core.Combat;
 using SlotRogue.Data.Combat;
 using SlotRogue.Data.GameFlow;
 using SlotRogue.Slot.Core;
+using SlotRogue.Slot.Data;
 using SlotRogue.Slot.ViewModels;
 using SlotRogue.UI.Combat;
 using SlotRogue.UI.Combat.Presentation;
@@ -48,11 +49,16 @@ namespace SlotRogue.UI.GameFlow
         private CancellationTokenSource _presentationCts;
         private AsyncOperationHandle<SlotPatternCatalogAsset> _slotPatternCatalogHandle;
         private SlotPatternCatalogAsset _loadedSlotPatternCatalog;
+        private readonly AddressableSpriteProvider _slotSymbolSpriteProvider = new(string.Empty);
+        private Sprite[] _loadedSlotSymbolSprites;
+        private Sprite[] _loadedSlotSpinSymbolSprites;
         private bool _hasSlotPatternCatalogHandle;
 
         public event Action BattleVictory;
 
         public event Action BattleDefeat;
+
+        public event Action<BattleTutorialSignal> TutorialSignalRaised;
 
         public void BeginBattle()
         {
@@ -73,8 +79,13 @@ namespace SlotRogue.UI.GameFlow
         public bool TryRevive()
         {
             if (!GameFlowSession.CanRevive ||
-                _battleFlowController == null ||
-                !_battleFlowController.TryRevivePlayer(GameFlowSession.RevivePlayerHp) ||
+                _battleFlowController == null)
+            {
+                return false;
+            }
+
+            ApplySlotSymbolSprites();
+            if (!_battleFlowController.TryRevivePlayer(GameFlowSession.RevivePlayerHp) ||
                 !GameFlowSession.TryRevive())
             {
                 return false;
@@ -114,6 +125,16 @@ namespace SlotRogue.UI.GameFlow
                 attackCount);
         }
 
+        public void SetTutorialSpinBlocked(bool blocked)
+        {
+            _battleFlowController?.SetSpinInputBlocked(blocked);
+        }
+
+        public void SetTutorialTargetSelectionBlocked(bool blocked)
+        {
+            _battleFlowController?.SetTargetSelectionBlocked(blocked);
+        }
+
         protected virtual void OnDisable()
         {
             _battleStartCts?.Cancel();
@@ -129,6 +150,7 @@ namespace SlotRogue.UI.GameFlow
             CancelBattleStart();
             CancelPresentation();
             DisposeBattleFlow();
+            _slotSymbolSpriteProvider.Dispose();
             SlotPatternCatalog.ClearRuntimeCatalogOverride(_loadedSlotPatternCatalog);
 
             if (_hasSlotPatternCatalogHandle)
@@ -143,6 +165,7 @@ namespace SlotRogue.UI.GameFlow
             try
             {
                 await EnsureSlotPatternCatalogAsync(cancellationToken);
+                await EnsureSlotSymbolSpritesAsync(cancellationToken);
             }
             catch (OperationCanceledException)
             {
@@ -155,7 +178,9 @@ namespace SlotRogue.UI.GameFlow
             }
 
             _presentationCts = new CancellationTokenSource();
+            ApplySlotSymbolSprites();
             _battleFlowController = CreateBattleFlowController(_presentationCts.Token);
+            _battleFlowController.TutorialSignalRaised += HandleTutorialSignalRaised;
             _battleFlowController.BattleCompleted += HandleBattleCompleted;
             _battleFlowController.BeginBattle(CreateBattleFlowContext());
         }
@@ -163,7 +188,10 @@ namespace SlotRogue.UI.GameFlow
         private BattleFlowController CreateBattleFlowController(CancellationToken cancellationToken)
         {
             var slotViewModel = new SlotMachineViewModel(
-                new SlotMachineService(new System.Random(), GameFlowSession.SlotPool),
+                new SlotMachineService(
+                    new System.Random(),
+                    GameFlowSession.SlotPool,
+                    CreateSpinOverride()),
                 new SlotPatternResolver(),
                 new SlotResultCalculator(),
                 new SlotCombatRequestBuilder());
@@ -213,6 +241,11 @@ namespace SlotRogue.UI.GameFlow
 
         private RunEncounterRoster CreateEncounterRoster()
         {
+            if (GameFlowSession.IsTutorialRun)
+            {
+                return CreateTutorialEncounterRoster();
+            }
+
             int battleNumber = GameFlowSession.CurrentBattleNumber;
             WaveSchedule waveSchedule = CreateWaveSchedule();
             WaveResult wave = waveSchedule.Evaluate(battleNumber);
@@ -291,8 +324,135 @@ namespace SlotRogue.UI.GameFlow
             return _encounterBalanceSettings.CreateConfig();
         }
 
+        private RunEncounterRoster CreateTutorialEncounterRoster()
+        {
+            if (_devMonsterDefinitionOverride == null)
+            {
+                Debug.LogError(
+                    "[BattleSceneCompositionRoot] Tutorial mode requires a serialized monster definition.");
+                return RunEncounterRosterBuilder.BuildForTier(
+                    GameFlowSession.CurrentTier,
+                    GameFlowSession.CurrentBattleNumber);
+            }
+
+            EnemyEncounterUnit leftEnemy = CreateTutorialEnemy(
+                _devMonsterDefinitionOverride,
+                TutorialBattleDefinition.LeftMonsterRosterIndex,
+                TutorialBattleDefinition.LeftMonsterFormationSlot,
+                TutorialBattleDefinition.LeftMonsterMaxHp,
+                new[]
+                {
+                    CreateTutorialActionPlan(
+                        actionKey: 1,
+                        actionName: "Attack",
+                        effectKind: CombatEffectKind.Damage,
+                        amount: TutorialBattleDefinition.LeftMonsterAttack,
+                        target: CombatEffectTarget.Enemy),
+                },
+                new EnemyActionPresentationMap(new[]
+                {
+                    new EnemyActionPresentation(
+                        new EnemyActionKey(1),
+                        "공격",
+                        intentIcon: null),
+                }));
+
+            EnemyEncounterUnit rightEnemy = CreateTutorialEnemy(
+                _devMonsterDefinitionOverride,
+                TutorialBattleDefinition.RightMonsterRosterIndex,
+                TutorialBattleDefinition.RightMonsterFormationSlot,
+                TutorialBattleDefinition.RightMonsterMaxHp,
+                new[]
+                {
+                    CreateTutorialActionPlan(
+                        actionKey: 1,
+                        actionName: "Defend",
+                        effectKind: CombatEffectKind.Shield,
+                        amount: TutorialBattleDefinition.RightMonsterShield,
+                        target: CombatEffectTarget.Self),
+                    CreateTutorialActionPlan(
+                        actionKey: 2,
+                        actionName: "Attack",
+                        effectKind: CombatEffectKind.Damage,
+                        amount: TutorialBattleDefinition.RightMonsterAttack,
+                        target: CombatEffectTarget.Enemy),
+                },
+                new EnemyActionPresentationMap(new[]
+                {
+                    new EnemyActionPresentation(
+                        new EnemyActionKey(1),
+                        "방어",
+                        intentIcon: null),
+                    new EnemyActionPresentation(
+                        new EnemyActionKey(2),
+                        "공격",
+                        intentIcon: null),
+                }));
+
+            return new RunEncounterRoster(new[] { leftEnemy, rightEnemy });
+        }
+
+        private static Func<SlotSpinResult> CreateSpinOverride()
+        {
+            if (!GameFlowSession.IsTutorialRun)
+            {
+                return null;
+            }
+
+            int spinIndex = 0;
+            return () =>
+            {
+                return TutorialSlotSpinFactory.CreateSpin(spinIndex++);
+            };
+        }
+
+        private static EnemyEncounterUnit CreateTutorialEnemy(
+            MonsterDefinition definition,
+            int rosterIndex,
+            int formationSlot,
+            int maxHp,
+            EnemyActionPlan[] plans,
+            EnemyActionPresentationMap presentationMap)
+        {
+            CombatParticipant participant = RunCombatParticipantFactory.CreateEnemy(
+                rosterIndex,
+                Mathf.Max(1, maxHp));
+            var combatant = new EnemyCombatant(
+                participant,
+                new FixedSequenceEnemyActionPlanner(plans));
+            return new EnemyEncounterUnit(
+                combatant,
+                definition,
+                formationSlot,
+                presentationMap);
+        }
+
+        private static EnemyActionPlan CreateTutorialActionPlan(
+            int actionKey,
+            string actionName,
+            CombatEffectKind effectKind,
+            int amount,
+            CombatEffectTarget target)
+        {
+            return EnemyActionPlan.FromActions(new[]
+            {
+                new EnemyPlannedAction(
+                    new EnemyActionKey(actionKey),
+                    actionName,
+                    new[]
+                    {
+                        EnemyActionEffect.FromCombatEffect(new CombatEffect(
+                            effectKind,
+                            amount,
+                            target)),
+                    }),
+            });
+        }
+
         private bool ValidateSceneReferences()
         {
+            EnsureSceneReferences();
+
             if (_view == null || !_view.EnsureReferences())
             {
                 Debug.LogError("[BattleSceneCompositionRoot] Battle screen view is incomplete.");
@@ -306,12 +466,23 @@ namespace SlotRogue.UI.GameFlow
             }
 
             bool isValid = true;
-            isValid &= ValidateReference(_floatingTextLayerView, nameof(_floatingTextLayerView));
-            isValid &= ValidateReference(_turnBannerView, nameof(_turnBannerView));
-            isValid &= ValidateReference(_spinLeverView, nameof(_spinLeverView));
-            isValid &= ValidateReference(_slotMachineFrameView, nameof(_slotMachineFrameView));
             isValid &= ValidateReference(_slotPresentationManager, nameof(_slotPresentationManager));
             return isValid;
+        }
+
+        private void EnsureSceneReferences()
+        {
+            _view ??= ResolveSceneComponent<RunBattleScreenView>();
+            _floatingTextLayerView ??= ResolveSceneComponent<FloatingCombatTextLayerView>();
+            _turnBannerView ??= ResolveSceneComponent<TurnBannerView>();
+            _spinLeverView ??= ResolveSceneComponent<SlotLeverView>();
+            _slotMachineFrameView ??= ResolveSceneComponent<SlotMachineFrameView>();
+            _slotPresentationManager ??= ResolveSceneComponent<SlotPresentationManager>();
+        }
+
+        private T ResolveSceneComponent<T>() where T : Component
+        {
+            return SceneComponentResolver.FindInSceneRoot<T>(transform);
         }
 
         private bool ValidateReference(UnityEngine.Object reference, string fieldName)
@@ -361,6 +532,63 @@ namespace SlotRogue.UI.GameFlow
             SlotPatternCatalog.SetRuntimeCatalogOverride(_loadedSlotPatternCatalog);
         }
 
+        private async UniTask EnsureSlotSymbolSpritesAsync(CancellationToken cancellationToken)
+        {
+            if (_loadedSlotSymbolSprites != null)
+            {
+                return;
+            }
+
+            _loadedSlotSymbolSprites = await LoadSpriteTableAsync(
+                SlotSymbolIconKeys.NormalSpriteKeys,
+                "normal slot symbols",
+                cancellationToken);
+            _loadedSlotSpinSymbolSprites = await LoadSpriteTableAsync(
+                SlotSymbolIconKeys.AnimationSpriteKeys,
+                "animated slot symbols",
+                cancellationToken);
+        }
+
+        private async UniTask<Sprite[]> LoadSpriteTableAsync(
+            string[] keys,
+            string tableName,
+            CancellationToken cancellationToken)
+        {
+            if (keys == null || keys.Length == 0)
+            {
+                return null;
+            }
+
+            var sprites = new Sprite[keys.Length];
+            for (int index = 0; index < keys.Length; index++)
+            {
+                sprites[index] = await _slotSymbolSpriteProvider.LoadAsync(
+                    keys[index],
+                    cancellationToken);
+                if (sprites[index] == null)
+                {
+                    Debug.LogWarning(
+                        $"[BattleSceneCompositionRoot] Addressable {tableName} sprite '{keys[index]}' load failed. " +
+                        "The serialized slot symbol sprite table will be kept.");
+                    return null;
+                }
+            }
+
+            return sprites;
+        }
+
+        private void ApplySlotSymbolSprites()
+        {
+            if (_slotPresentationManager == null || _loadedSlotSymbolSprites == null)
+            {
+                return;
+            }
+
+            _slotPresentationManager.SetSymbolSprites(
+                _loadedSlotSymbolSprites,
+                _loadedSlotSpinSymbolSprites);
+        }
+
         private void HandleBattleCompleted(BattleFlowResult result)
         {
             _resultRecorder.Record(result);
@@ -381,9 +609,15 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
+            _battleFlowController.TutorialSignalRaised -= HandleTutorialSignalRaised;
             _battleFlowController.BattleCompleted -= HandleBattleCompleted;
             _battleFlowController.Dispose();
             _battleFlowController = null;
+        }
+
+        private void HandleTutorialSignalRaised(BattleTutorialSignal signal)
+        {
+            TutorialSignalRaised?.Invoke(signal);
         }
 
         private void CancelPresentation()

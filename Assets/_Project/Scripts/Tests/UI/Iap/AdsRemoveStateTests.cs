@@ -35,6 +35,17 @@ namespace SlotRogue.UI.Tests.Iap
         }
 
         [Test]
+        public void ResetForDebug_RemovesLocalCache()
+        {
+            AdsRemoveState.Unlock();
+
+            AdsRemoveState.ResetForDebug();
+
+            Assert.That(AdsRemoveState.IsRemoved, Is.False);
+            Assert.That(PlayerPrefs.HasKey(AdsRemoveState.LocalCacheKey), Is.False);
+        }
+
+        [Test]
         public void Fulfillment_RequiresMatchingNonConsumableProduct()
         {
             Assert.That(
