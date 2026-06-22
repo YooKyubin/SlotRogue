@@ -291,7 +291,7 @@ namespace SlotRogue.UI.Tests.GameFlow
             var root = new GameObject("Enemy Visual");
             try
             {
-                var visual = root.AddComponent<MoonRabitCombatVisual>();
+                var visual = root.AddComponent<EnemyAnimatorCombatVisual>();
                 var completedPlayback = new EnemyActionPlaybackState();
                 var nextPlayback = new EnemyActionPlaybackState();
                 SetCurrentPlayback(visual, completedPlayback);
@@ -320,7 +320,7 @@ namespace SlotRogue.UI.Tests.GameFlow
             var root = new GameObject("Enemy Visual");
             try
             {
-                var visual = root.AddComponent<MoonRabitCombatVisual>();
+                var visual = root.AddComponent<EnemyAnimatorCombatVisual>();
                 var canceledPlayback = new EnemyActionPlaybackState();
                 var nextPlayback = new EnemyActionPlaybackState();
                 SetCurrentPlayback(visual, canceledPlayback);
@@ -355,7 +355,7 @@ namespace SlotRogue.UI.Tests.GameFlow
             var root = new GameObject("Enemy Visual");
             try
             {
-                var visual = root.AddComponent<MoonRabitCombatVisual>();
+                var visual = root.AddComponent<EnemyAnimatorCombatVisual>();
                 SetCurrentPlayback(visual, new EnemyActionPlaybackState());
 
                 InvokePrivate(visual, "OnActionAnimationCompleted");
@@ -420,26 +420,26 @@ namespace SlotRogue.UI.Tests.GameFlow
         }
 
         private static void SetCurrentPlayback(
-            MoonRabitCombatVisual visual,
+            EnemyAnimatorCombatVisual visual,
             EnemyActionPlaybackState playback)
         {
             CurrentPlaybackField.SetValue(visual, playback);
         }
 
-        private static EnemyActionPlaybackState GetCurrentPlayback(MoonRabitCombatVisual visual)
+        private static EnemyActionPlaybackState GetCurrentPlayback(EnemyAnimatorCombatVisual visual)
         {
             return (EnemyActionPlaybackState)CurrentPlaybackField.GetValue(visual);
         }
 
-        private static void InvokePrivate(MoonRabitCombatVisual visual, string methodName)
+        private static void InvokePrivate(EnemyAnimatorCombatVisual visual, string methodName)
         {
-            typeof(MoonRabitCombatVisual)
+            typeof(EnemyAnimatorCombatVisual)
                 .GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic)
                 .Invoke(visual, parameters: null);
         }
 
         private static readonly FieldInfo CurrentPlaybackField =
-            typeof(MoonRabitCombatVisual).GetField(
+            typeof(EnemyAnimatorCombatVisual).GetField(
                 "_currentPlayback",
                 BindingFlags.Instance | BindingFlags.NonPublic);
     }
