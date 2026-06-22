@@ -6,7 +6,7 @@ namespace SlotRogue.Data.Combat
     [Serializable]
     public sealed class EnemyActionDefinition
     {
-        [SerializeField] private string _actionName = string.Empty;
+        [SerializeField] private string _actionName = "Common";
         [SerializeField] private Sprite _intentIcon;
         [SerializeReference] private EnemyEffectDefinition _effect;
 
