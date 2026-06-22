@@ -48,7 +48,12 @@ namespace SlotRogue.UI.Combat.Presentation
                 combatEvent.IsPlayerParticipant,
                 combatEvent.TargetParticipantId);
 
-            await Host.Commands.ShowFloatingDamageAsync(request, cancellationToken);
+            await UniTask.WhenAll(
+                Host.Commands.ShowFloatingDamageAsync(request, cancellationToken),
+                Host.Commands.WaitHealthBarAsync(
+                    combatEvent.TargetParticipantId,
+                    combatEvent.IsPlayerParticipant,
+                    cancellationToken));
         }
     }
 }

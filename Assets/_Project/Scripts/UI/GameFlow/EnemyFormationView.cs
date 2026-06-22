@@ -177,6 +177,20 @@ namespace SlotRogue.UI.GameFlow
             return null;
         }
 
+        public UniTask WaitHpFillAsync(
+            CombatParticipantId participantId,
+            CancellationToken cancellationToken)
+        {
+            if (participantId.IsValid &&
+                _slotIndexByParticipantId.TryGetValue(participantId.Value, out int slotIndex) &&
+                TryGetFormationSlotView(slotIndex, out EnemyFormationSlotView formationSlotView))
+            {
+                return formationSlotView.WaitHpFillAsync(cancellationToken);
+            }
+
+            return UniTask.CompletedTask;
+        }
+
         public UniTask PlayCombatVisualActionUntilEffectPointAsync(
             CombatParticipantId participantId,
             string actionName,

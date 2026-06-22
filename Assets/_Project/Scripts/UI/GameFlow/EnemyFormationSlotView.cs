@@ -274,6 +274,17 @@ namespace SlotRogue.UI.GameFlow
 #endif
         }
 
+        public UniTask WaitHpFillAsync(CancellationToken cancellationToken)
+        {
+#if DOTWEEN
+            return SlotRogue.UI.Combat.Presentation.CombatPresentationTweens.AwaitTweenAsync(
+                _hpFillTween,
+                cancellationToken);
+#else
+            return UniTask.CompletedTask;
+#endif
+        }
+
         public void SetShield(int shield)
         {
             if (_shieldGauge != null)

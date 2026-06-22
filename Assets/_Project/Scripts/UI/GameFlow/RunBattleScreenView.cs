@@ -12,6 +12,7 @@ namespace SlotRogue.UI.GameFlow
         MonoBehaviour,
         ICombatDamageAnchorRegistry,
         ICombatShieldGaugeRegistry,
+        ICombatHealthBarPresentationTarget,
         IEnemyCombatVisualPresentationTarget
     {
         [SerializeField, AutoWire("10_BattleView", AutoWireSearchScope.Children)]
@@ -212,6 +213,23 @@ namespace SlotRogue.UI.GameFlow
             ShieldGaugeView shieldGauge = ResolveShieldGauge(request);
             return shieldGauge != null
                 ? shieldGauge.PlayExpireAsync(cancellationToken)
+                : UniTask.CompletedTask;
+        }
+
+        public UniTask WaitHealthBarAsync(
+            CombatParticipantId participantId,
+            bool isPlayerTarget,
+            CancellationToken cancellationToken)
+        {
+            if (isPlayerTarget)
+            {
+                return _playerHudView != null
+                    ? _playerHudView.WaitHpFillAsync(cancellationToken)
+                    : UniTask.CompletedTask;
+            }
+
+            return _worldView != null
+                ? _worldView.WaitEnemyHpFillAsync(participantId, cancellationToken)
                 : UniTask.CompletedTask;
         }
 

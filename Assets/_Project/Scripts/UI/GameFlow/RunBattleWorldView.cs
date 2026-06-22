@@ -151,6 +151,16 @@ namespace SlotRogue.UI.GameFlow
             return _enemyFormationView != null ? _enemyFormationView.ResolveShieldGauge(participantId) : null;
         }
 
+        public UniTask WaitEnemyHpFillAsync(
+            CombatParticipantId participantId,
+            CancellationToken cancellationToken)
+        {
+            EnsureReferences();
+            return _enemyFormationView != null
+                ? _enemyFormationView.WaitHpFillAsync(participantId, cancellationToken)
+                : UniTask.CompletedTask;
+        }
+
         private Transform ResolveBattleShakeRoot()
         {
             Transform shakeRoot = SceneComponentResolver.FindDeepChild(transform, "BattleShakeRoot");
