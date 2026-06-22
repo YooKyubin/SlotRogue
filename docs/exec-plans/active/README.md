@@ -16,7 +16,6 @@
 | [`feature-ui-strict-mvvm.md`](./feature-ui-strict-mvvm.md) | 2026-06-11 |
 | [`feature-levelplay-rewarded-ads.md`](./feature-levelplay-rewarded-ads.md) | 2026-06-13 |
 | [`feature-remove-ads-iap.md`](./feature-remove-ads-iap.md) | 2026-06-14 |
-| [`feature-rule-based-encounter-selection.md`](./feature-rule-based-encounter-selection.md) | 2026-06-18 |
 
 새 plan을 시작하면 같은 커밋에서 [`../../STATUS.md`](../../STATUS.md)의 "Active exec-plans" 표에도 등록한다.
 

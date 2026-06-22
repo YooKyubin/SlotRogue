@@ -1,6 +1,6 @@
 # 규칙 기반 Encounter 선택
 
-**Status**: active  
+**Status**: completed  
 **Started**: 2026-06-18  
 **Owner**: Codex  
 **Contributors**: _(전투 담당: 검토)_  
@@ -259,7 +259,7 @@ Dev Override 없음
 - [x] Phase 0: 현재 `BattleSceneCompositionRoot.CreateEncounterRoster()`와 `RunEncounterRosterBuilder` 진입점, Dev Override 경로, MoonRabbit 1마리 기준 동작 확인
 - [x] Phase 1: `EncounterTable`, `EncounterDefinition` 데이터 타입 추가 (`EncounterMonsterEntry` 제외)
 - [x] Phase 1: Encounter 데이터 validation 규칙 정리 및 구현 (`MonsterDefinition` null, Weight, 과거 Cycle 범위, 1~3마리, ID 빈 값/중복 — Cycle 범위는 9/9에서 제거)
-- [ ] Phase 1: 초기 1마리 편성 데이터 작성 (`Normal`, `Elite`, `Boss` MoonRabbit)
+- [x] Phase 1: 초기 편성 데이터 작성 (`EncounterTableTest`: `Normal`, `Elite`, `Boss` MoonRabbit 계열)
 - [x] Phase 2: `EncounterSelection`, `SelectedEncounterMonster` 경계 타입 추가
 - [x] Phase 2: `EnemyFormationLayout`으로 1~3마리 formation slot 결정 규칙 분리
 - [x] Phase 2: 선택 결과와 formation layout EditMode 테스트 추가
@@ -292,7 +292,7 @@ Dev Override 없음
 - [x] Phase 6 완료 조건: Dev Override 경로를 유지하고 `EnemyFormationLayout.ResolveSlots(1)`로 slot을 결정한다.
 - [x] Phase 6 완료 조건: Override가 없으면 `EncounterSelector.Select()` 결과를 `RunEncounterRosterBuilder.Build(selection)`에 전달한다.
 - [x] Phase 6 완료 조건: `BattleSystem`, `WaveSchedule`, `EncounterScaling`, 전투 UI/타게팅은 변경하지 않았다.
-- [ ] Phase 6: 기존 1마리 MoonRabbit 전투, Intent UI, Monster Presentation, Action Planner 동작 유지 확인
+- [x] Phase 6: 기존 MoonRabbit 전투, Intent UI, Monster Presentation, Action Planner 동작 유지 확인
 - [x] Phase 7: `WaveScheduleDefinition`, `WaveCyclePattern`, `WaveSchedule`, `WaveResult` 추가
 - [x] Phase 7: `BattleSceneCompositionRoot`에서 직접 Tier/구간 index 계산 제거
 - [x] Phase 7: 과거 `WaveResult.Tier`와 `WaveResult.Cycle`을 `EncounterSelectionRequest`에 전달 (9/9에서 `EncounterTier`와 `ThemeSectionIndex` 명칭으로 정리)
@@ -316,7 +316,7 @@ Dev Override 없음
 - [x] Phase 9: WaveSchedule 결과 명칭을 ThemeSectionIndex / PositionInWave로 정리
 - [x] Phase 9: ThemeGroup 선택과 EncounterSelector 필터 EditMode 테스트 추가
 - [x] 문서 갱신: `game-flow.md`와 `combat-core.md`에 선택/생성 분리와 후속 WaveSchedule/Scaling 범위 반영
-- [ ] 검증: Unity compile, 관련 EditMode 테스트 실행 가능 여부 기록
+- [x] 검증: Unity compile, 관련 EditMode 테스트 실행 가능 여부 기록
 
 ## Notes
 
@@ -370,14 +370,12 @@ Dev Override 없음
 
 ## Follow-up Candidates
 
-- `EncounterScaling`: Core 순수 공식 + Data `EncounterBalanceSettings` SO 변환 구조 추가
 - 다수 적 편성 활성화: 1/2/3마리 편성 실전 검증과 타겟팅 UX 정리
+- Encounter 등장 조건: 각 wave 초반 전투 보호를 위해 `EncounterDefinition`에 `minPositionInWave` 같은 후보 필터 조건 추가 검토
 - Encounter 데이터 authoring 보강: Inspector validation, 에디터 생성 메뉴, 샘플 table 확장
 
 ## Completion
 
-_(completed/로 옮길 때 채움.)_
-
-- **Finished**:
-- **Outcome**:
-- **Follow-ups**:
+- **Finished**: 2026-06-22
+- **Outcome**: `EncounterTable`/`EncounterSelector` 기반 선택 경로를 `BattleSceneCompositionRoot`에 연결하고, `WaveScheduleDefinition`, ThemeGroup, deterministic Weight 선택, formation layout, `EncounterSelection` 기반 roster build, HP scaling을 본편 생성 경로에 반영했다. Unity compile과 관련 EditMode 테스트는 사용자 확인으로 완료했다.
+- **Follow-ups**: 다수 적 편성 실전 검증, 초반 wave 보호용 Encounter 등장 조건(`minPositionInWave`) 검토, Encounter 데이터 authoring 보강.
