@@ -7,10 +7,7 @@ namespace SlotRogue.UI.GameFlow
     {
         void PlayIdle();
 
-        UniTask PlayActionUntilEffectPointAsync(
-            string actionName,
-            CancellationToken cancellationToken);
-
+        UniTask PlayActionUntilEffectPointAsync(string actionName, CancellationToken cancellationToken);
         UniTask WaitForActionCompletedAsync(CancellationToken cancellationToken);
     }
 }
