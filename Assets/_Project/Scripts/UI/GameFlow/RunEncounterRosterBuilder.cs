@@ -60,19 +60,113 @@ namespace SlotRogue.UI.GameFlow
             int? maxHpOverride)
         {
             var combatantFactory = new EnemyCombatantFactory();
-            EnemyCombatantBuildResult buildResult = combatantFactory.CreateWithPresentation(
-                definition,
-                rosterIndex,
-                maxHpOverride);
 
             return new RunEncounterRoster(new[]
             {
-                new EnemyEncounterUnit(
-                    buildResult.Combatant,
+                BuildUnit(
+                    combatantFactory,
                     definition,
+                    rosterIndex,
                     formationSlot,
-                    buildResult.PresentationMap),
+                    maxHpOverride ?? definition.maxHp),
             });
+        }
+
+        public static RunEncounterRoster Build(EncounterSelection selection)
+        {
+            return BuildUnscaled(selection);
+        }
+
+        public static RunEncounterRoster Build(
+            EncounterSelection selection,
+            EncounterBuildContext buildContext,
+            EncounterBalanceConfig balanceConfig)
+        {
+            if (selection == null)
+            {
+                throw new ArgumentNullException(nameof(selection));
+            }
+
+            var scaling = new EncounterScaling(balanceConfig);
+            var combatantFactory = new EnemyCombatantFactory();
+            var enemies = new EnemyEncounterUnit[selection.Monsters.Count];
+            for (int index = 0; index < selection.Monsters.Count; index++)
+            {
+                SelectedEncounterMonster monster = selection.Monsters[index];
+                EncounterScaleResult scaleResult = scaling.Scale(new EncounterScaleRequest(
+                    monster.Definition.maxHp,
+                    buildContext.BattleNumber,
+                    buildContext.ThemeSectionIndex,
+                    buildContext.ResolveTierHpMultiplier(balanceConfig)));
+                enemies[index] = BuildUnit(
+                    combatantFactory,
+                    monster.Definition,
+                    index,
+                    monster.FormationSlot,
+                    scaleResult.MaxHp);
+            }
+
+            return new RunEncounterRoster(enemies);
+        }
+
+        private static RunEncounterRoster BuildUnscaled(EncounterSelection selection)
+        {
+            if (selection == null)
+            {
+                throw new ArgumentNullException(nameof(selection));
+            }
+
+            var combatantFactory = new EnemyCombatantFactory();
+            var enemies = new EnemyEncounterUnit[selection.Monsters.Count];
+            for (int index = 0; index < selection.Monsters.Count; index++)
+            {
+                SelectedEncounterMonster monster = selection.Monsters[index];
+                enemies[index] = BuildUnit(
+                    combatantFactory,
+                    monster.Definition,
+                    index,
+                    monster.FormationSlot);
+            }
+
+            return new RunEncounterRoster(enemies);
+        }
+
+        private static EnemyEncounterUnit BuildUnit(
+            EnemyCombatantFactory combatantFactory,
+            MonsterDefinition definition,
+            int rosterIndex,
+            int formationSlot)
+        {
+            if (definition == null)
+            {
+                throw new ArgumentNullException(nameof(definition));
+            }
+
+            return BuildUnit(
+                combatantFactory,
+                definition,
+                rosterIndex,
+                formationSlot,
+                definition.maxHp);
+        }
+
+        private static EnemyEncounterUnit BuildUnit(
+            EnemyCombatantFactory combatantFactory,
+            MonsterDefinition definition,
+            int rosterIndex,
+            int formationSlot,
+            int maxHp)
+        {
+            EnemyCombatantBuildResult buildResult = combatantFactory.CreateWithPresentation(
+                definition,
+                rosterIndex,
+                maxHp);
+
+            return new EnemyEncounterUnit(
+                buildResult.Combatant,
+                definition,
+                formationSlot,
+                buildResult.PresentationMap);
         }
 
         private static int TierMaxHp(EncounterTier tier, int level)

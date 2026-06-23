@@ -1929,12 +1929,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.BattleSceneCompositionRoot
   _devMonsterDefinitionOverride: {fileID: 11400000, guid: 7d9da94086c8940418db8d32ab6a1b40, type: 2}
-  _view: {fileID: 0}
-  _floatingTextLayerView: {fileID: 0}
-  _turnBannerView: {fileID: 0}
-  _spinLeverView: {fileID: 0}
-  _slotMachineFrameView: {fileID: 0}
-  _slotPresentationManager: {fileID: 0}
+  _encounterTable: {fileID: 11400000, guid: 65910ce9864d4bd4f9e95d95b407b117, type: 2}
+  _waveScheduleDefinition: {fileID: 11400000, guid: 4c0cb456ad7044bbba8313f629ae02ad, type: 2}
+  _encounterBalanceSettings: {fileID: 11400000, guid: 1ff29ba914624333ac616241494dfdd4, type: 2}
+  _view: {fileID: 1537428643}
+  _floatingTextLayerView: {fileID: 3782469260917267955}
+  _turnBannerView: {fileID: 3782469260917267954}
+  _spinLeverView: {fileID: 972916313}
+  _slotMachineFrameView: {fileID: 1900000007}
+  _slotPresentationManager: {fileID: 228715807}
 --- !u!114 &2132299104 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4944794592139840934, guid: 68271b1500239e547bf995972e95c27a, type: 3}

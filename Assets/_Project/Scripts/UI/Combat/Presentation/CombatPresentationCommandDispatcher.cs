@@ -10,17 +10,20 @@ namespace SlotRogue.UI.Combat.Presentation
         private readonly TurnBannerView _turnBannerView;
         private readonly ICombatShieldGaugeRegistry _shieldGaugeRegistry;
         private readonly IEnemyCombatVisualPresentationTarget _enemyCombatVisualTarget;
+        private readonly ICombatHealthBarPresentationTarget _healthBarPresentationTarget;
 
         public CombatPresentationCommandDispatcher(
             FloatingCombatTextLayerView floatingTextLayerView,
             TurnBannerView turnBannerView,
             ICombatShieldGaugeRegistry shieldGaugeRegistry,
-            IEnemyCombatVisualPresentationTarget enemyCombatVisualTarget)
+            IEnemyCombatVisualPresentationTarget enemyCombatVisualTarget,
+            ICombatHealthBarPresentationTarget healthBarPresentationTarget)
         {
             _floatingTextLayerView = floatingTextLayerView;
             _turnBannerView = turnBannerView;
             _shieldGaugeRegistry = shieldGaugeRegistry;
             _enemyCombatVisualTarget = enemyCombatVisualTarget;
+            _healthBarPresentationTarget = healthBarPresentationTarget;
         }
 
         public UniTask PlayEnemyActionUntilEffectPointAsync(
@@ -53,6 +56,19 @@ namespace SlotRogue.UI.Combat.Presentation
         {
             return _floatingTextLayerView != null
                 ? _floatingTextLayerView.ShowFloatingDamageAsync(request, cancellationToken)
+                : UniTask.CompletedTask;
+        }
+
+        public UniTask WaitHealthBarAsync(
+            CombatParticipantId participantId,
+            bool isPlayerTarget,
+            CancellationToken cancellationToken)
+        {
+            return _healthBarPresentationTarget != null
+                ? _healthBarPresentationTarget.WaitHealthBarAsync(
+                    participantId,
+                    isPlayerTarget,
+                    cancellationToken)
                 : UniTask.CompletedTask;
         }
 

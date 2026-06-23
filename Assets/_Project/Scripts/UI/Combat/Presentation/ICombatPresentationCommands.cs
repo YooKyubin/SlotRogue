@@ -19,6 +19,11 @@ namespace SlotRogue.UI.Combat.Presentation
             FloatingDamageRequest request,
             CancellationToken cancellationToken);
 
+        UniTask WaitHealthBarAsync(
+            CombatParticipantId participantId,
+            bool isPlayerTarget,
+            CancellationToken cancellationToken);
+
         UniTask ShowShieldGainAsync(
             ShieldPresentationRequest request,
             CancellationToken cancellationToken);
@@ -38,6 +43,14 @@ namespace SlotRogue.UI.Combat.Presentation
         UniTask ShowTurnBannerAsync(
             string message,
             float duration,
+            CancellationToken cancellationToken);
+    }
+
+    public interface ICombatHealthBarPresentationTarget
+    {
+        UniTask WaitHealthBarAsync(
+            CombatParticipantId participantId,
+            bool isPlayerTarget,
             CancellationToken cancellationToken);
     }
 }

@@ -8,6 +8,165 @@ using UnityEngine;
 
 namespace SlotRogue.UI.Tests.Combat.Presentation
 {
+    public sealed class DamagePresenterTests
+    {
+        [Test]
+        public async Task PresentAsync_DamageWaitsForFloatingDamageAndHealthBar()
+        {
+            var hostObject = new GameObject("Presentation Host");
+            try
+            {
+                var commands = new DamageRecordingCommands();
+                var presenter = new DamagePresenter(new CombatPresentationHost(hostObject, commands));
+                var targetParticipantId = new CombatParticipantId(101);
+                var viewModel = new CombatViewModel();
+                var combatEvent = new CombatEvent(
+                    CombatEventKind.EffectApplied,
+                    effect: new CombatEffect(
+                        CombatEffectKind.Damage,
+                        amount: 4,
+                        CombatEffectTarget.Enemy),
+                    applyResult: new EffectApplyResult(
+                        damageDealt: 4,
+                        shieldConsumed: 0,
+                        shieldGained: 0,
+                        healApplied: 0),
+                    isPlayerParticipant: false,
+                    targetParticipantId: targetParticipantId,
+                    targetAfter: new CombatParticipantSnapshot(hp: 6, shield: 0));
+
+                Task presentTask = presenter.PresentAsync(
+                        combatEvent,
+                        viewModel,
+                        new PresentationContext(isCritical: false, patternName: string.Empty),
+                        CancellationToken.None)
+                    .AsTask();
+
+                await Task.Yield();
+                Assert.That(presentTask.IsCompleted, Is.False);
+
+                commands.CompleteFloatingDamage();
+                await Task.Yield();
+                Assert.That(presentTask.IsCompleted, Is.False);
+
+                commands.CompleteHealthBar();
+                await presentTask;
+
+                Assert.That(commands.FloatingDamageCallCount, Is.EqualTo(1));
+                Assert.That(commands.HealthBarCallCount, Is.EqualTo(1));
+                Assert.That(commands.LastHealthBarParticipantId.Value, Is.EqualTo(targetParticipantId.Value));
+                Assert.That(commands.LastHealthBarIsPlayerTarget, Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(hostObject);
+            }
+        }
+
+        private sealed class DamageRecordingCommands : ICombatPresentationCommands
+        {
+            private readonly UniTaskCompletionSource _floatingDamageCompletion = new();
+            private readonly UniTaskCompletionSource _healthBarCompletion = new();
+
+            public int FloatingDamageCallCount { get; private set; }
+
+            public int HealthBarCallCount { get; private set; }
+
+            public CombatParticipantId LastHealthBarParticipantId { get; private set; }
+
+            public bool LastHealthBarIsPlayerTarget { get; private set; }
+
+            public void CompleteFloatingDamage()
+            {
+                _floatingDamageCompletion.TrySetResult();
+            }
+
+            public void CompleteHealthBar()
+            {
+                _healthBarCompletion.TrySetResult();
+            }
+
+            public UniTask PlayEnemyActionUntilEffectPointAsync(
+                CombatParticipantId participantId,
+                string actionName,
+                CancellationToken cancellationToken)
+            {
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask WaitEnemyActionCompletedAsync(
+                CombatParticipantId participantId,
+                CancellationToken cancellationToken)
+            {
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask ShowFloatingDamageAsync(
+                FloatingDamageRequest request,
+                CancellationToken cancellationToken)
+            {
+                FloatingDamageCallCount++;
+                return WaitAsync(_floatingDamageCompletion, cancellationToken);
+            }
+
+            public UniTask WaitHealthBarAsync(
+                CombatParticipantId participantId,
+                bool isPlayerTarget,
+                CancellationToken cancellationToken)
+            {
+                HealthBarCallCount++;
+                LastHealthBarParticipantId = participantId;
+                LastHealthBarIsPlayerTarget = isPlayerTarget;
+                return WaitAsync(_healthBarCompletion, cancellationToken);
+            }
+
+            public UniTask ShowShieldGainAsync(
+                ShieldPresentationRequest request,
+                CancellationToken cancellationToken)
+            {
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask ShowShieldHitAsync(
+                ShieldPresentationRequest request,
+                CancellationToken cancellationToken)
+            {
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask ShowShieldBreakAsync(
+                ShieldPresentationRequest request,
+                CancellationToken cancellationToken)
+            {
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask ShowShieldExpireAsync(
+                ShieldPresentationRequest request,
+                CancellationToken cancellationToken)
+            {
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask ShowTurnBannerAsync(
+                string message,
+                float duration,
+                CancellationToken cancellationToken)
+            {
+                return UniTask.CompletedTask;
+            }
+
+            private static async UniTask WaitAsync(
+                UniTaskCompletionSource completion,
+                CancellationToken cancellationToken)
+            {
+                using CancellationTokenRegistration registration =
+                    cancellationToken.Register(() => completion.TrySetCanceled(cancellationToken));
+                await completion.Task;
+            }
+        }
+    }
+
     public sealed class ActionStartedPresenterTests
     {
         [Test]
@@ -150,6 +309,15 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
 
             public UniTask ShowFloatingDamageAsync(
                 FloatingDamageRequest request,
+                CancellationToken cancellationToken)
+            {
+                OtherCommandCallCount++;
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask WaitHealthBarAsync(
+                CombatParticipantId participantId,
+                bool isPlayerTarget,
                 CancellationToken cancellationToken)
             {
                 OtherCommandCallCount++;
@@ -344,6 +512,15 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
 
             public UniTask ShowFloatingDamageAsync(
                 FloatingDamageRequest request,
+                CancellationToken cancellationToken)
+            {
+                OtherCommandCallCount++;
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask WaitHealthBarAsync(
+                CombatParticipantId participantId,
+                bool isPlayerTarget,
                 CancellationToken cancellationToken)
             {
                 OtherCommandCallCount++;

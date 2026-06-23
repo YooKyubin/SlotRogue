@@ -3,6 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
 using SlotRogue.Data.Combat;
+using SlotRogue.Data.GameFlow;
 using SlotRogue.Slot.Core;
 using SlotRogue.Slot.Data;
 using SlotRogue.Slot.ViewModels;
@@ -29,6 +30,10 @@ namespace SlotRogue.UI.GameFlow
         // path supplies MonsterDefinition assets.
         [SerializeField] private MonsterDefinition _devMonsterDefinitionOverride;
 
+        [SerializeField] private EncounterTable _encounterTable;
+        [SerializeField] private WaveScheduleDefinition _waveScheduleDefinition;
+        [SerializeField] private EncounterBalanceSettings _encounterBalanceSettings;
+
         [SerializeField] private RunBattleScreenView _view;
         [SerializeField] private FloatingCombatTextLayerView _floatingTextLayerView;
         [SerializeField] private TurnBannerView _turnBannerView;
@@ -37,6 +42,8 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private SlotPresentationManager _slotPresentationManager;
 
         private BattleFlowController _battleFlowController;
+        private readonly EncounterSelector _encounterSelector = new();
+        private readonly EncounterThemeIndexSelector _themeIndexSelector = new();
         private readonly RunBattleResultRecorder _resultRecorder = new();
         private CancellationTokenSource _battleStartCts;
         private CancellationTokenSource _presentationCts;
@@ -197,6 +204,7 @@ namespace SlotRogue.UI.GameFlow
                 _floatingTextLayerView,
                 _turnBannerView,
                 _view,
+                _view,
                 _view);
             var presentationHost = new CombatPresentationHost(gameObject, commands);
             CombatPresentationPipeline pipeline = CombatPresentationPipeline.CreateDefault(presentationHost);
@@ -239,19 +247,82 @@ namespace SlotRogue.UI.GameFlow
                 return CreateTutorialEncounterRoster();
             }
 
+            int battleNumber = GameFlowSession.CurrentBattleNumber;
+            WaveSchedule waveSchedule = CreateWaveSchedule();
+            WaveResult wave = waveSchedule.Evaluate(battleNumber);
+            var buildContext = new EncounterBuildContext(
+                wave.EncounterTier,
+                battleNumber,
+                wave.ThemeSectionIndex);
+            EncounterBalanceConfig balanceConfig = CreateEncounterBalanceConfig();
+
             if (_devMonsterDefinitionOverride != null)
             {
                 // TEMPORARY TEST HOOK: this bypasses the tier-based infinite-mode builder
                 // only while manually verifying MonsterDefinition/MonsterTurnPattern assets.
-                return RunEncounterRosterBuilder.BuildFromMonsterDefinition(
-                    _devMonsterDefinitionOverride,
-                    rosterIndex: 0,
-                    formationSlot: 1);
+                EncounterSelection encounterSelection = CreateDevOverrideSelection(_devMonsterDefinitionOverride);
+                return RunEncounterRosterBuilder.Build(encounterSelection, buildContext, balanceConfig);
             }
 
-            return RunEncounterRosterBuilder.BuildForTier(
-                GameFlowSession.CurrentTier,
-                GameFlowSession.CurrentBattleNumber);
+            if (_encounterTable == null)
+            {
+                throw new InvalidOperationException(
+                    "[BattleSceneCompositionRoot] EncounterTable is missing. " +
+                    "Assign an EncounterTable asset before starting battle without Dev Monster Override.");
+            }
+
+            int themeGroupIndex = _themeIndexSelector.Select(
+                GameFlowSession.RunSeed,
+                wave.ThemeSectionIndex,
+                _encounterTable.ThemeGroupCount);
+            var request = new EncounterSelectionRequest(
+                _encounterTable,
+                wave.EncounterTier,
+                themeGroupIndex,
+                GameFlowSession.RunSeed,
+                battleNumber);
+            EncounterSelection selection = _encounterSelector.Select(request);
+            return RunEncounterRosterBuilder.Build(selection, buildContext, balanceConfig);
+        }
+
+        private static EncounterSelection CreateDevOverrideSelection(MonsterDefinition definition)
+        {
+            int formationSlot = EnemyFormationLayout.ResolveSlots(monsterCount: 1)[0];
+            return new EncounterSelection(new[]
+            {
+                new SelectedEncounterMonster(definition, formationSlot),
+            });
+        }
+
+        private WaveSchedule CreateWaveSchedule()
+        {
+            if (_waveScheduleDefinition == null)
+            {
+                throw new InvalidOperationException(
+                    "[BattleSceneCompositionRoot] WaveScheduleDefinition is missing. " +
+                    "Assign a WaveScheduleDefinition asset before starting battle without Dev Monster Override.");
+            }
+
+            if (!_waveScheduleDefinition.TryValidate(out string error))
+            {
+                throw new InvalidOperationException(
+                    $"[BattleSceneCompositionRoot] WaveScheduleDefinition '{_waveScheduleDefinition.name}' is invalid:" +
+                    $"{Environment.NewLine}{error}");
+            }
+
+            return WaveSchedule.FromDefinition(_waveScheduleDefinition);
+        }
+
+        private EncounterBalanceConfig CreateEncounterBalanceConfig()
+        {
+            if (_encounterBalanceSettings == null)
+            {
+                throw new InvalidOperationException(
+                    "[BattleSceneCompositionRoot] EncounterBalanceSettings is missing. " +
+                    "Assign an EncounterBalanceSettings asset before starting battle.");
+            }
+
+            return _encounterBalanceSettings.CreateConfig();
         }
 
         private RunEncounterRoster CreateTutorialEncounterRoster()

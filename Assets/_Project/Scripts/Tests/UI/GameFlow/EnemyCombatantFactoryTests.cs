@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using SlotRogue.Core.Combat;
 using SlotRogue.Data.Combat;
+using SlotRogue.Data.GameFlow;
 using SlotRogue.UI.GameFlow;
 using UnityEngine;
 
@@ -180,6 +181,24 @@ namespace SlotRogue.UI.Tests.GameFlow
         }
 
         [Test]
+        public void EnemyCombatantFactory_CreateDefinitionWithScaledMaxHp_UsesProvidedMaxHp()
+        {
+            MonsterDefinition definition = ScriptableObject.CreateInstance<MonsterDefinition>();
+            definition.maxHp = 17;
+            definition.turnPattern = Pattern(Turn(Action("Attack", Damage(6, CombatTargetMode.SelectedEnemy))));
+            var factory = new EnemyCombatantFactory();
+
+            EnemyCombatantBuildResult result = factory.CreateWithPresentation(
+                definition,
+                rosterIndex: 0,
+                maxHp: 31);
+
+            Assert.That(result.Combatant.Participant.MaxHp, Is.EqualTo(31));
+            Assert.That(result.Combatant.Participant.CurrentHp, Is.EqualTo(31));
+            UnityEngine.Object.DestroyImmediate(definition);
+        }
+
+        [Test]
         public void RunEncounterRosterBuilder_BuildForTier_RequiresMonsterDefinitionSource()
         {
             Assert.Throws<NotSupportedException>(() =>
@@ -223,6 +242,125 @@ namespace SlotRogue.UI.Tests.GameFlow
             Assert.That(roster.Enemies[0].Definition, Is.SameAs(definition));
             Assert.That(roster.Enemies[0].FormationSlot, Is.EqualTo(2));
             UnityEngine.Object.DestroyImmediate(definition);
+        }
+
+        [Test]
+        public void RunEncounterRosterBuilder_BuildSelection_CreatesSingleUnit()
+        {
+            MonsterDefinition definition = ScriptableObject.CreateInstance<MonsterDefinition>();
+            definition.maxHp = 17;
+            definition.turnPattern = Pattern(Turn(Action("Attack", Damage(6, CombatTargetMode.SelectedEnemy))));
+            var selection = new EncounterSelection(new[]
+            {
+                new SelectedEncounterMonster(definition, formationSlot: 1),
+            });
+
+            RunEncounterRoster roster = RunEncounterRosterBuilder.Build(selection);
+
+            Assert.That(roster.Enemies.Count, Is.EqualTo(1));
+            Assert.That(roster.Enemies[0].Definition, Is.SameAs(definition));
+            Assert.That(roster.Enemies[0].FormationSlot, Is.EqualTo(1));
+            Assert.That(roster.Enemies[0].Combatant.Participant.Id.Value, Is.EqualTo(100));
+            UnityEngine.Object.DestroyImmediate(definition);
+        }
+
+        [Test]
+        public void RunEncounterRosterBuilder_BuildSelection_CreatesMultipleUnits()
+        {
+            MonsterDefinition first = ScriptableObject.CreateInstance<MonsterDefinition>();
+            first.maxHp = 17;
+            first.turnPattern = Pattern(Turn(Action("FirstAttack", Damage(6, CombatTargetMode.SelectedEnemy))));
+            MonsterDefinition second = ScriptableObject.CreateInstance<MonsterDefinition>();
+            second.maxHp = 23;
+            second.turnPattern = Pattern(Turn(Action("SecondAttack", Damage(8, CombatTargetMode.SelectedEnemy))));
+            var selection = new EncounterSelection(new[]
+            {
+                new SelectedEncounterMonster(first, formationSlot: 0),
+                new SelectedEncounterMonster(second, formationSlot: 2),
+            });
+
+            RunEncounterRoster roster = RunEncounterRosterBuilder.Build(selection);
+
+            Assert.That(roster.Enemies.Count, Is.EqualTo(2));
+            Assert.That(roster.Enemies[0].Definition, Is.SameAs(first));
+            Assert.That(roster.Enemies[1].Definition, Is.SameAs(second));
+            Assert.That(roster.Enemies[0].FormationSlot, Is.EqualTo(0));
+            Assert.That(roster.Enemies[1].FormationSlot, Is.EqualTo(2));
+            Assert.That(roster.Enemies[0].Combatant, Is.Not.SameAs(roster.Enemies[1].Combatant));
+            Assert.That(roster.Enemies[0].Combatant.Participant.Id.Value, Is.EqualTo(100));
+            Assert.That(roster.Enemies[1].Combatant.Participant.Id.Value, Is.EqualTo(101));
+            Assert.That(roster.Enemies[0].Combatant.Participant.MaxHp, Is.EqualTo(17));
+            Assert.That(roster.Enemies[1].Combatant.Participant.MaxHp, Is.EqualTo(23));
+            UnityEngine.Object.DestroyImmediate(first);
+            UnityEngine.Object.DestroyImmediate(second);
+        }
+
+        [Test]
+        public void RunEncounterRosterBuilder_BuildSelection_NullSelection_Fails()
+        {
+            Assert.Throws<ArgumentNullException>(() => RunEncounterRosterBuilder.Build(null));
+        }
+
+        [Test]
+        public void RunEncounterRosterBuilder_BuildSelection_PreservesPresentationMap()
+        {
+            MonsterDefinition definition = ScriptableObject.CreateInstance<MonsterDefinition>();
+            definition.maxHp = 17;
+            definition.turnPattern = Pattern(Turn(Action("Attack", Damage(6, CombatTargetMode.SelectedEnemy))));
+            var selection = new EncounterSelection(new[]
+            {
+                new SelectedEncounterMonster(definition, formationSlot: 1),
+            });
+
+            RunEncounterRoster roster = RunEncounterRosterBuilder.Build(selection);
+            EnemyEncounterUnit unit = roster.Enemies[0];
+            unit.Combatant.PlanNextAction(Context(unit.Combatant.Participant));
+            EnemyActionKey actionKey = unit.Combatant.UpcomingPlan.Actions[0].ActionKey;
+
+            Assert.That(unit.PresentationMap.TryGet(actionKey, out EnemyActionPresentation presentation), Is.True);
+            Assert.That(presentation.DisplayName, Is.EqualTo("Attack"));
+            UnityEngine.Object.DestroyImmediate(definition);
+        }
+
+        [Test]
+        public void RunEncounterRosterBuilder_BuildSelectionWithContext_AppliesScaledMaxHp()
+        {
+            MonsterDefinition definition = ScriptableObject.CreateInstance<MonsterDefinition>();
+            definition.maxHp = 20;
+            definition.turnPattern = Pattern(Turn(Action("Attack", Damage(6, CombatTargetMode.SelectedEnemy))));
+            var selection = new EncounterSelection(new[]
+            {
+                new SelectedEncounterMonster(definition, formationSlot: 1),
+            });
+            var context = new EncounterBuildContext(EncounterTier.Elite, battleNumber: 3, themeSectionIndex: 1);
+            var config = new EncounterBalanceConfig(
+                hpIncreasePerBattle: 0.1f,
+                hpIncreasePerThemeSection: 0.25f,
+                normalTierHpMultiplier: 1f,
+                eliteTierHpMultiplier: 1.5f,
+                bossTierHpMultiplier: 2f);
+
+            RunEncounterRoster roster = RunEncounterRosterBuilder.Build(selection, context, config);
+
+            Assert.That(roster.Enemies[0].Definition, Is.SameAs(definition));
+            Assert.That(roster.Enemies[0].Combatant.Participant.MaxHp, Is.EqualTo(44));
+            Assert.That(roster.Enemies[0].Combatant.Participant.CurrentHp, Is.EqualTo(44));
+            UnityEngine.Object.DestroyImmediate(definition);
+        }
+
+        [Test]
+        public void EncounterBalanceSettings_CreateConfig_UsesSerializedDefaults()
+        {
+            EncounterBalanceSettings settings = ScriptableObject.CreateInstance<EncounterBalanceSettings>();
+
+            EncounterBalanceConfig config = settings.CreateConfig();
+
+            Assert.That(config.HpIncreasePerBattle, Is.EqualTo(0.05f));
+            Assert.That(config.HpIncreasePerThemeSection, Is.EqualTo(0.25f));
+            Assert.That(config.NormalTierHpMultiplier, Is.EqualTo(1f));
+            Assert.That(config.EliteTierHpMultiplier, Is.EqualTo(1.35f));
+            Assert.That(config.BossTierHpMultiplier, Is.EqualTo(1.8f));
+            UnityEngine.Object.DestroyImmediate(settings);
         }
 
         [Test]

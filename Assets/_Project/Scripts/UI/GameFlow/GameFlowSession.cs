@@ -17,11 +17,7 @@ namespace SlotRogue.UI.GameFlow
         /// <summary>일반 전투 승리 시 자동 회복량. (엘리트/보스는 유물로만 보상)</summary>
         private const int NormalWinHeal = 4;
 
-        /// <summary>엘리트 등장 주기. 기획 미정 — 플레이테스트로 조정.</summary>
-        public static int ElitePeriod { get; set; } = 5;
-
-        /// <summary>보스 등장 주기. ElitePeriod보다 우선합니다. 기획 미정 — 플레이테스트로 조정.</summary>
-        public static int BossPeriod { get; set; } = 10;
+        private static readonly WaveSchedule DefaultWaveSchedule = WaveSchedule.CreateDefault();
 
         /// <summary>
         /// 무한모드 여부. true면 전투는 맵 노드 대신 등급(Tier) 기반으로 적을 구성합니다.
@@ -31,6 +27,9 @@ namespace SlotRogue.UI.GameFlow
 
         /// <summary>현재 진행 중인 전투 번호(1-base).</summary>
         public static int CurrentBattleNumber { get; private set; }
+
+        /// <summary>런 동안 Encounter 선택 재현성에 사용하는 시드.</summary>
+        public static int RunSeed { get; private set; }
 
         /// <summary>
         /// 런 동안 유지되는 가변 심볼 풀(가방). 슬롯은 이 풀의 개수에 비례해 심볼을 뽑습니다.
@@ -47,20 +46,14 @@ namespace SlotRogue.UI.GameFlow
         };
 
         /// <summary>현재 전투의 등급.</summary>
-        public static EncounterTier CurrentTier => GetTierForBattle(CurrentBattleNumber);
+        public static EncounterTier CurrentTier =>
+            CurrentBattleNumber > 0
+                ? DefaultWaveSchedule.Evaluate(CurrentBattleNumber).EncounterTier
+                : EncounterTier.Normal;
 
         /// <summary>현재(직전) 전투가 유물 보상을 주는가 (엘리트/보스만).</summary>
         public static bool CurrentBattleGrantsArtifact =>
             CurrentTier is EncounterTier.Elite or EncounterTier.Boss;
-
-        /// <summary>전투 번호로부터 등급을 결정합니다. 보스가 엘리트보다 우선합니다.</summary>
-        public static EncounterTier GetTierForBattle(int battleNumber)
-        {
-            if (battleNumber <= 0) return EncounterTier.Normal;
-            if (BossPeriod > 0 && battleNumber % BossPeriod == 0) return EncounterTier.Boss;
-            if (ElitePeriod > 0 && battleNumber % ElitePeriod == 0) return EncounterTier.Elite;
-            return EncounterTier.Normal;
-        }
 
         /// <summary>다음 전투로 진행합니다. 보상/회복 처리가 끝난 뒤 호출합니다.</summary>
         public static void AdvanceToNextBattle()
@@ -189,6 +182,7 @@ namespace SlotRogue.UI.GameFlow
             PlayerCurrentHp = PlayerMaxHp;
             BattleIndex = 0;
             CurrentBattleNumber = 1;
+            RunSeed = GenerateRunSeed();
             Victories = 0;
             RewardsClaimed = 0;
             DamageBonus = 0;
@@ -432,6 +426,11 @@ namespace SlotRogue.UI.GameFlow
             }
 
             return builder.ToString();
+        }
+
+        private static int GenerateRunSeed()
+        {
+            return Environment.TickCount;
         }
     }
 }

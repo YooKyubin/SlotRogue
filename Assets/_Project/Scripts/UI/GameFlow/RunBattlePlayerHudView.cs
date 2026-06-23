@@ -1,3 +1,5 @@
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -70,6 +72,17 @@ namespace SlotRogue.UI.GameFlow
 #else
             SetBarFill(_hpFill, state.PlayerHp, state.PlayerMaxHp, ref _hpFillRendered);
             SetBarFill(_shieldFill, state.PlayerShield, state.PlayerShieldMax, ref _shieldFillRendered);
+#endif
+        }
+
+        public UniTask WaitHpFillAsync(CancellationToken cancellationToken)
+        {
+#if DOTWEEN
+            return SlotRogue.UI.Combat.Presentation.CombatPresentationTweens.AwaitTweenAsync(
+                _hpFillTween,
+                cancellationToken);
+#else
+            return UniTask.CompletedTask;
 #endif
         }
 
