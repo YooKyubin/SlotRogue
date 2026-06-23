@@ -1,7 +1,7 @@
 # 전투 코어 (Combat Core)
 
 **Status**: draft  
-**Last updated**: 2026-06-20 (규칙 기반 Encounter 선택 및 HP scaling 반영)
+**Last updated**: 2026-06-23 (전투 행동 실행 책임 분리 반영)
 
 ## Purpose
 
@@ -13,7 +13,7 @@
 |---|------|------|
 | C1 | [ADR-0001](../adr/0001-combat-turn-effect-pipeline.md) | 1스핀=1턴, Effect 목록 파이프라인, Shield-only 방어, Participant 소유 상태, CombatEvent 로그 |
 | C2 | **슬롯 계산 / 전투 진행 분리** | 슬롯 asmdef는 Combat 타입을 참조하지 않는다 (`slot-core.md` S4). 연동 계층에서 `Effect[]` 변환. |
-| C3 | **Resolver 순수 로직** | `BattleResolver`는 MonoBehaviour·UI 없이 EditMode 테스트 가능. |
+| C3 | **Resolver 순수 로직** | `CombatActionResolver`와 `EffectApplicator`는 MonoBehaviour·UI 없이 EditMode 테스트 가능. |
 | C4 | **플레이어·몬스터 동일 Effect 타입** | 행동 주체는 다르지만 `Kind + Amount + Target` 구조 공유. |
 | C5 | [ADR-0003](../adr/0003-combat-presentation-replay.md) | MVP 연출: Replay — 동기 `ApplyPlayerTurn` 후 `CombatEvent` 순차 재생; HUD는 `CombatViewModel`; `EffectApplied` 스냅샷 |
 | C6 | [ADR-0004](../adr/0004-multi-participant-combat.md) | 다인전은 participant id 기반 roster, `TargetMode + TargetParticipantId`, 적 턴 좌→우 순차, player team 1명(MVP) |
@@ -114,6 +114,20 @@ sequenceDiagram
 | `Heal` | `target.hp = min(target.hp + Amount, target.maxHp)` |
 
 스탯 방어력은 없다. 방어도는 `Shield` Effect로만 얻는다.
+
+### Action execution boundary
+
+`BattleSystem`은 전투 시작/종료, 페이즈 전환, 플레이어 턴과 몬스터 턴 진행, 상태 효과 턴 시작·종료 처리, 사망 및 승패 판정을 담당한다. 행동을 언제 실행할지만 결정하고, 행동 내부 효과 순서나 대상별 적용은 직접 처리하지 않는다.
+
+`CombatActionResolver`는 기존 입력 형태를 유지한 채 행동 하나의 실행 과정을 처리한다. 플레이어는 기존 `CombatEffect` 목록으로, 몬스터는 기존 `EnemyPlannedAction` 목록으로 들어오며, resolver는 효과 순서, 대상 해석, 대상별 순차 적용, `ActionStarted` / `EffectApplied` / `ActionCompleted` 이벤트 생성을 담당한다. 플레이어와 몬스터 입력을 새 공통 `CombatAction` 타입으로 억지 통합하지 않는다.
+
+`EffectApplicator`는 이미 결정된 최종 수치를 `CombatParticipant`에 실제 반영한다. 피해, shield 획득, heal 적용과 `EffectApplyResult` 반환만 담당하며 턴, 페이즈, 행동자, 몬스터 계획, 전투 이벤트, 승패 판정은 알지 않는다.
+
+```text
+BattleSystem
+    -> CombatActionResolver
+        -> EffectApplicator
+```
 
 ### Participant
 

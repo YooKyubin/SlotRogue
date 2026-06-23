@@ -183,6 +183,45 @@ namespace SlotRogue.Core.Tests.Combat
             Assert.That(enemy1.CurrentHp, Is.EqualTo(16));
         }
 
+        [Test]
+        public void ApplyPlayerTurn_PlayerEffectsApplyInInputOrder()
+        {
+            CombatParticipant player = new(
+                maxHp: 30,
+                currentHp: 20,
+                shield: 0,
+                new CombatParticipantId(1),
+                CombatTeam.Player);
+            CombatParticipant enemy = Enemy(id: 100, maxHp: 20);
+            _battle.StartBattle(
+                player,
+                new[] { Combatant(enemy, Plan(CombatEffectKind.Damage, 0, CombatEffectTarget.Enemy)) });
+
+            _battle.ApplyPlayerTurn(
+                new[]
+                {
+                    new CombatEffect(CombatEffectKind.Shield, 3, CombatEffectTarget.Self),
+                    new CombatEffect(CombatEffectKind.Damage, 4, CombatEffectTarget.SelectedEnemy(enemy.Id)),
+                    new CombatEffect(CombatEffectKind.Heal, 2, CombatEffectTarget.Self),
+                },
+                selectedTargetId: enemy.Id);
+
+            CombatEffectKind[] resolvingEffects = _battle.Events
+                .Where(e => e.Kind == CombatEventKind.EffectApplied && e.Phase == BattlePhase.Resolving)
+                .Select(e => e.Effect.Kind)
+                .ToArray();
+            Assert.That(
+                resolvingEffects,
+                Is.EqualTo(new[]
+                {
+                    CombatEffectKind.Shield,
+                    CombatEffectKind.Damage,
+                    CombatEffectKind.Heal,
+                }));
+            Assert.That(player.CurrentHp, Is.EqualTo(22));
+            Assert.That(enemy.CurrentHp, Is.EqualTo(16));
+        }
+
         private static EnemyCombatant Combatant(CombatParticipant enemy, params EnemyActionPlan[] plans)
         {
             return new EnemyCombatant(enemy, new FixedSequenceEnemyActionPlanner(plans));
@@ -261,6 +300,56 @@ namespace SlotRogue.Core.Tests.Combat
         private static CombatParticipant Enemy(int id, int maxHp)
         {
             return new CombatParticipant(maxHp, maxHp, shield: 0, new CombatParticipantId(id), CombatTeam.Enemy);
+        }
+    }
+
+    public sealed class CombatActionResolverTests
+    {
+        [Test]
+        public void ResolvePlayerEffects_ApplyStatus_UsesStatusEffectEngine()
+        {
+            var effectApplicator = new EffectApplicator();
+            var statusEffectEngine = new StatusEffectEngine(effectApplicator);
+            var resolver = new CombatActionResolver(effectApplicator, statusEffectEngine);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer();
+            CombatParticipant enemy = CombatParticipantFactory.CreateEnemy();
+            var events = new List<CombatEvent>();
+            var participantsById = new Dictionary<int, CombatParticipant>
+            {
+                [player.Id.Value] = player,
+                [enemy.Id.Value] = enemy,
+            };
+
+            resolver.ResolvePlayerEffects(
+                new[]
+                {
+                    CombatEffect.ApplyStatus(
+                        new StatusEffectSpec(
+                            StatusEffectKind.Burn,
+                            duration: 1,
+                            magnitude: 2,
+                            StatusStackMode.Refresh),
+                        CombatEffectTarget.SelectedEnemy(enemy.Id)),
+                },
+                player,
+                player,
+                new[] { enemy },
+                participantsById,
+                selectedTargetId: enemy.Id,
+                BattlePhase.Resolving,
+                events,
+                shouldEndBattle: () => false);
+
+            Assert.That(enemy.StatusEffects, Has.Count.EqualTo(1));
+            Assert.That(enemy.StatusEffects[0].Kind, Is.EqualTo(StatusEffectKind.Burn));
+            Assert.That(events.Any(e =>
+                e.Kind == CombatEventKind.StatusApplied &&
+                e.TargetParticipantId.Value == enemy.Id.Value &&
+                e.StatusEffectKind == StatusEffectKind.Burn), Is.True);
+            Assert.That(events.Any(e =>
+                e.Kind == CombatEventKind.EffectApplied &&
+                e.Effect.Kind == CombatEffectKind.ApplyStatus &&
+                e.TargetParticipantId.Value == enemy.Id.Value), Is.True);
         }
     }
 }
