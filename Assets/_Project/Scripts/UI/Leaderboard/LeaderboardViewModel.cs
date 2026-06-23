@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
+using R3;
 
 namespace SlotRogue.UI.Leaderboard
 {
@@ -14,14 +15,12 @@ namespace SlotRogue.UI.Leaderboard
         private string _playerName = string.Empty;
         private string _statusMessage = string.Empty;
 
-        public LeaderboardViewModel()
-        {
-            State = LeaderboardViewState.Hidden;
-        }
+        // 화면 상태는 R3 ReactiveProperty로 노출한다(ADR-0019/0020). 구독 즉시 현재 값을
+        // 1회 흘려보내므로 별도 Changed 이벤트 + 초기 Render 호출이 필요 없다.
+        private readonly ReactiveProperty<LeaderboardViewState> _state =
+            new(LeaderboardViewState.Hidden);
 
-        public event Action<LeaderboardViewState> Changed;
-
-        public LeaderboardViewState State { get; private set; }
+        public ReadOnlyReactiveProperty<LeaderboardViewState> State => _state;
 
         public bool HasCompletedProfile => LeaderboardPlayerProfileStore.HasProfile;
 
@@ -152,14 +151,13 @@ namespace SlotRogue.UI.Leaderboard
 
         private void Publish()
         {
-            State = new LeaderboardViewState(
+            _state.Value = new LeaderboardViewState(
                 _isVisible,
                 _isBusy,
                 _isProfileRequired,
                 _playerName,
                 _statusMessage,
                 _entries);
-            Changed?.Invoke(State);
         }
     }
 

@@ -170,6 +170,11 @@ namespace SlotRogue.UI.GameFlow
                 _relicContributions.RecordTurn(
                     relicResult.Contributions,
                     requestResult.FinalRequest.AttackCount);
+                // 흡혈/방어전환 회복은 최종 피해·방어 확정 후 계산되므로 별도로 집계한다.
+                // 회복 델타라 공격 횟수 배수와 무관하다(공격력 기여는 0).
+                _relicContributions.RecordTurn(
+                    requestResult.DerivedHealContributions,
+                    attackCount: 1);
                 _slotSymbolContributions.RecordTurn(
                     slotTurnResult.PatternMatches,
                     requestResult.BaseRequest,

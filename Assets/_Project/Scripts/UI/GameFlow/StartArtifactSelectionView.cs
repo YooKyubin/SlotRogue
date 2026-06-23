@@ -1,4 +1,5 @@
 using System;
+using R3;
 using SlotRogue.UI.RunGame;
 using SlotRogue.UI.RunGame.ViewModels;
 using UnityEngine;
@@ -21,6 +22,32 @@ namespace SlotRogue.UI.GameFlow
         {
             _summaryText = summaryText;
             _artifactOptions = artifactOptions;
+        }
+
+        /// <summary>
+        /// 자기 ViewModel을 구독(상태→Render)하고 입력 event를 presenter로 연결한다.
+        /// R3 구독은 .AddTo(this)로 이 View 파괴 시 자동 해제된다(ADR-0020).
+        /// </summary>
+        public void Bind(
+            StartRelicSelectViewModel viewModel,
+            RunGameFlowController presenter,
+            RelicIconRenderer iconRenderer)
+        {
+            if (viewModel == null || presenter == null)
+            {
+                return;
+            }
+
+            Entered += presenter.HandleStartRelicEntered;
+            RelicSelectionRequested += presenter.HandleStarterRelicSelectionRequested;
+
+            viewModel.State
+                .Subscribe(state =>
+                {
+                    Render(state);
+                    iconRenderer?.RenderStartRelicIcons(this, state);
+                })
+                .AddTo(this);
         }
 
         public void OnEnter()

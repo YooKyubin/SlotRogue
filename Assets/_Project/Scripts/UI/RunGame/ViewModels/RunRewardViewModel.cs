@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using R3;
 using SlotRogue.UI.GameFlow;
 
 namespace SlotRogue.UI.RunGame.ViewModels
@@ -30,16 +31,12 @@ namespace SlotRogue.UI.RunGame.ViewModels
         private IReadOnlyList<RunRewardDefinition> SourcePool =>
             RunRewardCatalog.ForTier(GameFlowSession.CurrentTier);
 
-        public RunRewardViewModel()
-        {
-            State = RunRewardViewState.Empty;
-        }
+        private readonly ReactiveProperty<RunRewardViewState> _state =
+            new(RunRewardViewState.Empty);
 
         public event Action RewardClaimed;
 
-        public event Action<RunRewardViewState> Changed;
-
-        public RunRewardViewState State { get; private set; }
+        public ReadOnlyReactiveProperty<RunRewardViewState> State => _state;
 
         public void ClaimReward(int optionIndex)
         {
@@ -190,7 +187,7 @@ namespace SlotRogue.UI.RunGame.ViewModels
                     reward.ModifierIconKey);
             }
 
-            State = new RunRewardViewState(
+            _state.Value = new RunRewardViewState(
                 GameFlowSession.BuildSummary(),
                 GameFlowSession.CurrentBattleGrantsArtifact,
                 CanUseRewarded(_rerollAdReady) &&
@@ -207,7 +204,6 @@ namespace SlotRogue.UI.RunGame.ViewModels
                     !_rewardClaimed,
                 BuildRewardDoubleLabel(),
                 options);
-            Changed?.Invoke(State);
         }
 
         private string BuildRerollLabel()

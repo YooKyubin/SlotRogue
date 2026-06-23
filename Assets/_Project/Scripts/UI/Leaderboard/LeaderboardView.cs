@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Cysharp.Threading.Tasks;
+using R3;
 using SlotRogue.Relics.Pool;
 using SlotRogue.Slot.Data;
 using SlotRogue.UI.GameFlow;
@@ -45,6 +47,22 @@ namespace SlotRogue.UI.Leaderboard
         public event Action CloseRequested;
 
         public event Action RefreshRequested;
+
+        /// <summary>
+        /// 자기 ViewModel을 구독(상태→Render)하고 close/refresh 입력을 ViewModel command로 연결한다(ADR-0020).
+        /// launcher의 OpenRequested는 씬마다 진입 경로가 달라 소유자(SceneRoot)가 연결한다.
+        /// </summary>
+        public void Bind(LeaderboardViewModel viewModel)
+        {
+            if (viewModel == null)
+            {
+                return;
+            }
+
+            CloseRequested += viewModel.Close;
+            RefreshRequested += () => viewModel.RefreshAsync().Forget();
+            viewModel.State.Subscribe(Render).AddTo(this);
+        }
 
         public bool EnsureRuntimeLayout()
         {

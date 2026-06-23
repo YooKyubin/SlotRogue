@@ -36,6 +36,7 @@ namespace SlotRogue.UI.GameFlow
         private RectTransform _reelFrameRoot;
         private Vector2 _lastConfiguredReelFrameSize;
         private int _animationVersion;
+        private bool _reportedMissingAnimationImage;
 
         public void Bind(Image animationImage, Sprite[] slotMachineSprites = null)
         {
@@ -282,7 +283,14 @@ namespace SlotRogue.UI.GameFlow
             _animationImage = FindAnimationImage();
             if (_animationImage == null)
             {
-                _animationImage = CreateAnimationImage();
+                if (!_reportedMissingAnimationImage)
+                {
+                    Debug.LogError(
+                        "[SlotMachineFrameView] Slot Machine Animation must be placed in the hierarchy when split reel frames are not assigned.");
+                    _reportedMissingAnimationImage = true;
+                }
+
+                return;
             }
 
             ConfigureAnimationImage(_animationImage);
@@ -598,13 +606,6 @@ namespace SlotRogue.UI.GameFlow
         {
             Transform existing = transform.Find(AnimationImageName);
             return existing != null ? existing.GetComponent<Image>() : null;
-        }
-
-        private Image CreateAnimationImage()
-        {
-            var gameObject = new GameObject(AnimationImageName, typeof(RectTransform), typeof(Image));
-            gameObject.transform.SetParent(transform, false);
-            return gameObject.GetComponent<Image>();
         }
 
         private static void ConfigureAnimationImage(Image image)

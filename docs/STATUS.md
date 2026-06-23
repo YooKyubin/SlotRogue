@@ -1,6 +1,6 @@
 ﻿# 프로젝트 상태
 
-_Last updated: 2026-06-22_
+_Last updated: 2026-06-23_
 
 ---
 
@@ -44,7 +44,7 @@ _Last updated: 2026-06-22_
 
 **다인전 플레이·UI (RunBattle)** — [`feature-multi-participant-play-ui`](./exec-plans/completed/feature-multi-participant-play-ui.md) **완료** (2026-06-04): 2/3몹 인카운터 hint, 몬스터별 HUD·타겟 선택·연출 anchor.
 
-**전체 UI strict MVVM** — [`feature-ui-strict-mvvm`](./exec-plans/active/feature-ui-strict-mvvm.md): 현재 씬은 `BootScene`, `GameStart`, `RunGame`이며 전투는 `RunGame` 내부 `BattleView`다. ADR-0008에 따라 View는 렌더링·입력 event만 담당하고, 순수 ViewModel과 SceneRoot가 상태 및 흐름을 연결한다. 승리는 Reward View, 패배는 Defeat View로 버튼 입력 없이 자동 전환하며, 런 인벤토리도 같은 event/ViewModel wiring을 따른다.
+**전체 UI MVP + Reactive ViewModel** — [`feature-ui-strict-mvvm`](./exec-plans/active/feature-ui-strict-mvvm.md): 현재 씬은 `BootScene`, `GameStart`, `RunGame`이며 전투는 `RunGame` 내부 `BattleView`다. [ADR-0019](./adr/0019-r3-reactive-binding-for-menu-ui.md)/[ADR-0020](./adr/0020-mvp-reactive-viewmodel-view-bind.md)에 따라 메뉴/상태표시 ViewModel은 R3 `ReactiveProperty`로 화면 상태만 보유하고, 흐름 제어는 Presenter/FlowController가 담당한다. 1단계로 `RunGameSceneRoot`의 흐름 제어를 순수 C# `RunGameFlowController`로 추출했고, 2단계로 State→View 구독과 View 입력 event 연결을 각 View의 `Bind(vm, presenter)`로 이동했다(동작 보존, compile PASS). 3단계로 `LeaderboardViewModel`을 R3로 전환하고 `LeaderboardView.Bind`로 정리했다. 메뉴/상태표시 ViewModel은 전부 R3 + View.Bind를 따르며, `CombatViewModel`/전투 연출은 ADR-0019대로 명령형 `await`를 유지한다. 전투 연출은 명령형 `await`를 유지한다.
 
 **Monster Battle View 연결** — [`feature-monster-battle-view-integration`](./exec-plans/completed/feature-monster-battle-view-integration.md) **완료** (2026-06-17): `MonsterDefinition`의 visual SO에서 combat visual prefab을 선택해 RunGame formation slot `VisualRoot` 아래에 생성하고, `ActionStarted` presentation command 경로로 Idle/Attack 애니메이션 요청을 연결했다.
 

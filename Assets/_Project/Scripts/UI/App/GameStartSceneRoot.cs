@@ -1,5 +1,6 @@
 using System;
 using Cysharp.Threading.Tasks;
+using R3;
 using SlotRogue.UI.GameFlow;
 using SlotRogue.UI.Iap;
 using SlotRogue.UI.Leaderboard;
@@ -41,6 +42,7 @@ namespace SlotRogue.UI.App
         private GameStartViewModel _viewModel;
         private LeaderboardViewModel _leaderboardViewModel;
         private Button _temporaryTutorialStartButton;
+        private Button _temporaryTutorialSkipButton;
         private Button _temporaryTutorialResetButton;
         private Button _temporaryAdsResetButton;
         private RectTransform _lobbyPlanetLayer;
@@ -82,19 +84,19 @@ namespace SlotRogue.UI.App
 
             if (_leaderboardView != null)
             {
+                // 상태 구독·close/refresh 입력은 View.Bind가 소유한다(ADR-0020).
+                // launcher의 OpenRequested만 씬 진입 경로로 SceneRoot가 연결한다.
                 _leaderboardView.OpenRequested += HandleLeaderboardOpenRequested;
-                _leaderboardView.CloseRequested += _leaderboardViewModel.Close;
-                _leaderboardView.RefreshRequested += HandleLeaderboardRefreshRequested;
-                _leaderboardViewModel.Changed += _leaderboardView.Render;
-                _leaderboardView.Render(_leaderboardViewModel.State);
+                _leaderboardView.Bind(_leaderboardViewModel);
             }
 
             if (_loginView != null)
             {
+                // 로그인 View는 같은 leaderboard 상태를 렌더한다(View 전용 ViewModel이 아니라
+                // SceneRoot가 구독을 소유). 구독 즉시 현재 값이 1회 흘러 초기 Render를 처리한다.
                 _loginView.Initialize();
                 _loginView.ProfileSubmitted += HandlePlayerProfileSubmitted;
-                _leaderboardViewModel.Changed += _loginView.Render;
-                _loginView.Render(_leaderboardViewModel.State);
+                _leaderboardViewModel.State.Subscribe(_loginView.Render).AddTo(this);
             }
         }
 
@@ -132,29 +134,22 @@ namespace SlotRogue.UI.App
                 _viewModel.QuitGameRequested -= QuitGame;
             }
 
-            if (_leaderboardView != null && _leaderboardViewModel != null)
+            // Leaderboard close/refresh와 상태 구독은 View.Bind(.AddTo)가 소유해 자동 해제된다.
+            // SceneRoot가 직접 연결한 OpenRequested만 여기서 해제한다(ADR-0020).
+            if (_leaderboardView != null)
             {
                 _leaderboardView.OpenRequested -= HandleLeaderboardOpenRequested;
-                _leaderboardView.CloseRequested -= _leaderboardViewModel.Close;
-                _leaderboardView.RefreshRequested -= HandleLeaderboardRefreshRequested;
-                _leaderboardViewModel.Changed -= _leaderboardView.Render;
             }
 
-            if (_loginView != null && _leaderboardViewModel != null)
+            if (_loginView != null)
             {
                 _loginView.ProfileSubmitted -= HandlePlayerProfileSubmitted;
-                _leaderboardViewModel.Changed -= _loginView.Render;
             }
         }
 
         private void HandleLeaderboardOpenRequested()
         {
             _leaderboardViewModel.OpenAsync().Forget();
-        }
-
-        private void HandleLeaderboardRefreshRequested()
-        {
-            _leaderboardViewModel.RefreshAsync().Forget();
         }
 
         private void HandlePlayerProfileSubmitted(string playerName)
@@ -415,18 +410,24 @@ namespace SlotRogue.UI.App
                 "Temporary Tutorial Start Button",
                 "튜토리얼 시작",
                 new Vector2(0f, 0f),
-                new Vector2(0.32f, 1f));
+                new Vector2(0.235f, 1f));
+            _temporaryTutorialSkipButton = EnsureTemporaryButton(
+                host,
+                "Temporary Tutorial Skip Button",
+                "튜토리얼 스킵",
+                new Vector2(0.255f, 0f),
+                new Vector2(0.49f, 1f));
             _temporaryTutorialResetButton = EnsureTemporaryButton(
                 host,
                 "Temporary Tutorial Reset Button",
                 "튜토리얼 초기화",
-                new Vector2(0.34f, 0f),
-                new Vector2(0.66f, 1f));
+                new Vector2(0.51f, 0f),
+                new Vector2(0.745f, 1f));
             _temporaryAdsResetButton = EnsureTemporaryButton(
                 host,
                 "Temporary Ads Reset Button",
                 "광고 구매 초기화",
-                new Vector2(0.68f, 0f),
+                new Vector2(0.765f, 0f),
                 new Vector2(1f, 1f));
 
             SubscribeTemporaryResetButtons();
@@ -531,6 +532,12 @@ namespace SlotRogue.UI.App
                     HandleTemporaryTutorialStartClicked);
             }
 
+            if (_temporaryTutorialSkipButton != null)
+            {
+                _temporaryTutorialSkipButton.onClick.AddListener(
+                    HandleTemporaryTutorialSkipClicked);
+            }
+
             if (_temporaryTutorialResetButton != null)
             {
                 _temporaryTutorialResetButton.onClick.AddListener(
@@ -548,6 +555,8 @@ namespace SlotRogue.UI.App
         {
             _temporaryTutorialStartButton?.onClick.RemoveListener(
                 HandleTemporaryTutorialStartClicked);
+            _temporaryTutorialSkipButton?.onClick.RemoveListener(
+                HandleTemporaryTutorialSkipClicked);
             _temporaryTutorialResetButton?.onClick.RemoveListener(
                 HandleTemporaryTutorialResetClicked);
             _temporaryAdsResetButton?.onClick.RemoveListener(
@@ -557,6 +566,13 @@ namespace SlotRogue.UI.App
         private static void HandleTemporaryTutorialStartClicked()
         {
             GameFlowSession.StartTutorialRun();
+            GameSceneLoader.LoadRunGame();
+        }
+
+        private static void HandleTemporaryTutorialSkipClicked()
+        {
+            FirstRunTutorialState.MarkCompleted();
+            GameFlowSession.StartNewRun();
             GameSceneLoader.LoadRunGame();
         }
 

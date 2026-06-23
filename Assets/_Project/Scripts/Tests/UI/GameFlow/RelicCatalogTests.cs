@@ -150,8 +150,8 @@ namespace SlotRogue.UI.Tests.GameFlow
             var ids = new HashSet<string>();
             viewModel.Refresh();
 
-            Assert.That(viewModel.State.Options.Count, Is.EqualTo(3));
-            foreach (StartRelicOptionViewState option in viewModel.State.Options)
+            Assert.That(viewModel.State.CurrentValue.Options.Count, Is.EqualTo(3));
+            foreach (StartRelicOptionViewState option in viewModel.State.CurrentValue.Options)
             {
                 RelicDefinition relic = RelicCatalog.GetById(option.Id);
                 Assert.That(relic.IsStarter, Is.True);
@@ -407,11 +407,11 @@ namespace SlotRogue.UI.Tests.GameFlow
 
             viewModel.Open();
 
-            Assert.That(viewModel.State.IsOpen, Is.True);
-            Assert.That(viewModel.State.ActiveTab, Is.EqualTo(RunInventoryTab.SymbolPool));
-            Assert.That(viewModel.State.Symbols.Count, Is.EqualTo(SlotSymbolPool.Symbols.Count));
-            AssertInventorySymbolCount(viewModel.State, SlotSymbolType.Cherry, 6);
-            AssertInventorySymbolCount(viewModel.State, SlotSymbolType.Seven, 4);
+            Assert.That(viewModel.State.CurrentValue.IsOpen, Is.True);
+            Assert.That(viewModel.State.CurrentValue.ActiveTab, Is.EqualTo(RunInventoryTab.SymbolPool));
+            Assert.That(viewModel.State.CurrentValue.Symbols.Count, Is.EqualTo(SlotSymbolPool.Symbols.Count));
+            AssertInventorySymbolCount(viewModel.State.CurrentValue, SlotSymbolType.Cherry, 6);
+            AssertInventorySymbolCount(viewModel.State.CurrentValue, SlotSymbolType.Seven, 4);
         }
 
         [Test]
@@ -423,8 +423,8 @@ namespace SlotRogue.UI.Tests.GameFlow
 
             viewModel.Open();
 
-            AssertInventorySymbolCount(viewModel.State, SlotSymbolType.Lemon, 6);
-            Assert.That(viewModel.State.Summary, Does.Contain("심볼 32개"));
+            AssertInventorySymbolCount(viewModel.State.CurrentValue, SlotSymbolType.Lemon, 6);
+            Assert.That(viewModel.State.CurrentValue.Summary, Does.Contain("심볼 32개"));
         }
 
         [Test]
@@ -438,11 +438,11 @@ namespace SlotRogue.UI.Tests.GameFlow
             viewModel.Open();
             viewModel.SelectTab(RunInventoryTab.Relics);
 
-            Assert.That(viewModel.State.ActiveTab, Is.EqualTo(RunInventoryTab.Relics));
-            Assert.That(viewModel.State.Relics.Count, Is.EqualTo(2));
-            Assert.That(viewModel.State.Relics[0].Id, Is.EqualTo("S-01"));
-            Assert.That(viewModel.State.Relics[1].Id, Is.EqualTo("C-01"));
-            Assert.That(viewModel.State.Relics[0].Description, Does.Contain("체리"));
+            Assert.That(viewModel.State.CurrentValue.ActiveTab, Is.EqualTo(RunInventoryTab.Relics));
+            Assert.That(viewModel.State.CurrentValue.Relics.Count, Is.EqualTo(2));
+            Assert.That(viewModel.State.CurrentValue.Relics[0].Id, Is.EqualTo("S-01"));
+            Assert.That(viewModel.State.CurrentValue.Relics[1].Id, Is.EqualTo("C-01"));
+            Assert.That(viewModel.State.CurrentValue.Relics[0].Description, Does.Contain("체리"));
         }
 
         [Test]
@@ -454,8 +454,8 @@ namespace SlotRogue.UI.Tests.GameFlow
 
             viewModel.Close();
 
-            Assert.That(viewModel.State.IsOpen, Is.False);
-            Assert.That(viewModel.State.Symbols.Count, Is.EqualTo(SlotSymbolPool.Symbols.Count));
+            Assert.That(viewModel.State.CurrentValue.IsOpen, Is.False);
+            Assert.That(viewModel.State.CurrentValue.Symbols.Count, Is.EqualTo(SlotSymbolPool.Symbols.Count));
         }
 
         private static RunRewardDefinition FindRewardByRelicId(

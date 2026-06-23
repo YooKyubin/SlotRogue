@@ -21,12 +21,23 @@ namespace SlotRogue.UI.GameFlow
 
             string runBonusSummary = BuildRunBonusSummary(runDamageBonus, runDefenseBonus);
 
+            int finalDamage = normalizedRequest.Damage + relicDamage +
+                (normalizedRequest.Damage + relicDamage > 0 ? runDamageBonus : 0);
+            int finalDefense = normalizedRequest.Defense + relicBlock + runDefenseBonus;
+
+            // 흡혈/방어전환은 최종 피해·방어가 확정된 지금에야 회복량을 계산할 수 있다.
+            var derivedHealContributions = new List<RelicContributionDelta>();
+            int derivedHeal = ResolveDerivedHeals(
+                relicResult?.DerivedHeals,
+                finalDamage * Math.Max(1, normalizedRequest.AttackCount),
+                finalDefense,
+                derivedHealContributions);
+
             SlotCombatRequest finalRequest = new(
-                normalizedRequest.Damage + relicDamage +
-                (normalizedRequest.Damage + relicDamage > 0 ? runDamageBonus : 0),
-                normalizedRequest.Defense + relicBlock + runDefenseBonus,
+                finalDamage,
+                finalDefense,
                 normalizedRequest.AttackCount,
-                normalizedRequest.HealAmount + relicHeal,
+                normalizedRequest.HealAmount + relicHeal + derivedHeal,
                 normalizedRequest.IsCritical,
                 normalizedRequest.PatternName);
 
@@ -35,7 +46,63 @@ namespace SlotRogue.UI.GameFlow
                 finalRequest,
                 relicResult?.ActivationSummary,
                 runBonusSummary,
-                BuildStatusEffectSpecs(relicResult?.StatusEffectsToApply));
+                BuildStatusEffectSpecs(relicResult?.StatusEffectsToApply),
+                derivedHealContributions);
+        }
+
+        // 흡혈: 입힌 피해의 Percent%(턴당 TurnCap 상한). 방어전환: 획득 방어도의 Percent%.
+        // 각 규칙은 독립적으로 계산해 합산하며, 줄 단위가 아니라 턴 단위로 1회만 적용한다.
+        private static int ResolveDerivedHeals(
+            IReadOnlyList<RelicDerivedHeal> derivedHeals,
+            int totalOutgoingDamage,
+            int gainedDefense,
+            List<RelicContributionDelta> contributions)
+        {
+            if (derivedHeals == null || derivedHeals.Count == 0)
+            {
+                return 0;
+            }
+
+            int total = 0;
+            for (int index = 0; index < derivedHeals.Count; index++)
+            {
+                RelicDerivedHeal rule = derivedHeals[index];
+                int sourceAmount = rule.Kind == RelicDerivedHealKind.Lifesteal
+                    ? Math.Max(0, totalOutgoingDamage)
+                    : Math.Max(0, gainedDefense);
+
+                int heal = Percentage(sourceAmount, rule.Percent);
+                if (rule.TurnCap > 0)
+                {
+                    heal = Math.Min(heal, rule.TurnCap);
+                }
+
+                if (heal <= 0)
+                {
+                    continue;
+                }
+
+                total += heal;
+                contributions.Add(new RelicContributionDelta(
+                    rule.RelicId,
+                    rule.RelicName,
+                    damagePerHit: 0,
+                    block: 0,
+                    heal: heal,
+                    triggerPatternIndex: rule.TriggerPatternIndex));
+            }
+
+            return total;
+        }
+
+        private static int Percentage(int amount, int percent)
+        {
+            if (amount <= 0 || percent <= 0)
+            {
+                return 0;
+            }
+
+            return (int)((long)amount * percent / 100);
         }
 
         private static SlotCombatRequest NormalizeBlankTurn(SlotCombatRequest request)

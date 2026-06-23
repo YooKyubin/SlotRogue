@@ -1,4 +1,8 @@
 using System;
+using System.Collections.Generic;
+using R3;
+using SlotRogue.Slot.Data;
+using SlotRogue.UI.GameFlow;
 
 namespace SlotRogue.UI.RunGame.ViewModels
 {
@@ -15,18 +19,18 @@ namespace SlotRogue.UI.RunGame.ViewModels
         private int _rewardsClaimed;
         private int _countdownSeconds;
         private string _contributionSummary = string.Empty;
+        private RunDefeatSymbolStatViewState[] _symbolStats =
+            Array.Empty<RunDefeatSymbolStatViewState>();
         private bool _hasRevived;
         private bool _canRevive;
         private bool _rewardedAdReady;
         private bool _adsRemoved;
         private bool _isAwaitingAd;
 
-        public RunDefeatViewModel()
-        {
-            State = RunDefeatViewState.Empty;
-        }
-
-        public event Action<RunDefeatViewState> Changed;
+        // 화면 상태는 R3 ReactiveProperty로 노출한다. 구독 즉시 현재 값을 1회 흘려보내므로
+        // 별도 Changed 이벤트 + 초기 Render 호출이 필요 없다(구독 한 번 = 영구 동기화).
+        private readonly ReactiveProperty<RunDefeatViewState> _state =
+            new(RunDefeatViewState.Empty);
 
         public event Action RestartRequested;
 
@@ -36,7 +40,7 @@ namespace SlotRogue.UI.RunGame.ViewModels
 
         public event Action ReviveRequested;
 
-        public RunDefeatViewState State { get; private set; }
+        public ReadOnlyReactiveProperty<RunDefeatViewState> State => _state;
 
         public void ShowReviveOffer(
             int battleNumber,
@@ -47,6 +51,7 @@ namespace SlotRogue.UI.RunGame.ViewModels
             SetRunResultValues(battleNumber, victories, rewardsClaimed);
             _countdownSeconds = Math.Max(0, countdownSeconds);
             _contributionSummary = string.Empty;
+            _symbolStats = Array.Empty<RunDefeatSymbolStatViewState>();
             _canRevive = true;
             _isAwaitingAd = false;
             Publish(RunDefeatPhase.ReviveOffer);
@@ -59,9 +64,45 @@ namespace SlotRogue.UI.RunGame.ViewModels
             bool hasRevived,
             string contributionSummary)
         {
+            ShowResult(
+                battleNumber,
+                victories,
+                rewardsClaimed,
+                hasRevived,
+                contributionSummary,
+                Array.Empty<RunDefeatSymbolStatViewState>());
+        }
+
+        public void ShowResult(
+            int battleNumber,
+            int victories,
+            int rewardsClaimed,
+            bool hasRevived,
+            IReadOnlyList<SlotSymbolContributionSnapshot> symbolContributions)
+        {
+            RunDefeatSymbolStatViewState[] symbolStats =
+                BuildSymbolStats(symbolContributions);
+            ShowResult(
+                battleNumber,
+                victories,
+                rewardsClaimed,
+                hasRevived,
+                BuildSymbolContributionSummary(symbolStats),
+                symbolStats);
+        }
+
+        private void ShowResult(
+            int battleNumber,
+            int victories,
+            int rewardsClaimed,
+            bool hasRevived,
+            string contributionSummary,
+            RunDefeatSymbolStatViewState[] symbolStats)
+        {
             SetRunResultValues(battleNumber, victories, rewardsClaimed);
             _countdownSeconds = 0;
             _contributionSummary = contributionSummary ?? string.Empty;
+            _symbolStats = symbolStats ?? Array.Empty<RunDefeatSymbolStatViewState>();
             _hasRevived = hasRevived;
             _canRevive = false;
             _isAwaitingAd = false;
@@ -70,7 +111,7 @@ namespace SlotRogue.UI.RunGame.ViewModels
 
         public void UpdateReviveCountdown(int countdownSeconds)
         {
-            if (State.Phase != RunDefeatPhase.ReviveOffer || _isAwaitingAd)
+            if (_state.Value.Phase != RunDefeatPhase.ReviveOffer || _isAwaitingAd)
             {
                 return;
             }
@@ -87,7 +128,7 @@ namespace SlotRogue.UI.RunGame.ViewModels
 
         public void SetRevivePending()
         {
-            if (State.Phase != RunDefeatPhase.ReviveOffer || !_canRevive)
+            if (_state.Value.Phase != RunDefeatPhase.ReviveOffer || !_canRevive)
             {
                 return;
             }
@@ -113,7 +154,7 @@ namespace SlotRogue.UI.RunGame.ViewModels
 
             _rewardedAdReady = isReady;
             _adsRemoved = adsRemoved;
-            Publish(State.Phase);
+            Publish(_state.Value.Phase);
         }
 
         public void SetCanRevive(bool canRevive)
@@ -124,12 +165,12 @@ namespace SlotRogue.UI.RunGame.ViewModels
             }
 
             _canRevive = canRevive;
-            Publish(State.Phase);
+            Publish(_state.Value.Phase);
         }
 
         public void RequestRestart()
         {
-            if (State.Phase == RunDefeatPhase.RunResult)
+            if (_state.Value.Phase == RunDefeatPhase.RunResult)
             {
                 RestartRequested?.Invoke();
             }
@@ -137,7 +178,7 @@ namespace SlotRogue.UI.RunGame.ViewModels
 
         public void RequestRanking()
         {
-            if (State.Phase == RunDefeatPhase.RunResult)
+            if (_state.Value.Phase == RunDefeatPhase.RunResult)
             {
                 RankingRequested?.Invoke();
             }
@@ -145,7 +186,7 @@ namespace SlotRogue.UI.RunGame.ViewModels
 
         public void RequestHome()
         {
-            if (State.Phase == RunDefeatPhase.RunResult)
+            if (_state.Value.Phase == RunDefeatPhase.RunResult)
             {
                 HomeRequested?.Invoke();
             }
@@ -153,7 +194,7 @@ namespace SlotRogue.UI.RunGame.ViewModels
 
         public void RequestRevive()
         {
-            if (State.CanRevive)
+            if (_state.Value.CanRevive)
             {
                 ReviveRequested?.Invoke();
             }
@@ -167,6 +208,75 @@ namespace SlotRogue.UI.RunGame.ViewModels
             _battleNumber = Math.Max(0, battleNumber);
             _victories = Math.Max(0, victories);
             _rewardsClaimed = Math.Max(0, rewardsClaimed);
+        }
+
+        private static RunDefeatSymbolStatViewState[] BuildSymbolStats(
+            IReadOnlyList<SlotSymbolContributionSnapshot> contributions)
+        {
+            IReadOnlyList<SlotSymbolType> symbols = SlotSymbolPool.Symbols;
+            var rows = new RunDefeatSymbolStatViewState[symbols.Count];
+            for (int index = 0; index < symbols.Count; index++)
+            {
+                SlotSymbolType symbol = symbols[index];
+                SlotSymbolContributionSnapshot snapshot =
+                    FindContribution(contributions, symbol);
+                rows[index] = new RunDefeatSymbolStatViewState(
+                    symbol,
+                    RelicDisplay.SymbolKorean(symbol),
+                    snapshot.PatternCount,
+                    snapshot.TotalAttackPower,
+                    snapshot.DefensePower);
+            }
+
+            return rows;
+        }
+
+        private static SlotSymbolContributionSnapshot FindContribution(
+            IReadOnlyList<SlotSymbolContributionSnapshot> contributions,
+            SlotSymbolType symbol)
+        {
+            if (contributions != null)
+            {
+                for (int index = 0; index < contributions.Count; index++)
+                {
+                    SlotSymbolContributionSnapshot contribution = contributions[index];
+                    if (contribution.Symbol == symbol)
+                    {
+                        return contribution;
+                    }
+                }
+            }
+
+            return new SlotSymbolContributionSnapshot(symbol, 0, 0, 0, 0);
+        }
+
+        private static string BuildSymbolContributionSummary(
+            IReadOnlyList<RunDefeatSymbolStatViewState> symbolStats)
+        {
+            if (symbolStats == null || symbolStats.Count == 0)
+            {
+                return "NO SYMBOLS";
+            }
+
+            var builder = new System.Text.StringBuilder();
+            for (int index = 0; index < symbolStats.Count; index++)
+            {
+                RunDefeatSymbolStatViewState stat = symbolStats[index];
+                if (index > 0)
+                {
+                    builder.AppendLine();
+                }
+
+                builder.Append(stat.DisplayName);
+                builder.Append("  PATTERN ");
+                builder.Append(stat.PatternCount);
+                builder.Append("  ATK ");
+                builder.Append(stat.AttackPower);
+                builder.Append("  DEF ");
+                builder.Append(stat.DefensePower);
+            }
+
+            return builder.ToString();
         }
 
         private void Publish(RunDefeatPhase phase)
@@ -189,7 +299,7 @@ namespace SlotRogue.UI.RunGame.ViewModels
                         : "광고 준비 중...";
             bool canUseRewarded = _adsRemoved || _rewardedAdReady;
 
-            State = new RunDefeatViewState(
+            _state.Value = new RunDefeatViewState(
                 phase,
                 _battleNumber,
                 _victories,
@@ -206,8 +316,8 @@ namespace SlotRogue.UI.RunGame.ViewModels
                 isReviveOffer &&
                     _canRevive &&
                     canUseRewarded &&
-                    !_isAwaitingAd);
-            Changed?.Invoke(State);
+                    !_isAwaitingAd,
+                _symbolStats);
         }
     }
 
@@ -243,7 +353,8 @@ namespace SlotRogue.UI.RunGame.ViewModels
             string homeLabel,
             string reviveLabel,
             bool isReviveVisible,
-            bool canRevive)
+            bool canRevive,
+            IReadOnlyList<RunDefeatSymbolStatViewState> symbolStats = null)
         {
             Phase = phase;
             BattleNumber = Math.Max(0, battleNumber);
@@ -259,6 +370,7 @@ namespace SlotRogue.UI.RunGame.ViewModels
             ReviveLabel = reviveLabel ?? string.Empty;
             IsReviveVisible = isReviveVisible;
             CanRevive = isReviveVisible && canRevive;
+            SymbolStats = CopySymbolStats(symbolStats);
         }
 
         public RunDefeatPhase Phase { get; }
@@ -285,6 +397,8 @@ namespace SlotRogue.UI.RunGame.ViewModels
 
         public string ReviveLabel { get; }
 
+        public IReadOnlyList<RunDefeatSymbolStatViewState> SymbolStats { get; }
+
         public bool IsReviveVisible { get; }
 
         public bool CanRevive { get; }
@@ -292,5 +406,49 @@ namespace SlotRogue.UI.RunGame.ViewModels
         public bool IsReviveOffer => Phase == RunDefeatPhase.ReviveOffer;
 
         public bool IsResultVisible => Phase == RunDefeatPhase.RunResult;
+
+        private static RunDefeatSymbolStatViewState[] CopySymbolStats(
+            IReadOnlyList<RunDefeatSymbolStatViewState> symbolStats)
+        {
+            if (symbolStats == null || symbolStats.Count == 0)
+            {
+                return Array.Empty<RunDefeatSymbolStatViewState>();
+            }
+
+            var copied = new RunDefeatSymbolStatViewState[symbolStats.Count];
+            for (int index = 0; index < symbolStats.Count; index++)
+            {
+                copied[index] = symbolStats[index];
+            }
+
+            return copied;
+        }
+    }
+
+    public readonly struct RunDefeatSymbolStatViewState
+    {
+        public RunDefeatSymbolStatViewState(
+            SlotSymbolType symbol,
+            string displayName,
+            int patternCount,
+            int attackPower,
+            int defensePower)
+        {
+            Symbol = symbol;
+            DisplayName = displayName ?? string.Empty;
+            PatternCount = Math.Max(0, patternCount);
+            AttackPower = Math.Max(0, attackPower);
+            DefensePower = Math.Max(0, defensePower);
+        }
+
+        public SlotSymbolType Symbol { get; }
+
+        public string DisplayName { get; }
+
+        public int PatternCount { get; }
+
+        public int AttackPower { get; }
+
+        public int DefensePower { get; }
     }
 }

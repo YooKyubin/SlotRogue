@@ -187,7 +187,7 @@ namespace SlotRogue.UI.GameFlow
 
         private BattleFlowController CreateBattleFlowController(CancellationToken cancellationToken)
         {
-            var slotViewModel = new SlotMachineViewModel(
+            var slotViewModel = new SlotMachineModel(
                 new SlotMachineService(
                     new System.Random(),
                     GameFlowSession.SlotPool,

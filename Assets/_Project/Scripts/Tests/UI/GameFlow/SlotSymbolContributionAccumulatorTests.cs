@@ -43,16 +43,19 @@ namespace SlotRogue.UI.Tests.GameFlow
             Assert.That(snapshots[0].BaseAttackPower, Is.EqualTo(6));
             Assert.That(snapshots[0].RelicAttackPower, Is.EqualTo(0));
             Assert.That(snapshots[0].TotalAttackPower, Is.EqualTo(6));
+            Assert.That(snapshots[0].DefensePower, Is.EqualTo(0));
             Assert.That(snapshots[1].Symbol, Is.EqualTo(SlotSymbolType.Seven));
             Assert.That(snapshots[1].PatternCount, Is.EqualTo(1));
             Assert.That(snapshots[1].BaseAttackPower, Is.EqualTo(16));
             Assert.That(snapshots[1].RelicAttackPower, Is.EqualTo(0));
             Assert.That(snapshots[1].TotalAttackPower, Is.EqualTo(16));
+            Assert.That(snapshots[1].DefensePower, Is.EqualTo(0));
             Assert.That(snapshots[2].Symbol, Is.EqualTo(SlotSymbolType.Lemon));
             Assert.That(snapshots[2].PatternCount, Is.EqualTo(0));
             Assert.That(snapshots[2].BaseAttackPower, Is.EqualTo(0));
             Assert.That(snapshots[2].RelicAttackPower, Is.EqualTo(0));
             Assert.That(snapshots[2].TotalAttackPower, Is.EqualTo(0));
+            Assert.That(snapshots[2].DefensePower, Is.EqualTo(0));
         }
 
         [Test]
@@ -104,14 +107,58 @@ namespace SlotRogue.UI.Tests.GameFlow
         }
 
         [Test]
+        public void RecordTurn_AddsDefensePowerToTriggerSymbol()
+        {
+            var accumulator = new SlotSymbolContributionAccumulator();
+            var matches = new[]
+            {
+                MakeMatch(SlotSymbolType.Cherry, multiplier: 1f, baseValue: 3),
+                MakeMatch(SlotSymbolType.Lemon, multiplier: 1f, baseValue: 3),
+            };
+            var request = new SlotCombatRequest(
+                damage: 12,
+                defense: 0,
+                attackCount: 1,
+                healAmount: 0,
+                isCritical: false,
+                patternName: "Mixed");
+            var relicDeltas = new[]
+            {
+                new RelicContributionDelta(
+                    "R-02",
+                    "Lemon Shield",
+                    damagePerHit: 0,
+                    block: 9,
+                    heal: 0,
+                    triggerPatternIndex: 1),
+            };
+
+            accumulator.RecordTurn(
+                matches,
+                request,
+                relicDeltas,
+                attackCount: request.AttackCount);
+
+            IReadOnlyList<SlotSymbolContributionSnapshot> snapshots =
+                accumulator.SnapshotForSymbols(new[]
+                {
+                    SlotSymbolType.Cherry,
+                    SlotSymbolType.Lemon,
+                });
+
+            Assert.That(snapshots[0].DefensePower, Is.EqualTo(0));
+            Assert.That(snapshots[1].DefensePower, Is.EqualTo(9));
+        }
+
+        [Test]
         public void Add_MergesBattleSnapshots()
         {
             var accumulator = new SlotSymbolContributionAccumulator();
 
             accumulator.Add(new[]
             {
-                new SlotSymbolContributionSnapshot(SlotSymbolType.Bell, 2, 18, 5),
-                new SlotSymbolContributionSnapshot(SlotSymbolType.Bell, 1, 10, 7),
+                new SlotSymbolContributionSnapshot(SlotSymbolType.Bell, 2, 18, 5, 6),
+                new SlotSymbolContributionSnapshot(SlotSymbolType.Bell, 1, 10, 7, 4),
             });
 
             IReadOnlyList<SlotSymbolContributionSnapshot> snapshots =
@@ -121,6 +168,7 @@ namespace SlotRogue.UI.Tests.GameFlow
             Assert.That(snapshots[0].BaseAttackPower, Is.EqualTo(28));
             Assert.That(snapshots[0].RelicAttackPower, Is.EqualTo(12));
             Assert.That(snapshots[0].TotalAttackPower, Is.EqualTo(40));
+            Assert.That(snapshots[0].DefensePower, Is.EqualTo(10));
         }
 
         private static SlotPatternMatch MakeMatch(

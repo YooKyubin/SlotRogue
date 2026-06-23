@@ -163,6 +163,112 @@ namespace SlotRogue.UI.Tests.GameFlow
             Assert.That(result.AttackPower, Is.EqualTo(24));
         }
 
+        [Test]
+        public void Build_Lifesteal_HealsPercentOfOutgoingDamage()
+        {
+            var request = new SlotCombatRequest(30, 0, 1, 0, false, "Lemon x3");
+            var relicResult = new RelicResolveResult(
+                additionalDamage: 0,
+                additionalBlock: 0,
+                healAmount: 0,
+                statusEffectsToApply: null,
+                activationSummary: "레몬 흡혈액",
+                derivedHeals: new[]
+                {
+                    new RelicDerivedHeal("C-16", "레몬 흡혈액", RelicDerivedHealKind.Lifesteal, 12, 6),
+                });
+
+            RunCombatRequestResult result = _builder.Build(
+                request,
+                relicResult,
+                runDamageBonus: 0,
+                runDefenseBonus: 0);
+
+            // 12% of 30 = 3.6 -> 3 (cap 6 not reached).
+            Assert.That(result.FinalRequest.HealAmount, Is.EqualTo(3));
+            Assert.That(result.DerivedHealContributions.Count, Is.EqualTo(1));
+            Assert.That(result.DerivedHealContributions[0].RelicId, Is.EqualTo("C-16"));
+            Assert.That(result.DerivedHealContributions[0].Heal, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void Build_Lifesteal_AppliesTurnCap()
+        {
+            var request = new SlotCombatRequest(100, 0, 1, 0, false, "Lemon x3");
+            var relicResult = new RelicResolveResult(
+                additionalDamage: 0,
+                additionalBlock: 0,
+                healAmount: 0,
+                statusEffectsToApply: null,
+                activationSummary: "레몬 흡혈액",
+                derivedHeals: new[]
+                {
+                    new RelicDerivedHeal("C-16", "레몬 흡혈액", RelicDerivedHealKind.Lifesteal, 12, 6),
+                });
+
+            RunCombatRequestResult result = _builder.Build(
+                request,
+                relicResult,
+                runDamageBonus: 0,
+                runDefenseBonus: 0);
+
+            // 12% of 100 = 12, capped to 6.
+            Assert.That(result.FinalRequest.HealAmount, Is.EqualTo(6));
+        }
+
+        [Test]
+        public void Build_Lifesteal_NoDamage_NoHeal()
+        {
+            // 방어만 있는 턴 — 피해 0이라 흡혈 회복도 0.
+            var request = new SlotCombatRequest(0, 20, 1, 0, false, "Diamond x3");
+            var relicResult = new RelicResolveResult(
+                additionalDamage: 0,
+                additionalBlock: 0,
+                healAmount: 0,
+                statusEffectsToApply: null,
+                activationSummary: "흡혈 왕관",
+                derivedHeals: new[]
+                {
+                    new RelicDerivedHeal("L-05", "흡혈 왕관", RelicDerivedHealKind.Lifesteal, 10, 10),
+                });
+
+            RunCombatRequestResult result = _builder.Build(
+                request,
+                relicResult,
+                runDamageBonus: 0,
+                runDefenseBonus: 0);
+
+            Assert.That(result.FinalRequest.HealAmount, Is.EqualTo(0));
+            Assert.That(result.DerivedHealContributions, Is.Empty);
+        }
+
+        [Test]
+        public void Build_BlockToHeal_HealsPercentOfGainedDefense()
+        {
+            var request = new SlotCombatRequest(0, 0, 1, 0, false, "Diamond x3");
+            var relicResult = new RelicResolveResult(
+                additionalDamage: 0,
+                additionalBlock: 20,
+                healAmount: 0,
+                statusEffectsToApply: null,
+                activationSummary: "수호 천칭",
+                derivedHeals: new[]
+                {
+                    new RelicDerivedHeal("L-04", "수호 천칭", RelicDerivedHealKind.BlockToHeal, 25, 0),
+                });
+
+            RunCombatRequestResult result = _builder.Build(
+                request,
+                relicResult,
+                runDamageBonus: 0,
+                runDefenseBonus: 0);
+
+            // 획득 방어도 20의 25% = 5.
+            Assert.That(result.FinalRequest.Defense, Is.EqualTo(20));
+            Assert.That(result.FinalRequest.HealAmount, Is.EqualTo(5));
+            Assert.That(result.DerivedHealContributions[0].Heal, Is.EqualTo(5));
+        }
+
         private static readonly RelicBattleContext FullHp = new(30, 30, 40, 40, false);
 
         private static IReadOnlyList<SlotPatternMatch> Matches(SlotSymbolType symbol, int cellCount)

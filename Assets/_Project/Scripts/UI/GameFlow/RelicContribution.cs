@@ -73,12 +73,14 @@ namespace SlotRogue.UI.GameFlow
             SlotSymbolType symbol,
             int patternCount,
             int baseAttackPower,
-            int relicAttackPower)
+            int relicAttackPower,
+            int defensePower = 0)
         {
             Symbol = symbol;
             PatternCount = Math.Max(0, patternCount);
             BaseAttackPower = Math.Max(0, baseAttackPower);
             RelicAttackPower = Math.Max(0, relicAttackPower);
+            DefensePower = Math.Max(0, defensePower);
         }
 
         public SlotSymbolType Symbol { get; }
@@ -88,6 +90,8 @@ namespace SlotRogue.UI.GameFlow
         public int BaseAttackPower { get; }
 
         public int RelicAttackPower { get; }
+
+        public int DefensePower { get; }
 
         public int TotalAttackPower => BaseAttackPower + RelicAttackPower;
     }
@@ -270,7 +274,8 @@ namespace SlotRogue.UI.GameFlow
             }
 
             RecordBaseAttack(matches, baseRequest);
-            RecordRelicAttack(matches, relicDeltas, attackCount);
+            RecordBaseDefense(matches, baseRequest);
+            RecordRelicContributions(matches, relicDeltas, attackCount);
         }
 
         private void RecordBaseAttack(
@@ -306,7 +311,39 @@ namespace SlotRogue.UI.GameFlow
             }
         }
 
-        private void RecordRelicAttack(
+        private void RecordBaseDefense(
+            IReadOnlyList<SlotPatternMatch> matches,
+            SlotCombatRequest baseRequest)
+        {
+            int remainingPatternValue = CalculateTotalPatternValue(matches);
+            int remainingDefensePower = Math.Max(0, baseRequest?.Defense ?? 0);
+
+            for (int index = 0; index < matches.Count; index++)
+            {
+                SlotPatternMatch match = matches[index];
+                if (match == null)
+                {
+                    continue;
+                }
+
+                int patternValue = Math.Max(0, match.CalculatedValue);
+                int defensePower = 0;
+
+                if (patternValue > 0 && remainingPatternValue > 0)
+                {
+                    defensePower = remainingPatternValue == patternValue
+                        ? remainingDefensePower
+                        : (int)((long)remainingDefensePower * patternValue / remainingPatternValue);
+                    remainingPatternValue -= patternValue;
+                    remainingDefensePower -= defensePower;
+                }
+
+                MutableSymbolContribution entry = GetOrCreate(match.Symbol);
+                entry.DefensePower += defensePower;
+            }
+        }
+
+        private void RecordRelicContributions(
             IReadOnlyList<SlotPatternMatch> matches,
             IReadOnlyList<RelicContributionDelta> relicDeltas,
             int attackCount)
@@ -320,7 +357,7 @@ namespace SlotRogue.UI.GameFlow
             for (int index = 0; index < relicDeltas.Count; index++)
             {
                 RelicContributionDelta delta = relicDeltas[index];
-                if (delta.DamagePerHit <= 0 ||
+                if ((delta.DamagePerHit <= 0 && delta.Block <= 0) ||
                     delta.TriggerPatternIndex < 0 ||
                     delta.TriggerPatternIndex >= matches.Count)
                 {
@@ -334,7 +371,15 @@ namespace SlotRogue.UI.GameFlow
                 }
 
                 MutableSymbolContribution entry = GetOrCreate(match.Symbol);
-                entry.RelicAttackPower += delta.DamagePerHit * normalizedAttackCount;
+                if (delta.DamagePerHit > 0)
+                {
+                    entry.RelicAttackPower += delta.DamagePerHit * normalizedAttackCount;
+                }
+
+                if (delta.Block > 0)
+                {
+                    entry.DefensePower += delta.Block;
+                }
             }
         }
 
@@ -352,6 +397,7 @@ namespace SlotRogue.UI.GameFlow
                 entry.PatternCount += snapshot.PatternCount;
                 entry.BaseAttackPower += snapshot.BaseAttackPower;
                 entry.RelicAttackPower += snapshot.RelicAttackPower;
+                entry.DefensePower += snapshot.DefensePower;
             }
         }
 
@@ -444,13 +490,16 @@ namespace SlotRogue.UI.GameFlow
 
             internal int RelicAttackPower { get; set; }
 
+            internal int DefensePower { get; set; }
+
             internal SlotSymbolContributionSnapshot ToSnapshot()
             {
                 return new SlotSymbolContributionSnapshot(
                     Symbol,
                     PatternCount,
                     BaseAttackPower,
-                    RelicAttackPower);
+                    RelicAttackPower,
+                    DefensePower);
             }
         }
     }

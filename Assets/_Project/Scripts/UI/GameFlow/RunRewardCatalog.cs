@@ -12,7 +12,9 @@ namespace SlotRogue.UI.GameFlow
     ///  - 보스: 유물 Uncommon + Rare 이상
     /// 단, Phase 1에서 미구현(<see cref="RelicDefinition.Phase1"/> == false)인 유물은
     /// <see cref="RelicCatalog.RewardByGrade"/>가 이미 제외하므로 보상풀에 등장하지 않는다.
-    /// (현재 Rare/Legendary/Curse는 전부 Phase 2라 보스 풀은 Uncommon 중심으로 구성된다.)
+    /// (보스 풀은 Uncommon 중심이며, 전투 코어 없이 성립하는 흡혈/방어전환 전설
+    ///  L-04 수호 천칭·L-05 흡혈 왕관이 Phase 1로 추가되어 보스 풀에 함께 등장한다.
+    ///  나머지 Rare/Legendary/Curse는 상태이상·배율 의존이라 아직 Phase 2.)
     /// </summary>
     public static class RunRewardCatalog
     {

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using R3;
 using SlotRogue.Relics.Pool;
 using SlotRogue.Slot.Data;
 using SlotRogue.UI.GameFlow;
@@ -13,25 +14,20 @@ namespace SlotRogue.UI.RunGame.ViewModels
     /// </summary>
     public sealed class RunHUDViewModel
     {
-        public RunHUDViewModel()
-        {
-            State = RunHUDViewState.Empty;
-        }
-
-        public event Action<RunHUDViewState> Changed;
+        private readonly ReactiveProperty<RunHUDViewState> _state =
+            new(RunHUDViewState.Empty);
 
         public event Action PauseRequested;
 
-        public RunHUDViewState State { get; private set; }
+        public ReadOnlyReactiveProperty<RunHUDViewState> State => _state;
 
         public void Refresh()
         {
-            State = new RunHUDViewState(
+            _state.Value = new RunHUDViewState(
                 GameFlowSession.PlayerCurrentHp,
                 GameFlowSession.PlayerMaxHp,
                 GameFlowSession.CurrentBattleNumber,
                 GameFlowSession.Victories);
-            Changed?.Invoke(State);
         }
 
         public void RequestPause()
@@ -66,14 +62,10 @@ namespace SlotRogue.UI.RunGame.ViewModels
         private RunInventoryTab _activeTab = RunInventoryTab.SymbolPool;
         private bool _isOpen;
 
-        public RunInventoryViewModel()
-        {
-            State = RunInventoryViewState.Empty;
-        }
+        private readonly ReactiveProperty<RunInventoryViewState> _state =
+            new(RunInventoryViewState.Empty);
 
-        public event Action<RunInventoryViewState> Changed;
-
-        public RunInventoryViewState State { get; private set; }
+        public ReadOnlyReactiveProperty<RunInventoryViewState> State => _state;
 
         public void Open()
         {
@@ -112,13 +104,12 @@ namespace SlotRogue.UI.RunGame.ViewModels
         {
             GameFlowSession.EnsureRunStarted();
 
-            State = new RunInventoryViewState(
+            _state.Value = new RunInventoryViewState(
                 _isOpen,
                 _activeTab,
                 BuildSummary(),
                 BuildSymbolItems(GameFlowSession.SlotPool),
                 BuildRelicItems(GameFlowSession.OwnedRelics));
-            Changed?.Invoke(State);
         }
 
         private static string BuildSummary()
