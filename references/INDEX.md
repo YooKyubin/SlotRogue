@@ -14,6 +14,12 @@
 - **언제 참조하나**: 유물 ID·등급·이름·조건·효과·확률군과 역할 분포를 구현하거나 검증할 때
 - **부가 메모**: HTML의 `RELICS` 배열 80종이 최신 기획 원본이며, 시작 유물은 S-01~S-06이다. v20.3 전달본은 이전 버전이다.
 
+### 슬롯 전투 속성 / 방해 설계표 v6
+
+- **링크**: `C:/Users/binde_mt7hytl/OneDrive/문서/카카오톡 받은 파일/slot_battle_status_interference_design_v6.html` (2026-06-22 전달본)
+- **언제 참조하나**: 유물과 연계된 화상·감염·흡혈·취약·약화·가시 구현, 몬스터/엘리트 상태 행동, 보스 슬롯 방해를 설계하거나 검증할 때
+- **부가 메모**: 프로젝트 내부 재작성본은 [`../docs/design-docs/attribute-status-interference.md`](../docs/design-docs/attribute-status-interference.md)이다. v6은 가산 누적 허용 + 자연 감쇠, 곱연산 상한 원칙을 확정했다.
+
 ---
 
 ## 형식

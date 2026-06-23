@@ -1,66 +1,99 @@
-# 속성과 전투 연결
+# 속성 전투 연결
 
 **Status**: active  
 **Started**: 2026-06-05  
 **Owner**: _(전투 담당)_  
-**Related design-docs**: [`combat-core.md`](../../design-docs/combat-core.md), [`game-flow.md`](../../design-docs/game-flow.md)
+**Contributors**: Codex (문서 정리)
+**Related design-docs**: [`attribute-status-interference.md`](../../design-docs/attribute-status-interference.md), [`combat-core.md`](../../design-docs/combat-core.md), [`relic-system.md`](../../design-docs/relic-system.md), [`game-flow.md`](../../design-docs/game-flow.md)
 
 ## Goal
 
-속성 유물이 만든 화염·빙결·독 효과를 실제 전투 코어까지 전달하고, 이후 상태이상이 늘어나도 `BattleSystem`에 종류별 분기가 누적되지 않도록 컴포넌트 조합 구조를 만든다.
+유물과 몬스터 행동이 v6 기준 공통 6속성(`화상`, `감염`, `흡혈`, `취약`, `약화`, `가시`)을 전투 코어에 안정적으로 전달하고, 플레이어/몬스터 양쪽에서 같은 상태 언어와 정산 단위를 사용하게 만든다. 이번 plan의 범위는 공통 6속성까지이며, 보스 전용 슬롯 방해의 실제 슬롯 적용은 별도 후속 plan으로 분리한다.
 
-## 설계 방향
+## Scope
 
-상태이상 종류는 `StatusEffectKind`로 식별하고, 실제 행동은 `IStatusEffectComponent` 조합으로 실행한다.
+### 포함
 
-```mermaid
-flowchart TD
-    A["ArtifactEffectKind"] --> B["StatusEffectSpec"]
-    B --> C["CombatEffect.ApplyStatus"]
-    C --> D["BattleSystem"]
-    D --> E["StatusEffectEngine"]
-    E --> F["StatusEffectInstance"]
-    F --> G["IStatusEffectComponent[]"]
-```
+- 기존 `StatusEffectEngine` 컴포넌트 구조를 v6 속성 계약에 맞게 확장한다.
+- `Poison` 임시 매핑을 `Infection` 계약으로 정리한다.
+- `Burn`, `Infection`, `Vulnerable`, `Weaken`, `Lifesteal`, `Thorns`를 전투 코어에서 표현한다.
+- 턴 종료 피해, 피해 정산 전/후 보정, 피격 후 반응, 실제 피해 기반 회복, 라운드 종료 처리를 추가한다.
+- 유물 실행 경로에서 상태/흡혈/가시 요청을 생성하고, 구현된 유물만 보상풀에 단계적으로 편입한다.
+- EditMode 테스트로 핵심 결정론 로직을 고정한다.
 
-## 현재 상태이상 조합
+### 제외
 
-| 상태이상 | 조합 컴포넌트 | 동작 |
-|---|---|---|
-| `Burn` | `PeriodicDamageComponent` + `DurationComponent` | 턴 시작에 고정 피해, 턴 종료에 duration 감소 |
-| `Freeze` | `SkipActionComponent` + `DurationComponent` | 행동 직전에 skip 판정, 턴 종료에 duration 감소 |
-| `Poison` | `StackLimitComponent` + `PeriodicDamageComponent` | 최대 5스택, 턴 시작에 stack 수만큼 피해 |
+- 보스 슬롯 가리기, 슬롯 잠금 실제 적용, 라인 약화, 저주 심볼 임시 추가.
+- 스핀 후 선택 기능(릴 홀드, 제한 리롤 등).
+- Rare/Legendary/Curse의 복합 패시브 전체 구현.
+
+## Current baseline
+
+2026-06-22 기준 코드는 이전 속성 연결 작업의 중간 상태다.
+
+- `CombatEffectKind.ApplyStatus`, `StatusEffectSpec`, `StatusEffectEngine`, `StatusEffectInstance`, `IStatusEffectComponent` 기반은 구현되어 있다.
+- 현재 공식 상태 종류는 `Burn`, `Freeze`, `Poison`이다.
+- `Burn`은 턴 시작 고정 피해 + duration 감소 구조다.
+- `Poison`은 턴 시작 stack 피해 + 최대 5스택 + 감소 없음 구조다.
+- `Freeze`는 행동 스킵 상태로 존재하지만 v6 1차 핵심에서는 제외한다.
+- `RelicEffectRunner`는 상태 계열 유물을 만나면 경고만 출력하고 실행하지 않는다.
+- `RelicTurnResolver`는 감염을 `Poison` 보유 여부로 임시 판정한다.
+- 상태 아이콘 UI와 상태 이벤트 일부(`StatusApplied`, `StatusTicked`, `StatusExpired`, `ActionSkipped`)는 이미 연결되어 있다.
 
 ## Checklist
 
-- [x] Core/Combat: `CombatEffectKind.ApplyStatus` 추가
-- [x] Core/Combat: `StatusEffectKind`, `StatusStackMode`, `StatusEffectSpec`, `StatusEffectInstance` 추가
-- [x] Core/Combat: `IStatusEffectComponent`, `StatusEffectComponent` 기반 기능 컴포넌트 구조 추가
-- [x] Core/Combat: `PeriodicDamageComponent`, `SkipActionComponent`, `DurationComponent`, `StackLimitComponent` 추가
-- [x] Core/Combat: `StatusEffectFactory`, `StatusEffectEngine` 추가
-- [x] Core/Combat: `CombatParticipant.StatusEffects` 추가
-- [x] Core/Combat: `CombatEventKind`에 `StatusApplied`, `StatusTicked`, `StatusExpired`, `ActionSkipped` 추가
-- [x] Core/Combat: `BattleSystem`에 턴 시작 tick, 행동 skip, 턴 종료 duration/expire 처리 연결
-- [x] UI/GameFlow: `RunCombatRequestResult.StatusEffectToApply` 추가
-- [x] UI/GameFlow: `CombatTurnRequestBuilder`에서 `ApplyBurn/ApplyFreeze/ApplyPoison`을 `StatusEffectSpec`으로 변환
-- [x] UI/Combat: `SlotCombatRequestToCombatEffectsConverter`에서 `ApplyStatus` effect 추가
-- [x] UI/GameFlow: `BattleFlowController`에서 상태이상 목록을 전투 effect 변환에 전달
-- [x] UI/GameFlow: enemy slot에 상태이상 아이콘 prefab 동적 생성/갱신 연결
-- [x] Tests/Core: Burn tick, Freeze skip/expire, Poison stack cap 테스트 추가
-- [x] Tests/UI: 유물 resolver와 converter 연결 테스트 추가
-- [x] `dotnet build SlotRogue.slnx` 통과
-- [x] `dotnet build SlotRogue.UI.csproj` 통과
-- [x] `dotnet build SlotRogue.UI.Tests.csproj` 통과
-- [ ] Unity Editor에서 EditMode 테스트 결과 확인
+- [x] 기존 상태이상 컴포넌트 기반 구조 파악 — Codex
+- [x] v6 속성/방해 기획서를 design-doc으로 재작성 — Codex
+- [ ] Core/Combat: `StatusEffectKind`를 v6 6속성 기준으로 정리하고 `Poison`/`Freeze` 공식 경로 처리 방침 반영 — _(전투 담당)_
+- [ ] Core/Combat: 턴 종료 피해 훅 추가 — _(전투 담당)_
+- [ ] Core/Combat: `Burn`을 부여 즉시 피해 + 대상 턴 종료 1회 피해 후 제거로 변경 — _(전투 담당)_
+- [ ] Core/Combat: `Infection`을 턴 종료 피해 후 수치 1 감소, 총 스택 상한 없음으로 구현 — _(전투 담당)_
+- [ ] Core/Combat: 피해 정산 전/후 훅 추가 — _(전투 담당)_
+- [ ] Core/Combat: `Vulnerable`을 다음 N번 피해 정산 증가 + 적용 횟수 감소로 구현 — _(전투 담당)_
+- [ ] Core/Combat: `Weaken`을 다음 N번 공격/스핀 정산 피해 감소 + 적용 횟수 감소로 구현 — _(전투 담당)_
+- [ ] Core/Combat: 실제 HP 피해량 기반 후처리 훅 추가 — _(전투 담당)_
+- [ ] Core/Combat: `Lifesteal`을 실제 피해 비율 회복 + 턴당 회복 상한으로 구현 — _(전투 담당)_
+- [ ] Core/Combat: 피격 후 반응 훅 추가 — _(전투 담당)_
+- [ ] Core/Combat: `Thorns`를 피격 후 반사 피해 + 턴당 반사 횟수 상한으로 구현 — _(전투 담당)_
+- [ ] Core/Combat: 라운드 종료 훅 또는 동등한 처리 지점 추가 — _(전투 담당)_
+- [ ] Core/Combat: 가시 지속을 라운드 종료 기준으로 제거하도록 구현 — _(전투 담당)_
+- [ ] Core/Combat: 반사 피해가 다시 가시를 발동하지 않도록 피해 원인/태그 구분 — _(전투 담당)_
+- [ ] Core/Combat: 상태 적용/틱/소모/반사/흡혈 회복 이벤트를 UI가 구분 가능하게 보강 — _(전투 담당)_
+- [ ] UI/GameFlow: `StatusEffectRequest`와 `CombatTurnRequestBuilder`를 v6 상태 요청으로 갱신 — _(전투 담당)_
+- [ ] UI/GameFlow: `RelicTurnResolver`의 상태 조회를 `Burn`/`Infection`/`Vulnerable`/`Weaken` 구분으로 갱신 — _(전투 담당)_
+- [ ] UI/GameFlow: `RelicEffectRunner`에서 `ApplyBurn`, `ApplyInfect`, `ApplyVulnerable`, `ApplyWeak`, `GainThorns`, `Lifesteal` 요청 생성 — _(전투 담당)_
+- [ ] Relics: 구현 완료된 상태 유물만 `Phase1=true`로 단계적 전환 — _(전투 담당)_
+- [ ] Data/Combat: 몬스터 행동 데이터가 상태 부여/흡혈 공격/가시 태세를 표현할 수 있게 효과 정의 추가 — _(전투 담당)_
+- [ ] UI/GameFlow: 적 행동 planner factory에서 새 몬스터 효과 정의를 Core 효과로 변환 — _(전투 담당)_
+- [ ] UI/GameFlow: 상태 아이콘/표시 텍스트를 v6 6속성 기준으로 갱신 — _(전투 담당)_
+- [ ] Tests/Core: Burn 즉시 피해 + 턴 종료 피해 + 만료 테스트 추가/갱신 — _(전투 담당)_
+- [ ] Tests/Core: Infection 누적, 턴 종료 피해, 1 감소, 상한 없음 테스트 추가 — _(전투 담당)_
+- [ ] Tests/Core: Vulnerable/Weaken 정산 단위와 소모 테스트 추가 — _(전투 담당)_
+- [ ] Tests/Core: Lifesteal 실제 피해 기반 회복과 턴당 상한 테스트 추가 — _(전투 담당)_
+- [ ] Tests/Core: Thorns 피격 반사, 라운드 종료 제거, 반사 재귀 방지 테스트 추가 — _(전투 담당)_
+- [ ] Tests/UI: 유물 resolver → status request → combat effect 변환 테스트 갱신 — _(전투 담당)_
+- [ ] `dotnet build SlotRogue.slnx` 통과 — _(전투 담당)_
+- [ ] Unity Editor에서 EditMode 테스트 결과 확인 — _(전투 담당)_
 
-## Notes
+## Implementation notes
 
-- `BattleSystem`은 상태이상 종류별 세부 동작을 알지 않는다. 적용 시점과 턴 훅만 관리한다.
-- `StatusEffectFactory`가 현재 3종 상태이상의 컴포넌트 조합을 만든다. 새 상태이상은 factory 조합과 필요한 컴포넌트만 추가한다.
-- `Poison`은 duration 없이 유지되는 stack형 상태이상으로 둔다. 해제/정화가 필요해지면 별도 component 또는 effect로 추가한다.
-- `dotnet test ... --no-build`는 종료 코드 0을 반환했지만 Unity Test Runner 결과를 출력하지 않았다. 최종 테스트 권위는 Unity Editor EditMode 테스트다.
-- 2026-06-07: `RunBattleEnemySlotState`에 상태이상 목록을 추가하고 `RunBattleScreenStateUpdater` → `EnemyFormationView` → `EnemyFormationSlotView.SetStatusEffects()` 경로로 전달되도록 연결했다.
-- 2026-06-07: 에디터 수동 검증용 `RunBattleStatusEffectDebugButton`을 추가하고, 선택/formation slot/첫 생존 몬스터에게 상태이상 턴을 실제 전투 턴 경로로 적용하는 dev-only hook을 열었다. 해당 hook은 2026-06-12 책임 분리 후 `BattleSceneCompositionRoot`를 통해 `BattleFlowController`에 전달한다.
+- 취약/약화의 핵심 위험은 “유물 발동 건별 소모”다. v6 기준 정산 1회는 플레이어 스핀 1회의 합산 피해, 몬스터 공격 행동 1회다.
+- 현재 `CombatEffect[]`는 개별 효과 순서로 적용되므로, 취약/약화를 단순히 `Damage` effect마다 소모하면 기획과 달라질 수 있다. 정산 묶음 또는 action 단위 context가 필요하다.
+- 감염은 총 스택 상한이 없다. 기존 `StackLimitComponent(5)`를 그대로 재사용하면 안 된다.
+- 가시는 플레이어 턴 종료에 제거하면 적 공격 전에 사라진다. 반드시 라운드 종료 또는 동등한 “내 턴 + 적 턴 후” 처리로 제거한다.
+- 흡혈은 요청 피해량이 아니라 실제 HP 피해량 기준이다. shield로 막힌 피해는 회복량에 포함하지 않는다.
+- 반사 피해는 다시 가시/흡혈/취약 소모를 유발할지 명확히 구분해야 한다. 1차는 반사 피해가 가시를 재발동하지 않도록 제한한다.
+- `Freeze`는 debug/test 경로에 남길 수 있지만, 공식 유물/몬스터 데이터의 1차 속성에는 포함하지 않는다.
+
+## Open questions
+
+| ID | 질문 | 비고 |
+|----|------|------|
+| Q1 | 취약 기본 배율은 20%와 25% 중 무엇을 쓸 것인가? | v6 상세표는 25%, 일부 기존 유물 설명은 20%다. |
+| Q2 | 약화 기본 감소율은 30%와 25% 중 무엇을 쓸 것인가? | v6 상세표는 30%, 일부 기존 카탈로그 설명은 25%다. |
+| Q3 | 플레이어 정산 1회를 Core에서 어떻게 표현할 것인가? | `CombatEffect[]` 전체, damage group, action context 중 선택 필요. |
+| Q4 | 몬스터의 `Weak`는 모든 행동 피해 합산에 한 번 적용할 것인가, 행동 내부 damage effect마다 적용할 것인가? | v6은 공격 행동 1회를 기준으로 한다. |
+| Q5 | 상태 아이콘 수치 표시는 `Magnitude`, `StackCount`, `RemainingTurns` 중 무엇을 우선 표시할 것인가? | 감염/취약/약화/가시마다 UI 규칙이 다를 수 있다. |
 
 ## Completion
 
