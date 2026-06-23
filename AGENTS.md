@@ -118,6 +118,7 @@ Unity 셋업 (버전 / 패키지 / 프로젝트 설정): [`docs/guides/unity-set
 - **Edit > Write**: 기존 파일은 Edit (StrReplace), 신규 또는 전면 재작성만 Write.
 - **새 시스템 구현 순서**: 결정 ADR(들) → design-doc (narrative) → exec-plan → 코드.
 - **브랜치 / PR 전략은 미정** (`§2` 참조). 사용해보고 결정되면 ADR-XXXX로 박제. 그 전까지는 main 직접 커밋도 허용하되 exec-plan 갱신은 작업 커밋과 같이.
+- **커밋 메시지**: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:` 등 type으로 시작하고 한 줄 요약 뒤 빈 줄 + 불렛 리스트로 세부 내용을 쓴다. PowerShell에서 커밋할 때는 **반드시** `git commit -m @" ... "@` here-string을 사용해 전체 메시지가 하나로 들어가게 한다. 상세는 [`docs/governance/commit-messages.md`](docs/governance/commit-messages.md) 참조.
 
 ---
 

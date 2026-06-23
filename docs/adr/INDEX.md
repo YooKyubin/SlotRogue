@@ -2,7 +2,7 @@
 
 모든 Architecture Decision Records의 목록. 새 ADR 추가 또는 status 변경은 **이 표를 같은 커밋에 갱신**해야 한다.
 
-> 형식·작성 규칙: [`../GOVERNANCE.md`](../GOVERNANCE.md) "ADR 규칙" 섹션. 템플릿: [`TEMPLATE.md`](./TEMPLATE.md).
+> 형식·작성 규칙: [`../governance/adr.md`](../governance/adr.md). 템플릿: [`TEMPLATE.md`](./TEMPLATE.md).
 
 ---
 

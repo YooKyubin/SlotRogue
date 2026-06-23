@@ -2,7 +2,7 @@
 
 완료된 plan이 모이는 곳. `Completion` 섹션이 채워진 채로 [`../active/`](../active/)에서 `git mv`로 옮겨진다.
 
-> 완료 워크플로: [`../../GOVERNANCE.md`](../../GOVERNANCE.md) "exec-plan 규칙 > Completion" 섹션.
+> 완료 워크플로: [`../../governance/exec-plans.md`](../../governance/exec-plans.md) "Completion" 섹션.
 
 ---
 

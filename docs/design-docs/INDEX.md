@@ -2,7 +2,7 @@
 
 시스템 narrative의 진입점. ADR 인용을 통해 결정을 참조하고, *어떻게* 시스템이 맞물려 돌아가는지 설명한다.
 
-> 형식·작성 규칙: [`../GOVERNANCE.md`](../GOVERNANCE.md) "design-doc 규칙" 섹션.
+> 형식·작성 규칙: [`../governance/design-docs.md`](../governance/design-docs.md).
 
 ---
 

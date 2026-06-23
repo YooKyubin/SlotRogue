@@ -2,7 +2,7 @@
 
 진행 중인 작업 단위별 체크리스트가 여기에 들어간다.
 
-> 작성·갱신·완료 규칙: [`../../GOVERNANCE.md`](../../GOVERNANCE.md)의 exec-plan 규칙 참조.
+> 작성·갱신·완료 규칙: [`../../governance/exec-plans.md`](../../governance/exec-plans.md) 참조.
 
 ---
 

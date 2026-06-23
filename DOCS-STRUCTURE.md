@@ -28,8 +28,11 @@ SlotRogue/
 │
 ├── docs/
 │   ├── INDEX.md              # 허브: 카테고리, 읽기 순서, 컨벤션
-│   ├── GOVERNANCE.md         # 허브: 각 아티팩트 타입 작성·갱신 규칙 (+ 팀 규칙 A~G)
+│   ├── GOVERNANCE.md         # 허브: 문서 운영 상세 규칙으로 안내
 │   ├── STATUS.md             # 살아있는 보드: 포커스, 주차 마일스톤, active/completed plan
+│   │
+│   ├── governance/           # ADR/design-doc/exec-plan/STATUS/팀/커밋 메시지 상세 규칙
+│   │   └── *.md
 │   │
 │   ├── adr/                  # 결정 (파일당 결정 1건, append-only 번호)
 │   │   ├── INDEX.md
@@ -87,9 +90,10 @@ flowchart TB
   DD -. cites .-> ADR
   ActiveEP -->|"git mv + Completion"| DoneEP
   DoneEP -->|"same commit"| Status
-  Gov["docs/GOVERNANCE.md"] -. rules .-> ADR
-  Gov -. rules .-> DD
-  Gov -. rules .-> ActiveEP
+  Gov["docs/GOVERNANCE.md"] --> GovDetail["docs/governance/*.md"]
+  GovDetail -. rules .-> ADR
+  GovDetail -. rules .-> DD
+  GovDetail -. rules .-> ActiveEP
 ```
 
 **코드**는 *무엇*이 구현되었는지 답한다. **문서**는 *왜*, *어떻게*, *진행*을 답한다.
@@ -102,7 +106,8 @@ flowchart TB
 |------|------|
 | [`AGENTS.md`](AGENTS.md) | 에이전트 자동 로드 가이드: 언어 규칙, 코딩 절대 규칙, ADR 인덱스, 거버넌스 요약 |
 | [`docs/INDEX.md`](docs/INDEX.md) | `docs/` 정식 진입점 — 카테고리, 기여자 읽기 순서 |
-| [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md) | 전체 규칙: 각 아티팩트 작성/갱신 시점, 네이밍, 날짜, 팀 규칙, 안티패턴 |
+| [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md) | 문서 운영 허브 — 각 상세 규칙 파일로 안내 |
+| [`docs/governance/`](docs/governance/) | 전체 규칙: 각 아티팩트 작성/갱신 시점, 네이밍, 날짜, 팀 규칙, 안티패턴 |
 | [`DOCS-STRUCTURE.md`](DOCS-STRUCTURE.md) | 구조 지도 (이 파일) — 상태에 손대지 않고 안전하게 읽을 수 있음 |
 
 **허브 문서**(`AGENTS.md`, `docs/INDEX.md`, `docs/GOVERNANCE.md`)를 편집할 땐, 해당 문서를 인용하는 inbound 링크를 repo 전체에 grep하고 **같은 변경 안에서** 갱신할 것. 안정된 앵커(파일 경로 + 섹션 제목) 우선, 깨지기 쉬운 숫자 섹션 ID 회피.
@@ -208,7 +213,7 @@ flowchart TB
 1. [`AGENTS.md`](AGENTS.md) — 규칙과 결정 인덱스
 2. [`DOCS-STRUCTURE.md`](DOCS-STRUCTURE.md) — 이 지도 (선택, `AGENTS.md`로 충분하면 skip)
 3. [`docs/INDEX.md`](docs/INDEX.md) — 문서 카테고리
-4. [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md) — 작업 중 문서 유지 방법
+4. [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md) — 작업 중 문서 유지 방법의 상세 링크
 5. [`docs/STATUS.md`](docs/STATUS.md) — *현재 포커스가 필요할 때만*
 
 ### 특정 시스템을 변경하기 전
@@ -263,4 +268,4 @@ flowchart TB
 | `.git-blame-ignore-revs` | format-only 커밋 skip 목록 (`git blame` 노이즈 제거) |
 | `Assets/_Project/Scripts/` _(권장)_ | 구현 — 채택된 ADR과 정렬되어야 함 |
 
-권위 있는 워크플로 상세는 항상 이 요약보다 [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md) 우선.
+권위 있는 워크플로 상세는 항상 이 요약보다 [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md)와 [`docs/governance/`](docs/governance/) 우선.

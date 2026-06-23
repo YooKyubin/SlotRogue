@@ -11,7 +11,7 @@ SlotRogue의 모든 문서 진입점. `docs/`를 처음 탐색할 때 이 파일
 | 파일 | 목적 |
 |------|------|
 | [`STATUS.md`](./STATUS.md) | 프로젝트 상태 보드. 현재 포커스, 주차 마일스톤, active/completed 작업. |
-| [`GOVERNANCE.md`](./GOVERNANCE.md) | ADR / design-doc / exec-plan / STATUS 갱신 규칙 + 팀 규칙 상세. |
+| [`GOVERNANCE.md`](./GOVERNANCE.md) | ADR / design-doc / exec-plan / STATUS / 팀 규칙 상세 문서의 허브. |
 
 ---
 
@@ -39,7 +39,7 @@ active/완료 작업의 단계별 체크리스트. 어떤 plan이 active인지: 
 - `active/` — 진행 중 ([README](./exec-plans/active/README.md))
 - `completed/` — 완료 (Completion 섹션 채워 옮긴 plan, [README](./exec-plans/completed/README.md))
 
-active → completed 워크플로는 [`GOVERNANCE.md`](./GOVERNANCE.md) 참조.
+active → completed 워크플로는 [`governance/exec-plans.md`](./governance/exec-plans.md) 참조.
 
 ### `guides/` — How-to
 
@@ -50,6 +50,10 @@ design-doc도 exec-plan도 아닌 실용 가이드.
 - [`guides/leaderboard-setup.md`](./guides/leaderboard-setup.md) — UGS Cloud Project 연결, `Slot_Rogue_Leaderboard` 설정, 제출·조회 검증
 
 **필요해지면 추가** (지금은 만들지 않는다): `mobile-build.md`(Android/iOS 빌드 + 키스토어), `unity-profiling.md`(Profiler/Frame Debugger), `addressables-workflow.md`(그룹/빌드/원격 호스팅), `package-setup.md`.
+
+### `governance/` — 문서 운영 상세 규칙
+
+[`GOVERNANCE.md`](./GOVERNANCE.md)에서 링크하는 세부 규칙. 아티팩트 타입별 작성·갱신·완료 기준과 팀 워크플로, 커밋 메시지 규칙을 둔다.
 
 ---
 
