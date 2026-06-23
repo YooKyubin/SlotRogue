@@ -20,9 +20,8 @@ namespace SlotRogue.UI.SlotPresentation.Reel
         private const int Columns = SlotSpinResult.Columns;
         private const int VisibleRows = SlotSpinResult.Rows;
 
-        [Header("Authored reels (optional)")]
-        [Tooltip("Place the reel overlay in the scene and assign its container + 5 reels here. " +
-            "If left empty, the overlay is built at runtime over the slot cells.")]
+        [Header("Authored reels")]
+        [Tooltip("Place the reel overlay in the scene and assign its container + 5 reels here.")]
         [SerializeField] private RectTransform _overlay;
         [SerializeField] private SlotReelView[] _reels;
 
@@ -30,15 +29,12 @@ namespace SlotRogue.UI.SlotPresentation.Reel
         [SerializeField] private float _spinUpDuration = 0.5f;
         [SerializeField] private float _stopIntervalPerColumn = 0.18f;
 
-        // Needs symbol sprites, plus either authored reels (the reels are the display) or the legacy
-        // cell grid (runtime builds the overlay over the cells and the cells show the final result).
+        // Needs symbol sprites plus reel objects placed in the hierarchy.
         public bool IsReady =>
-            _symbolSprites != null && _symbolSprites.Length > 0 && (HasAuthoredReels() || HasCells());
+            _symbolSprites != null && _symbolSprites.Length > 0 && HasAuthoredReels();
 
         public event Action<int> ReelStopped;
 
-        // When the reels are authored in the scene they stay on as the slot face; the legacy 5x3 cell
-        // grid is no longer required and can be deleted. Runtime-built reels still use the cells.
         private bool ReelsAreDisplay => _authored || HasAuthoredReels();
 
         public void Initialize(Image[] cellIcons, Sprite[] symbolSprites, Sprite[] spinSprites)
@@ -88,24 +84,17 @@ namespace SlotRogue.UI.SlotPresentation.Reel
                 yield break;
             }
 
-            bool reelDisplay = ReelsAreDisplay;
-
             // Hide the underlying cell icons so only the reels animate (the reel symbol sprites are
             // transparent, otherwise static cells would show through and look like a second slot).
             // In reel-display mode the cells stay hidden permanently — they can be deleted.
             HideCellIcons();
             ShowReels();
             ResetReelStopNotifications();
-            if (!reelDisplay)
-            {
-                PositionReels();
-            }
-
             if (IsSkipped(shouldSkip))
             {
                 SetAllReelsImmediate(result);
                 NotifyAllReelsStopped();
-                FinishSpin(result, reelDisplay);
+                FinishSpin();
                 yield break;
             }
 
@@ -139,7 +128,7 @@ namespace SlotRogue.UI.SlotPresentation.Reel
                 NotifyAllReelsStopped();
             }
 
-            FinishSpin(result, reelDisplay);
+            FinishSpin();
         }
 
         public void ShowImmediate(SlotSpinResult result)
@@ -176,18 +165,9 @@ namespace SlotRogue.UI.SlotPresentation.Reel
             NotifyReelStopped(column);
         }
 
-        private void FinishSpin(SlotSpinResult result, bool reelDisplay)
+        private void FinishSpin()
         {
-            if (reelDisplay)
-            {
-                // The reels stay on showing the final result; nothing to reveal.
-                return;
-            }
-
-            // Legacy path: copy the result onto the cell grid and hide the reels so the cells (which
-            // downstream highlight views target) show the result.
-            ApplyResultToCells(result);
-            HideReels();
+            // The authored reels stay on showing the final result; nothing to reveal.
         }
 
         public void StopImmediate(SlotSpinResult result = null)
@@ -212,38 +192,18 @@ namespace SlotRogue.UI.SlotPresentation.Reel
                 }
             }
 
-            if (ReelsAreDisplay)
-            {
-                // Reels are the slot face: keep them on, leave the (deletable) cell grid alone.
-                return;
-            }
-
-            if (result != null)
-            {
-                ApplyResultToCells(result);
-            }
-            else
-            {
-                ShowCellIcons();
-            }
-
-            HideReels();
+            // Reels are the slot face: keep them on, leave the hidden cell grid alone.
         }
 
         private void Awake()
         {
-            // Runtime-built overlays start hidden until a spin. Authored reels are the slot face, so
-            // they stay visible (showing their authored/last result) between spins.
-            if (_overlay != null && !ReelsAreDisplay)
-            {
-                _overlay.gameObject.SetActive(false);
-            }
+            // Authored reels are the slot face, so they stay visible between spins.
         }
 
         private IEnumerator Start()
         {
             // Wait one frame for the canvas to lay out, then arrange authored reels so the slot shows
-            // at rest (before any spin). Runtime-built overlays handle this lazily on first spin.
+            // at rest before any spin.
             yield return null;
             PrepareAuthoredRestDisplay();
         }
@@ -331,6 +291,8 @@ namespace SlotRogue.UI.SlotPresentation.Reel
 
             if (!IsReady)
             {
+                Debug.LogError(
+                    "[SlotMachineSpinPresenter] Slot reel overlay and Reel 0-4 must be placed in the hierarchy.");
                 return false;
             }
 
@@ -351,21 +313,11 @@ namespace SlotRogue.UI.SlotPresentation.Reel
                     _reels[column].Build(_symbolSprites, _spinSprites);
                 }
 
-                if (_overlay != null)
-                {
-                    _overlay.gameObject.SetActive(false);
-                }
-
                 _built = true;
                 return true;
             }
 
-            return BuildReelsAtRuntime();
-        }
-
-        private bool HasCells()
-        {
-            return _cellIcons != null && _cellIcons.Length >= SlotSpinResult.CellCount;
+            return false;
         }
 
         // Finds reels placed in the scene (e.g. under "Slot Reel Overlay") and orders them left -> right
@@ -476,137 +428,6 @@ namespace SlotRogue.UI.SlotPresentation.Reel
             return true;
         }
 
-        private bool BuildReelsAtRuntime()
-        {
-            Canvas canvas = _cellIcons[0] != null ? _cellIcons[0].canvas : null;
-            if (canvas == null)
-            {
-                return false;
-            }
-
-            Canvas.ForceUpdateCanvases();
-
-            _overlay = CreateOverlay(canvas.transform);
-            _reels = new SlotReelView[Columns];
-
-            for (int column = 0; column < Columns; column++)
-            {
-                if (!TryGetColumnRect(column, out Vector2 localCenter, out Vector2 localSize))
-                {
-                    _reels = null;
-                    return false;
-                }
-
-                var go = new GameObject($"Reel {column}", typeof(RectTransform));
-                var rect = (RectTransform)go.transform;
-                rect.SetParent(_overlay, false);
-                rect.anchorMin = new Vector2(0.5f, 0.5f);
-                rect.anchorMax = new Vector2(0.5f, 0.5f);
-                rect.pivot = new Vector2(0.5f, 0.5f);
-                rect.anchoredPosition = localCenter;
-                rect.sizeDelta = localSize;
-
-                var reel = go.AddComponent<SlotReelView>();
-                reel.Build(_symbolSprites, _spinSprites);
-                _reels[column] = reel;
-            }
-
-            _overlay.gameObject.SetActive(false);
-            _authored = false;
-            _built = true;
-            return true;
-        }
-
-        // Re-aligns each reel viewport to its column's current cell rects. Cheap, and self-corrects
-        // if the first build measured before the canvas layout had settled.
-        private void PositionReels()
-        {
-            if (_authored || _reels == null || _overlay == null)
-            {
-                return;
-            }
-
-            Canvas.ForceUpdateCanvases();
-
-            for (int column = 0; column < Columns; column++)
-            {
-                if (_reels[column] == null || !TryGetColumnRect(column, out Vector2 localCenter, out Vector2 localSize))
-                {
-                    continue;
-                }
-
-                var rect = (RectTransform)_reels[column].transform;
-                rect.anchoredPosition = localCenter;
-                rect.sizeDelta = localSize;
-            }
-        }
-
-        private RectTransform CreateOverlay(Transform canvasTransform)
-        {
-            var go = new GameObject("Slot Reel Overlay", typeof(RectTransform));
-            var rect = (RectTransform)go.transform;
-            rect.SetParent(canvasTransform, false);
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-            rect.SetAsLastSibling();
-            return rect;
-        }
-
-        private bool TryGetColumnRect(int column, out Vector2 localCenter, out Vector2 localSize)
-        {
-            localCenter = Vector2.zero;
-            localSize = Vector2.zero;
-
-            var worldMin = new Vector3(float.MaxValue, float.MaxValue, 0f);
-            var worldMax = new Vector3(float.MinValue, float.MinValue, 0f);
-            var corners = new Vector3[4];
-
-            for (int row = 0; row < VisibleRows; row++)
-            {
-                int index = SlotSpinResult.ToIndex(column, row);
-                if (index >= _cellIcons.Length || _cellIcons[index] == null)
-                {
-                    return false;
-                }
-
-                _cellIcons[index].rectTransform.GetWorldCorners(corners);
-                for (int corner = 0; corner < corners.Length; corner++)
-                {
-                    worldMin = Vector3.Min(worldMin, corners[corner]);
-                    worldMax = Vector3.Max(worldMax, corners[corner]);
-                }
-            }
-
-            Vector3 localLow = _overlay.InverseTransformPoint(worldMin);
-            Vector3 localHigh = _overlay.InverseTransformPoint(worldMax);
-            localCenter = (localLow + localHigh) * 0.5f;
-            localSize = new Vector2(Mathf.Abs(localHigh.x - localLow.x), Mathf.Abs(localHigh.y - localLow.y));
-            return localSize.x > 0f && localSize.y > 0f;
-        }
-
-        private void ApplyResultToCells(SlotSpinResult result)
-        {
-            for (int column = 0; column < Columns; column++)
-            {
-                for (int row = 0; row < VisibleRows; row++)
-                {
-                    int index = SlotSpinResult.ToIndex(column, row);
-                    if (index >= _cellIcons.Length || _cellIcons[index] == null)
-                    {
-                        continue;
-                    }
-
-                    Sprite sprite = SymbolSprite(result.GetSymbol(column, row));
-                    _cellIcons[index].sprite = sprite;
-                    _cellIcons[index].enabled = sprite != null;
-                    _cellIcons[index].preserveAspect = true;
-                }
-            }
-        }
-
         private void HideCellIcons()
         {
             if (_cellIcons == null)
@@ -623,22 +444,6 @@ namespace SlotRogue.UI.SlotPresentation.Reel
             }
         }
 
-        private void ShowCellIcons()
-        {
-            if (_cellIcons == null)
-            {
-                return;
-            }
-
-            for (int index = 0; index < _cellIcons.Length; index++)
-            {
-                if (_cellIcons[index] != null)
-                {
-                    _cellIcons[index].enabled = _cellIcons[index].sprite != null;
-                }
-            }
-        }
-
         private SlotSymbolType[] ResultColumn(SlotSpinResult result, int column)
         {
             var rows = new SlotSymbolType[VisibleRows];
@@ -648,17 +453,6 @@ namespace SlotRogue.UI.SlotPresentation.Reel
             }
 
             return rows;
-        }
-
-        private Sprite SymbolSprite(SlotSymbolType symbol)
-        {
-            int index = (int)symbol;
-            if (_symbolSprites == null || index < 0 || index >= _symbolSprites.Length)
-            {
-                return null;
-            }
-
-            return _symbolSprites[index];
         }
 
         private void ShowReels()

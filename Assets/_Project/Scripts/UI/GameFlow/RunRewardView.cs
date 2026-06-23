@@ -1,4 +1,5 @@
 using System;
+using R3;
 using SlotRogue.UI.RunGame;
 using SlotRogue.UI.RunGame.ViewModels;
 using TMPro;
@@ -23,7 +24,8 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private Button _doubleRewardButton;
         [SerializeField] private TMP_Text _doubleRewardButtonText;
 
-        private RectTransform _rewardedActionRow;
+        private bool _reportedMissingAdButtons;
+        private bool _reportedMissingRewardOptions;
 
         public GameFlowOptionView[] RewardOptions => _rewardOptions;
 
@@ -41,6 +43,35 @@ namespace SlotRogue.UI.GameFlow
         {
             _summaryText   = summaryText;
             _rewardOptions = rewardOptions;
+        }
+
+        /// <summary>
+        /// 자기 ViewModel을 구독(상태→Render)하고 입력 event를 presenter로 연결한다.
+        /// R3 구독은 .AddTo(this)로 이 View 파괴 시 자동 해제된다(ADR-0020).
+        /// </summary>
+        public void Bind(
+            RunRewardViewModel viewModel,
+            RunGameFlowController presenter,
+            RelicIconRenderer iconRenderer)
+        {
+            if (viewModel == null || presenter == null)
+            {
+                return;
+            }
+
+            Entered += presenter.HandleRewardEntered;
+            RewardSelectionRequested += presenter.HandleRewardSelectionRequested;
+            RerollRequested += presenter.HandleRewardRerollRequested;
+            ExtraRewardRequested += presenter.HandleExtraRewardRequested;
+            RewardDoubleRequested += presenter.HandleRewardDoubleRequested;
+
+            viewModel.State
+                .Subscribe(state =>
+                {
+                    Render(state);
+                    iconRenderer?.RenderRewardIcons(this, state);
+                })
+                .AddTo(this);
         }
 
         private void Awake()
@@ -125,25 +156,63 @@ namespace SlotRogue.UI.GameFlow
                 _rerollButton?.GetComponentInChildren<TMP_Text>(includeInactive: true);
             _addRewardButton ??= FindChildComponent<Button>("Add Reward Button");
             _doubleRewardButton ??= FindChildComponent<Button>("Double Reward Button");
-
-            if (_addRewardButton == null)
-            {
-                _addRewardButton = CreateButtonFromReroll("Add Reward Button");
-            }
-
-            if (_doubleRewardButton == null)
-            {
-                _doubleRewardButton = CreateButtonFromReroll("Double Reward Button");
-            }
-
-            EnsureRewardedActionLayout();
-
             _addRewardButtonText ??=
                 FindChildComponent<TMP_Text>("Add Reward Text") ??
                 _addRewardButton?.GetComponentInChildren<TMP_Text>(includeInactive: true);
             _doubleRewardButtonText ??=
                 FindChildComponent<TMP_Text>("Double Reward Text") ??
                 _doubleRewardButton?.GetComponentInChildren<TMP_Text>(includeInactive: true);
+
+            ReportMissingAdButtonReferences();
+        }
+
+        private void ReportMissingAdButtonReferences()
+        {
+            if (_reportedMissingAdButtons ||
+                (_rerollButton != null &&
+                _rerollButtonText != null &&
+                _addRewardButton != null &&
+                _addRewardButtonText != null &&
+                _doubleRewardButton != null &&
+                _doubleRewardButtonText != null))
+            {
+                return;
+            }
+
+            Debug.LogError(
+                "[RunRewardView] Reward ad buttons must be placed in the hierarchy. " +
+                $"Missing: {BuildMissingAdButtonSummary()}");
+            _reportedMissingAdButtons = true;
+        }
+
+        private string BuildMissingAdButtonSummary()
+        {
+            var builder = new System.Text.StringBuilder();
+            AppendMissing(builder, _rerollButton != null, "Reroll Button");
+            AppendMissing(builder, _rerollButtonText != null, "Reroll Text");
+            AppendMissing(builder, _addRewardButton != null, "Add Reward Button");
+            AppendMissing(builder, _addRewardButtonText != null, "Add Reward Text");
+            AppendMissing(builder, _doubleRewardButton != null, "Double Reward Button");
+            AppendMissing(builder, _doubleRewardButtonText != null, "Double Reward Text");
+            return builder.Length > 0 ? builder.ToString() : "none";
+        }
+
+        private static void AppendMissing(
+            System.Text.StringBuilder builder,
+            bool hasReference,
+            string label)
+        {
+            if (hasReference)
+            {
+                return;
+            }
+
+            if (builder.Length > 0)
+            {
+                builder.Append(", ");
+            }
+
+            builder.Append(label);
         }
 
         private void WireAdButtons()
@@ -203,80 +272,6 @@ namespace SlotRogue.UI.GameFlow
             }
         }
 
-        private Button CreateButtonFromReroll(string objectName)
-        {
-            if (_rerollButton == null || _rerollButton.transform.parent == null)
-            {
-                return null;
-            }
-
-            Button button = Instantiate(
-                _rerollButton,
-                _rerollButton.transform.parent);
-            button.name = objectName;
-            button.onClick.RemoveAllListeners();
-            return button;
-        }
-
-        private void EnsureRewardedActionLayout()
-        {
-            if (_rerollButton == null || _rerollButton.transform.parent == null)
-            {
-                return;
-            }
-
-            Transform currentParent = _rerollButton.transform.parent;
-            _rewardedActionRow ??=
-                FindDeepChild(transform, "Rewarded Action Row") as RectTransform;
-
-            if (_rewardedActionRow == null)
-            {
-                var rowObject = new GameObject(
-                    "Rewarded Action Row",
-                    typeof(RectTransform),
-                    typeof(HorizontalLayoutGroup));
-                _rewardedActionRow = (RectTransform)rowObject.transform;
-                _rewardedActionRow.SetParent(currentParent, false);
-                _rewardedActionRow.anchorMin = new Vector2(0f, 0f);
-                _rewardedActionRow.anchorMax = new Vector2(1f, 0f);
-                _rewardedActionRow.pivot = new Vector2(0.5f, 0.5f);
-                _rewardedActionRow.anchoredPosition = new Vector2(0f, 31.4f);
-                _rewardedActionRow.sizeDelta = new Vector2(0f, 33f);
-
-                HorizontalLayoutGroup layout =
-                    rowObject.GetComponent<HorizontalLayoutGroup>();
-                layout.spacing = 3f;
-                layout.childAlignment = TextAnchor.MiddleCenter;
-                layout.childControlWidth = true;
-                layout.childControlHeight = true;
-                layout.childForceExpandWidth = true;
-                layout.childForceExpandHeight = true;
-            }
-
-            MoveButtonToActionRow(_rerollButton);
-            MoveButtonToActionRow(_addRewardButton);
-            MoveButtonToActionRow(_doubleRewardButton);
-        }
-
-        private void MoveButtonToActionRow(Button button)
-        {
-            if (button == null ||
-                _rewardedActionRow == null ||
-                button.transform.parent == _rewardedActionRow)
-            {
-                return;
-            }
-
-            button.transform.SetParent(_rewardedActionRow, false);
-            if (button.transform is RectTransform rectTransform)
-            {
-                rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-                rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-                rectTransform.anchoredPosition = Vector2.zero;
-                rectTransform.sizeDelta = new Vector2(0f, 33f);
-            }
-        }
-
         private T FindChildComponent<T>(string objectName) where T : Component
         {
             Transform child = FindDeepChild(transform, objectName);
@@ -316,7 +311,7 @@ namespace SlotRogue.UI.GameFlow
             }
 
             int optionCount = options != null ? options.Count : 0;
-            EnsureRewardOptionCapacity(optionCount);
+            ReportMissingRewardOptions(optionCount);
             int visibleCount = Mathf.Min(_rewardOptions.Length, optionCount);
 
             for (int index = 0; index < _rewardOptions.Length; index++)
@@ -343,35 +338,19 @@ namespace SlotRogue.UI.GameFlow
             }
         }
 
-        private void EnsureRewardOptionCapacity(int requiredCount)
+        private void ReportMissingRewardOptions(int requiredCount)
         {
             if (_rewardOptions == null ||
                 requiredCount <= _rewardOptions.Length ||
-                _rewardOptions.Length == 0)
+                _reportedMissingRewardOptions)
             {
                 return;
             }
 
-            GameFlowOptionView template =
-                _rewardOptions[_rewardOptions.Length - 1];
-            if (template == null || template.transform.parent == null)
-            {
-                return;
-            }
-
-            var expanded = new GameFlowOptionView[requiredCount];
-            Array.Copy(_rewardOptions, expanded, _rewardOptions.Length);
-
-            for (int index = _rewardOptions.Length; index < requiredCount; index++)
-            {
-                GameFlowOptionView optionView = Instantiate(
-                    template,
-                    template.transform.parent);
-                optionView.name = $"Reward Option {index + 1}";
-                expanded[index] = optionView;
-            }
-
-            _rewardOptions = expanded;
+            Debug.LogError(
+                "[RunRewardView] Reward option views must be placed in the hierarchy. " +
+                $"Required: {requiredCount}, Placed: {_rewardOptions.Length}");
+            _reportedMissingRewardOptions = true;
         }
     }
 }

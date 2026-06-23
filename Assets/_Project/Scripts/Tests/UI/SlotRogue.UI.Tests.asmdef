@@ -8,6 +8,7 @@
         "SlotRogue.Slot",
         "SlotRogue.Relics",
         "UniTask",
+        "R3.Unity",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "UnityEditor",
@@ -20,7 +21,9 @@
     "allowUnsafeCode": false,
     "overrideReferences": true,
     "precompiledReferences": [
-        "nunit.framework.dll"
+        "nunit.framework.dll",
+        "R3.dll",
+        "System.Threading.Channels.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [

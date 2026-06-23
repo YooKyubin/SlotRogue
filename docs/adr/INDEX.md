@@ -28,6 +28,8 @@
 | [0016](./0016-local-notifications-weekly-ranking-reset.md) | 알림은 로컬 예약하고 주간 랭킹은 한국 수요일에 리셋한다 | accepted | 2026-06-14 | — |
 | [0017](./0017-first-run-tutorial-run-game-mode.md) | 최초 튜토리얼은 RunGame 튜토리얼 모드로 처리한다 | accepted | 2026-06-19 | — |
 | [0018](./0018-defeat-result-symbol-pattern-stats.md) | 패배 결과에는 심볼별 족보 통계를 표시한다 | accepted | 2026-06-19 | 0014 일부 |
+| [0019](./0019-r3-reactive-binding-for-menu-ui.md) | 메뉴/상태표시 UI는 R3 ReactiveProperty로 바인딩한다 (전투 연출은 명령형 유지) | accepted | 2026-06-23 | none |
+| [0020](./0020-mvp-reactive-viewmodel-view-bind.md) | UI는 MVP + Reactive ViewModel로 정리하고 View가 자기 ViewModel을 Bind한다 | accepted | 2026-06-23 | 0008 일부, 0019 일부 |
 
 ---
 

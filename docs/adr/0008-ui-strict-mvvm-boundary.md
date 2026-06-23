@@ -3,7 +3,7 @@
 **Status**: accepted  
 **Date**: 2026-06-11  
 **Supersedes**: none  
-**Superseded by**: none  
+**Superseded by**: 0020 (View가 ViewModel을 모른다는 경계 부분 — MVP + Reactive ViewModel로 전환)  
 **Related design-docs**: [`../design-docs/game-flow.md`](../design-docs/game-flow.md)
 
 ---

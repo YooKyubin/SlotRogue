@@ -36,6 +36,45 @@ namespace SlotRogue.UI.Tests.GameFlow
         }
 
         [Test]
+        public void LifestealRelic_EmitsDerivedHealRule_WithoutImmediateHeal()
+        {
+            var owned = new[] { RelicCatalog.GetById("C-16") }; // 레몬 흡혈 12% (턴당 6)
+
+            RelicResolveResult result = _runner.Resolve(Matches(SlotSymbolType.Lemon, 3), owned, FullHp());
+
+            // 회복량은 최종 피해 확정 후 빌더가 계산하므로 이 단계에선 0.
+            Assert.That(result.HealAmount, Is.EqualTo(0));
+            Assert.That(result.DerivedHeals, Has.Count.EqualTo(1));
+            Assert.That(result.DerivedHeals[0].RelicId, Is.EqualTo("C-16"));
+            Assert.That(result.DerivedHeals[0].Kind, Is.EqualTo(RelicDerivedHealKind.Lifesteal));
+            Assert.That(result.DerivedHeals[0].Percent, Is.EqualTo(12));
+            Assert.That(result.DerivedHeals[0].TurnCap, Is.EqualTo(6));
+            Assert.That(result.ActivationSummary, Does.Contain("레몬 흡혈액"));
+        }
+
+        [Test]
+        public void LifestealRelic_DoesNotTrigger_WhenSymbolAbsent()
+        {
+            var owned = new[] { RelicCatalog.GetById("C-16") };
+
+            RelicResolveResult result = _runner.Resolve(Matches(SlotSymbolType.Cherry, 3), owned, FullHp());
+
+            Assert.That(result.DerivedHeals, Is.Empty);
+        }
+
+        [Test]
+        public void BlockToHealRelic_EmitsDerivedHealRule_OnAnyPattern()
+        {
+            var owned = new[] { RelicCatalog.GetById("L-04") }; // 방어도 획득 시 25% 회복
+
+            RelicResolveResult result = _runner.Resolve(Matches(SlotSymbolType.Diamond, 3), owned, FullHp());
+
+            Assert.That(result.DerivedHeals, Has.Count.EqualTo(1));
+            Assert.That(result.DerivedHeals[0].Kind, Is.EqualTo(RelicDerivedHealKind.BlockToHeal));
+            Assert.That(result.DerivedHeals[0].Percent, Is.EqualTo(25));
+        }
+
+        [Test]
         public void SymbolRelic_DoesNotTrigger_WhenSymbolAbsent()
         {
             var owned = new[] { RelicCatalog.GetById("C-01") };

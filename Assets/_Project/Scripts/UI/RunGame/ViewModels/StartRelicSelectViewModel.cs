@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using R3;
 using SlotRogue.Relics.Pool;
 using SlotRogue.UI.GameFlow;
 
@@ -15,18 +16,17 @@ namespace SlotRogue.UI.RunGame.ViewModels
         private const int StarterOptionCount = 3;
         private readonly Random _rng;
         private RelicDefinition[] _relics = Array.Empty<RelicDefinition>();
+        private readonly ReactiveProperty<StartRelicSelectViewState> _state =
+            new(StartRelicSelectViewState.Empty);
 
         public StartRelicSelectViewModel(Random rng = null)
         {
             _rng = rng ?? new Random();
-            State = StartRelicSelectViewState.Empty;
         }
-
-        public event Action<StartRelicSelectViewState> Changed;
 
         public event Action RelicSelected;
 
-        public StartRelicSelectViewState State { get; private set; }
+        public ReadOnlyReactiveProperty<StartRelicSelectViewState> State => _state;
 
         public void SelectRelic(string relicId)
         {
@@ -53,8 +53,7 @@ namespace SlotRogue.UI.RunGame.ViewModels
                     relic.IconKey);
             }
 
-            State = new StartRelicSelectViewState(GameFlowSession.BuildSummary(), options);
-            Changed?.Invoke(State);
+            _state.Value = new StartRelicSelectViewState(GameFlowSession.BuildSummary(), options);
         }
 
         private RelicDefinition[] RollStarterOptions()

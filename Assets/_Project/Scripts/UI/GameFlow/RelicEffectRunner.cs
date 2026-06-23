@@ -13,7 +13,10 @@ namespace SlotRogue.UI.GameFlow
     /// 효과 분기는 문자열이 아니라 <see cref="RelicEffectType"/>로만 처리한다.
     ///
     /// Phase 1 계산 대상: AddDamage / AddBlock / Heal.
-    /// 화상/감염/취약/약화/가시/흡혈은 v23 전투 규칙이 코어에 갖춰질 때까지 계산하지 않는다
+    /// 흡혈/방어전환(Lifesteal/BlockToHeal)은 전투 코어 없이도 "최종 피해/방어 → 회복" 환산만으로
+    /// 성립하므로, 여기서는 규칙(<see cref="RelicDerivedHeal"/>)만 만들고 회복량은
+    /// <see cref="CombatTurnRequestBuilder"/>가 최종 수치 확정 후 계산한다.
+    /// 화상/감염/취약/약화/가시는 v23 전투 규칙이 코어에 갖춰질 때까지 계산하지 않는다
     /// (해당 유물은 카탈로그에서 Phase1=false라 보상풀에도 등장하지 않는다).
     /// </summary>
     public sealed class RelicEffectRunner
@@ -29,6 +32,7 @@ namespace SlotRogue.UI.GameFlow
             var statuses = new List<StatusEffectRequest>();
             var activated = new List<string>();
             var contributions = new List<RelicContributionDelta>();
+            var derivedHeals = new List<RelicDerivedHeal>();
 
             if (ownedRelics != null)
             {
@@ -64,6 +68,14 @@ namespace SlotRogue.UI.GameFlow
                         triggerPatternIndices = new[] { -1 };
                     }
 
+                    // 흡혈/방어전환은 "입힌 피해/획득 방어"가 확정된 뒤에야 회복량이 정해지므로
+                    // 여기서는 규칙만 한 번 등록하고(턴당 1회), 실제 회복은 CombatTurnRequestBuilder가 계산한다.
+                    if (IsDerivedHealEffect(relic.EffectType))
+                    {
+                        AddDerivedHeal(relic, triggerPatternIndices, derivedHeals, activated);
+                        continue;
+                    }
+
                     for (int occurrenceIndex = 0; occurrenceIndex < triggerPatternIndices.Count; occurrenceIndex++)
                     {
                         int damageBefore = additionalDamage;
@@ -92,7 +104,38 @@ namespace SlotRogue.UI.GameFlow
                 healAmount,
                 statuses,
                 BuildSummary(activated),
-                contributions);
+                contributions,
+                derivedHeals);
+        }
+
+        // ── 파생 회복(흡혈/방어전환) ─────────────────────────────────────
+
+        private static bool IsDerivedHealEffect(RelicEffectType effectType)
+        {
+            return effectType == RelicEffectType.Lifesteal ||
+                effectType == RelicEffectType.BlockToHeal;
+        }
+
+        private static void AddDerivedHeal(
+            RelicDefinition relic,
+            IReadOnlyList<int> triggerPatternIndices,
+            List<RelicDerivedHeal> derivedHeals,
+            List<string> activated)
+        {
+            int triggerPatternIndex =
+                triggerPatternIndices.Count > 0 ? triggerPatternIndices[0] : -1;
+            RelicDerivedHealKind kind = relic.EffectType == RelicEffectType.Lifesteal
+                ? RelicDerivedHealKind.Lifesteal
+                : RelicDerivedHealKind.BlockToHeal;
+
+            derivedHeals.Add(new RelicDerivedHeal(
+                relic.Id,
+                relic.Name,
+                kind,
+                relic.EffectValue,
+                relic.EffectValue2,
+                triggerPatternIndex));
+            AddActivatedName(activated, relic.Name);
         }
 
         // ── 조건 판정 ────────────────────────────────────────────────────

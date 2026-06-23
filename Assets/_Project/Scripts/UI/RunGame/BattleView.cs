@@ -11,6 +11,20 @@ namespace SlotRogue.UI.RunGame
     {
         public event Action Entered;
 
+        /// <summary>
+        /// 진입 입력을 presenter로 연결한다(ADR-0020). 전투 연출은 명령형 유지(ADR-0019)라
+        /// reactive ViewModel 구독은 없다.
+        /// </summary>
+        public void Bind(RunGameFlowController presenter)
+        {
+            if (presenter == null)
+            {
+                return;
+            }
+
+            Entered += presenter.HandleBattleEntered;
+        }
+
         public void OnEnter()
         {
             gameObject.SetActive(true);

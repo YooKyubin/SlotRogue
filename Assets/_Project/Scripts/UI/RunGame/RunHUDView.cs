@@ -1,4 +1,5 @@
 using System;
+using R3;
 using SlotRogue.UI.RunGame.ViewModels;
 using UnityEngine;
 using UnityEngine.UI;
@@ -24,6 +25,20 @@ namespace SlotRogue.UI.RunGame
             {
                 _pauseButton.onClick.AddListener(HandlePauseClicked);
             }
+        }
+
+        /// <summary>
+        /// 자기 ViewModel을 구독(상태→Render)하고 일시정지 입력을 ViewModel command로 연결한다(ADR-0020).
+        /// </summary>
+        public void Bind(RunHUDViewModel viewModel)
+        {
+            if (viewModel == null)
+            {
+                return;
+            }
+
+            PauseRequested += viewModel.RequestPause;
+            viewModel.State.Subscribe(Render).AddTo(this);
         }
 
         public void OnEnter() { }

@@ -35,6 +35,12 @@
 - [x] 로비 우주 배경에 하이어라키 배치 행성 Sprite 부유 애니메이션 연결 — Codex
 - [x] 로비/결과 랭킹 UI의 런타임 생성 fallback 제거 — Codex
 - [x] 하이어라키 배치형 주간 랭킹 패널에 profile/message/wave/detail 바인딩 적용 — Codex
+- [x] 방향 전환: strict MVVM → MVP + Reactive ViewModel (ADR-0020)
+- [x] (1단계) `RunGameSceneRoot` 흐름 제어를 `RunGameFlowController`로 추출 (동작 보존, compile PASS)
+- [x] (2단계) State→View 구독과 View 입력 event 연결을 각 View `Bind(vm, presenter)`로 이동 (compile PASS)
+- [x] (3단계) `LeaderboardViewModel` event→R3 통일 + `LeaderboardView.Bind` (compile PASS)
+- [x] (후속) `BattleView.Bind(presenter)`로 진입 입력 정리 (`CombatViewModel`/전투 연출은 명령형 유지)
+- [ ] `RunGameFlowController` 흐름 단위 EditMode 테스트 추가 검토
 - [ ] Unity EditMode 테스트 및 RunGame 수동 플레이테스트
 
 ## Notes
@@ -55,6 +61,9 @@
 - 2026-06-18: 전투 화면의 `Relic Inventory Origin` 입력은 `RunInventoryView` event로만 노출하고, 심볼 풀/보유 유물 스냅샷과 탭 상태는 `RunInventoryViewModel`이 만든다. `RunGameSceneRoot`가 열기/닫기/탭 전환을 wiring하며 View는 `GameFlowSession`을 직접 읽지 않는다.
 - 2026-06-19: `10_LobbyScene`의 `00_MachineArea` 아래에 `Animated Planet Layer`와 `Floating Planet 01~04` Image를 미리 배치했다. `GameStartSceneRoot`는 이 오브젝트들을 생성하지 않고 바인딩만 하며, 각 행성은 `Resources/Textures/UI/Lobby/back_astronaut-Sheet` sliced Sprite를 `localScale=4`로 표시한다. 레이어는 `StageImage`보다 앞 sibling이라 스테이지 창에 가려지고, 넓은 배치에서 서로 다른 속도·위상으로 drift/bob/rotation을 적용한다.
 - 2026-06-19: `GameStartSceneRoot`와 `RunGameSceneRoot`에서 랭킹 UI를 새로 생성하던 fallback을 제거했다. `LeaderboardView`와 `RunDefeatView`는 하이어라키에 배치된 `Leaderboard Open Button`/`Leaderboard Panel`/`Ranking Button` 등을 이름으로 바인딩하고, 필수 오브젝트가 없으면 생성 대신 오류를 낸다.
+- 2026-06-23: ADR-0019(R3 reactive ViewModel) 위에서 방향을 MVP + Reactive ViewModel로 확정(ADR-0020). 흐름 제어(전투/보상/광고/패배/부활/튜토리얼/네비게이션)를 `RunGameSceneRoot`에서 순수 C# `RunGameFlowController`로 추출했다. SceneRoot는 생성·View 바인딩·event 배선·초기 GoTo만 유지한다. FlowController는 SceneRoot의 destroy 토큰을 주입받아 부활 카운트다운·로비 복귀 비동기 작업을 자동 취소한다. `RunRewardViewModel`의 보상 추첨/적용은 중복 추첨 방지를 위해 의도적으로 유지했다. `dotnet build SlotRogue.slnx`는 경고 0·오류 0으로 PASS. View.Bind 전환과 잔여 event→R3 통일은 다음 단계로 남긴다.
+- 2026-06-23 (3단계): `LeaderboardViewModel`을 `event Action<LeaderboardViewState> Changed` + `State { get; private set; }`에서 `ReactiveProperty`/`ReadOnlyReactiveProperty State`로 전환했다. `LeaderboardView.Bind(vm)`가 `State.Subscribe(Render).AddTo(this)`와 close/refresh 입력(ViewModel command)을 소유한다. `RunGameSceneRoot`·`GameStartSceneRoot`의 `Changed +=/-=` 거울쌍과 초기 `Render(vm.State)` 호출을 제거했고, RunGame에서만 쓰이던 `RunGameFlowController.HandleLeaderboardRefreshRequested`와 GameStart의 `HandleLeaderboardRefreshRequested`(dead)를 삭제했다. launcher의 `OpenRequested`는 씬마다 진입 경로가 달라 SceneRoot가 연결한다. GameStart 로그인 View는 같은 VM 상태를 렌더하므로 SceneRoot가 `State.Subscribe(_loginView.Render).AddTo(this)`로 구독을 소유한다. `dotnet build SlotRogue.slnx` 경고 0·오류 0 PASS. `CombatViewModel`/`BattleView`는 ADR-0019대로 명령형 유지.
+- 2026-06-23 (2단계): State→View 구독을 `RunGameSceneRoot.SubscribeEvents`에서 각 View의 `Bind(viewModel, presenter)`로 이동했다. `StartArtifactSelectionView`/`RunRewardView`/`RunInventoryView`/`RunHUDView`/`RunDefeatView`가 `viewModel.State.Subscribe(Render).AddTo(this)`로 자기 ViewModel을 직접 구독하고, View 입력 event를 presenter(`RunGameFlowController`) 또는 ViewModel command로 연결한다. Start/Reward는 `RelicIconRenderer`를 주입받아 구독 콜백에서 아이콘까지 렌더한다. SceneRoot는 `BindViews`에서 `view.Bind(...)`만 호출하고, View-input event의 수동 `-=`/거울쌍을 제거했다(View가 publisher라 파괴 시 자동 해제). VM→presenter intent event, Ads/Leaderboard/BattleSceneCompositionRoot 배선만 SceneRoot에 남는다. `dotnet build SlotRogue.slnx` 경고 0·오류 0 PASS. BattleView·LeaderboardView는 reactive ViewModel이 없어 다음 단계 대상.
 - 2026-06-19: `LeaderboardView`에서 runtime UI 생성 코드를 제거하고 하이어라키에 배치된 `Leaderboard Open Button`, `Leaderboard Panel`, `Close Button`, entry row/detail panel을 바인딩하도록 바꿨다. 리더보드 패널의 profile save/input 흐름은 제거하고 로비 프로필 입력(`20_LogInArea`)만 프로필 저장을 담당한다. 랭킹 metadata는 최고 Wave score, 보유 유물 id, 슬롯 풀 심볼 카운트, profile icon id, message를 저장한다.
 
 ## Completion

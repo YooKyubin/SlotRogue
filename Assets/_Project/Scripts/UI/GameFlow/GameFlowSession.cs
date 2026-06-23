@@ -386,6 +386,8 @@ namespace SlotRogue.UI.GameFlow
                 builder.Append(contribution.BaseAttackPower);
                 builder.Append("  유물 ");
                 builder.Append(contribution.RelicAttackPower);
+                builder.Append("  DEF ");
+                builder.Append(contribution.DefensePower);
                 builder.Append("  합계 ");
                 builder.Append(contribution.TotalAttackPower);
             }

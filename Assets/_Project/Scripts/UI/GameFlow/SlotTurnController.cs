@@ -13,13 +13,13 @@ namespace SlotRogue.UI.GameFlow
 {
     internal sealed class SlotTurnController
     {
-        private readonly SlotMachineViewModel _slotViewModel;
+        private readonly SlotMachineModel _slotViewModel;
         private readonly RunBattleSpinSequence _spinSequence;
         private readonly SlotPresentationManager _presentationManager;
         private readonly Func<string, Sprite> _relicIconResolver;
 
         internal SlotTurnController(
-            SlotMachineViewModel slotViewModel,
+            SlotMachineModel slotViewModel,
             RunBattleSpinSequence spinSequence,
             SlotPresentationManager presentationManager,
             Func<string, Sprite> relicIconResolver = null)
