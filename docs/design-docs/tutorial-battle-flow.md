@@ -1,7 +1,7 @@
 # 튜토리얼 전투 흐름
 
 **Status**: draft  
-**Last updated**: 2026-06-19
+**Last updated**: 2026-06-23
 
 ## Purpose
 
@@ -41,5 +41,5 @@
 
 | ID | 질문 | 비고 |
 |----|------|------|
-| Q1 | 튜토리얼 전용 몬스터 visual asset을 따로 만들지 | 현재는 `BattleSceneCompositionRoot`의 `_devMonsterDefinitionOverride` 비주얼을 2마리에 재사용한다. |
+| Q1 | 튜토리얼 전용 몬스터 visual asset을 따로 만들지 | 현재는 `BattleSceneCompositionRoot._tutorialMonsterDefinition` 비주얼을 2마리에 재사용한다. 일반 전투의 dev override 경로와는 분리되어 있다. |
 | Q2 | 추후 실제 피격 체험을 포함할지 | 현재 상세 흐름은 오른쪽 공격 의도를 확인한 뒤 두 번째 SPIN으로 선처치한다. |

@@ -1,7 +1,7 @@
 # 최초 튜토리얼
 
 **Status**: draft  
-**Last updated**: 2026-06-19
+**Last updated**: 2026-06-23
 
 ## Purpose
 
@@ -38,7 +38,7 @@ GameStart / Start Button
 |------|------|
 | `FirstRunTutorialState` | `PlayerPrefs` 기반 최초 튜토리얼 완료 플래그 저장/조회 |
 | `GameFlowSession` | 현재 런이 튜토리얼인지 보관하고 시작 유물 스킵 여부 제공 |
-| `BattleSceneCompositionRoot` | 튜토리얼 전투용 몬스터 HP override와 전투 신호 전달 |
+| `BattleSceneCompositionRoot` | 튜토리얼 전용 몬스터 정의 참조, 튜토리얼 HP/action plan 주입, 전투 신호 전달 |
 | `BattleFlowController` | 슬롯 연출 완료, 몬스터 턴 종료 같은 전투 단계 신호 발생 |
 | `RunTutorialOverlayView` | 비차단 안내 메시지 렌더링 |
 
@@ -59,7 +59,7 @@ GameStart / Start Button
 | ID | 질문 | 비고 |
 |----|------|------|
 | Q1 | 튜토리얼 다시 보기 진입점 | 설정/옵션 화면이 확정되면 `FirstRunTutorialState.ResetForDebug()`와 별도 버튼 연결 후보. |
-| Q2 | 튜토리얼 전용 몬스터 asset | 현재는 씬에 연결된 몬스터 정의를 재사용하고 HP만 override한다. 콘텐츠 확정 후 별도 `MonsterDefinition`을 만들지 결정한다. |
+| Q2 | 튜토리얼 전용 몬스터 asset | 현재는 `BattleSceneCompositionRoot._tutorialMonsterDefinition`에 연결된 `MonsterDefinition`을 튜토리얼 적 2마리의 visual/data source로 사용하고, HP와 action plan은 튜토리얼 코드에서 고정 주입한다. 콘텐츠 확정 후 별도 튜토리얼 전용 asset 제작 여부를 결정한다. |
 | Q3 | 보상 선택까지 튜토리얼에 포함할지 | 첫 범위는 전투 1회로 제한한다. 보상 UI 학습은 후속 온보딩 후보. |
 
 ## Alternatives considered

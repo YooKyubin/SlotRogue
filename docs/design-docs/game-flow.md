@@ -1,7 +1,7 @@
 # 게임 플로우
 
 **Status**: draft  
-**Last updated**: 2026-06-20
+**Last updated**: 2026-06-23
 
 ## Purpose
 
@@ -149,7 +149,7 @@ BATTLE 1 (Normal)
 
 적 HP는 `MonsterDefinition.maxHp`를 원본 base HP로 유지하고, `EncounterBalanceSettings`가 만든 Core `EncounterBalanceConfig`와 `EncounterScaling`으로 런타임 max HP를 계산한다. `EncounterBalanceSettingsDefault`의 초기 값은 battle당 HP 증가, theme section당 HP 증가, Normal/Elite/Boss tier HP 배율을 보관한다. 계산 결과만 `EnemyCombatantFactory`에 전달되며, `MonsterDefinition` asset 자체는 수정하지 않는다.
 
-Dev Monster Override가 설정되어 있으면 `EncounterSelector`와 `EncounterTable` 선택을 건너뛰고 override `MonsterDefinition` 하나로 `EncounterSelection`을 만든다. 이 경우에도 최종 roster 생성은 일반 경로와 동일하게 `RunEncounterRosterBuilder.Build(selection, context, balance)`를 사용한다.
+튜토리얼이 아닌 전투는 항상 `EncounterTable` 선택 경로를 사용한다. `BattleSceneCompositionRoot`는 일반 전투에서 임시 dev 몬스터 override를 허용하지 않으며, 선택 결과는 `RunEncounterRosterBuilder.Build(selection, context, balance)`로만 조립한다.
 
 ## Battle MVP
 
