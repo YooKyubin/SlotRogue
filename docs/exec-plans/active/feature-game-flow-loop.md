@@ -89,6 +89,7 @@
 - 2026-06-18: 유물 설명 심볼 아이콘은 런타임 생성 TMP SpriteAsset 대신 `Symbols-Sheet-TMP` Addressable `TMP_SpriteAsset`을 로드해 사용하도록 변경했다. 설명 태그는 에셋 내부 이름 의존을 피하기 위해 `<sprite index=...>`를 사용한다. `dotnet build SlotRogue.slnx --no-restore` 경고·오류 0개, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0을 확인했다. Unity Play 검증은 보류.
 - 2026-06-18: `Symbols-Sheet-TMP`의 glyph bearing을 baseline 기준으로 보정하고, 유물 설명 심볼 치환 결과를 `아이콘 + 심볼 대표색 이름`으로 변경했다. `dotnet build SlotRogue.slnx --no-restore` 경고·오류 0개, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0을 확인했다. Unity Play 검증은 보류.
 - 2026-06-18: `40_SlotMachineArea`의 `Relic Inventory Origin`을 런타임 버튼으로 연결하고, `RunInventoryViewModel`/`RunInventoryView`로 심볼 풀 현재 개수와 보유 유물 전체를 탭으로 표시한다. `dotnet build SlotRogue.slnx --no-restore` 경고·오류 0개, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0을 확인했다. Unity Play 검증은 보류.
+- 2026-06-23: `BattleSceneCompositionRoot`의 일반 전투용 dev monster override를 제거하고, 튜토리얼은 별도 `_tutorialMonsterDefinition` 참조로 분리했다. 일반 전투는 항상 `EncounterTable` 선택 경로를 사용한다.
 
 ## Completion
 
