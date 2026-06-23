@@ -6,5 +6,6 @@ namespace SlotRogue.Core.Combat
         Burn = 1,
         Freeze = 2,
         Poison = 3,
+        Vulnerable = 4,
     }
 }

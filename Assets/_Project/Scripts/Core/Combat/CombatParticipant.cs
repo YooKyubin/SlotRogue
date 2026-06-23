@@ -101,13 +101,11 @@ namespace SlotRogue.Core.Combat
 
             if (stackMode == StatusStackMode.Stack)
             {
-                instance.StackCount += incoming.StackCount;
-                instance.Magnitude = incoming.Magnitude;
+                instance.StackFrom(incoming);
                 return instance;
             }
 
-            instance.RemainingTurns = incoming.RemainingTurns;
-            instance.Magnitude = incoming.Magnitude;
+            instance.RefreshFrom(incoming);
             return instance;
         }
 

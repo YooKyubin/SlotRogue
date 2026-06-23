@@ -144,9 +144,9 @@ BattleSystem
     -> EffectApplicator
 ```
 
-실제로 호출된 modifier는 행동 실행 상태에 상태 인스턴스 단위로 기록하고, 행동 종료 시 사용된 각 상태 인스턴스의 `IDamageModifierUsageHandler` 컴포넌트에 한 번만 사용 처리를 요청할 수 있다. Modifier 컴포넌트와 사용 처리 컴포넌트는 같은 상태 안에서 분리해 조합할 수 있다. 현재는 취약·약화의 실제 수치 감소를 구현하지 않고 hook만 제공한다.
+실제로 호출된 modifier는 행동 실행 상태에 상태 인스턴스 단위로 기록하고, 행동 종료 시 사용된 각 상태 인스턴스의 `IDamageModifierUsageHandler` 컴포넌트에 한 번만 사용 처리를 요청할 수 있다. Modifier 컴포넌트와 사용 처리 컴포넌트는 같은 상태 안에서 분리해 조합할 수 있다. `Vulnerable`은 이 구조를 사용해 대상의 직접 피해를 `ceil(피해 * 1.2)`로 증가시키고, 행동 종료 시 적용 횟수(`StackCount`)를 1 감소시킨다. 적용 횟수가 0이 되면 기존 `StatusExpired` 이벤트 경로로 제거한다.
 
-상태 인스턴스는 modifier 계산에 영향을 주는 값(`RemainingTurns`, `Magnitude`, `StackCount`)이 바뀔 때 `Revision`을 증가시킨다. 행동 시작 snapshot은 원본 상태 인스턴스와 당시 revision을 함께 캡처한다. 행동 종료 사용 처리 시점에 원본 상태가 참가자에게 그대로 남아 있고 revision도 같을 때만 사용 처리 hook을 호출한다. 행동 중 상태가 갱신, 제거, 교체되면 이전 snapshot의 사용으로 새 상태를 소모하지 않는다.
+상태 인스턴스는 modifier 계산에 영향을 주는 값(`RemainingTurns`, `Magnitude`, `StackCount`)이 바뀌거나 같은 종류의 상태가 다시 적용될 때 `Revision`을 증가시킨다. `Refresh`는 incoming 상태의 지속시간, 수치, 횟수로 교체하고, `Stack`은 기존 횟수에 incoming 횟수를 더한다. 행동 시작 snapshot은 원본 상태 인스턴스와 당시 revision을 함께 캡처한다. 행동 종료 사용 처리 시점에 원본 상태가 참가자에게 그대로 남아 있고 revision도 같을 때만 사용 처리 hook을 호출한다. 행동 중 상태가 갱신, 제거, 교체되면 이전 snapshot의 사용으로 새 상태를 소모하지 않는다.
 
 `DamageOrigin.Status`와 `DamageOrigin.Reflection`은 현재 modifier 호출 대상에서 제외한다. 화상·독 같은 턴 시작 피해는 `StatusEffectContext`가 `EffectApplicator`에 직접 최종 피해를 넘기는 기존 경로를 유지한다. `EffectApplied` 이벤트에는 실제 보정되어 적용된 `CombatEffect`를 기록하고, `ActionCompleted`는 원본 행동 정보를 유지한다.
 

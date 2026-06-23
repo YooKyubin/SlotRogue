@@ -36,6 +36,16 @@ namespace SlotRogue.Core.Combat
                         new StackLimitComponent(5),
                         new PeriodicDamageComponent(StatusDamageMode.StackCount),
                     }),
+                StatusEffectKind.Vulnerable => new StatusEffectInstance(
+                    spec.Kind,
+                    remainingTurns: 0,
+                    magnitude: 0,
+                    stackCount: spec.Magnitude > 0 ? spec.Magnitude : 1,
+                    new IStatusEffectComponent[]
+                    {
+                        new VulnerableDamageModifier(),
+                        new VulnerableUsageHandler(),
+                    }),
                 _ => null,
             };
         }

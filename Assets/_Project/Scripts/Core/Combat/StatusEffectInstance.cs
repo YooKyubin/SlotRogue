@@ -72,5 +72,25 @@ namespace SlotRogue.Core.Combat
         internal int Revision { get; private set; }
 
         internal IReadOnlyList<IStatusEffectComponent> Components { get; }
+
+        internal void RefreshFrom(StatusEffectInstance incoming)
+        {
+            _remainingTurns = incoming.RemainingTurns;
+            _magnitude = incoming.Magnitude;
+            _stackCount = incoming.StackCount;
+            MarkReapplied();
+        }
+
+        internal void StackFrom(StatusEffectInstance incoming)
+        {
+            _stackCount += incoming.StackCount;
+            _magnitude = incoming.Magnitude;
+            MarkReapplied();
+        }
+
+        private void MarkReapplied()
+        {
+            Revision++;
+        }
     }
 }
