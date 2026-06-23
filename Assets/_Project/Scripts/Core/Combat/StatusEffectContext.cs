@@ -31,7 +31,7 @@ namespace SlotRogue.Core.Combat
         {
             CombatParticipantSnapshot before = new(Participant.CurrentHp, Participant.Shield);
             EffectApplyResult result = _effectApplicator.ApplyToParticipant(
-                new CombatEffect(CombatEffectKind.Damage, amount, CombatEffectTarget.Self),
+                new CombatEffect(CombatEffectKind.Damage, amount, CombatEffectTarget.Self, DamageOrigin.Status),
                 Participant);
             CombatParticipantSnapshot after = new(Participant.CurrentHp, Participant.Shield);
 

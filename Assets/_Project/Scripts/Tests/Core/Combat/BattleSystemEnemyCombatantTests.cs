@@ -351,5 +351,655 @@ namespace SlotRogue.Core.Tests.Combat
                 e.Effect.Kind == CombatEffectKind.ApplyStatus &&
                 e.TargetParticipantId.Value == enemy.Id.Value), Is.True);
         }
+
+        [Test]
+        public void ResolvePlayerEffects_DirectDamage_AppliesOutgoingBeforeIncomingModifiers()
+        {
+            var effectApplicator = new EffectApplicator();
+            var statusEffectEngine = new StatusEffectEngine(effectApplicator);
+            var resolver = new CombatActionResolver(effectApplicator, statusEffectEngine);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer();
+            CombatParticipant enemy = CombatParticipantFactory.CreateEnemy(maxHp: 20);
+            var events = new List<CombatEvent>();
+            var participantsById = new Dictionary<int, CombatParticipant>
+            {
+                [player.Id.Value] = player,
+                [enemy.Id.Value] = enemy,
+            };
+            var outgoingModifier = new AddOutgoingDamageComponent(2);
+            var incomingModifier = new MultiplyIncomingDamageComponent(2);
+            ApplyStatusWithComponents(player, outgoingModifier);
+            ApplyStatusWithComponents(enemy, incomingModifier);
+
+            resolver.ResolvePlayerEffects(
+                new[]
+                {
+                    new CombatEffect(
+                        CombatEffectKind.Damage,
+                        3,
+                        CombatEffectTarget.SelectedEnemy(enemy.Id)),
+                },
+                player,
+                player,
+                new[] { enemy },
+                participantsById,
+                selectedTargetId: enemy.Id,
+                BattlePhase.Resolving,
+                events,
+                shouldEndBattle: () => false);
+
+            Assert.That(enemy.CurrentHp, Is.EqualTo(10));
+            Assert.That(events.Any(e =>
+                e.Kind == CombatEventKind.EffectApplied &&
+                e.Effect.Kind == CombatEffectKind.Damage &&
+                e.Effect.Amount == 10 &&
+                e.Effect.DamageOrigin == DamageOrigin.DirectAction &&
+                e.ApplyResult.DamageDealt == 10), Is.True);
+            Assert.That(events.Any(e =>
+                e.Kind == CombatEventKind.ActionCompleted &&
+                e.Effect.Kind == CombatEffectKind.Damage &&
+                e.Effect.Amount == 3), Is.True);
+            Assert.That(outgoingModifier.LastContext.CurrentDamage, Is.EqualTo(3));
+            Assert.That(outgoingModifier.LastContext.SourceParticipantId.Value, Is.EqualTo(player.Id.Value));
+            Assert.That(outgoingModifier.LastContext.TargetParticipantId.Value, Is.EqualTo(enemy.Id.Value));
+            Assert.That(outgoingModifier.LastContext.DamageOrigin, Is.EqualTo(DamageOrigin.DirectAction));
+            Assert.That(incomingModifier.LastContext.CurrentDamage, Is.EqualTo(5));
+            Assert.That(incomingModifier.LastContext.SourceParticipantId.Value, Is.EqualTo(player.Id.Value));
+            Assert.That(incomingModifier.LastContext.TargetParticipantId.Value, Is.EqualTo(enemy.Id.Value));
+            Assert.That(incomingModifier.LastContext.DamageOrigin, Is.EqualTo(DamageOrigin.DirectAction));
+        }
+
+        [Test]
+        public void ResolvePlayerEffects_MultipleDamageEffects_UseSingleActionState()
+        {
+            var effectApplicator = new EffectApplicator();
+            var statusEffectEngine = new StatusEffectEngine(effectApplicator);
+            var resolver = new CombatActionResolver(effectApplicator, statusEffectEngine);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer();
+            CombatParticipant enemy = CombatParticipantFactory.CreateEnemy();
+            var events = new List<CombatEvent>();
+            var participantsById = new Dictionary<int, CombatParticipant>
+            {
+                [player.Id.Value] = player,
+                [enemy.Id.Value] = enemy,
+            };
+            var usage = new CountDamageModifierUsageComponent();
+            ApplyStatusWithComponents(
+                player,
+                StatusEffectKind.Burn,
+                magnitude: 1,
+                new AddSnapshotMagnitudeOutgoingDamageComponent(),
+                usage);
+
+            resolver.ResolvePlayerEffects(
+                new[]
+                {
+                    CombatEffect.ApplyStatus(
+                        new StatusEffectSpec(
+                            StatusEffectKind.Burn,
+                            duration: 1,
+                            magnitude: 10,
+                            StatusStackMode.Refresh),
+                        CombatEffectTarget.Self),
+                    new CombatEffect(
+                        CombatEffectKind.Damage,
+                        2,
+                        CombatEffectTarget.SelectedEnemy(enemy.Id)),
+                    new CombatEffect(
+                        CombatEffectKind.Damage,
+                        2,
+                        CombatEffectTarget.SelectedEnemy(enemy.Id)),
+                },
+                player,
+                player,
+                new[] { enemy },
+                participantsById,
+                selectedTargetId: enemy.Id,
+                BattlePhase.Resolving,
+                events,
+                shouldEndBattle: () => false);
+
+            int[] appliedDamage = events
+                .Where(e => e.Kind == CombatEventKind.EffectApplied && e.Effect.Kind == CombatEffectKind.Damage)
+                .Select(e => e.Effect.Amount)
+                .ToArray();
+
+            Assert.That(appliedDamage, Is.EqualTo(new[] { 3, 3 }));
+            Assert.That(enemy.CurrentHp, Is.EqualTo(14));
+            Assert.That(player.StatusEffects[0].Magnitude, Is.EqualTo(10));
+            Assert.That(usage.ConsumedCount, Is.Zero);
+        }
+
+        [Test]
+        public void ResolveEnemyPlannedActions_MultiHit_UsesActionStartModifierSnapshot()
+        {
+            var effectApplicator = new EffectApplicator();
+            var statusEffectEngine = new StatusEffectEngine(effectApplicator);
+            var resolver = new CombatActionResolver(effectApplicator, statusEffectEngine);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer();
+            CombatParticipant enemy = CombatParticipantFactory.CreateEnemy();
+            var events = new List<CombatEvent>();
+            var participantsById = new Dictionary<int, CombatParticipant>
+            {
+                [player.Id.Value] = player,
+                [enemy.Id.Value] = enemy,
+            };
+            ApplyStatusWithComponents(
+                enemy,
+                StatusEffectKind.Burn,
+                magnitude: 1,
+                new AddSnapshotMagnitudeOutgoingDamageComponent());
+
+            resolver.ResolveEnemyPlannedActions(
+                new[]
+                {
+                    new EnemyPlannedAction(
+                        new EnemyActionKey(1),
+                        "Double Attack",
+                        new[]
+                        {
+                            EnemyActionEffect.FromCombatEffect(
+                                CombatEffect.ApplyStatus(
+                                    new StatusEffectSpec(
+                                        StatusEffectKind.Burn,
+                                        duration: 1,
+                                        magnitude: 10,
+                                        StatusStackMode.Refresh),
+                                    CombatEffectTarget.Self)),
+                            EnemyActionEffect.FromCombatEffect(
+                                new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy)),
+                            EnemyActionEffect.FromCombatEffect(
+                                new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy)),
+                        }),
+                },
+                enemy,
+                player,
+                new[] { enemy },
+                participantsById,
+                selectedTargetId: player.Id,
+                BattlePhase.EnemyTurn,
+                events,
+                shouldEndBattle: () => false);
+
+            int[] appliedDamage = events
+                .Where(e => e.Kind == CombatEventKind.EffectApplied && e.Effect.Kind == CombatEffectKind.Damage)
+                .Select(e => e.Effect.Amount)
+                .ToArray();
+
+            Assert.That(appliedDamage, Is.EqualTo(new[] { 3, 3 }));
+            Assert.That(player.CurrentHp, Is.EqualTo(24));
+            Assert.That(enemy.StatusEffects[0].Magnitude, Is.EqualTo(10));
+        }
+
+        [Test]
+        public void ResolveEnemyPlannedActions_MultiHit_ConsumesUsedModifierOncePerAction()
+        {
+            var effectApplicator = new EffectApplicator();
+            var statusEffectEngine = new StatusEffectEngine(effectApplicator);
+            var resolver = new CombatActionResolver(effectApplicator, statusEffectEngine);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer();
+            CombatParticipant enemy = CombatParticipantFactory.CreateEnemy();
+            var events = new List<CombatEvent>();
+            var participantsById = new Dictionary<int, CombatParticipant>
+            {
+                [player.Id.Value] = player,
+                [enemy.Id.Value] = enemy,
+            };
+            var modifier = new ConsumedOutgoingDamageComponent(1);
+            ApplyStatusWithComponents(enemy, StatusEffectKind.Freeze, modifier);
+
+            resolver.ResolveEnemyPlannedActions(
+                new[]
+                {
+                    new EnemyPlannedAction(
+                        new EnemyActionKey(1),
+                        "Double Attack",
+                        new[]
+                        {
+                            EnemyActionEffect.FromCombatEffect(
+                                new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy)),
+                            EnemyActionEffect.FromCombatEffect(
+                                new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy)),
+                        }),
+                },
+                enemy,
+                player,
+                new[] { enemy },
+                participantsById,
+                selectedTargetId: player.Id,
+                BattlePhase.EnemyTurn,
+                events,
+                shouldEndBattle: () => false);
+
+            Assert.That(modifier.ConsumedCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ResolveEnemyPlannedActions_DifferentActions_UseSeparateActionStates()
+        {
+            var effectApplicator = new EffectApplicator();
+            var statusEffectEngine = new StatusEffectEngine(effectApplicator);
+            var resolver = new CombatActionResolver(effectApplicator, statusEffectEngine);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer();
+            CombatParticipant enemy = CombatParticipantFactory.CreateEnemy();
+            var events = new List<CombatEvent>();
+            var participantsById = new Dictionary<int, CombatParticipant>
+            {
+                [player.Id.Value] = player,
+                [enemy.Id.Value] = enemy,
+            };
+            var usage = new CountDamageModifierUsageComponent();
+            ApplyStatusWithComponents(
+                enemy,
+                StatusEffectKind.Burn,
+                magnitude: 1,
+                new AddSnapshotMagnitudeOutgoingDamageComponent(),
+                usage);
+
+            resolver.ResolveEnemyPlannedActions(
+                new[]
+                {
+                    new EnemyPlannedAction(
+                        new EnemyActionKey(1),
+                        "Attack 1",
+                        new[]
+                        {
+                            EnemyActionEffect.FromCombatEffect(
+                                new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy)),
+                        }),
+                    new EnemyPlannedAction(
+                        new EnemyActionKey(2),
+                        "Attack 2",
+                        new[]
+                        {
+                            EnemyActionEffect.FromCombatEffect(
+                                new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy)),
+                        }),
+                },
+                enemy,
+                player,
+                new[] { enemy },
+                participantsById,
+                selectedTargetId: player.Id,
+                BattlePhase.EnemyTurn,
+                events,
+                shouldEndBattle: () => false);
+
+            int[] appliedDamage = events
+                .Where(e => e.Kind == CombatEventKind.EffectApplied && e.Effect.Kind == CombatEffectKind.Damage)
+                .Select(e => e.Effect.Amount)
+                .ToArray();
+
+            Assert.That(appliedDamage, Is.EqualTo(new[] { 3, 3 }));
+            Assert.That(usage.ConsumedCount, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void ResolvePlayerEffects_DirectDamageFullyBlockedByShield_RecordsModifierUsage()
+        {
+            var effectApplicator = new EffectApplicator();
+            var statusEffectEngine = new StatusEffectEngine(effectApplicator);
+            var resolver = new CombatActionResolver(effectApplicator, statusEffectEngine);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer();
+            CombatParticipant enemy = CombatParticipantFactory.CreateEnemy(shield: 10);
+            var events = new List<CombatEvent>();
+            var participantsById = new Dictionary<int, CombatParticipant>
+            {
+                [player.Id.Value] = player,
+                [enemy.Id.Value] = enemy,
+            };
+            var usage = new CountDamageModifierUsageComponent();
+            ApplyStatusWithComponents(player, new AddOutgoingDamageComponent(1), usage);
+
+            resolver.ResolvePlayerEffects(
+                new[]
+                {
+                    new CombatEffect(
+                        CombatEffectKind.Damage,
+                        2,
+                        CombatEffectTarget.SelectedEnemy(enemy.Id)),
+                },
+                player,
+                player,
+                new[] { enemy },
+                participantsById,
+                selectedTargetId: enemy.Id,
+                BattlePhase.Resolving,
+                events,
+                shouldEndBattle: () => false);
+
+            CombatEvent damageEvent = events.Single(e =>
+                e.Kind == CombatEventKind.EffectApplied &&
+                e.Effect.Kind == CombatEffectKind.Damage);
+            Assert.That(damageEvent.ApplyResult.DamageDealt, Is.Zero);
+            Assert.That(damageEvent.ApplyResult.ShieldConsumed, Is.EqualTo(3));
+            Assert.That(enemy.CurrentHp, Is.EqualTo(20));
+            Assert.That(enemy.Shield, Is.EqualTo(7));
+            Assert.That(usage.ConsumedCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ResolvePlayerEffects_NoValidTarget_DoesNotRecordModifierUsage()
+        {
+            var effectApplicator = new EffectApplicator();
+            var statusEffectEngine = new StatusEffectEngine(effectApplicator);
+            var resolver = new CombatActionResolver(effectApplicator, statusEffectEngine);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer();
+            CombatParticipant defeatedEnemy = CombatParticipantFactory.CreateEnemy(currentHp: 0);
+            var events = new List<CombatEvent>();
+            var participantsById = new Dictionary<int, CombatParticipant>
+            {
+                [player.Id.Value] = player,
+                [defeatedEnemy.Id.Value] = defeatedEnemy,
+            };
+            var usage = new CountDamageModifierUsageComponent();
+            ApplyStatusWithComponents(player, new AddOutgoingDamageComponent(1), usage);
+
+            resolver.ResolvePlayerEffects(
+                new[]
+                {
+                    new CombatEffect(
+                        CombatEffectKind.Damage,
+                        2,
+                        CombatEffectTarget.SelectedEnemy(defeatedEnemy.Id)),
+                },
+                player,
+                player,
+                new[] { defeatedEnemy },
+                participantsById,
+                selectedTargetId: defeatedEnemy.Id,
+                BattlePhase.Resolving,
+                events,
+                shouldEndBattle: () => false);
+
+            Assert.That(events.Any(e =>
+                e.Kind == CombatEventKind.EffectApplied &&
+                e.Effect.Kind == CombatEffectKind.Damage), Is.False);
+            Assert.That(usage.ConsumedCount, Is.Zero);
+        }
+
+        [Test]
+        public void ResolvePlayerEffects_StatusRemovedAndReplacedBeforeActionComplete_DoesNotConsumeOldOrNewStatus()
+        {
+            var effectApplicator = new EffectApplicator();
+            var statusEffectEngine = new StatusEffectEngine(effectApplicator);
+            var resolver = new CombatActionResolver(effectApplicator, statusEffectEngine);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer();
+            CombatParticipant enemy = CombatParticipantFactory.CreateEnemy();
+            var events = new List<CombatEvent>();
+            var participantsById = new Dictionary<int, CombatParticipant>
+            {
+                [player.Id.Value] = player,
+                [enemy.Id.Value] = enemy,
+            };
+            var oldUsage = new CountDamageModifierUsageComponent();
+            StatusEffectInstance oldStatus = ApplyStatusWithComponents(
+                player,
+                StatusEffectKind.Burn,
+                magnitude: 1,
+                new AddSnapshotMagnitudeOutgoingDamageComponent(),
+                oldUsage);
+            var newUsage = new CountDamageModifierUsageComponent();
+            bool replaced = false;
+
+            resolver.ResolvePlayerEffects(
+                new[]
+                {
+                    new CombatEffect(
+                        CombatEffectKind.Damage,
+                        2,
+                        CombatEffectTarget.SelectedEnemy(enemy.Id)),
+                },
+                player,
+                player,
+                new[] { enemy },
+                participantsById,
+                selectedTargetId: enemy.Id,
+                BattlePhase.Resolving,
+                events,
+                shouldEndBattle: () =>
+                {
+                    if (!replaced)
+                    {
+                        player.RemoveStatusEffect(oldStatus);
+                        ApplyStatusWithComponents(
+                            player,
+                            StatusEffectKind.Burn,
+                            magnitude: 5,
+                            new AddSnapshotMagnitudeOutgoingDamageComponent(),
+                            newUsage);
+                        replaced = true;
+                    }
+
+                    return false;
+                });
+
+            CombatEvent damageEvent = events.Single(e =>
+                e.Kind == CombatEventKind.EffectApplied &&
+                e.Effect.Kind == CombatEffectKind.Damage);
+            Assert.That(damageEvent.Effect.Amount, Is.EqualTo(3));
+            Assert.That(enemy.CurrentHp, Is.EqualTo(17));
+            Assert.That(player.StatusEffects, Has.Count.EqualTo(1));
+            Assert.That(player.StatusEffects[0].Magnitude, Is.EqualTo(5));
+            Assert.That(oldUsage.ConsumedCount, Is.Zero);
+            Assert.That(newUsage.ConsumedCount, Is.Zero);
+        }
+
+        [Test]
+        public void ResolvePlayerEffects_BattleEndsMidAction_CompletesUsedModifiersOnce()
+        {
+            var effectApplicator = new EffectApplicator();
+            var statusEffectEngine = new StatusEffectEngine(effectApplicator);
+            var resolver = new CombatActionResolver(effectApplicator, statusEffectEngine);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer();
+            CombatParticipant enemy = CombatParticipantFactory.CreateEnemy(maxHp: 3);
+            var events = new List<CombatEvent>();
+            var participantsById = new Dictionary<int, CombatParticipant>
+            {
+                [player.Id.Value] = player,
+                [enemy.Id.Value] = enemy,
+            };
+            var usage = new CountDamageModifierUsageComponent();
+            ApplyStatusWithComponents(player, new AddOutgoingDamageComponent(1), usage);
+
+            bool ended = resolver.ResolvePlayerEffects(
+                new[]
+                {
+                    new CombatEffect(
+                        CombatEffectKind.Damage,
+                        2,
+                        CombatEffectTarget.SelectedEnemy(enemy.Id)),
+                    new CombatEffect(
+                        CombatEffectKind.Damage,
+                        2,
+                        CombatEffectTarget.SelectedEnemy(enemy.Id)),
+                },
+                player,
+                player,
+                new[] { enemy },
+                participantsById,
+                selectedTargetId: enemy.Id,
+                BattlePhase.Resolving,
+                events,
+                shouldEndBattle: () => enemy.IsDead);
+
+            Assert.That(ended, Is.True);
+            Assert.That(events.Count(e =>
+                e.Kind == CombatEventKind.EffectApplied &&
+                e.Effect.Kind == CombatEffectKind.Damage), Is.EqualTo(1));
+            Assert.That(enemy.IsDead, Is.True);
+            Assert.That(usage.ConsumedCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ResolvePlayerEffects_NonDirectOrigins_ReturnUnchangedDamageAndPreserveOrigin()
+        {
+            var effectApplicator = new EffectApplicator();
+            var statusEffectEngine = new StatusEffectEngine(effectApplicator);
+            var resolver = new CombatActionResolver(effectApplicator, statusEffectEngine);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer();
+            CombatParticipant enemy = CombatParticipantFactory.CreateEnemy();
+            var events = new List<CombatEvent>();
+            var participantsById = new Dictionary<int, CombatParticipant>
+            {
+                [player.Id.Value] = player,
+                [enemy.Id.Value] = enemy,
+            };
+            var usage = new CountDamageModifierUsageComponent();
+            ApplyStatusWithComponents(player, new AddOutgoingDamageComponent(5), usage);
+            ApplyStatusWithComponents(enemy, new MultiplyIncomingDamageComponent(3));
+
+            resolver.ResolvePlayerEffects(
+                new[]
+                {
+                    new CombatEffect(
+                        CombatEffectKind.Damage,
+                        4,
+                        CombatEffectTarget.SelectedEnemy(enemy.Id),
+                        DamageOrigin.Status),
+                    new CombatEffect(
+                        CombatEffectKind.Damage,
+                        4,
+                        CombatEffectTarget.SelectedEnemy(enemy.Id),
+                        DamageOrigin.Reflection),
+                },
+                player,
+                player,
+                new[] { enemy },
+                participantsById,
+                selectedTargetId: enemy.Id,
+                BattlePhase.Resolving,
+                events,
+                shouldEndBattle: () => false);
+
+            CombatEffect[] appliedEffects = events
+                .Where(e => e.Kind == CombatEventKind.EffectApplied && e.Effect.Kind == CombatEffectKind.Damage)
+                .Select(e => e.Effect)
+                .ToArray();
+
+            Assert.That(appliedEffects.Select(e => e.Amount).ToArray(), Is.EqualTo(new[] { 4, 4 }));
+            Assert.That(
+                appliedEffects.Select(e => e.DamageOrigin).ToArray(),
+                Is.EqualTo(new[] { DamageOrigin.Status, DamageOrigin.Reflection }));
+            Assert.That(enemy.CurrentHp, Is.EqualTo(12));
+            Assert.That(usage.ConsumedCount, Is.Zero);
+        }
+
+        private static StatusEffectInstance ApplyStatusWithComponents(
+            CombatParticipant participant,
+            params IStatusEffectComponent[] components)
+        {
+            return ApplyStatusWithComponents(participant, StatusEffectKind.Burn, components);
+        }
+
+        private static StatusEffectInstance ApplyStatusWithComponents(
+            CombatParticipant participant,
+            StatusEffectKind kind,
+            params IStatusEffectComponent[] components)
+        {
+            return participant.ApplyStatusEffect(
+                new StatusEffectInstance(
+                    kind,
+                    remainingTurns: 1,
+                    magnitude: 0,
+                    stackCount: 1,
+                    components),
+                StatusStackMode.Refresh);
+        }
+
+        private static StatusEffectInstance ApplyStatusWithComponents(
+            CombatParticipant participant,
+            StatusEffectKind kind,
+            int magnitude,
+            params IStatusEffectComponent[] components)
+        {
+            return participant.ApplyStatusEffect(
+                new StatusEffectInstance(
+                    kind,
+                    remainingTurns: 1,
+                    magnitude: magnitude,
+                    stackCount: 1,
+                    components),
+                StatusStackMode.Refresh);
+        }
+
+        private sealed class AddOutgoingDamageComponent : StatusEffectComponent, IOutgoingDamageModifier
+        {
+            private readonly int _amount;
+
+            public AddOutgoingDamageComponent(int amount)
+            {
+                _amount = amount;
+            }
+
+            public DamageModifierContext LastContext { get; private set; }
+
+            public int ModifyDamage(int currentDamage, in DamageModifierContext context)
+            {
+                LastContext = context;
+                return currentDamage + _amount;
+            }
+        }
+
+        private sealed class AddSnapshotMagnitudeOutgoingDamageComponent : StatusEffectComponent, IOutgoingDamageModifier
+        {
+            public int ModifyDamage(int currentDamage, in DamageModifierContext context)
+            {
+                return currentDamage + context.StatusSnapshot.Magnitude;
+            }
+        }
+
+        private sealed class ConsumedOutgoingDamageComponent :
+            StatusEffectComponent,
+            IOutgoingDamageModifier,
+            IDamageModifierUsageHandler
+        {
+            private readonly int _amount;
+
+            public ConsumedOutgoingDamageComponent(int amount)
+            {
+                _amount = amount;
+            }
+
+            public int ConsumedCount { get; private set; }
+
+            public int ModifyDamage(int currentDamage, in DamageModifierContext context)
+            {
+                return currentDamage + _amount;
+            }
+
+            public void OnDamageModifierUsed(StatusEffectContext context)
+            {
+                ConsumedCount++;
+            }
+        }
+
+        private sealed class CountDamageModifierUsageComponent : StatusEffectComponent, IDamageModifierUsageHandler
+        {
+            public int ConsumedCount { get; private set; }
+
+            public void OnDamageModifierUsed(StatusEffectContext context)
+            {
+                ConsumedCount++;
+            }
+        }
+
+        private sealed class MultiplyIncomingDamageComponent : StatusEffectComponent, IIncomingDamageModifier
+        {
+            private readonly int _multiplier;
+
+            public MultiplyIncomingDamageComponent(int multiplier)
+            {
+                _multiplier = multiplier;
+            }
+
+            public DamageModifierContext LastContext { get; private set; }
+
+            public int ModifyDamage(int currentDamage, in DamageModifierContext context)
+            {
+                LastContext = context;
+                return currentDamage * _multiplier;
+            }
+        }
     }
 }

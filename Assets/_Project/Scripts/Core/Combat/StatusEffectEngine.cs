@@ -86,6 +86,154 @@ namespace SlotRogue.Core.Combat
             return false;
         }
 
+        internal IReadOnlyList<OutgoingDamageModifierSnapshot> CaptureOutgoingDamageModifiers(
+            CombatParticipant source,
+            BattlePhase phase,
+            List<CombatEvent> events)
+        {
+            if (source == null)
+            {
+                return System.Array.Empty<OutgoingDamageModifierSnapshot>();
+            }
+
+            var modifiers = new List<OutgoingDamageModifierSnapshot>();
+            StatusEffectInstance[] instances = source.GetStatusEffectsSnapshot();
+            for (int index = 0; index < instances.Length; index++)
+            {
+                StatusEffectInstance instance = instances[index];
+                StatusEffectContext context = CreateContext(phase, source, instance, events);
+                for (int componentIndex = 0; componentIndex < instance.Components.Count; componentIndex++)
+                {
+                    if (instance.Components[componentIndex] is IOutgoingDamageModifier modifier)
+                    {
+                        modifiers.Add(new OutgoingDamageModifierSnapshot(
+                            modifier,
+                            CreateSnapshot(instance),
+                            new DamageModifierUsage(context)));
+                    }
+                }
+            }
+
+            return modifiers;
+        }
+
+        internal IReadOnlyList<IncomingDamageModifierSnapshot> CaptureIncomingDamageModifiers(
+            CombatParticipant target,
+            BattlePhase phase,
+            List<CombatEvent> events)
+        {
+            if (target == null)
+            {
+                return System.Array.Empty<IncomingDamageModifierSnapshot>();
+            }
+
+            var modifiers = new List<IncomingDamageModifierSnapshot>();
+            StatusEffectInstance[] instances = target.GetStatusEffectsSnapshot();
+            for (int index = 0; index < instances.Length; index++)
+            {
+                StatusEffectInstance instance = instances[index];
+                StatusEffectContext context = CreateContext(phase, target, instance, events);
+                for (int componentIndex = 0; componentIndex < instance.Components.Count; componentIndex++)
+                {
+                    if (instance.Components[componentIndex] is IIncomingDamageModifier modifier)
+                    {
+                        modifiers.Add(new IncomingDamageModifierSnapshot(
+                            modifier,
+                            CreateSnapshot(instance),
+                            new DamageModifierUsage(context)));
+                    }
+                }
+            }
+
+            return modifiers;
+        }
+
+        internal int ModifyOutgoingDamage(
+            IReadOnlyList<OutgoingDamageModifierSnapshot> modifiers,
+            CombatParticipant target,
+            int damage,
+            DamageOrigin origin,
+            List<DamageModifierUsage> usedModifiers)
+        {
+            if (modifiers == null || damage <= 0 || origin != DamageOrigin.DirectAction)
+            {
+                return ClampDamage(damage);
+            }
+
+            int modifiedDamage = damage;
+            for (int index = 0; index < modifiers.Count; index++)
+            {
+                OutgoingDamageModifierSnapshot snapshot = modifiers[index];
+                var context = new DamageModifierContext(
+                    origin,
+                    snapshot.Usage.ParticipantId,
+                    target.Id,
+                    modifiedDamage,
+                    snapshot.StatusSnapshot);
+                modifiedDamage = ClampDamage(
+                    snapshot.Modifier.ModifyDamage(modifiedDamage, in context));
+                AddUsedModifier(usedModifiers, snapshot.Usage);
+            }
+
+            return modifiedDamage;
+        }
+
+        internal int ModifyIncomingDamage(
+            IReadOnlyList<IncomingDamageModifierSnapshot> modifiers,
+            CombatParticipant source,
+            int damage,
+            DamageOrigin origin,
+            List<DamageModifierUsage> usedModifiers)
+        {
+            if (modifiers == null || damage <= 0 || origin != DamageOrigin.DirectAction)
+            {
+                return ClampDamage(damage);
+            }
+
+            int modifiedDamage = damage;
+            for (int index = 0; index < modifiers.Count; index++)
+            {
+                IncomingDamageModifierSnapshot snapshot = modifiers[index];
+                var context = new DamageModifierContext(
+                    origin,
+                    source.Id,
+                    snapshot.Usage.ParticipantId,
+                    modifiedDamage,
+                    snapshot.StatusSnapshot);
+                modifiedDamage = ClampDamage(
+                    snapshot.Modifier.ModifyDamage(modifiedDamage, in context));
+                AddUsedModifier(usedModifiers, snapshot.Usage);
+            }
+
+            return modifiedDamage;
+        }
+
+        internal void ConsumeUsedDamageModifiers(IReadOnlyList<DamageModifierUsage> usedModifiers)
+        {
+            if (usedModifiers == null)
+            {
+                return;
+            }
+
+            for (int index = 0; index < usedModifiers.Count; index++)
+            {
+                DamageModifierUsage usage = usedModifiers[index];
+                if (!usage.IsCurrent)
+                {
+                    continue;
+                }
+
+                IReadOnlyList<IStatusEffectComponent> components = usage.Context.Instance.Components;
+                for (int componentIndex = 0; componentIndex < components.Count; componentIndex++)
+                {
+                    if (components[componentIndex] is IDamageModifierUsageHandler handler)
+                    {
+                        handler.OnDamageModifierUsed(usage.Context);
+                    }
+                }
+            }
+        }
+
         public void TickTurnEnd(CombatParticipant participant, BattlePhase phase, List<CombatEvent> events)
         {
             if (participant == null)
@@ -149,6 +297,111 @@ namespace SlotRogue.Core.Combat
 
             participant.RemoveStatusEffect(instance);
             context.EmitExpired();
+        }
+
+        private static int ClampDamage(int damage) => damage < 0 ? 0 : damage;
+
+        private static StatusEffectSnapshot CreateSnapshot(StatusEffectInstance instance)
+        {
+            return new StatusEffectSnapshot(
+                instance.Kind,
+                instance.RemainingTurns,
+                instance.Magnitude,
+                instance.StackCount);
+        }
+
+        private static void AddUsedModifier(List<DamageModifierUsage> usedModifiers, DamageModifierUsage usage)
+        {
+            if (usedModifiers == null)
+            {
+                return;
+            }
+
+            for (int index = 0; index < usedModifiers.Count; index++)
+            {
+                if (ReferenceEquals(usedModifiers[index].Context.Instance, usage.Context.Instance))
+                {
+                    return;
+                }
+            }
+
+            usedModifiers.Add(usage);
+        }
+
+        internal readonly struct OutgoingDamageModifierSnapshot
+        {
+            internal OutgoingDamageModifierSnapshot(
+                IOutgoingDamageModifier modifier,
+                StatusEffectSnapshot statusSnapshot,
+                DamageModifierUsage usage)
+            {
+                Modifier = modifier;
+                StatusSnapshot = statusSnapshot;
+                Usage = usage;
+            }
+
+            internal IOutgoingDamageModifier Modifier { get; }
+
+            internal StatusEffectSnapshot StatusSnapshot { get; }
+
+            internal DamageModifierUsage Usage { get; }
+        }
+
+        internal readonly struct IncomingDamageModifierSnapshot
+        {
+            internal IncomingDamageModifierSnapshot(
+                IIncomingDamageModifier modifier,
+                StatusEffectSnapshot statusSnapshot,
+                DamageModifierUsage usage)
+            {
+                Modifier = modifier;
+                StatusSnapshot = statusSnapshot;
+                Usage = usage;
+            }
+
+            internal IIncomingDamageModifier Modifier { get; }
+
+            internal StatusEffectSnapshot StatusSnapshot { get; }
+
+            internal DamageModifierUsage Usage { get; }
+        }
+
+        internal readonly struct DamageModifierUsage
+        {
+            internal DamageModifierUsage(StatusEffectContext context)
+            {
+                Context = context;
+                ParticipantId = context.Participant.Id;
+                Revision = context.Instance.Revision;
+            }
+
+            internal StatusEffectContext Context { get; }
+
+            internal CombatParticipantId ParticipantId { get; }
+
+            internal int Revision { get; }
+
+            internal bool IsCurrent
+            {
+                get
+                {
+                    if (Context.Instance.Revision != Revision)
+                    {
+                        return false;
+                    }
+
+                    StatusEffectInstance[] instances = Context.Participant.GetStatusEffectsSnapshot();
+                    for (int index = 0; index < instances.Length; index++)
+                    {
+                        if (ReferenceEquals(instances[index], Context.Instance))
+                        {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                }
+            }
         }
     }
 }

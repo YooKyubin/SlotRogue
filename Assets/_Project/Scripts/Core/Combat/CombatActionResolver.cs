@@ -28,6 +28,8 @@ namespace SlotRogue.Core.Combat
             Func<bool> shouldEndBattle)
         {
             effects ??= Array.Empty<CombatEffect>();
+            ActionExecutionState actionState = CreateActionState(source, player, enemies, phase, events);
+            bool shouldStopAndEndBattle = false;
 
             for (int index = 0; index < effects.Count; index++)
             {
@@ -42,12 +44,18 @@ namespace SlotRogue.Core.Combat
 
                 for (int targetIndex = 0; targetIndex < targets.Count; targetIndex++)
                 {
-                    ApplyEffectAndRecordEvent(effect, source, targets[targetIndex], phase, events);
+                    ApplyEffectAndRecordEvent(effect, source, targets[targetIndex], phase, events, actionState);
 
                     if (shouldEndBattle())
                     {
-                        return true;
+                        shouldStopAndEndBattle = true;
+                        break;
                     }
+                }
+
+                if (shouldStopAndEndBattle)
+                {
+                    break;
                 }
 
                 events.Add(new CombatEvent(
@@ -57,7 +65,8 @@ namespace SlotRogue.Core.Combat
                     sourceParticipantId: source.Id));
             }
 
-            return false;
+            actionState.Complete();
+            return shouldStopAndEndBattle;
         }
 
         public bool ResolveEnemyPlannedActions(
@@ -90,6 +99,7 @@ namespace SlotRogue.Core.Combat
                     sourceParticipantId: source.Id,
                     actionName: action.ActionName));
 
+                ActionExecutionState actionState = CreateActionState(source, player, enemies, phase, events);
                 CombatEffect completedEffect = default;
                 bool shouldCompleteAndEndBattle = false;
                 IReadOnlyList<EnemyActionEffect> actionEffects = action.Effects;
@@ -113,7 +123,7 @@ namespace SlotRogue.Core.Combat
 
                     for (int targetIndex = 0; targetIndex < targets.Count; targetIndex++)
                     {
-                        ApplyEffectAndRecordEvent(effect, source, targets[targetIndex], phase, events);
+                        ApplyEffectAndRecordEvent(effect, source, targets[targetIndex], phase, events, actionState);
 
                         if (shouldEndBattle())
                         {
@@ -128,6 +138,7 @@ namespace SlotRogue.Core.Combat
                     }
                 }
 
+                actionState.Complete();
                 events.Add(new CombatEvent(
                     CombatEventKind.ActionCompleted,
                     phase,
@@ -149,16 +160,23 @@ namespace SlotRogue.Core.Combat
             CombatParticipant source,
             CombatParticipant target,
             BattlePhase phase,
-            List<CombatEvent> events)
+            List<CombatEvent> events,
+            ActionExecutionState actionState)
         {
             CombatParticipantSnapshot targetBefore = target.CaptureSnapshot();
-            EffectApplyResult applyResult = ApplyEffectToTarget(effect, target, phase, events);
+            EffectApplyResult applyResult = ApplyEffectToTarget(
+                effect,
+                target,
+                phase,
+                events,
+                actionState,
+                out CombatEffect appliedEffect);
             CombatParticipantSnapshot targetAfter = target.CaptureSnapshot();
 
             events.Add(new CombatEvent(
                 CombatEventKind.EffectApplied,
                 phase,
-                effect,
+                appliedEffect,
                 applyResult,
                 isPlayerParticipant: target.Team == CombatTeam.Player,
                 targetParticipantId: target.Id,
@@ -171,15 +189,34 @@ namespace SlotRogue.Core.Combat
             CombatEffect effect,
             CombatParticipant target,
             BattlePhase phase,
-            List<CombatEvent> events)
+            List<CombatEvent> events,
+            ActionExecutionState actionState,
+            out CombatEffect appliedEffect)
         {
+            appliedEffect = effect;
+
             if (effect.Kind == CombatEffectKind.ApplyStatus)
             {
                 _statusEffectEngine.ApplyStatus(effect.StatusEffect, target, phase, events);
                 return EffectApplyResult.None;
             }
 
-            return _effectApplicator.ApplyToParticipant(effect, target);
+            if (effect.Kind == CombatEffectKind.Damage)
+            {
+                appliedEffect = actionState.ApplyDamageModifiers(effect, target);
+            }
+
+            return _effectApplicator.ApplyToParticipant(appliedEffect, target);
+        }
+
+        private ActionExecutionState CreateActionState(
+            CombatParticipant source,
+            CombatParticipant player,
+            IReadOnlyList<CombatParticipant> enemies,
+            BattlePhase phase,
+            List<CombatEvent> events)
+        {
+            return new ActionExecutionState(_statusEffectEngine, source, player, enemies, phase, events);
         }
 
         private static IReadOnlyList<CombatParticipant> ResolveTargets(
@@ -247,6 +284,96 @@ namespace SlotRogue.Core.Combat
             }
 
             return aliveEnemies;
+        }
+
+        private sealed class ActionExecutionState
+        {
+            private readonly StatusEffectEngine _statusEffectEngine;
+            private readonly CombatParticipant _source;
+            private readonly IReadOnlyList<StatusEffectEngine.OutgoingDamageModifierSnapshot> _outgoingDamageModifiers;
+            private readonly Dictionary<int, IReadOnlyList<StatusEffectEngine.IncomingDamageModifierSnapshot>> _incomingDamageModifiersByParticipantId = new();
+            private readonly List<StatusEffectEngine.DamageModifierUsage> _usedDamageModifiers = new();
+            private bool _isCompleted;
+
+            internal ActionExecutionState(
+                StatusEffectEngine statusEffectEngine,
+                CombatParticipant source,
+                CombatParticipant player,
+                IReadOnlyList<CombatParticipant> enemies,
+                BattlePhase phase,
+                List<CombatEvent> events)
+            {
+                _statusEffectEngine = statusEffectEngine;
+                _source = source;
+                _outgoingDamageModifiers = statusEffectEngine.CaptureOutgoingDamageModifiers(source, phase, events);
+                CaptureIncomingDamageModifiers(player, phase, events);
+
+                for (int index = 0; index < enemies.Count; index++)
+                {
+                    CaptureIncomingDamageModifiers(enemies[index], phase, events);
+                }
+            }
+
+            internal CombatEffect ApplyDamageModifiers(CombatEffect effect, CombatParticipant target)
+            {
+                if (effect.DamageOrigin != DamageOrigin.DirectAction)
+                {
+                    return effect;
+                }
+
+                int modifiedDamage = _statusEffectEngine.ModifyOutgoingDamage(
+                    _outgoingDamageModifiers,
+                    target,
+                    effect.Amount,
+                    effect.DamageOrigin,
+                    _usedDamageModifiers);
+
+                IReadOnlyList<StatusEffectEngine.IncomingDamageModifierSnapshot> incomingModifiers =
+                    _incomingDamageModifiersByParticipantId.TryGetValue(
+                        target.Id.Value,
+                        out IReadOnlyList<StatusEffectEngine.IncomingDamageModifierSnapshot> modifiers)
+                        ? modifiers
+                        : Array.Empty<StatusEffectEngine.IncomingDamageModifierSnapshot>();
+
+                modifiedDamage = _statusEffectEngine.ModifyIncomingDamage(
+                    incomingModifiers,
+                    _source,
+                    modifiedDamage,
+                    effect.DamageOrigin,
+                    _usedDamageModifiers);
+
+                return new CombatEffect(
+                    effect.Kind,
+                    modifiedDamage,
+                    effect.Target,
+                    effect.StatusEffect,
+                    effect.DamageOrigin);
+            }
+
+            internal void Complete()
+            {
+                if (_isCompleted)
+                {
+                    return;
+                }
+
+                _statusEffectEngine.ConsumeUsedDamageModifiers(_usedDamageModifiers);
+                _isCompleted = true;
+            }
+
+            private void CaptureIncomingDamageModifiers(
+                CombatParticipant participant,
+                BattlePhase phase,
+                List<CombatEvent> events)
+            {
+                if (participant == null)
+                {
+                    return;
+                }
+
+                _incomingDamageModifiersByParticipantId[participant.Id.Value] =
+                    _statusEffectEngine.CaptureIncomingDamageModifiers(participant, phase, events);
+            }
         }
 
     }
