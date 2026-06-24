@@ -56,7 +56,7 @@
 - [x] Core/Combat: `Lifesteal`을 실제 HP 피해 20% 올림 회복 + 실제 발동 행동당 1회 감소로 구현 — Codex
 - [x] Core/Combat: 직접 공격 피격 후 반응 훅과 테스트 가능한 전투 RNG 추가 — Codex
 - [x] Core/Combat: `Thorns`를 타격별 50% 고정 반사 피해로 구현 — Codex
-- [x] Core/Combat: 팀 턴 종료 알림으로 상대 팀 가시 제거 — Codex
+- [x] Core/Combat: 팀 턴 종료 알림과 `IExpireOnOpponentTeamTurnEnd` 컴포넌트 정책으로 상대 팀 가시 제거 — Codex
 - [x] Core/Combat: 반사 피해가 취약·약화·흡혈·가시를 발동하지 않도록 `Reflection` 경계 적용 — Codex
 - [ ] Core/Combat: 상태 적용/틱/소모/반사/흡혈 회복 이벤트를 UI가 구분 가능하게 보강 — _(전투 담당)_
 - [ ] UI/GameFlow: `StatusEffectRequest`와 `CombatTurnRequestBuilder`를 v6 상태 요청으로 갱신 — _(전투 담당)_
@@ -80,7 +80,7 @@
 - 취약/약화의 핵심 위험은 “유물 발동 건별 소모”다. v6 기준 정산 1회는 플레이어 스핀 1회의 합산 피해, 몬스터 공격 행동 1회다.
 - 현재 `CombatEffect[]`는 개별 효과 순서로 적용되므로, 취약/약화를 단순히 `Damage` effect마다 소모하면 기획과 달라질 수 있다. 정산 묶음 또는 action 단위 context가 필요하다.
 - 감염은 총 스택 상한이 없다. 기존 `StackLimitComponent(5)`를 그대로 재사용하면 안 된다.
-- 가시는 자신의 팀 턴 종료에 제거하지 않는다. `BattleSystem`이 팀 턴 종료 시 상대 팀 참가자의 가시를 제거하고 기존 `StatusExpired` 이벤트를 발생시킨다.
+- 가시는 자신의 팀 턴 종료에 제거하지 않는다. `BattleSystem`은 종료된 팀만 `StatusEffectEngine`에 알리고, 엔진이 상대 팀 참가자의 `IExpireOnOpponentTeamTurnEnd` 상태를 기존 `StatusExpired` 이벤트 경로로 제거한다.
 - 흡혈은 요청 피해량이나 `EffectApplyResult.DamageDealt`가 아니라 타격 전후 HP Snapshot 차이로 계산한 실제 HP 피해량 기준이다. shield로 막힌 피해와 overkill 초과량은 회복량에 포함하지 않는다.
 - 흡혈 회복은 피해 `EffectApplied` 직후 같은 타격 안에서 기존 Heal `EffectApplied`로 기록한다. 최대 HP여도 실제 HP 피해를 줬다면 발동 및 행동당 횟수 소모로 본다.
 - 반사 피해는 `DamageOrigin.Reflection`으로 직접 적용해 가시·흡혈·취약·약화 경로를 모두 우회한다.

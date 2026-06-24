@@ -1,7 +1,7 @@
 # 전투 코어 (Combat Core)
 
 **Status**: draft  
-**Last updated**: 2026-06-24 (직접 피해 상태 개입 지점 반영)
+**Last updated**: 2026-06-25 (팀 턴 종료 상태 만료 책임 반영)
 
 ## Purpose
 
@@ -118,7 +118,7 @@ sequenceDiagram
 
 ### Action execution boundary
 
-`BattleSystem`은 전투 시작/종료, 페이즈 전환, 플레이어 턴과 몬스터 턴 진행, 상태 효과 턴 시작·종료 처리, 사망 및 승패 판정을 담당한다. 행동을 언제 실행할지만 결정하고, 행동 내부 효과 순서나 대상별 적용은 직접 처리하지 않는다.
+`BattleSystem`은 전투 시작/종료, 페이즈 전환, 플레이어 턴과 몬스터 턴 진행, 상태 효과 턴 시작·종료 알림, 사망 및 승패 판정을 담당한다. 행동을 언제 실행할지만 결정하고, 행동 내부 효과 순서나 대상별 적용은 직접 처리하지 않는다. 팀 턴 종료 시에는 종료된 팀과 각 참가자를 `StatusEffectEngine`에 전달하며, 어떤 상태가 반응하거나 만료되는지는 직접 판단하지 않는다.
 
 `CombatActionResolver`는 기존 입력 형태를 유지한 채 행동 하나의 실행 과정을 처리한다. 플레이어는 기존 `CombatEffect` 목록으로, 몬스터는 기존 `EnemyPlannedAction` 목록으로 들어오며, resolver는 효과 순서, 대상 해석, 대상별 순차 적용, `ActionStarted` / `EffectApplied` / `ActionCompleted` 이벤트 생성을 담당한다. 플레이어와 몬스터 입력을 새 공통 `CombatAction` 타입으로 억지 통합하지 않는다.
 
@@ -153,6 +153,8 @@ BattleSystem
 `DamageOrigin.Status`와 `DamageOrigin.Reflection`은 현재 modifier 호출 대상에서 제외한다. 화상·독 같은 턴 시작 피해는 `StatusEffectContext`가 `EffectApplicator`에 직접 최종 피해를 넘기는 기존 경로를 유지한다. `EffectApplied` 이벤트에는 실제 보정되어 적용된 `CombatEffect`를 기록하고, `ActionCompleted`는 원본 행동 정보를 유지한다.
 
 `DamageModifierContext`는 피해 계산에 필요한 원인, 공격자 ID, 대상 ID, 현재 피해량, 캡처된 상태 snapshot만 가진다. 추가 피해, 회복, 방어막, 상태 부여/제거, 이벤트 발생 같은 전투 상태 변경 기능은 modifier 호출 경로에 노출하지 않는다. 실제 상태 생명주기와 이벤트 처리는 계속 `StatusEffectContext`의 책임이다.
+
+상대 팀 턴 종료 시 만료되는 상태는 `IExpireOnOpponentTeamTurnEnd` 컴포넌트를 조합한다. `StatusEffectEngine`은 종료된 팀의 반대편 참가자만 검사하고 해당 컴포넌트가 있는 상태를 기존 `OnExpired` → 상태 제거 → `StatusExpired` 이벤트 순서로 만료한다. 현재 `Thorns`가 이 정책을 사용한다.
 
 ### Participant
 

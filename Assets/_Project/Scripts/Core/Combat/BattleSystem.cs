@@ -159,7 +159,7 @@ namespace SlotRogue.Core.Combat
                 return AcceptedResult();
             }
 
-            ExpireThornsByTeam(CombatTeam.Enemy);
+            NotifyTeamTurnEnded(CombatTeam.Player);
 
             if (RunBattleStep(() => ResetShieldByTeam(CombatTeam.Enemy)))
             {
@@ -204,7 +204,7 @@ namespace SlotRogue.Core.Combat
                 }
             }
 
-            ExpireThornsByTeam(CombatTeam.Player);
+            NotifyTeamTurnEnded(CombatTeam.Enemy);
 
             if (RunBattleStep(() => ResetShieldByTeam(CombatTeam.Player)))
             {
@@ -290,6 +290,24 @@ namespace SlotRogue.Core.Combat
             _statusEffectEngine.TickTurnEnd(participant, CurrentPhase, _events);
         }
 
+        private void NotifyTeamTurnEnded(CombatTeam endedTeam)
+        {
+            _statusEffectEngine.NotifyTeamTurnEnded(
+                endedTeam,
+                _player,
+                CurrentPhase,
+                _events);
+
+            for (int index = 0; index < _enemies.Count; index++)
+            {
+                _statusEffectEngine.NotifyTeamTurnEnded(
+                    endedTeam,
+                    _enemies[index],
+                    CurrentPhase,
+                    _events);
+            }
+        }
+
         private bool TryEndBattle()
         {
             if (IsPlayerTeamDefeated())
@@ -335,28 +353,6 @@ namespace SlotRogue.Core.Combat
                 }
 
                 ResetShield(_enemies[index]);
-            }
-        }
-
-        private void ExpireThornsByTeam(CombatTeam team)
-        {
-            if (team == CombatTeam.Player)
-            {
-                _statusEffectEngine.ExpireStatusByKind(
-                    _player,
-                    StatusEffectKind.Thorns,
-                    CurrentPhase,
-                    _events);
-                return;
-            }
-
-            for (int index = 0; index < _enemies.Count; index++)
-            {
-                _statusEffectEngine.ExpireStatusByKind(
-                    _enemies[index],
-                    StatusEffectKind.Thorns,
-                    CurrentPhase,
-                    _events);
             }
         }
 

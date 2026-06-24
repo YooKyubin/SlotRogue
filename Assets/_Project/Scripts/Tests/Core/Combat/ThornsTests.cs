@@ -286,18 +286,20 @@ namespace SlotRogue.Core.Tests.Combat
         }
 
         [Test]
-        public void ApplyPlayerTurn_EnemyThornsExpiresAtPlayerTeamTurnEnd()
+        public void ApplyPlayerTurn_EnemyThornsExpiresWithoutExpiringOtherStatuses()
         {
             var random = new SequenceCombatRandom(false);
             var battle = new BattleSystem(new EffectApplicator(), random);
             CombatParticipant player = Participant(1, CombatTeam.Player, maxHp: 30);
             CombatParticipant enemy = Participant(100, CombatTeam.Enemy, maxHp: 30);
             ApplyThorns(enemy, magnitude: 4);
+            ApplyStatus(enemy, StatusEffectKind.Weaken, magnitude: 2);
             battle.StartBattle(player, new[] { Combatant(enemy, damage: 0) });
 
             battle.ApplyPlayerTurn(Array.Empty<CombatEffect>());
 
             Assert.That(enemy.TryGetStatusEffect(StatusEffectKind.Thorns, out _), Is.False);
+            Assert.That(enemy.TryGetStatusEffect(StatusEffectKind.Weaken, out _), Is.True);
             Assert.That(battle.Events, Has.Some.Matches<CombatEvent>(e =>
                 e.Kind == CombatEventKind.StatusExpired &&
                 e.TargetParticipantId.Value == enemy.Id.Value &&

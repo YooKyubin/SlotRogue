@@ -1,6 +1,6 @@
 namespace SlotRogue.Core.Combat
 {
-    public sealed class ThornsComponent : StatusEffectComponent, IAfterDirectDamageReceived
+    public sealed class ThornsComponent : StatusEffectComponent, IAfterDirectDamageReceived, IExpireOnOpponentTeamTurnEnd
     {
         private const int TriggerPercent = 50;
 

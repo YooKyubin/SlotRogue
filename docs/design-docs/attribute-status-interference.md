@@ -1,7 +1,7 @@
 # 속성 / 방해 전투 설계
 
 **Status**: draft
-**Last updated**: 2026-06-24
+**Last updated**: 2026-06-25
 
 ## Purpose
 
@@ -88,6 +88,7 @@
 - 취약/약화는 피해 개별 유물 발동이 아니라 정산 단위에 적용되어야 한다. 약화는 공격자의 outgoing modifier로 먼저 적용하고 취약은 대상의 incoming modifier로 이어서 적용한다.
 - 흡혈은 타격 전후 HP Snapshot 차이로 계산한 실제 HP 피해량을 기준으로 회복한다. `EffectApplyResult.DamageDealt`의 기존 의미는 변경하지 않는다.
 - 가시는 직접 공격 타격 후 흡혈 처리가 끝난 다음 50% 확률로 공격자에게 고정 반사 피해를 준다. 반사 피해는 `DamageOrigin.Reflection`으로 구분해 Modifier와 후속 반응을 적용하지 않는다.
+- `BattleSystem`은 팀 턴 종료 사실만 전달한다. `StatusEffectEngine`은 상대 팀 참가자의 `IExpireOnOpponentTeamTurnEnd` 컴포넌트를 찾아 기존 만료 경로로 제거하며, `BattleSystem`은 `Thorns` 종류를 직접 참조하지 않는다.
 
 ### 유물 실행
 

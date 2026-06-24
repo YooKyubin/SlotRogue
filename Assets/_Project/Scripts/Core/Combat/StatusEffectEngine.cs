@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace SlotRogue.Core.Combat
@@ -386,22 +387,27 @@ namespace SlotRogue.Core.Combat
             }
         }
 
-        public void ExpireStatusByKind(
+        internal void NotifyTeamTurnEnded(
+            CombatTeam endedTeam,
             CombatParticipant participant,
-            StatusEffectKind kind,
             BattlePhase phase,
             List<CombatEvent> events)
         {
-            if (participant == null)
+            if (endedTeam == CombatTeam.None)
+            {
+                throw new ArgumentOutOfRangeException(nameof(endedTeam));
+            }
+
+            if (participant.Team == endedTeam)
             {
                 return;
             }
 
             StatusEffectInstance[] instances = participant.GetStatusEffectsSnapshot();
-            for (int index = 0; index < instances.Length; index++)
+            for (int instanceIndex = 0; instanceIndex < instances.Length; instanceIndex++)
             {
-                StatusEffectInstance instance = instances[index];
-                if (instance.Kind != kind)
+                StatusEffectInstance instance = instances[instanceIndex];
+                if (!HasOpponentTeamTurnEndExpiration(instance))
                 {
                     continue;
                 }
@@ -457,6 +463,19 @@ namespace SlotRogue.Core.Combat
             for (int index = 0; index < instance.Components.Count; index++)
             {
                 if (instance.Components[index] is DurationComponent)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool HasOpponentTeamTurnEndExpiration(StatusEffectInstance instance)
+        {
+            for (int index = 0; index < instance.Components.Count; index++)
+            {
+                if (instance.Components[index] is IExpireOnOpponentTeamTurnEnd)
                 {
                     return true;
                 }
