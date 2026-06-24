@@ -2,6 +2,9 @@ namespace SlotRogue.Core.Combat
 {
     public sealed class VulnerableDamageModifier : StatusEffectComponent, IIncomingDamageModifier
     {
+        private const int DamageIncreasePercent = 20;
+        private const int PercentScale = 100;
+
         public int ModifyDamage(int currentDamage, in DamageModifierContext context)
         {
             if (currentDamage <= 0)
@@ -9,7 +12,8 @@ namespace SlotRogue.Core.Combat
                 return 0;
             }
 
-            return (currentDamage * 6 + 4) / 5;
+            int multiplierPercent = PercentScale + DamageIncreasePercent;
+            return (currentDamage * multiplierPercent + PercentScale - 1) / PercentScale;
         }
     }
 }
