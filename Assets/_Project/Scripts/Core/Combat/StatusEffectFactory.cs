@@ -66,6 +66,15 @@ namespace SlotRogue.Core.Combat
                         new LifestealComponent(),
                         new LifestealUsageHandler(),
                     }),
+                StatusEffectKind.Thorns => new StatusEffectInstance(
+                    spec.Kind,
+                    remainingTurns: 0,
+                    magnitude: spec.Magnitude,
+                    stackCount: 1,
+                    new IStatusEffectComponent[]
+                    {
+                        new ThornsComponent(),
+                    }),
                 _ => null,
             };
         }

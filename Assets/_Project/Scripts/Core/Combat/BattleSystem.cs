@@ -14,15 +14,25 @@ namespace SlotRogue.Core.Combat
         private CombatParticipant _player = null!;
 
         public BattleSystem()
-            : this(new EffectApplicator())
+            : this(new EffectApplicator(), new SystemCombatRandom())
         {
         }
 
         public BattleSystem(EffectApplicator effectApplicator)
+            : this(effectApplicator, new SystemCombatRandom())
+        {
+        }
+
+        public BattleSystem(
+            EffectApplicator effectApplicator,
+            ICombatRandom combatRandom)
         {
             EffectApplicator applicator = effectApplicator ?? new EffectApplicator();
             _statusEffectEngine = new StatusEffectEngine(applicator);
-            _actionResolver = new CombatActionResolver(applicator, _statusEffectEngine);
+            _actionResolver = new CombatActionResolver(
+                applicator,
+                _statusEffectEngine,
+                combatRandom ?? throw new ArgumentNullException(nameof(combatRandom)));
         }
 
         public BattlePhase CurrentPhase { get; private set; } = BattlePhase.NotInBattle;
@@ -149,6 +159,8 @@ namespace SlotRogue.Core.Combat
                 return AcceptedResult();
             }
 
+            ExpireThornsByTeam(CombatTeam.Enemy);
+
             if (RunBattleStep(() => ResetShieldByTeam(CombatTeam.Enemy)))
             {
                 return AcceptedResult();
@@ -191,6 +203,8 @@ namespace SlotRogue.Core.Combat
                     return;
                 }
             }
+
+            ExpireThornsByTeam(CombatTeam.Player);
 
             if (RunBattleStep(() => ResetShieldByTeam(CombatTeam.Player)))
             {
@@ -321,6 +335,28 @@ namespace SlotRogue.Core.Combat
                 }
 
                 ResetShield(_enemies[index]);
+            }
+        }
+
+        private void ExpireThornsByTeam(CombatTeam team)
+        {
+            if (team == CombatTeam.Player)
+            {
+                _statusEffectEngine.ExpireStatusByKind(
+                    _player,
+                    StatusEffectKind.Thorns,
+                    CurrentPhase,
+                    _events);
+                return;
+            }
+
+            for (int index = 0; index < _enemies.Count; index++)
+            {
+                _statusEffectEngine.ExpireStatusByKind(
+                    _enemies[index],
+                    StatusEffectKind.Thorns,
+                    CurrentPhase,
+                    _events);
             }
         }
 

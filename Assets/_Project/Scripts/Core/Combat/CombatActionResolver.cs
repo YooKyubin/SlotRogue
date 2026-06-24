@@ -7,13 +7,23 @@ namespace SlotRogue.Core.Combat
     {
         private readonly EffectApplicator _effectApplicator;
         private readonly StatusEffectEngine _statusEffectEngine;
+        private readonly ICombatRandom _combatRandom;
 
         public CombatActionResolver(
             EffectApplicator effectApplicator,
             StatusEffectEngine statusEffectEngine)
+            : this(effectApplicator, statusEffectEngine, new SystemCombatRandom())
+        {
+        }
+
+        public CombatActionResolver(
+            EffectApplicator effectApplicator,
+            StatusEffectEngine statusEffectEngine,
+            ICombatRandom combatRandom)
         {
             _effectApplicator = effectApplicator ?? throw new ArgumentNullException(nameof(effectApplicator));
             _statusEffectEngine = statusEffectEngine ?? throw new ArgumentNullException(nameof(statusEffectEngine));
+            _combatRandom = combatRandom ?? throw new ArgumentNullException(nameof(combatRandom));
         }
 
         public bool ResolvePlayerEffects(
@@ -191,6 +201,10 @@ namespace SlotRogue.Core.Combat
                     target,
                     healthDamage,
                     appliedEffect.DamageOrigin);
+                actionState.ReactAfterDirectDamageReceived(
+                    target,
+                    applyResult,
+                    appliedEffect.DamageOrigin);
             }
         }
 
@@ -225,7 +239,14 @@ namespace SlotRogue.Core.Combat
             BattlePhase phase,
             List<CombatEvent> events)
         {
-            return new ActionExecutionState(_statusEffectEngine, source, player, enemies, phase, events);
+            return new ActionExecutionState(
+                _statusEffectEngine,
+                _combatRandom,
+                source,
+                player,
+                enemies,
+                phase,
+                events);
         }
 
         private static IReadOnlyList<CombatParticipant> ResolveTargets(
@@ -298,16 +319,19 @@ namespace SlotRogue.Core.Combat
         private sealed class ActionExecutionState
         {
             private readonly StatusEffectEngine _statusEffectEngine;
+            private readonly ICombatRandom _combatRandom;
             private readonly CombatParticipant _source;
             private readonly IReadOnlyList<StatusEffectEngine.OutgoingDamageModifierSnapshot> _outgoingDamageModifiers;
             private readonly IReadOnlyList<StatusEffectEngine.AfterHealthDamageReactionSnapshot> _afterHealthDamageReactions;
             private readonly Dictionary<int, IReadOnlyList<StatusEffectEngine.IncomingDamageModifierSnapshot>> _incomingDamageModifiersByParticipantId = new();
+            private readonly Dictionary<int, IReadOnlyList<StatusEffectEngine.DirectDamageReceivedReactionSnapshot>> _directDamageReceivedReactionsByParticipantId = new();
             private readonly List<StatusEffectEngine.DamageModifierUsage> _usedDamageModifiers = new();
             private readonly List<StatusEffectEngine.AfterHealthDamageUsage> _usedAfterHealthDamageReactions = new();
             private bool _isCompleted;
 
             internal ActionExecutionState(
                 StatusEffectEngine statusEffectEngine,
+                ICombatRandom combatRandom,
                 CombatParticipant source,
                 CombatParticipant player,
                 IReadOnlyList<CombatParticipant> enemies,
@@ -315,14 +339,17 @@ namespace SlotRogue.Core.Combat
                 List<CombatEvent> events)
             {
                 _statusEffectEngine = statusEffectEngine;
+                _combatRandom = combatRandom;
                 _source = source;
                 _outgoingDamageModifiers = statusEffectEngine.CaptureOutgoingDamageModifiers(source, phase, events);
                 _afterHealthDamageReactions = statusEffectEngine.CaptureAfterHealthDamageReactions(source, phase, events);
                 CaptureIncomingDamageModifiers(player, phase, events);
+                CaptureDirectDamageReceivedReactions(player, phase, events);
 
                 for (int index = 0; index < enemies.Count; index++)
                 {
                     CaptureIncomingDamageModifiers(enemies[index], phase, events);
+                    CaptureDirectDamageReceivedReactions(enemies[index], phase, events);
                 }
             }
 
@@ -375,6 +402,27 @@ namespace SlotRogue.Core.Combat
                     _usedAfterHealthDamageReactions);
             }
 
+            internal void ReactAfterDirectDamageReceived(
+                CombatParticipant target,
+                EffectApplyResult applyResult,
+                DamageOrigin damageOrigin)
+            {
+                IReadOnlyList<StatusEffectEngine.DirectDamageReceivedReactionSnapshot> reactions =
+                    _directDamageReceivedReactionsByParticipantId.TryGetValue(
+                        target.Id.Value,
+                        out IReadOnlyList<StatusEffectEngine.DirectDamageReceivedReactionSnapshot> snapshots)
+                        ? snapshots
+                        : Array.Empty<StatusEffectEngine.DirectDamageReceivedReactionSnapshot>();
+
+                _statusEffectEngine.ReactAfterDirectDamageReceived(
+                    reactions,
+                    _source,
+                    target,
+                    applyResult,
+                    damageOrigin,
+                    _combatRandom);
+            }
+
             internal void Complete()
             {
                 if (_isCompleted)
@@ -399,6 +447,23 @@ namespace SlotRogue.Core.Combat
 
                 _incomingDamageModifiersByParticipantId[participant.Id.Value] =
                     _statusEffectEngine.CaptureIncomingDamageModifiers(participant, phase, events);
+            }
+
+            private void CaptureDirectDamageReceivedReactions(
+                CombatParticipant participant,
+                BattlePhase phase,
+                List<CombatEvent> events)
+            {
+                if (participant == null)
+                {
+                    return;
+                }
+
+                _directDamageReceivedReactionsByParticipantId[participant.Id.Value] =
+                    _statusEffectEngine.CaptureDirectDamageReceivedReactions(
+                        participant,
+                        phase,
+                        events);
             }
         }
 

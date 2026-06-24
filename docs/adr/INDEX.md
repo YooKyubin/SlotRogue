@@ -30,6 +30,7 @@
 | [0018](./0018-defeat-result-symbol-pattern-stats.md) | 패배 결과에는 심볼별 족보 통계를 표시한다 | accepted | 2026-06-19 | 0014 일부 |
 | [0019](./0019-r3-reactive-binding-for-menu-ui.md) | 메뉴/상태표시 UI는 R3 ReactiveProperty로 바인딩한다 (전투 연출은 명령형 유지) | accepted | 2026-06-23 | none |
 | [0020](./0020-mvp-reactive-viewmodel-view-bind.md) | UI는 MVP + Reactive ViewModel로 정리하고 View가 자기 ViewModel을 Bind한다 | accepted | 2026-06-23 | 0008 일부, 0019 일부 |
+| [0021](./0021-status-effect-numeric-field-semantics.md) | 상태 효과 수치 필드의 의미를 계층별로 구분한다 | accepted | 2026-06-24 | — |
 
 ---
 

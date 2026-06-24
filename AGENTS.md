@@ -38,6 +38,7 @@
 | 타겟 해상도 / Safe Area 처리 | _미정_ |
 | 브랜치 / PR 워크플로 | _미정 (사용해본 후 박제)_ |
 | 유물 런타임 모델 (v23 RelicCatalog 단일화) | [ADR-0005](docs/adr/0005-relic-v23-runtime-model.md) (accepted) |
+| 상태 효과 수치 필드 (`Amount` / `Magnitude` / `StackCount`) | [ADR-0021](docs/adr/0021-status-effect-numeric-field-semantics.md) (accepted) |
 | 리더보드 프로필 / 자동 제출 / 패배 후 선택 | [ADR-0012](docs/adr/0012-leaderboard-nickname-only-profile.md) (accepted) |
 | 패배 부활 유예 / 결과 통계 | [ADR-0014](docs/adr/0014-defeat-revive-window-and-relic-contribution.md), [ADR-0018](docs/adr/0018-defeat-result-symbol-pattern-stats.md) (accepted) |
 

@@ -9,14 +9,14 @@ namespace SlotRogue.UI.GameFlow
     /// </summary>
     public readonly struct StatusEffectRequest
     {
-        public StatusEffectRequest(StatusEffectKind kind, int stacks)
+        public StatusEffectRequest(StatusEffectKind kind, int amount)
         {
             Kind = kind;
-            Stacks = stacks > 0 ? stacks : 1;
+            Amount = amount > 0 ? amount : 1;
         }
 
         public StatusEffectKind Kind { get; }
 
-        public int Stacks { get; }
+        public int Amount { get; }
     }
 }

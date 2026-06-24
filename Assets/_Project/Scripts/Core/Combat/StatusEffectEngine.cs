@@ -179,6 +179,37 @@ namespace SlotRogue.Core.Combat
             return reactions;
         }
 
+        internal IReadOnlyList<DirectDamageReceivedReactionSnapshot> CaptureDirectDamageReceivedReactions(
+            CombatParticipant target,
+            BattlePhase phase,
+            List<CombatEvent> events)
+        {
+            if (target == null)
+            {
+                return System.Array.Empty<DirectDamageReceivedReactionSnapshot>();
+            }
+
+            var reactions = new List<DirectDamageReceivedReactionSnapshot>();
+            StatusEffectInstance[] instances = target.GetStatusEffectsSnapshot();
+            for (int index = 0; index < instances.Length; index++)
+            {
+                StatusEffectInstance instance = instances[index];
+                for (int componentIndex = 0; componentIndex < instance.Components.Count; componentIndex++)
+                {
+                    if (instance.Components[componentIndex] is IAfterDirectDamageReceived reaction)
+                    {
+                        reactions.Add(new DirectDamageReceivedReactionSnapshot(
+                            reaction,
+                            CreateSnapshot(instance),
+                            phase,
+                            events));
+                    }
+                }
+            }
+
+            return reactions;
+        }
+
         internal int ModifyOutgoingDamage(
             IReadOnlyList<OutgoingDamageModifierSnapshot> modifiers,
             CombatParticipant target,
@@ -322,6 +353,61 @@ namespace SlotRogue.Core.Combat
                         handler.OnAfterHealthDamageUsed(usage.Context);
                     }
                 }
+            }
+        }
+
+        internal void ReactAfterDirectDamageReceived(
+            IReadOnlyList<DirectDamageReceivedReactionSnapshot> reactions,
+            CombatParticipant attacker,
+            CombatParticipant target,
+            EffectApplyResult applyResult,
+            DamageOrigin damageOrigin,
+            ICombatRandom combatRandom)
+        {
+            if (reactions == null || damageOrigin != DamageOrigin.DirectAction)
+            {
+                return;
+            }
+
+            for (int index = 0; index < reactions.Count; index++)
+            {
+                DirectDamageReceivedReactionSnapshot reaction = reactions[index];
+                var context = new AfterDirectDamageReceivedContext(
+                    reaction.Phase,
+                    attacker,
+                    target,
+                    applyResult,
+                    damageOrigin,
+                    reaction.StatusSnapshot,
+                    combatRandom,
+                    _effectApplicator,
+                    reaction.Events);
+                reaction.Reaction.OnAfterDirectDamageReceived(context);
+            }
+        }
+
+        public void ExpireStatusByKind(
+            CombatParticipant participant,
+            StatusEffectKind kind,
+            BattlePhase phase,
+            List<CombatEvent> events)
+        {
+            if (participant == null)
+            {
+                return;
+            }
+
+            StatusEffectInstance[] instances = participant.GetStatusEffectsSnapshot();
+            for (int index = 0; index < instances.Length; index++)
+            {
+                StatusEffectInstance instance = instances[index];
+                if (instance.Kind != kind)
+                {
+                    continue;
+                }
+
+                StatusEffectContext context = CreateContext(phase, participant, instance, events);
+                Expire(participant, instance, context);
             }
         }
 
@@ -494,6 +580,29 @@ namespace SlotRogue.Core.Combat
             internal StatusEffectSnapshot StatusSnapshot { get; }
 
             internal AfterHealthDamageUsage Usage { get; }
+        }
+
+        internal readonly struct DirectDamageReceivedReactionSnapshot
+        {
+            internal DirectDamageReceivedReactionSnapshot(
+                IAfterDirectDamageReceived reaction,
+                StatusEffectSnapshot statusSnapshot,
+                BattlePhase phase,
+                List<CombatEvent> events)
+            {
+                Reaction = reaction;
+                StatusSnapshot = statusSnapshot;
+                Phase = phase;
+                Events = events;
+            }
+
+            internal IAfterDirectDamageReceived Reaction { get; }
+
+            internal StatusEffectSnapshot StatusSnapshot { get; }
+
+            internal BattlePhase Phase { get; }
+
+            internal List<CombatEvent> Events { get; }
         }
 
         internal readonly struct DamageModifierUsage

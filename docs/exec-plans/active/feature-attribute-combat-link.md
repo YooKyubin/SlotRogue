@@ -5,6 +5,7 @@
 **Owner**: _(전투 담당)_  
 **Contributors**: Codex (문서 정리)
 **Related design-docs**: [`attribute-status-interference.md`](../../design-docs/attribute-status-interference.md), [`combat-core.md`](../../design-docs/combat-core.md), [`relic-system.md`](../../design-docs/relic-system.md), [`game-flow.md`](../../design-docs/game-flow.md)
+**Related ADRs**: [`ADR-0021`](../../adr/0021-status-effect-numeric-field-semantics.md)
 
 ## Goal
 
@@ -53,11 +54,10 @@
 - [x] Core/Combat: `Weaken`을 다음 N번 공격/스핀 정산 피해 20% 감소 + 적용 횟수 감소로 구현 — Codex
 - [x] Core/Combat: 실제 HP 피해량 기반 후처리 훅 추가 — Codex
 - [x] Core/Combat: `Lifesteal`을 실제 HP 피해 20% 올림 회복 + 실제 발동 행동당 1회 감소로 구현 — Codex
-- [ ] Core/Combat: 피격 후 반응 훅 추가 — _(전투 담당)_
-- [ ] Core/Combat: `Thorns`를 피격 후 반사 피해 + 턴당 반사 횟수 상한으로 구현 — _(전투 담당)_
-- [ ] Core/Combat: 라운드 종료 훅 또는 동등한 처리 지점 추가 — _(전투 담당)_
-- [ ] Core/Combat: 가시 지속을 라운드 종료 기준으로 제거하도록 구현 — _(전투 담당)_
-- [ ] Core/Combat: 반사 피해가 다시 가시를 발동하지 않도록 피해 원인/태그 구분 — _(전투 담당)_
+- [x] Core/Combat: 직접 공격 피격 후 반응 훅과 테스트 가능한 전투 RNG 추가 — Codex
+- [x] Core/Combat: `Thorns`를 타격별 50% 고정 반사 피해로 구현 — Codex
+- [x] Core/Combat: 팀 턴 종료 알림으로 상대 팀 가시 제거 — Codex
+- [x] Core/Combat: 반사 피해가 취약·약화·흡혈·가시를 발동하지 않도록 `Reflection` 경계 적용 — Codex
 - [ ] Core/Combat: 상태 적용/틱/소모/반사/흡혈 회복 이벤트를 UI가 구분 가능하게 보강 — _(전투 담당)_
 - [ ] UI/GameFlow: `StatusEffectRequest`와 `CombatTurnRequestBuilder`를 v6 상태 요청으로 갱신 — _(전투 담당)_
 - [ ] UI/GameFlow: `RelicTurnResolver`의 상태 조회를 `Burn`/`Infection`/`Vulnerable`/`Weaken` 구분으로 갱신 — _(전투 담당)_
@@ -70,7 +70,7 @@
 - [ ] Tests/Core: Infection 누적, 턴 종료 피해, 1 감소, 상한 없음 테스트 추가 — _(전투 담당)_
 - [x] Tests/Core: Vulnerable/Weaken 정산 단위와 소모 테스트 추가 — Codex
 - [x] Tests/Core: Lifesteal 실제 HP 피해 기반 회복, 행동당 소모, Snapshot/Revision, 이벤트 순서 테스트 추가 — Codex
-- [ ] Tests/Core: Thorns 피격 반사, 라운드 종료 제거, 반사 재귀 방지 테스트 추가 — _(전투 담당)_
+- [x] Tests/Core: Thorns 확률, 다단히트·다중 대상, 방어막, 반사 재귀 방지, 이벤트 순서, 팀 턴 종료 제거 테스트 추가 — Codex
 - [ ] Tests/UI: 유물 resolver → status request → combat effect 변환 테스트 갱신 — _(전투 담당)_
 - [ ] `dotnet build SlotRogue.slnx` 통과 — _(전투 담당)_
 - [ ] Unity Editor에서 EditMode 테스트 결과 확인 — _(전투 담당)_
@@ -80,10 +80,11 @@
 - 취약/약화의 핵심 위험은 “유물 발동 건별 소모”다. v6 기준 정산 1회는 플레이어 스핀 1회의 합산 피해, 몬스터 공격 행동 1회다.
 - 현재 `CombatEffect[]`는 개별 효과 순서로 적용되므로, 취약/약화를 단순히 `Damage` effect마다 소모하면 기획과 달라질 수 있다. 정산 묶음 또는 action 단위 context가 필요하다.
 - 감염은 총 스택 상한이 없다. 기존 `StackLimitComponent(5)`를 그대로 재사용하면 안 된다.
-- 가시는 플레이어 턴 종료에 제거하면 적 공격 전에 사라진다. 반드시 라운드 종료 또는 동등한 “내 턴 + 적 턴 후” 처리로 제거한다.
+- 가시는 자신의 팀 턴 종료에 제거하지 않는다. `BattleSystem`이 팀 턴 종료 시 상대 팀 참가자의 가시를 제거하고 기존 `StatusExpired` 이벤트를 발생시킨다.
 - 흡혈은 요청 피해량이나 `EffectApplyResult.DamageDealt`가 아니라 타격 전후 HP Snapshot 차이로 계산한 실제 HP 피해량 기준이다. shield로 막힌 피해와 overkill 초과량은 회복량에 포함하지 않는다.
 - 흡혈 회복은 피해 `EffectApplied` 직후 같은 타격 안에서 기존 Heal `EffectApplied`로 기록한다. 최대 HP여도 실제 HP 피해를 줬다면 발동 및 행동당 횟수 소모로 본다.
-- 반사 피해는 다시 가시/흡혈/취약 소모를 유발할지 명확히 구분해야 한다. 1차는 반사 피해가 가시를 재발동하지 않도록 제한한다.
+- 반사 피해는 `DamageOrigin.Reflection`으로 직접 적용해 가시·흡혈·취약·약화 경로를 모두 우회한다.
+- 가시 판정은 직접 피해 `EffectApplied`와 흡혈 Heal `EffectApplied` 다음에 수행하며, 반사 처리 후 기존 승패 판정을 실행한다.
 - `Freeze`는 debug/test 경로에 남길 수 있지만, 공식 유물/몬스터 데이터의 1차 속성에는 포함하지 않는다.
 
 ## Open questions
@@ -95,6 +96,8 @@
 | Q3 | 플레이어 정산 1회를 Core에서 어떻게 표현할 것인가? | `CombatEffect[]` 전체, damage group, action context 중 선택 필요. |
 | Q4 | 몬스터의 `Weak`는 모든 행동 피해 합산에 한 번 적용할 것인가, 행동 내부 damage effect마다 적용할 것인가? | v6은 공격 행동 1회를 기준으로 한다. |
 | Q5 | 상태 아이콘 수치 표시는 `Magnitude`, `StackCount`, `RemainingTurns` 중 무엇을 우선 표시할 것인가? | 감염/취약/약화/가시마다 UI 규칙이 다를 수 있다. |
+| Q6 | 가시의 `StatusStackMode.Stack`은 금지, 피해량 합산, 현재 공통 동작 중 무엇으로 정의할 것인가? | 전체 속성 구현 후 Stack/Refresh 공통 정책 리팩터링에서 결정한다. |
+| Q7 | 기존 `RelicDerivedHeal` 흡혈을 Core `Lifesteal` 상태로 교체할 것인가? | 기획자와 예상 총피해 선계산 및 실제 HP 피해 후 타격별 회복 중 공식 규칙을 확정한 뒤 결정한다. |
 
 ## Completion
 

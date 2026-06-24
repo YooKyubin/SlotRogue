@@ -9,5 +9,6 @@ namespace SlotRogue.Core.Combat
         Vulnerable = 4,
         Weaken = 5,
         Lifesteal = 6,
+        Thorns = 7,
     }
 }

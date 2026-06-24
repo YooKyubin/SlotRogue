@@ -148,6 +148,32 @@ namespace SlotRogue.UI.Tests.GameFlow
         }
 
         [Test]
+        public void Build_ThornsRequest_MapsAmountToMagnitude()
+        {
+            var request = new SlotCombatRequest(0, 5, 1, 0, false, "Guard");
+            var relicResult = new RelicResolveResult(
+                additionalDamage: 0,
+                additionalBlock: 0,
+                healAmount: 0,
+                statusEffectsToApply: new[]
+                {
+                    new StatusEffectRequest(StatusEffectKind.Thorns, 4),
+                },
+                activationSummary: "가시 갑옷");
+
+            RunCombatRequestResult result = _builder.Build(
+                request,
+                relicResult,
+                runDamageBonus: 0,
+                runDefenseBonus: 0);
+
+            Assert.That(result.StatusEffectsToApply.Count, Is.EqualTo(1));
+            Assert.That(result.StatusEffectsToApply[0].Kind, Is.EqualTo(StatusEffectKind.Thorns));
+            Assert.That(result.StatusEffectsToApply[0].Magnitude, Is.EqualTo(4));
+            Assert.That(result.StatusEffectsToApply[0].StackMode, Is.EqualTo(StatusStackMode.Refresh));
+        }
+
+        [Test]
         public void Build_MultiHitRequest_CalculatesTotalAttackPower()
         {
             var request = new SlotCombatRequest(6, 0, 3, 0, false, "Multi Hit");

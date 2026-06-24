@@ -137,6 +137,7 @@ namespace SlotRogue.UI.GameFlow
             int burnStacks = 0;
             int poisonStacks = 0;
             int freezeApplications = 0;
+            var thornsSpecs = new List<StatusEffectSpec>();
 
             for (int index = 0; index < requests.Count; index++)
             {
@@ -144,18 +145,25 @@ namespace SlotRogue.UI.GameFlow
                 switch (request.Kind)
                 {
                     case StatusEffectKind.Burn:
-                        burnStacks += request.Stacks;
+                        burnStacks += request.Amount;
                         break;
                     case StatusEffectKind.Poison:
-                        poisonStacks += request.Stacks;
+                        poisonStacks += request.Amount;
                         break;
                     case StatusEffectKind.Freeze:
-                        freezeApplications += request.Stacks;
+                        freezeApplications += request.Amount;
+                        break;
+                    case StatusEffectKind.Thorns:
+                        thornsSpecs.Add(new StatusEffectSpec(
+                            StatusEffectKind.Thorns,
+                            duration: 0,
+                            magnitude: request.Amount,
+                            stackMode: StatusStackMode.Refresh));
                         break;
                 }
             }
 
-            var specs = new List<StatusEffectSpec>(3);
+            var specs = new List<StatusEffectSpec>(3 + thornsSpecs.Count);
             if (burnStacks > 0)
             {
                 specs.Add(new StatusEffectSpec(
@@ -183,6 +191,7 @@ namespace SlotRogue.UI.GameFlow
                     stackMode: StatusStackMode.Refresh));
             }
 
+            specs.AddRange(thornsSpecs);
             return specs;
         }
 
