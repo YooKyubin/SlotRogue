@@ -88,6 +88,7 @@
 - 흡혈 회복은 피해 `EffectApplied` 직후 같은 타격 안에서 기존 Heal `EffectApplied`로 기록한다. 최대 HP여도 실제 HP 피해를 줬다면 발동 및 행동당 횟수 소모로 본다.
 - 반사 피해는 `DamageOrigin.Reflection`으로 직접 적용해 가시·흡혈·취약·약화 경로를 모두 우회한다.
 - 가시 판정은 직접 피해 `EffectApplied`와 흡혈 Heal `EffectApplied` 다음에 수행하며, 반사 처리 후 기존 승패 판정을 실행한다.
+- 유물 상태 요청은 `CombatTargetMode`로 대상을 반드시 명시한다. `CombatTurnRequestBuilder`는 `(StatusEffectKind, CombatTargetMode)`가 같은 요청만 병합하고, `SlotCombatRequestToCombatEffectsConverter`가 최종 `CombatEffectTarget`으로 변환한다.
 - `Freeze`는 debug/test 경로에 남길 수 있지만, 공식 유물/몬스터 데이터의 1차 속성에는 포함하지 않는다.
 
 ## Open questions

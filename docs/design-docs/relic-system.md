@@ -49,6 +49,8 @@ StartRelicSelectViewModel
 
 `RelicTurnResolver`는 보유 유물, 전체 패턴 목록, 현재 플레이어/선택 적의 HP·상태 스냅샷을 받아 내부 `RelicEffectRunner`로 계산한다. 여러 유물이 동시에 발동하면 피해·방어·회복은 합산하고 상태이상 요청은 목록으로 전달한다.
 
+상태이상 요청은 `CombatTargetMode`로 적용 대상을 명시한다. 화상·감염·취약·약화처럼 적에게 적용하는 효과는 `SelectedEnemy`, 가시·흡혈처럼 자신에게 적용하는 효과는 `Self`를 사용한다. 요청 병합은 상태 종류와 대상이 모두 같은 경우에만 수행하며, 최종 `CombatEffectTarget` 생성은 UI 전투 연결 계층의 Converter가 담당한다.
+
 시작 선택 프리팹은 카드 3개를 제공하므로, 화면에 진입할 때 S-01~S-06 중 3종을 중복 없이 추첨한다. 카탈로그 순서의 앞 3종만 고정 노출하지 않는다.
 
 ## Icon flow

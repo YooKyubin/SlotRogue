@@ -126,18 +126,15 @@ namespace SlotRogue.UI.GameFlow
             request.Defense <= 0 &&
             request.HealAmount <= 0;
 
-        private static IReadOnlyList<StatusEffectSpec> BuildStatusEffectSpecs(
+        private static IReadOnlyList<TargetedStatusEffectSpec> BuildStatusEffectSpecs(
             IReadOnlyList<StatusEffectRequest> requests)
         {
             if (requests == null || requests.Count == 0)
             {
-                return Array.Empty<StatusEffectSpec>();
+                return Array.Empty<TargetedStatusEffectSpec>();
             }
 
-            int burnStacks = 0;
-            int infectionStacks = 0;
-            int freezeApplications = 0;
-            var thornsSpecs = new List<StatusEffectSpec>();
+            var combinedRequests = new List<CombinedStatusEffectRequest>();
 
             for (int index = 0; index < requests.Count; index++)
             {
@@ -145,54 +142,122 @@ namespace SlotRogue.UI.GameFlow
                 switch (request.Kind)
                 {
                     case StatusEffectKind.Burn:
-                        burnStacks += request.Amount;
-                        break;
                     case StatusEffectKind.Infection:
-                        infectionStacks += request.Amount;
-                        break;
                     case StatusEffectKind.Freeze:
-                        freezeApplications += request.Amount;
+                    case StatusEffectKind.Vulnerable:
+                    case StatusEffectKind.Weaken:
+                    case StatusEffectKind.Lifesteal:
+                        AddOrCombineRequest(combinedRequests, request);
                         break;
                     case StatusEffectKind.Thorns:
-                        thornsSpecs.Add(new StatusEffectSpec(
-                            StatusEffectKind.Thorns,
-                            duration: 0,
-                            magnitude: request.Amount,
-                            stackMode: StatusStackMode.Refresh));
+                        combinedRequests.Add(new CombinedStatusEffectRequest(
+                            request.Kind,
+                            request.Amount,
+                            request.TargetMode));
                         break;
                 }
             }
 
-            var specs = new List<StatusEffectSpec>(3 + thornsSpecs.Count);
-            if (burnStacks > 0)
+            var specs = new List<TargetedStatusEffectSpec>(combinedRequests.Count);
+            for (int index = 0; index < combinedRequests.Count; index++)
             {
-                specs.Add(new StatusEffectSpec(
-                    StatusEffectKind.Burn,
-                    duration: 1,
-                    magnitude: burnStacks,
-                    stackMode: StatusStackMode.Refresh));
+                CombinedStatusEffectRequest request = combinedRequests[index];
+                specs.Add(BuildCombinedSpec(request));
             }
 
-            if (infectionStacks > 0)
-            {
-                specs.Add(new StatusEffectSpec(
-                    StatusEffectKind.Infection,
-                    duration: 0,
-                    magnitude: infectionStacks,
-                    stackMode: StatusStackMode.Stack));
-            }
-
-            if (freezeApplications > 0)
-            {
-                specs.Add(new StatusEffectSpec(
-                    StatusEffectKind.Freeze,
-                    duration: freezeApplications,
-                    magnitude: 0,
-                    stackMode: StatusStackMode.Refresh));
-            }
-
-            specs.AddRange(thornsSpecs);
             return specs;
+        }
+
+        private static void AddOrCombineRequest(
+            List<CombinedStatusEffectRequest> combinedRequests,
+            StatusEffectRequest request)
+        {
+            for (int index = 0; index < combinedRequests.Count; index++)
+            {
+                CombinedStatusEffectRequest current = combinedRequests[index];
+                if (current.Kind != request.Kind || current.TargetMode != request.TargetMode)
+                {
+                    continue;
+                }
+
+                combinedRequests[index] = new CombinedStatusEffectRequest(
+                    current.Kind,
+                    current.Amount + request.Amount,
+                    current.TargetMode);
+                return;
+            }
+
+            combinedRequests.Add(new CombinedStatusEffectRequest(
+                request.Kind,
+                request.Amount,
+                request.TargetMode));
+        }
+
+        private static TargetedStatusEffectSpec BuildCombinedSpec(
+            CombinedStatusEffectRequest request)
+        {
+            switch (request.Kind)
+            {
+                case StatusEffectKind.Burn:
+                    return new TargetedStatusEffectSpec(
+                        new StatusEffectSpec(
+                            StatusEffectKind.Burn,
+                            duration: 1,
+                            magnitude: request.Amount,
+                            stackMode: StatusStackMode.Refresh),
+                        request.TargetMode);
+                case StatusEffectKind.Infection:
+                    return new TargetedStatusEffectSpec(
+                        new StatusEffectSpec(
+                            StatusEffectKind.Infection,
+                            duration: 0,
+                            magnitude: request.Amount,
+                            stackMode: StatusStackMode.Stack),
+                        request.TargetMode);
+                case StatusEffectKind.Freeze:
+                    return new TargetedStatusEffectSpec(
+                        new StatusEffectSpec(
+                            StatusEffectKind.Freeze,
+                            duration: request.Amount,
+                            magnitude: 0,
+                            stackMode: StatusStackMode.Refresh),
+                        request.TargetMode);
+                case StatusEffectKind.Thorns:
+                    return new TargetedStatusEffectSpec(
+                        new StatusEffectSpec(
+                            StatusEffectKind.Thorns,
+                            duration: 0,
+                            magnitude: request.Amount,
+                            stackMode: StatusStackMode.Refresh),
+                        request.TargetMode);
+                default:
+                    return new TargetedStatusEffectSpec(
+                        new StatusEffectSpec(
+                            request.Kind,
+                            duration: 0,
+                            magnitude: request.Amount,
+                            stackMode: StatusStackMode.Stack),
+                        request.TargetMode);
+            }
+        }
+
+        private readonly struct CombinedStatusEffectRequest
+        {
+            public CombinedStatusEffectRequest(
+                StatusEffectKind kind,
+                int amount,
+                CombatTargetMode targetMode)
+            {
+                Kind = kind;
+                Amount = amount;
+                TargetMode = targetMode;
+            }
+
+            public StatusEffectKind Kind { get; }
+
+            public int Amount { get; }
+
+            public CombatTargetMode TargetMode { get; }
         }
 
         private static string BuildRunBonusSummary(int runDamageBonus, int runDefenseBonus)

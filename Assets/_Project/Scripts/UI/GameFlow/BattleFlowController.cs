@@ -263,10 +263,13 @@ namespace SlotRogue.UI.GameFlow
                     request,
                     string.Empty,
                     $"DEV {statusEffectKind}",
-                    new[] { statusEffect });
+                    new[] { new TargetedStatusEffectSpec(statusEffect, CombatTargetMode.SelectedEnemy), });
                 _screenController.UpdateTurnResult(null, requestResult);
 
-                CombatEffect[] playerEffects = _converter.Convert(request, selectedTargetId, statusEffect);
+                CombatEffect[] playerEffects = _converter.Convert(
+                    request,
+                    selectedTargetId,
+                    requestResult.StatusEffectsToApply);
                 var presentationContext =
                     new PresentationContext(isCritical: false, request.PatternName);
                 int eventCursor = _battle.Events.Count;
