@@ -183,6 +183,15 @@ namespace SlotRogue.Core.Combat
                 targetBefore: targetBefore,
                 targetAfter: targetAfter,
                 sourceParticipantId: source.Id));
+
+            if (appliedEffect.Kind == CombatEffectKind.Damage)
+            {
+                int healthDamage = targetBefore.Hp - targetAfter.Hp;
+                actionState.ReactAfterHealthDamageDealt(
+                    target,
+                    healthDamage,
+                    appliedEffect.DamageOrigin);
+            }
         }
 
         private EffectApplyResult ApplyEffectToTarget(
@@ -291,8 +300,10 @@ namespace SlotRogue.Core.Combat
             private readonly StatusEffectEngine _statusEffectEngine;
             private readonly CombatParticipant _source;
             private readonly IReadOnlyList<StatusEffectEngine.OutgoingDamageModifierSnapshot> _outgoingDamageModifiers;
+            private readonly IReadOnlyList<StatusEffectEngine.AfterHealthDamageReactionSnapshot> _afterHealthDamageReactions;
             private readonly Dictionary<int, IReadOnlyList<StatusEffectEngine.IncomingDamageModifierSnapshot>> _incomingDamageModifiersByParticipantId = new();
             private readonly List<StatusEffectEngine.DamageModifierUsage> _usedDamageModifiers = new();
+            private readonly List<StatusEffectEngine.AfterHealthDamageUsage> _usedAfterHealthDamageReactions = new();
             private bool _isCompleted;
 
             internal ActionExecutionState(
@@ -306,6 +317,7 @@ namespace SlotRogue.Core.Combat
                 _statusEffectEngine = statusEffectEngine;
                 _source = source;
                 _outgoingDamageModifiers = statusEffectEngine.CaptureOutgoingDamageModifiers(source, phase, events);
+                _afterHealthDamageReactions = statusEffectEngine.CaptureAfterHealthDamageReactions(source, phase, events);
                 CaptureIncomingDamageModifiers(player, phase, events);
 
                 for (int index = 0; index < enemies.Count; index++)
@@ -350,6 +362,19 @@ namespace SlotRogue.Core.Combat
                     effect.DamageOrigin);
             }
 
+            internal void ReactAfterHealthDamageDealt(
+                CombatParticipant target,
+                int healthDamage,
+                DamageOrigin damageOrigin)
+            {
+                _statusEffectEngine.ReactAfterHealthDamageDealt(
+                    _afterHealthDamageReactions,
+                    target,
+                    healthDamage,
+                    damageOrigin,
+                    _usedAfterHealthDamageReactions);
+            }
+
             internal void Complete()
             {
                 if (_isCompleted)
@@ -358,6 +383,7 @@ namespace SlotRogue.Core.Combat
                 }
 
                 _statusEffectEngine.ConsumeUsedDamageModifiers(_usedDamageModifiers);
+                _statusEffectEngine.ConsumeUsedAfterHealthDamageReactions(_usedAfterHealthDamageReactions);
                 _isCompleted = true;
             }
 

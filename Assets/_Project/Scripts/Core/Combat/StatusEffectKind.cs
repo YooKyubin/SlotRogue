@@ -8,5 +8,6 @@ namespace SlotRogue.Core.Combat
         Poison = 3,
         Vulnerable = 4,
         Weaken = 5,
+        Lifesteal = 6,
     }
 }

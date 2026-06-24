@@ -148,6 +148,37 @@ namespace SlotRogue.Core.Combat
             return modifiers;
         }
 
+        internal IReadOnlyList<AfterHealthDamageReactionSnapshot> CaptureAfterHealthDamageReactions(
+            CombatParticipant source,
+            BattlePhase phase,
+            List<CombatEvent> events)
+        {
+            if (source == null)
+            {
+                return System.Array.Empty<AfterHealthDamageReactionSnapshot>();
+            }
+
+            var reactions = new List<AfterHealthDamageReactionSnapshot>();
+            StatusEffectInstance[] instances = source.GetStatusEffectsSnapshot();
+            for (int index = 0; index < instances.Length; index++)
+            {
+                StatusEffectInstance instance = instances[index];
+                StatusEffectContext context = CreateContext(phase, source, instance, events);
+                for (int componentIndex = 0; componentIndex < instance.Components.Count; componentIndex++)
+                {
+                    if (instance.Components[componentIndex] is IAfterHealthDamageDealt reaction)
+                    {
+                        reactions.Add(new AfterHealthDamageReactionSnapshot(
+                            reaction,
+                            CreateSnapshot(instance),
+                            new AfterHealthDamageUsage(context, events)));
+                    }
+                }
+            }
+
+            return reactions;
+        }
+
         internal int ModifyOutgoingDamage(
             IReadOnlyList<OutgoingDamageModifierSnapshot> modifiers,
             CombatParticipant target,
@@ -228,6 +259,67 @@ namespace SlotRogue.Core.Combat
                     if (components[componentIndex] is IDamageModifierUsageHandler handler)
                     {
                         handler.OnDamageModifierUsed(usage.Context);
+                    }
+                }
+            }
+        }
+
+        internal void ReactAfterHealthDamageDealt(
+            IReadOnlyList<AfterHealthDamageReactionSnapshot> reactions,
+            CombatParticipant target,
+            int healthDamage,
+            DamageOrigin damageOrigin,
+            List<AfterHealthDamageUsage> usedReactions)
+        {
+            if (reactions == null ||
+                healthDamage <= 0 ||
+                damageOrigin != DamageOrigin.DirectAction)
+            {
+                return;
+            }
+
+            for (int index = 0; index < reactions.Count; index++)
+            {
+                AfterHealthDamageReactionSnapshot reaction = reactions[index];
+                var context = new AfterHealthDamageContext(
+                    reaction.Usage.Context.Phase,
+                    reaction.Usage.Context.Participant,
+                    target,
+                    healthDamage,
+                    damageOrigin,
+                    reaction.StatusSnapshot,
+                    _effectApplicator,
+                    reaction.Usage.Events);
+
+                if (reaction.Reaction.OnAfterHealthDamageDealt(context))
+                {
+                    AddUsedAfterHealthDamageReaction(usedReactions, reaction.Usage);
+                }
+            }
+        }
+
+        internal void ConsumeUsedAfterHealthDamageReactions(
+            IReadOnlyList<AfterHealthDamageUsage> usedReactions)
+        {
+            if (usedReactions == null)
+            {
+                return;
+            }
+
+            for (int index = 0; index < usedReactions.Count; index++)
+            {
+                AfterHealthDamageUsage usage = usedReactions[index];
+                if (!usage.IsCurrent)
+                {
+                    continue;
+                }
+
+                IReadOnlyList<IStatusEffectComponent> components = usage.Context.Instance.Components;
+                for (int componentIndex = 0; componentIndex < components.Count; componentIndex++)
+                {
+                    if (components[componentIndex] is IAfterHealthDamageUsageHandler handler)
+                    {
+                        handler.OnAfterHealthDamageUsed(usage.Context);
                     }
                 }
             }
@@ -327,6 +419,26 @@ namespace SlotRogue.Core.Combat
             usedModifiers.Add(usage);
         }
 
+        private static void AddUsedAfterHealthDamageReaction(
+            List<AfterHealthDamageUsage> usedReactions,
+            AfterHealthDamageUsage usage)
+        {
+            if (usedReactions == null)
+            {
+                return;
+            }
+
+            for (int index = 0; index < usedReactions.Count; index++)
+            {
+                if (ReferenceEquals(usedReactions[index].Context.Instance, usage.Context.Instance))
+                {
+                    return;
+                }
+            }
+
+            usedReactions.Add(usage);
+        }
+
         internal readonly struct OutgoingDamageModifierSnapshot
         {
             internal OutgoingDamageModifierSnapshot(
@@ -365,6 +477,25 @@ namespace SlotRogue.Core.Combat
             internal DamageModifierUsage Usage { get; }
         }
 
+        internal readonly struct AfterHealthDamageReactionSnapshot
+        {
+            internal AfterHealthDamageReactionSnapshot(
+                IAfterHealthDamageDealt reaction,
+                StatusEffectSnapshot statusSnapshot,
+                AfterHealthDamageUsage usage)
+            {
+                Reaction = reaction;
+                StatusSnapshot = statusSnapshot;
+                Usage = usage;
+            }
+
+            internal IAfterHealthDamageDealt Reaction { get; }
+
+            internal StatusEffectSnapshot StatusSnapshot { get; }
+
+            internal AfterHealthDamageUsage Usage { get; }
+        }
+
         internal readonly struct DamageModifierUsage
         {
             internal DamageModifierUsage(StatusEffectContext context)
@@ -377,6 +508,44 @@ namespace SlotRogue.Core.Combat
             internal StatusEffectContext Context { get; }
 
             internal CombatParticipantId ParticipantId { get; }
+
+            internal int Revision { get; }
+
+            internal bool IsCurrent
+            {
+                get
+                {
+                    if (Context.Instance.Revision != Revision)
+                    {
+                        return false;
+                    }
+
+                    StatusEffectInstance[] instances = Context.Participant.GetStatusEffectsSnapshot();
+                    for (int index = 0; index < instances.Length; index++)
+                    {
+                        if (ReferenceEquals(instances[index], Context.Instance))
+                        {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                }
+            }
+        }
+
+        internal readonly struct AfterHealthDamageUsage
+        {
+            internal AfterHealthDamageUsage(StatusEffectContext context, List<CombatEvent> events)
+            {
+                Context = context;
+                Events = events;
+                Revision = context.Instance.Revision;
+            }
+
+            internal StatusEffectContext Context { get; }
+
+            internal List<CombatEvent> Events { get; }
 
             internal int Revision { get; }
 

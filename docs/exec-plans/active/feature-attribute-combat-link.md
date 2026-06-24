@@ -51,8 +51,8 @@
 - [ ] Core/Combat: 피해 정산 전/후 훅 추가 — _(전투 담당)_
 - [x] Core/Combat: `Vulnerable`을 다음 N번 피해 정산 증가 + 적용 횟수 감소로 구현 — Codex
 - [x] Core/Combat: `Weaken`을 다음 N번 공격/스핀 정산 피해 20% 감소 + 적용 횟수 감소로 구현 — Codex
-- [ ] Core/Combat: 실제 HP 피해량 기반 후처리 훅 추가 — _(전투 담당)_
-- [ ] Core/Combat: `Lifesteal`을 실제 피해 비율 회복 + 턴당 회복 상한으로 구현 — _(전투 담당)_
+- [x] Core/Combat: 실제 HP 피해량 기반 후처리 훅 추가 — Codex
+- [x] Core/Combat: `Lifesteal`을 실제 HP 피해 20% 올림 회복 + 실제 발동 행동당 1회 감소로 구현 — Codex
 - [ ] Core/Combat: 피격 후 반응 훅 추가 — _(전투 담당)_
 - [ ] Core/Combat: `Thorns`를 피격 후 반사 피해 + 턴당 반사 횟수 상한으로 구현 — _(전투 담당)_
 - [ ] Core/Combat: 라운드 종료 훅 또는 동등한 처리 지점 추가 — _(전투 담당)_
@@ -69,7 +69,7 @@
 - [ ] Tests/Core: Burn 즉시 피해 + 턴 종료 피해 + 만료 테스트 추가/갱신 — _(전투 담당)_
 - [ ] Tests/Core: Infection 누적, 턴 종료 피해, 1 감소, 상한 없음 테스트 추가 — _(전투 담당)_
 - [x] Tests/Core: Vulnerable/Weaken 정산 단위와 소모 테스트 추가 — Codex
-- [ ] Tests/Core: Lifesteal 실제 피해 기반 회복과 턴당 상한 테스트 추가 — _(전투 담당)_
+- [x] Tests/Core: Lifesteal 실제 HP 피해 기반 회복, 행동당 소모, Snapshot/Revision, 이벤트 순서 테스트 추가 — Codex
 - [ ] Tests/Core: Thorns 피격 반사, 라운드 종료 제거, 반사 재귀 방지 테스트 추가 — _(전투 담당)_
 - [ ] Tests/UI: 유물 resolver → status request → combat effect 변환 테스트 갱신 — _(전투 담당)_
 - [ ] `dotnet build SlotRogue.slnx` 통과 — _(전투 담당)_
@@ -81,7 +81,8 @@
 - 현재 `CombatEffect[]`는 개별 효과 순서로 적용되므로, 취약/약화를 단순히 `Damage` effect마다 소모하면 기획과 달라질 수 있다. 정산 묶음 또는 action 단위 context가 필요하다.
 - 감염은 총 스택 상한이 없다. 기존 `StackLimitComponent(5)`를 그대로 재사용하면 안 된다.
 - 가시는 플레이어 턴 종료에 제거하면 적 공격 전에 사라진다. 반드시 라운드 종료 또는 동등한 “내 턴 + 적 턴 후” 처리로 제거한다.
-- 흡혈은 요청 피해량이 아니라 실제 HP 피해량 기준이다. shield로 막힌 피해는 회복량에 포함하지 않는다.
+- 흡혈은 요청 피해량이나 `EffectApplyResult.DamageDealt`가 아니라 타격 전후 HP Snapshot 차이로 계산한 실제 HP 피해량 기준이다. shield로 막힌 피해와 overkill 초과량은 회복량에 포함하지 않는다.
+- 흡혈 회복은 피해 `EffectApplied` 직후 같은 타격 안에서 기존 Heal `EffectApplied`로 기록한다. 최대 HP여도 실제 HP 피해를 줬다면 발동 및 행동당 횟수 소모로 본다.
 - 반사 피해는 다시 가시/흡혈/취약 소모를 유발할지 명확히 구분해야 한다. 1차는 반사 피해가 가시를 재발동하지 않도록 제한한다.
 - `Freeze`는 debug/test 경로에 남길 수 있지만, 공식 유물/몬스터 데이터의 1차 속성에는 포함하지 않는다.
 

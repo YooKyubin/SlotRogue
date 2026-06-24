@@ -56,6 +56,16 @@ namespace SlotRogue.Core.Combat
                         new WeakenDamageModifier(),
                         new WeakenUsageHandler(),
                     }),
+                StatusEffectKind.Lifesteal => new StatusEffectInstance(
+                    spec.Kind,
+                    remainingTurns: 0,
+                    magnitude: 0,
+                    stackCount: spec.Magnitude > 0 ? spec.Magnitude : 1,
+                    new IStatusEffectComponent[]
+                    {
+                        new LifestealComponent(),
+                        new LifestealUsageHandler(),
+                    }),
                 _ => null,
             };
         }
