@@ -200,8 +200,7 @@ namespace SlotRogue.Core.Combat
                     snapshot.Usage.ParticipantId,
                     modifiedDamage,
                     snapshot.StatusSnapshot);
-                modifiedDamage = ClampDamage(
-                    snapshot.Modifier.ModifyDamage(modifiedDamage, in context));
+                modifiedDamage = ClampDamage(snapshot.Modifier.ModifyDamage(modifiedDamage, in context));
                 AddUsedModifier(usedModifiers, snapshot.Usage);
             }
 
