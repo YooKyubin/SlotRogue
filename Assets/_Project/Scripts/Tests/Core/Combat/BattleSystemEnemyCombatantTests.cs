@@ -885,6 +885,545 @@ namespace SlotRogue.Core.Tests.Combat
             Assert.That(usage.ConsumedCount, Is.Zero);
         }
 
+        [TestCase(10, 8)]
+        [TestCase(3, 3)]
+        [TestCase(1, 1)]
+        [TestCase(0, 0)]
+        public void ResolvePlayerEffects_Weaken_ReducesDirectDamageWithCeiling(
+            int damage,
+            int expectedDamage)
+        {
+            var effectApplicator = new EffectApplicator();
+            var statusEffectEngine = new StatusEffectEngine(effectApplicator);
+            var resolver = new CombatActionResolver(effectApplicator, statusEffectEngine);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer();
+            CombatParticipant enemy = CombatParticipantFactory.CreateEnemy(maxHp: 30);
+            var events = new List<CombatEvent>();
+            var participantsById = new Dictionary<int, CombatParticipant>
+            {
+                [player.Id.Value] = player,
+                [enemy.Id.Value] = enemy,
+            };
+            ApplyStatus(player, StatusEffectKind.Weaken, magnitude: 2);
+
+            resolver.ResolvePlayerEffects(
+                new[]
+                {
+                    new CombatEffect(
+                        CombatEffectKind.Damage,
+                        damage,
+                        CombatEffectTarget.SelectedEnemy(enemy.Id)),
+                },
+                player,
+                player,
+                new[] { enemy },
+                participantsById,
+                selectedTargetId: enemy.Id,
+                BattlePhase.Resolving,
+                events,
+                shouldEndBattle: () => false);
+
+            CombatEvent damageEvent = events.Single(e =>
+                e.Kind == CombatEventKind.EffectApplied &&
+                e.Effect.Kind == CombatEffectKind.Damage);
+            Assert.That(damageEvent.Effect.Amount, Is.EqualTo(expectedDamage));
+            Assert.That(damageEvent.ApplyResult.DamageDealt, Is.EqualTo(expectedDamage));
+            Assert.That(enemy.CurrentHp, Is.EqualTo(30 - expectedDamage));
+            Assert.That(player.StatusEffects.Single().StackCount, Is.EqualTo(damage > 0 ? 1 : 2));
+        }
+
+        [Test]
+        public void ResolvePlayerEffects_WeakenMultiHit_AppliesToAllHitsAndConsumesOnce()
+        {
+            var effectApplicator = new EffectApplicator();
+            var statusEffectEngine = new StatusEffectEngine(effectApplicator);
+            var resolver = new CombatActionResolver(effectApplicator, statusEffectEngine);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer();
+            CombatParticipant enemy = CombatParticipantFactory.CreateEnemy(maxHp: 30);
+            var events = new List<CombatEvent>();
+            var participantsById = new Dictionary<int, CombatParticipant>
+            {
+                [player.Id.Value] = player,
+                [enemy.Id.Value] = enemy,
+            };
+            ApplyStatus(player, StatusEffectKind.Weaken, magnitude: 2);
+
+            resolver.ResolvePlayerEffects(
+                new[]
+                {
+                    new CombatEffect(
+                        CombatEffectKind.Damage,
+                        10,
+                        CombatEffectTarget.SelectedEnemy(enemy.Id)),
+                    new CombatEffect(
+                        CombatEffectKind.Damage,
+                        5,
+                        CombatEffectTarget.SelectedEnemy(enemy.Id)),
+                },
+                player,
+                player,
+                new[] { enemy },
+                participantsById,
+                selectedTargetId: enemy.Id,
+                BattlePhase.Resolving,
+                events,
+                shouldEndBattle: () => false);
+
+            int[] appliedDamage = events
+                .Where(e => e.Kind == CombatEventKind.EffectApplied && e.Effect.Kind == CombatEffectKind.Damage)
+                .Select(e => e.Effect.Amount)
+                .ToArray();
+            Assert.That(appliedDamage, Is.EqualTo(new[] { 8, 4 }));
+            Assert.That(enemy.CurrentHp, Is.EqualTo(18));
+            Assert.That(player.StatusEffects.Single().StackCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ResolvePlayerEffects_WeakenAllEnemies_ConsumesOnce()
+        {
+            var effectApplicator = new EffectApplicator();
+            var statusEffectEngine = new StatusEffectEngine(effectApplicator);
+            var resolver = new CombatActionResolver(effectApplicator, statusEffectEngine);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer();
+            CombatParticipant enemy1 = CombatParticipantFactory.CreateEnemy(id: 100, maxHp: 30);
+            CombatParticipant enemy2 = CombatParticipantFactory.CreateEnemy(id: 101, maxHp: 30);
+            var events = new List<CombatEvent>();
+            var participantsById = new Dictionary<int, CombatParticipant>
+            {
+                [player.Id.Value] = player,
+                [enemy1.Id.Value] = enemy1,
+                [enemy2.Id.Value] = enemy2,
+            };
+            ApplyStatus(player, StatusEffectKind.Weaken, magnitude: 2);
+
+            resolver.ResolvePlayerEffects(
+                new[]
+                {
+                    new CombatEffect(
+                        CombatEffectKind.Damage,
+                        10,
+                        new CombatEffectTarget(CombatTargetMode.AllEnemies)),
+                },
+                player,
+                player,
+                new[] { enemy1, enemy2 },
+                participantsById,
+                selectedTargetId: enemy1.Id,
+                BattlePhase.Resolving,
+                events,
+                shouldEndBattle: () => false);
+
+            Assert.That(enemy1.CurrentHp, Is.EqualTo(22));
+            Assert.That(enemy2.CurrentHp, Is.EqualTo(22));
+            Assert.That(player.StatusEffects.Single().StackCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ResolvePlayerEffects_Weaken_DoesNotApplyOrConsumeForNonDirectOrigins()
+        {
+            var effectApplicator = new EffectApplicator();
+            var statusEffectEngine = new StatusEffectEngine(effectApplicator);
+            var resolver = new CombatActionResolver(effectApplicator, statusEffectEngine);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer();
+            CombatParticipant enemy = CombatParticipantFactory.CreateEnemy(maxHp: 30);
+            var events = new List<CombatEvent>();
+            var participantsById = new Dictionary<int, CombatParticipant>
+            {
+                [player.Id.Value] = player,
+                [enemy.Id.Value] = enemy,
+            };
+            ApplyStatus(player, StatusEffectKind.Weaken, magnitude: 2);
+
+            resolver.ResolvePlayerEffects(
+                new[]
+                {
+                    new CombatEffect(
+                        CombatEffectKind.Damage,
+                        10,
+                        CombatEffectTarget.SelectedEnemy(enemy.Id),
+                        DamageOrigin.Status),
+                    new CombatEffect(
+                        CombatEffectKind.Damage,
+                        10,
+                        CombatEffectTarget.SelectedEnemy(enemy.Id),
+                        DamageOrigin.Reflection),
+                },
+                player,
+                player,
+                new[] { enemy },
+                participantsById,
+                selectedTargetId: enemy.Id,
+                BattlePhase.Resolving,
+                events,
+                shouldEndBattle: () => false);
+
+            int[] appliedDamage = events
+                .Where(e => e.Kind == CombatEventKind.EffectApplied && e.Effect.Kind == CombatEffectKind.Damage)
+                .Select(e => e.Effect.Amount)
+                .ToArray();
+            Assert.That(appliedDamage, Is.EqualTo(new[] { 10, 10 }));
+            Assert.That(enemy.CurrentHp, Is.EqualTo(10));
+            Assert.That(player.StatusEffects.Single().StackCount, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void ResolvePlayerEffects_WeakenAppliedMidAction_AppliesNextAction()
+        {
+            var effectApplicator = new EffectApplicator();
+            var statusEffectEngine = new StatusEffectEngine(effectApplicator);
+            var resolver = new CombatActionResolver(effectApplicator, statusEffectEngine);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer();
+            CombatParticipant enemy = CombatParticipantFactory.CreateEnemy(maxHp: 30);
+            var participantsById = new Dictionary<int, CombatParticipant>
+            {
+                [player.Id.Value] = player,
+                [enemy.Id.Value] = enemy,
+            };
+
+            var firstEvents = new List<CombatEvent>();
+            resolver.ResolvePlayerEffects(
+                new[]
+                {
+                    CombatEffect.ApplyStatus(
+                        new StatusEffectSpec(
+                            StatusEffectKind.Weaken,
+                            duration: 0,
+                            magnitude: 2,
+                            StatusStackMode.Refresh),
+                        CombatEffectTarget.Self),
+                    new CombatEffect(
+                        CombatEffectKind.Damage,
+                        10,
+                        CombatEffectTarget.SelectedEnemy(enemy.Id)),
+                },
+                player,
+                player,
+                new[] { enemy },
+                participantsById,
+                selectedTargetId: enemy.Id,
+                BattlePhase.Resolving,
+                firstEvents,
+                shouldEndBattle: () => false);
+
+            var secondEvents = new List<CombatEvent>();
+            resolver.ResolvePlayerEffects(
+                new[]
+                {
+                    new CombatEffect(
+                        CombatEffectKind.Damage,
+                        10,
+                        CombatEffectTarget.SelectedEnemy(enemy.Id)),
+                },
+                player,
+                player,
+                new[] { enemy },
+                participantsById,
+                selectedTargetId: enemy.Id,
+                BattlePhase.Resolving,
+                secondEvents,
+                shouldEndBattle: () => false);
+
+            Assert.That(enemy.CurrentHp, Is.EqualTo(12));
+            Assert.That(player.StatusEffects.Single().StackCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ResolvePlayerEffects_WeakenRefreshMidAction_KeepsRefreshedStack()
+        {
+            var effectApplicator = new EffectApplicator();
+            var statusEffectEngine = new StatusEffectEngine(effectApplicator);
+            var resolver = new CombatActionResolver(effectApplicator, statusEffectEngine);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer();
+            CombatParticipant enemy = CombatParticipantFactory.CreateEnemy(maxHp: 30);
+            var events = new List<CombatEvent>();
+            var participantsById = new Dictionary<int, CombatParticipant>
+            {
+                [player.Id.Value] = player,
+                [enemy.Id.Value] = enemy,
+            };
+            ApplyStatus(player, StatusEffectKind.Weaken, magnitude: 1);
+
+            resolver.ResolvePlayerEffects(
+                new[]
+                {
+                    new CombatEffect(
+                        CombatEffectKind.Damage,
+                        10,
+                        CombatEffectTarget.SelectedEnemy(enemy.Id)),
+                    CombatEffect.ApplyStatus(
+                        new StatusEffectSpec(
+                            StatusEffectKind.Weaken,
+                            duration: 0,
+                            magnitude: 5,
+                            StatusStackMode.Refresh),
+                        CombatEffectTarget.Self),
+                },
+                player,
+                player,
+                new[] { enemy },
+                participantsById,
+                selectedTargetId: enemy.Id,
+                BattlePhase.Resolving,
+                events,
+                shouldEndBattle: () => false);
+
+            CombatEvent damageEvent = events.Single(e =>
+                e.Kind == CombatEventKind.EffectApplied &&
+                e.Effect.Kind == CombatEffectKind.Damage);
+            Assert.That(damageEvent.Effect.Amount, Is.EqualTo(8));
+            Assert.That(player.StatusEffects.Single().StackCount, Is.EqualTo(5));
+        }
+
+        [Test]
+        public void ResolvePlayerEffects_WeakenBlockedByShield_ConsumesOnce()
+        {
+            var effectApplicator = new EffectApplicator();
+            var statusEffectEngine = new StatusEffectEngine(effectApplicator);
+            var resolver = new CombatActionResolver(effectApplicator, statusEffectEngine);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer();
+            CombatParticipant enemy = CombatParticipantFactory.CreateEnemy(maxHp: 30, shield: 20);
+            var events = new List<CombatEvent>();
+            var participantsById = new Dictionary<int, CombatParticipant>
+            {
+                [player.Id.Value] = player,
+                [enemy.Id.Value] = enemy,
+            };
+            ApplyStatus(player, StatusEffectKind.Weaken, magnitude: 2);
+
+            resolver.ResolvePlayerEffects(
+                new[]
+                {
+                    new CombatEffect(
+                        CombatEffectKind.Damage,
+                        10,
+                        CombatEffectTarget.SelectedEnemy(enemy.Id)),
+                },
+                player,
+                player,
+                new[] { enemy },
+                participantsById,
+                selectedTargetId: enemy.Id,
+                BattlePhase.Resolving,
+                events,
+                shouldEndBattle: () => false);
+
+            CombatEvent damageEvent = events.Single(e =>
+                e.Kind == CombatEventKind.EffectApplied &&
+                e.Effect.Kind == CombatEffectKind.Damage);
+            Assert.That(damageEvent.Effect.Amount, Is.EqualTo(8));
+            Assert.That(damageEvent.ApplyResult.DamageDealt, Is.Zero);
+            Assert.That(damageEvent.ApplyResult.ShieldConsumed, Is.EqualTo(8));
+            Assert.That(player.StatusEffects.Single().StackCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ResolvePlayerEffects_WeakenNoValidTarget_DoesNotConsume()
+        {
+            var effectApplicator = new EffectApplicator();
+            var statusEffectEngine = new StatusEffectEngine(effectApplicator);
+            var resolver = new CombatActionResolver(effectApplicator, statusEffectEngine);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer();
+            CombatParticipant enemy = CombatParticipantFactory.CreateEnemy(currentHp: 0);
+            var events = new List<CombatEvent>();
+            var participantsById = new Dictionary<int, CombatParticipant>
+            {
+                [player.Id.Value] = player,
+                [enemy.Id.Value] = enemy,
+            };
+            ApplyStatus(player, StatusEffectKind.Weaken, magnitude: 2);
+
+            resolver.ResolvePlayerEffects(
+                new[]
+                {
+                    new CombatEffect(
+                        CombatEffectKind.Damage,
+                        10,
+                        CombatEffectTarget.SelectedEnemy(enemy.Id)),
+                },
+                player,
+                player,
+                new[] { enemy },
+                participantsById,
+                selectedTargetId: enemy.Id,
+                BattlePhase.Resolving,
+                events,
+                shouldEndBattle: () => false);
+
+            Assert.That(events.Any(e =>
+                e.Kind == CombatEventKind.EffectApplied &&
+                e.Effect.Kind == CombatEffectKind.Damage), Is.False);
+            Assert.That(player.StatusEffects.Single().StackCount, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void ResolvePlayerEffects_WeakenOneUse_RemovesStatusAndEmitsExpired()
+        {
+            var effectApplicator = new EffectApplicator();
+            var statusEffectEngine = new StatusEffectEngine(effectApplicator);
+            var resolver = new CombatActionResolver(effectApplicator, statusEffectEngine);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer();
+            CombatParticipant enemy = CombatParticipantFactory.CreateEnemy(maxHp: 30);
+            var events = new List<CombatEvent>();
+            var participantsById = new Dictionary<int, CombatParticipant>
+            {
+                [player.Id.Value] = player,
+                [enemy.Id.Value] = enemy,
+            };
+            ApplyStatus(player, StatusEffectKind.Weaken, magnitude: 1);
+
+            resolver.ResolvePlayerEffects(
+                new[]
+                {
+                    new CombatEffect(
+                        CombatEffectKind.Damage,
+                        10,
+                        CombatEffectTarget.SelectedEnemy(enemy.Id)),
+                },
+                player,
+                player,
+                new[] { enemy },
+                participantsById,
+                selectedTargetId: enemy.Id,
+                BattlePhase.Resolving,
+                events,
+                shouldEndBattle: () => false);
+
+            Assert.That(player.StatusEffects, Is.Empty);
+            Assert.That(events.Any(e =>
+                e.Kind == CombatEventKind.StatusExpired &&
+                e.StatusEffectKind == StatusEffectKind.Weaken &&
+                e.TargetParticipantId.Value == player.Id.Value), Is.True);
+        }
+
+        [Test]
+        public void ResolveEnemyPlannedActions_WeakenEnemySource_AppliesAndConsumes()
+        {
+            var effectApplicator = new EffectApplicator();
+            var statusEffectEngine = new StatusEffectEngine(effectApplicator);
+            var resolver = new CombatActionResolver(effectApplicator, statusEffectEngine);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer(maxHp: 30);
+            CombatParticipant enemy = CombatParticipantFactory.CreateEnemy();
+            var events = new List<CombatEvent>();
+            var participantsById = new Dictionary<int, CombatParticipant>
+            {
+                [player.Id.Value] = player,
+                [enemy.Id.Value] = enemy,
+            };
+            ApplyStatus(enemy, StatusEffectKind.Weaken, magnitude: 2);
+
+            resolver.ResolveEnemyPlannedActions(
+                new[]
+                {
+                    new EnemyPlannedAction(
+                        new EnemyActionKey(1),
+                        "Attack",
+                        new[]
+                        {
+                            EnemyActionEffect.FromCombatEffect(
+                                new CombatEffect(CombatEffectKind.Damage, 10, CombatEffectTarget.Enemy)),
+                        }),
+                },
+                enemy,
+                player,
+                new[] { enemy },
+                participantsById,
+                selectedTargetId: player.Id,
+                BattlePhase.EnemyTurn,
+                events,
+                shouldEndBattle: () => false);
+
+            CombatEvent damageEvent = events.Single(e =>
+                e.Kind == CombatEventKind.EffectApplied &&
+                e.Effect.Kind == CombatEffectKind.Damage);
+            Assert.That(damageEvent.Effect.Amount, Is.EqualTo(8));
+            Assert.That(player.CurrentHp, Is.EqualTo(22));
+            Assert.That(enemy.StatusEffects.Single().StackCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ResolvePlayerEffects_WeakenAndVulnerable_AppliesOutgoingBeforeIncoming()
+        {
+            var effectApplicator = new EffectApplicator();
+            var statusEffectEngine = new StatusEffectEngine(effectApplicator);
+            var resolver = new CombatActionResolver(effectApplicator, statusEffectEngine);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer();
+            CombatParticipant enemy = CombatParticipantFactory.CreateEnemy(maxHp: 30);
+            var events = new List<CombatEvent>();
+            var participantsById = new Dictionary<int, CombatParticipant>
+            {
+                [player.Id.Value] = player,
+                [enemy.Id.Value] = enemy,
+            };
+            ApplyStatus(player, StatusEffectKind.Weaken, magnitude: 2);
+            ApplyStatus(enemy, StatusEffectKind.Vulnerable, magnitude: 2);
+
+            resolver.ResolvePlayerEffects(
+                new[]
+                {
+                    new CombatEffect(
+                        CombatEffectKind.Damage,
+                        6,
+                        CombatEffectTarget.SelectedEnemy(enemy.Id)),
+                },
+                player,
+                player,
+                new[] { enemy },
+                participantsById,
+                selectedTargetId: enemy.Id,
+                BattlePhase.Resolving,
+                events,
+                shouldEndBattle: () => false);
+
+            CombatEvent damageEvent = events.Single(e =>
+                e.Kind == CombatEventKind.EffectApplied &&
+                e.Effect.Kind == CombatEffectKind.Damage);
+            Assert.That(damageEvent.Effect.Amount, Is.EqualTo(6));
+            Assert.That(player.StatusEffects.Single().StackCount, Is.EqualTo(1));
+            Assert.That(enemy.StatusEffects.Single().StackCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ResolvePlayerEffects_WeakenRefreshAndStack_UseCommonStackRules()
+        {
+            var effectApplicator = new EffectApplicator();
+            var statusEffectEngine = new StatusEffectEngine(effectApplicator);
+            CombatParticipant player = CombatParticipantFactory.CreatePlayer();
+            var events = new List<CombatEvent>();
+
+            statusEffectEngine.ApplyStatus(
+                new StatusEffectSpec(
+                    StatusEffectKind.Weaken,
+                    duration: 0,
+                    magnitude: 2,
+                    StatusStackMode.Refresh),
+                player,
+                BattlePhase.Resolving,
+                events);
+            statusEffectEngine.ApplyStatus(
+                new StatusEffectSpec(
+                    StatusEffectKind.Weaken,
+                    duration: 0,
+                    magnitude: 5,
+                    StatusStackMode.Refresh),
+                player,
+                BattlePhase.Resolving,
+                events);
+
+            Assert.That(player.StatusEffects.Single().StackCount, Is.EqualTo(5));
+
+            statusEffectEngine.ApplyStatus(
+                new StatusEffectSpec(
+                    StatusEffectKind.Weaken,
+                    duration: 0,
+                    magnitude: 3,
+                    StatusStackMode.Stack),
+                player,
+                BattlePhase.Resolving,
+                events);
+
+            Assert.That(player.StatusEffects.Single().StackCount, Is.EqualTo(8));
+        }
+
         [TestCase(10, 12)]
         [TestCase(3, 4)]
         [TestCase(1, 2)]

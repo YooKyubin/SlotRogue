@@ -50,7 +50,7 @@
 - [ ] Core/Combat: `Infection`을 턴 종료 피해 후 수치 1 감소, 총 스택 상한 없음으로 구현 — _(전투 담당)_
 - [ ] Core/Combat: 피해 정산 전/후 훅 추가 — _(전투 담당)_
 - [x] Core/Combat: `Vulnerable`을 다음 N번 피해 정산 증가 + 적용 횟수 감소로 구현 — Codex
-- [ ] Core/Combat: `Weaken`을 다음 N번 공격/스핀 정산 피해 감소 + 적용 횟수 감소로 구현 — _(전투 담당)_
+- [x] Core/Combat: `Weaken`을 다음 N번 공격/스핀 정산 피해 20% 감소 + 적용 횟수 감소로 구현 — Codex
 - [ ] Core/Combat: 실제 HP 피해량 기반 후처리 훅 추가 — _(전투 담당)_
 - [ ] Core/Combat: `Lifesteal`을 실제 피해 비율 회복 + 턴당 회복 상한으로 구현 — _(전투 담당)_
 - [ ] Core/Combat: 피격 후 반응 훅 추가 — _(전투 담당)_
@@ -68,7 +68,7 @@
 - [ ] UI/GameFlow: 상태 아이콘/표시 텍스트를 v6 6속성 기준으로 갱신 — _(전투 담당)_
 - [ ] Tests/Core: Burn 즉시 피해 + 턴 종료 피해 + 만료 테스트 추가/갱신 — _(전투 담당)_
 - [ ] Tests/Core: Infection 누적, 턴 종료 피해, 1 감소, 상한 없음 테스트 추가 — _(전투 담당)_
-- [ ] Tests/Core: Vulnerable/Weaken 정산 단위와 소모 테스트 추가 — _(전투 담당)_ (`Vulnerable` 완료: Codex)
+- [x] Tests/Core: Vulnerable/Weaken 정산 단위와 소모 테스트 추가 — Codex
 - [ ] Tests/Core: Lifesteal 실제 피해 기반 회복과 턴당 상한 테스트 추가 — _(전투 담당)_
 - [ ] Tests/Core: Thorns 피격 반사, 라운드 종료 제거, 반사 재귀 방지 테스트 추가 — _(전투 담당)_
 - [ ] Tests/UI: 유물 resolver → status request → combat effect 변환 테스트 갱신 — _(전투 담당)_
@@ -90,7 +90,7 @@
 | ID | 질문 | 비고 |
 |----|------|------|
 | Q1 | 취약 기본 배율은 20%와 25% 중 무엇을 쓸 것인가? | v6 상세표는 25%, 일부 기존 유물 설명은 20%다. |
-| Q2 | 약화 기본 감소율은 30%와 25% 중 무엇을 쓸 것인가? | v6 상세표는 30%, 일부 기존 카탈로그 설명은 25%다. |
+| ~~Q2~~ | ~~약화 기본 감소율은 30%와 25% 중 무엇을 쓸 것인가?~~ | **닫음 (2026-06-24).** 직접 공격 피해를 20% 감소시키며, `ceil(기본 피해 × 0.8)`을 사용한다. |
 | Q3 | 플레이어 정산 1회를 Core에서 어떻게 표현할 것인가? | `CombatEffect[]` 전체, damage group, action context 중 선택 필요. |
 | Q4 | 몬스터의 `Weak`는 모든 행동 피해 합산에 한 번 적용할 것인가, 행동 내부 damage effect마다 적용할 것인가? | v6은 공격 행동 1회를 기준으로 한다. |
 | Q5 | 상태 아이콘 수치 표시는 `Magnitude`, `StackCount`, `RemainingTurns` 중 무엇을 우선 표시할 것인가? | 감염/취약/약화/가시마다 UI 규칙이 다를 수 있다. |

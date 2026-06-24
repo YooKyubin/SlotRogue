@@ -46,6 +46,16 @@ namespace SlotRogue.Core.Combat
                         new VulnerableDamageModifier(),
                         new VulnerableUsageHandler(),
                     }),
+                StatusEffectKind.Weaken => new StatusEffectInstance(
+                    spec.Kind,
+                    remainingTurns: 0,
+                    magnitude: 0,
+                    stackCount: spec.Magnitude > 0 ? spec.Magnitude : 1,
+                    new IStatusEffectComponent[]
+                    {
+                        new WeakenDamageModifier(),
+                        new WeakenUsageHandler(),
+                    }),
                 _ => null,
             };
         }

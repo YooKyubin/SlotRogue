@@ -148,6 +148,8 @@ BattleSystem
 
 상태 인스턴스는 modifier 계산에 영향을 주는 값(`RemainingTurns`, `Magnitude`, `StackCount`)이 바뀌거나 같은 종류의 상태가 다시 적용될 때 `Revision`을 증가시킨다. `Refresh`는 incoming 상태의 지속시간, 수치, 횟수로 교체하고, `Stack`은 기존 횟수에 incoming 횟수를 더한다. 행동 시작 snapshot은 원본 상태 인스턴스와 당시 revision을 함께 캡처한다. 행동 종료 사용 처리 시점에 원본 상태가 참가자에게 그대로 남아 있고 revision도 같을 때만 사용 처리 hook을 호출한다. 행동 중 상태가 갱신, 제거, 교체되면 이전 snapshot의 사용으로 새 상태를 소모하지 않는다.
 
+`Weaken`은 공격자의 outgoing modifier로 직접 공격 피해를 `ceil(피해 × 0.8)`로 감소시키고, 기본 피해가 1 이상이면 최소 피해 1을 유지한다. 같은 행동의 모든 직접 피해에 적용하되 행동 종료 시 적용 횟수(`StackCount`)를 1만 감소시킨다. 다단히트, 다중 대상, 방어막에 전부 막힌 피해도 같은 행동의 사용으로 처리한다. 유효한 대상이 없어 피해 처리가 시작되지 않거나 피해량이 0이면 사용하지 않는다.
+
 `DamageOrigin.Status`와 `DamageOrigin.Reflection`은 현재 modifier 호출 대상에서 제외한다. 화상·독 같은 턴 시작 피해는 `StatusEffectContext`가 `EffectApplicator`에 직접 최종 피해를 넘기는 기존 경로를 유지한다. `EffectApplied` 이벤트에는 실제 보정되어 적용된 `CombatEffect`를 기록하고, `ActionCompleted`는 원본 행동 정보를 유지한다.
 
 `DamageModifierContext`는 피해 계산에 필요한 원인, 공격자 ID, 대상 ID, 현재 피해량, 캡처된 상태 snapshot만 가진다. 추가 피해, 회복, 방어막, 상태 부여/제거, 이벤트 발생 같은 전투 상태 변경 기능은 modifier 호출 경로에 노출하지 않는다. 실제 상태 생명주기와 이벤트 처리는 계속 `StatusEffectContext`의 책임이다.
