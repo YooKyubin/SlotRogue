@@ -20,7 +20,7 @@ namespace SlotRogue.UI.GameFlow
             if (_stackText != null)
             {
                 int stackCount = Mathf.Max(0, status.StackCount);
-                bool shouldShowStack = stackCount > 1 || status.Kind == StatusEffectKind.Poison;
+                bool shouldShowStack = stackCount > 1 || status.Kind == StatusEffectKind.Infection;
                 _stackText.text = shouldShowStack && stackCount > 0 ? stackCount.ToString() : string.Empty;
             }
         }

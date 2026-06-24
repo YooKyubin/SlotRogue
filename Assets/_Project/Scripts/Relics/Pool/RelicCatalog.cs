@@ -12,7 +12,7 @@ namespace SlotRogue.Relics.Pool
     /// Phase 1 보상풀(<see cref="RewardPool"/>)·시작 선택지(<see cref="Starters"/>)에는
     /// <see cref="RelicDefinition.Phase1"/>인 것만 등장한다.
     ///
-    /// 전투 코어의 현재 Burn/Poison 동작은 v23 화상/감염 규칙과 다르다.
+    /// 상태이상 유물은 전투 코어 연결 범위가 확정될 때까지 보상풀에서 제외한다.
     /// 상태이상 계열은 카탈로그에 등록하되 전투 담당 구현이 정합해질 때까지 Phase1=false로 제외한다.
     /// </summary>
     public static class RelicCatalog
@@ -85,7 +85,7 @@ namespace SlotRogue.Relics.Pool
                 R("C-08", RelicGrade.Common, "푸른 감염가루", RelicRole.Status, RelicTriggerType.MatchTag, RelicEffectType.ApplyInfect,
                     value: 2, tag: SymbolTag.Blue, required: 4, phase1: false,
                     desc: "푸른 계열 4개 이상 족보 → 감염 2 부여 (턴 종료 피해 후 1 감소)",
-                    intent: "전투 코어의 Poison 타이밍·스택 감소 규칙이 v23 감염과 달라 보상풀에서 임시 제외."),
+                    intent: "감염 유물의 전투 요청 연결 범위가 확정될 때까지 보상풀에서 임시 제외."),
                 R("C-09", RelicGrade.Common, "노란 균열분말", RelicRole.Status, RelicTriggerType.MatchTag, RelicEffectType.ApplyVulnerable,
                     value: 1, tag: SymbolTag.Yellow, required: 4, phase1: false,
                     desc: "노란 계열 4개 이상 족보 → 취약 1 (다음 피해 1회 +20%)",
@@ -153,7 +153,7 @@ namespace SlotRogue.Relics.Pool
                 R("U-08", RelicGrade.Uncommon, "푸른 배양액", RelicRole.Status, RelicTriggerType.MatchTag, RelicEffectType.ApplyInfect,
                     value: 3, tag: SymbolTag.Blue, required: 4, phase1: false, qa: "m",
                     desc: "푸른 계열 4개 이상 족보 → 감염 3 부여 (턴 종료 피해 후 1 감소)",
-                    intent: "전투 코어의 Poison 타이밍·스택 감소 규칙이 v23 감염과 달라 보상풀에서 임시 제외."),
+                    intent: "감염 유물의 전투 요청 연결 범위가 확정될 때까지 보상풀에서 임시 제외."),
                 R("U-09", RelicGrade.Uncommon, "노란 무력석", RelicRole.Status, RelicTriggerType.MatchTag, RelicEffectType.ApplyWeak,
                     value: 2, tag: SymbolTag.Yellow, required: 4, phase1: false, qa: "m",
                     desc: "노란 계열 4개 이상 족보 → 약화 2 (총 피해 감소율 최대 40%)",

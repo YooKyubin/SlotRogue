@@ -128,12 +128,12 @@ namespace SlotRogue.UI.Tests.Combat
             CombatEffect[] effects = _converter.Convert(
                 request,
                 selectedTargetId,
-                new StatusEffectSpec(StatusEffectKind.Poison, duration: 0, magnitude: 1, StatusStackMode.Stack));
+                new StatusEffectSpec(StatusEffectKind.Infection, duration: 0, magnitude: 1, StatusStackMode.Stack));
 
             Assert.That(effects, Has.Length.EqualTo(2));
             Assert.That(effects[0].Kind, Is.EqualTo(CombatEffectKind.Damage));
             Assert.That(effects[1].Kind, Is.EqualTo(CombatEffectKind.ApplyStatus));
-            Assert.That(effects[1].StatusEffect.Kind, Is.EqualTo(StatusEffectKind.Poison));
+            Assert.That(effects[1].StatusEffect.Kind, Is.EqualTo(StatusEffectKind.Infection));
             Assert.That(effects[1].Target.ParticipantId, Is.EqualTo(selectedTargetId));
         }
     }

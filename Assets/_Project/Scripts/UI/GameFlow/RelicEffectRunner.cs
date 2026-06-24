@@ -536,7 +536,7 @@ namespace SlotRogue.UI.GameFlow
         /// <summary>적이 화상(Burn) 상태인지(U-13/U-16용).</summary>
         public bool EnemyHasBurn { get; }
 
-        /// <summary>적이 감염(전투에서는 Poison) 상태인지(U-13/U-17용).</summary>
+        /// <summary>적이 감염 상태인지(U-13/U-17용).</summary>
         public bool EnemyHasInfect { get; }
     }
 }

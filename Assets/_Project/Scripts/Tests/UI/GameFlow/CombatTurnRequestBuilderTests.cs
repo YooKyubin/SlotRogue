@@ -148,6 +148,34 @@ namespace SlotRogue.UI.Tests.GameFlow
         }
 
         [Test]
+        public void Build_MultipleInfectionRequests_AreCombinedAsStackCount()
+        {
+            var request = new SlotCombatRequest(6, 0, 1, 0, false, "Blue x4");
+            var relicResult = new RelicResolveResult(
+                additionalDamage: 0,
+                additionalBlock: 0,
+                healAmount: 0,
+                statusEffectsToApply: new[]
+                {
+                    new StatusEffectRequest(StatusEffectKind.Infection, 3),
+                    new StatusEffectRequest(StatusEffectKind.Infection, 4),
+                },
+                activationSummary: "푸른 감염가루, 푸른 배양액");
+
+            RunCombatRequestResult result = _builder.Build(
+                request,
+                relicResult,
+                runDamageBonus: 0,
+                runDefenseBonus: 0);
+
+            Assert.That(result.StatusEffectsToApply.Count, Is.EqualTo(1));
+            Assert.That(result.StatusEffectsToApply[0].Kind, Is.EqualTo(StatusEffectKind.Infection));
+            Assert.That(result.StatusEffectsToApply[0].Duration, Is.EqualTo(0));
+            Assert.That(result.StatusEffectsToApply[0].Magnitude, Is.EqualTo(7));
+            Assert.That(result.StatusEffectsToApply[0].StackMode, Is.EqualTo(StatusStackMode.Stack));
+        }
+
+        [Test]
         public void Build_ThornsRequest_MapsAmountToMagnitude()
         {
             var request = new SlotCombatRequest(0, 5, 1, 0, false, "Guard");

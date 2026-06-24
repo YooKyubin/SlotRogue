@@ -50,7 +50,7 @@ namespace SlotRogue.UI.GameFlow
                 enemy?.MaxHp ?? 0,
                 enemy != null && enemy.StatusEffects.Count > 0,
                 HasStatus(enemy, StatusEffectKind.Burn),
-                HasStatus(enemy, StatusEffectKind.Poison))); // 감염 = 기존 Poison 매핑
+                HasStatus(enemy, StatusEffectKind.Infection)));
         }
 
         private static bool HasStatus(CombatParticipant participant, StatusEffectKind kind)

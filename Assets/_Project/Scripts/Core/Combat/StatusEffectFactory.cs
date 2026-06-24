@@ -26,15 +26,14 @@ namespace SlotRogue.Core.Combat
                         new SkipActionComponent(),
                         new DurationComponent(),
                     }),
-                StatusEffectKind.Poison => new StatusEffectInstance(
+                StatusEffectKind.Infection => new StatusEffectInstance(
                     spec.Kind,
                     remainingTurns: 0,
-                    magnitude: 1,
+                    magnitude: 0,
                     stackCount: spec.Magnitude > 0 ? spec.Magnitude : 1,
                     new IStatusEffectComponent[]
                     {
-                        new StackLimitComponent(5),
-                        new PeriodicDamageComponent(StatusDamageMode.StackCount),
+                        new InfectionOnTeamTurnEndedComponent(),
                     }),
                 StatusEffectKind.Vulnerable => new StatusEffectInstance(
                     spec.Kind,

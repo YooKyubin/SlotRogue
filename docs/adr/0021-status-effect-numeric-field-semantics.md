@@ -12,7 +12,7 @@
 
 공통 상태 요청과 런타임 인스턴스는 `Amount`, `Magnitude`, `StackCount`, `RemainingTurns` 수치를 사용한다. 상태마다 전달하는 값의 의미가 달라 한 필드 이름만 보고 화상 강도, 감염 누적량, 남은 적용 횟수, 가시 반사 피해를 같은 개념으로 오해할 수 있다.
 
-현재 구현된 취약·약화·흡혈은 `StackCount`를 남은 적용 횟수로 사용하고, 가시는 `Magnitude`를 반사 피해량으로 사용한다. 향후 구현할 감염은 피해 후 1 감소하는 현재 감염량을 `StackCount`로 표현할 예정이다. 화상과 감염의 세부 실행 타이밍은 아직 구현 대상이며 이 ADR에서 확정하지 않는다.
+취약·약화·흡혈은 `StackCount`를 남은 적용 횟수로 사용하고, 감염은 피해 후 1 감소하는 현재 감염량을 `StackCount`로 사용한다. 가시는 `Magnitude`를 반사 피해량으로 사용한다. 화상과 감염의 실행 타이밍은 관련 design-doc과 상태 컴포넌트 계약을 따른다.
 
 기존 유물 계층에는 최종 예상 피해를 기준으로 회복량을 미리 계산하는 `RelicDerivedHeal` 흡혈 경로도 존재한다. 이는 실제 HP 피해 뒤 타격별로 회복하는 Core `Lifesteal` 상태와 계산 기준 및 실행 시점이 다르다.
 
@@ -62,5 +62,5 @@
 
 ## Notes
 
-- 현재 Core enum에는 아직 `Infection`이 없고 기존 `Poison`이 임시 구현으로 남아 있다. 표의 `Infection` 행은 향후 공식 구현 계약이다.
-- 화상·감염 실행 타이밍과 이벤트 순서는 [`attribute-status-interference.md`](../design-docs/attribute-status-interference.md)의 구현 작업에서 별도로 확정한다.
+- 감염은 `StatusEffectKind.Infection`과 `InfectionOnTeamTurnEndedComponent`로 구현하며, 기존 독 실행 경로와 5스택 상한은 제거한다.
+- 화상·감염 실행 타이밍과 이벤트 순서는 [`attribute-status-interference.md`](../design-docs/attribute-status-interference.md)를 따른다.

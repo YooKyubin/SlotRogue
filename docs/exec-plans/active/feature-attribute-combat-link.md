@@ -16,7 +16,7 @@
 ### 포함
 
 - 기존 `StatusEffectEngine` 컴포넌트 구조를 v6 속성 계약에 맞게 확장한다.
-- `Poison` 임시 매핑을 `Infection` 계약으로 정리한다.
+- 기존 독 임시 매핑을 `Infection` 계약으로 정리한다.
 - `Burn`, `Infection`, `Vulnerable`, `Weaken`, `Lifesteal`, `Thorns`를 전투 코어에서 표현한다.
 - 턴 종료 피해, 피해 정산 전/후 보정, 피격 후 반응, 실제 피해 기반 회복, 라운드 종료 처리를 추가한다.
 - 유물 실행 경로에서 상태/흡혈/가시 요청을 생성하고, 구현된 유물만 보상풀에 단계적으로 편입한다.
@@ -33,22 +33,22 @@
 2026-06-22 기준 코드는 이전 속성 연결 작업의 중간 상태다.
 
 - `CombatEffectKind.ApplyStatus`, `StatusEffectSpec`, `StatusEffectEngine`, `StatusEffectInstance`, `IStatusEffectComponent` 기반은 구현되어 있다.
-- 현재 공식 상태 종류는 `Burn`, `Freeze`, `Poison`이다.
+- 작업 시작 당시 공식 상태 종류는 `Burn`, `Freeze`, 기존 독 상태였다.
 - `Burn`은 턴 시작 고정 피해 + duration 감소 구조다.
-- `Poison`은 턴 시작 stack 피해 + 최대 5스택 + 감소 없음 구조다.
+- 기존 독은 턴 시작 stack 피해 + 최대 5스택 + 감소 없음 구조였다.
 - `Freeze`는 행동 스킵 상태로 존재하지만 v6 1차 핵심에서는 제외한다.
 - `RelicEffectRunner`는 상태 계열 유물을 만나면 경고만 출력하고 실행하지 않는다.
-- `RelicTurnResolver`는 감염을 `Poison` 보유 여부로 임시 판정한다.
+- 작업 시작 당시 `RelicTurnResolver`는 감염을 기존 독 보유 여부로 임시 판정했다.
 - 상태 아이콘 UI와 상태 이벤트 일부(`StatusApplied`, `StatusTicked`, `StatusExpired`, `ActionSkipped`)는 이미 연결되어 있다.
 
 ## Checklist
 
 - [x] 기존 상태이상 컴포넌트 기반 구조 파악 — Codex
 - [x] v6 속성/방해 기획서를 design-doc으로 재작성 — Codex
-- [ ] Core/Combat: `StatusEffectKind`를 v6 6속성 기준으로 정리하고 `Poison`/`Freeze` 공식 경로 처리 방침 반영 — _(전투 담당)_
+- [x] Core/Combat: `StatusEffectKind`를 v6 6속성 기준으로 정리하고 기존 독 제거 및 `Freeze` 호환 경로 유지 — Codex
 - [x] Core/Combat: 팀 턴 종료 상태 반응 훅 추가 — Codex
 - [x] Core/Combat: `Burn`을 부여 즉시 피해 + 대상 팀 턴 종료 1회 피해 후 제거로 변경 — Codex
-- [ ] Core/Combat: `Infection`을 턴 종료 피해 후 수치 1 감소, 총 스택 상한 없음으로 구현 — _(전투 담당)_
+- [x] Core/Combat: `Infection`을 턴 종료 피해 후 수치 1 감소, 총 스택 상한 없음으로 구현 — Codex
 - [ ] Core/Combat: 피해 정산 전/후 훅 추가 — _(전투 담당)_
 - [x] Core/Combat: `Vulnerable`을 다음 N번 피해 정산 증가 + 적용 횟수 감소로 구현 — Codex
 - [x] Core/Combat: `Weaken`을 다음 N번 공격/스핀 정산 피해 20% 감소 + 적용 횟수 감소로 구현 — Codex
@@ -67,21 +67,22 @@
 - [ ] UI/GameFlow: 적 행동 planner factory에서 새 몬스터 효과 정의를 Core 효과로 변환 — _(전투 담당)_
 - [ ] UI/GameFlow: 상태 아이콘/표시 텍스트를 v6 6속성 기준으로 갱신 — _(전투 담당)_
 - [x] Tests/Core: Burn 즉시 피해 + 팀 턴 종료 피해 + 만료 테스트 추가/갱신 — Codex
-- [ ] Tests/Core: Infection 누적, 턴 종료 피해, 1 감소, 상한 없음 테스트 추가 — _(전투 담당)_
+- [x] Tests/Core: Infection 누적, 턴 종료 피해, 1 감소, 상한 없음 테스트 추가 — Codex
 - [x] Tests/Core: Vulnerable/Weaken 정산 단위와 소모 테스트 추가 — Codex
 - [x] Tests/Core: Lifesteal 실제 HP 피해 기반 회복, 행동당 소모, Snapshot/Revision, 이벤트 순서 테스트 추가 — Codex
 - [x] Tests/Core: Thorns 확률, 다단히트·다중 대상, 방어막, 반사 재귀 방지, 이벤트 순서, 팀 턴 종료 제거 테스트 추가 — Codex
 - [ ] Tests/UI: 유물 resolver → status request → combat effect 변환 테스트 갱신 — _(전투 담당)_
-- [ ] `dotnet build SlotRogue.slnx` 통과 — _(전투 담당)_
+- [x] `dotnet build SlotRogue.slnx` 통과 — Codex
 - [ ] Unity Editor에서 EditMode 테스트 결과 확인 — _(전투 담당)_
 
 ## Implementation notes
 
 - 취약/약화의 핵심 위험은 “유물 발동 건별 소모”다. v6 기준 정산 1회는 플레이어 스핀 1회의 합산 피해, 몬스터 공격 행동 1회다.
 - 현재 `CombatEffect[]`는 개별 효과 순서로 적용되므로, 취약/약화를 단순히 `Damage` effect마다 소모하면 기획과 달라질 수 있다. 정산 묶음 또는 action 단위 context가 필요하다.
-- 감염은 총 스택 상한이 없다. 기존 `StackLimitComponent(5)`를 그대로 재사용하면 안 된다.
+- 감염은 총 스택 상한이 없다. 기존 독 전용 5스택 제한 코드는 제거한다.
 - 가시는 자신의 팀 턴 종료에 제거하지 않는다. `BattleSystem`은 종료된 팀만 `StatusEffectEngine`에 알리고, 엔진이 상대 팀 참가자의 `IExpireOnOpponentTeamTurnEnd` 상태를 기존 `StatusExpired` 이벤트 경로로 제거한다.
 - 화상은 `StatusApplied` 이벤트 후 즉시 `DamageOrigin.Status` 피해를 주고, 보유자 팀 턴 종료 알림에서 같은 피해를 한 번 더 준 뒤 기존 `StatusExpired` 경로로 제거한다.
+- 감염은 부여 직후 피해 없이 `StackCount`에 `Amount`를 저장한다. 보유자 팀 턴 종료에 감소 전 수치만큼 `DamageOrigin.Status` 피해를 준 뒤 1 감소시키고, 0이면 기존 만료 경로를 요청한다. 기존 독 전용 턴 시작 피해와 5스택 제한 컴포넌트는 제거한다.
 - 화상과 가시는 `Magnitude`만 사용하므로 의미 없는 `StackCount`를 증가시키지 않고 0으로 유지한다. `Stack` 시 피해량 합산 여부는 후속 공통 정책 결정 전까지 기존처럼 새 `Magnitude`로 교체한다.
 - 흡혈은 요청 피해량이나 `EffectApplyResult.DamageDealt`가 아니라 타격 전후 HP Snapshot 차이로 계산한 실제 HP 피해량 기준이다. shield로 막힌 피해와 overkill 초과량은 회복량에 포함하지 않는다.
 - 흡혈 회복은 피해 `EffectApplied` 직후 같은 타격 안에서 기존 Heal `EffectApplied`로 기록한다. 최대 HP여도 실제 HP 피해를 줬다면 발동 및 행동당 횟수 소모로 본다.

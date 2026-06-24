@@ -1,7 +1,7 @@
 # 전투 코어 (Combat Core)
 
 **Status**: draft  
-**Last updated**: 2026-06-25 (팀 턴 종료 상태 만료 책임 반영)
+**Last updated**: 2026-06-25 (감염 팀 턴 종료 피해·감소 반영)
 
 ## Purpose
 
@@ -150,13 +150,13 @@ BattleSystem
 
 `Weaken`은 공격자의 outgoing modifier로 직접 공격 피해를 `ceil(피해 × 0.8)`로 감소시키고, 기본 피해가 1 이상이면 최소 피해 1을 유지한다. 같은 행동의 모든 직접 피해에 적용하되 행동 종료 시 적용 횟수(`StackCount`)를 1만 감소시킨다. 다단히트, 다중 대상, 방어막에 전부 막힌 피해도 같은 행동의 사용으로 처리한다. 유효한 대상이 없어 피해 처리가 시작되지 않거나 피해량이 0이면 사용하지 않는다.
 
-`DamageOrigin.Status`와 `DamageOrigin.Reflection`은 현재 modifier 호출 대상에서 제외한다. 화상·독 같은 턴 시작 피해는 `StatusEffectContext`가 `EffectApplicator`에 직접 최종 피해를 넘기는 기존 경로를 유지한다. `EffectApplied` 이벤트에는 실제 보정되어 적용된 `CombatEffect`를 기록하고, `ActionCompleted`는 원본 행동 정보를 유지한다.
+`DamageOrigin.Status`와 `DamageOrigin.Reflection`은 현재 modifier 호출 대상에서 제외한다. 화상·감염 같은 상태 피해는 `StatusEffectContext`가 `EffectApplicator`에 직접 최종 피해를 넘기는 경로를 사용한다. `EffectApplied` 이벤트에는 실제 보정되어 적용된 `CombatEffect`를 기록하고, `ActionCompleted`는 원본 행동 정보를 유지한다.
 
 `DamageModifierContext`는 피해 계산에 필요한 원인, 공격자 ID, 대상 ID, 현재 피해량, 캡처된 상태 snapshot만 가진다. 추가 피해, 회복, 방어막, 상태 부여/제거, 이벤트 발생 같은 전투 상태 변경 기능은 modifier 호출 경로에 노출하지 않는다. 실제 상태 생명주기와 이벤트 처리는 계속 `StatusEffectContext`의 책임이다.
 
 상대 팀 턴 종료 시 만료되는 상태는 `IExpireOnOpponentTeamTurnEnd` 컴포넌트를 조합한다. `StatusEffectEngine`은 종료된 팀의 반대편 참가자만 검사하고 해당 컴포넌트가 있는 상태를 기존 `OnExpired` → 상태 제거 → `StatusExpired` 이벤트 순서로 만료한다. 현재 `Thorns`가 이 정책을 사용한다.
 
-보유자 팀 턴 종료에 반응하는 상태는 `ITeamTurnEnded` 컴포넌트를 조합한다. `StatusEffectEngine`은 종료된 팀에 속한 참가자의 해당 컴포넌트를 실행하고, 컴포넌트가 만료를 요청하면 반응 처리가 끝난 뒤 기존 만료 경로를 사용한다. `Burn`은 `StatusApplied` 이벤트 이후 즉시 상태 피해를 주고, 보유자 팀 턴 종료 시 같은 피해를 준 뒤 만료한다.
+보유자 팀 턴 종료에 반응하는 상태는 `ITeamTurnEnded` 컴포넌트를 조합한다. `StatusEffectEngine`은 종료된 팀에 속한 참가자의 해당 컴포넌트를 실행하고, 컴포넌트가 만료를 요청하면 반응 처리가 끝난 뒤 기존 만료 경로를 사용한다. `Burn`은 `StatusApplied` 이벤트 이후 즉시 상태 피해를 주고, 보유자 팀 턴 종료 시 같은 피해를 준 뒤 만료한다. `Infection`은 감소 전 `StackCount`만큼 상태 피해를 준 다음 수치를 1 감소시키고, 0이 되면 만료를 요청한다.
 
 ### Participant
 

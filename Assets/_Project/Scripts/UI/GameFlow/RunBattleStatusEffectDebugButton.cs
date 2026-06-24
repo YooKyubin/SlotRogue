@@ -104,9 +104,9 @@ namespace SlotRogue.UI.GameFlow
                     _magnitude = 0;
                     _stackMode = StatusStackMode.Refresh;
                     break;
-                case StatusEffectKind.Poison:
+                case StatusEffectKind.Infection:
                     _duration = 0;
-                    _magnitude = 1;
+                    _magnitude = 3;
                     _stackMode = StatusStackMode.Stack;
                     break;
             }
