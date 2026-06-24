@@ -27,17 +27,23 @@ namespace SlotRogue.Core.Combat
 
         public StatusEffectInstance Instance { get; }
 
+        internal bool IsExpirationRequested { get; private set; }
+
         public EffectApplyResult DealDamage(int amount)
         {
+            CombatEffect effect = new(
+                CombatEffectKind.Damage,
+                amount,
+                CombatEffectTarget.Self,
+                DamageOrigin.Status);
             CombatParticipantSnapshot before = new(Participant.CurrentHp, Participant.Shield);
-            EffectApplyResult result = _effectApplicator.ApplyToParticipant(
-                new CombatEffect(CombatEffectKind.Damage, amount, CombatEffectTarget.Self, DamageOrigin.Status),
-                Participant);
+            EffectApplyResult result = _effectApplicator.ApplyToParticipant(effect, Participant);
             CombatParticipantSnapshot after = new(Participant.CurrentHp, Participant.Shield);
 
             _events.Add(new CombatEvent(
                 CombatEventKind.StatusTicked,
                 Phase,
+                effect,
                 applyResult: result,
                 isPlayerParticipant: Participant.Team == CombatTeam.Player,
                 targetParticipantId: Participant.Id,
@@ -49,6 +55,11 @@ namespace SlotRogue.Core.Combat
                 statusStackCount: Instance.StackCount));
 
             return result;
+        }
+
+        internal void RequestExpiration()
+        {
+            IsExpirationRequested = true;
         }
 
         internal void EmitApplied()

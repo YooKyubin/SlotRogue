@@ -156,6 +156,8 @@ BattleSystem
 
 상대 팀 턴 종료 시 만료되는 상태는 `IExpireOnOpponentTeamTurnEnd` 컴포넌트를 조합한다. `StatusEffectEngine`은 종료된 팀의 반대편 참가자만 검사하고 해당 컴포넌트가 있는 상태를 기존 `OnExpired` → 상태 제거 → `StatusExpired` 이벤트 순서로 만료한다. 현재 `Thorns`가 이 정책을 사용한다.
 
+보유자 팀 턴 종료에 반응하는 상태는 `ITeamTurnEnded` 컴포넌트를 조합한다. `StatusEffectEngine`은 종료된 팀에 속한 참가자의 해당 컴포넌트를 실행하고, 컴포넌트가 만료를 요청하면 반응 처리가 끝난 뒤 기존 만료 경로를 사용한다. `Burn`은 `StatusApplied` 이벤트 이후 즉시 상태 피해를 주고, 보유자 팀 턴 종료 시 같은 피해를 준 뒤 만료한다.
+
 ### Participant
 
 플레이어·몬스터가 `currentHp`, `maxHp`, `shield`를 내부 관리한다. Resolver는 Participant에 Effect를 적용한다.

@@ -41,6 +41,7 @@ namespace SlotRogue.Core.Combat
             StatusEffectContext context = CreateContext(phase, participant, instance, events);
             InvokeApplied(instance, context);
             context.EmitApplied();
+            InvokeAfterApplied(instance, context);
         }
 
         public void TickTurnStart(CombatParticipant participant, BattlePhase phase, List<CombatEvent> events)
@@ -398,12 +399,23 @@ namespace SlotRogue.Core.Combat
                 throw new ArgumentOutOfRangeException(nameof(endedTeam));
             }
 
+            StatusEffectInstance[] instances = participant.GetStatusEffectsSnapshot();
             if (participant.Team == endedTeam)
             {
+                for (int instanceIndex = 0; instanceIndex < instances.Length; instanceIndex++)
+                {
+                    StatusEffectInstance instance = instances[instanceIndex];
+                    StatusEffectContext context = CreateContext(phase, participant, instance, events);
+                    InvokeTeamTurnEnded(instance, context);
+                    if (context.IsExpirationRequested)
+                    {
+                        Expire(participant, instance, context);
+                    }
+                }
+
                 return;
             }
 
-            StatusEffectInstance[] instances = participant.GetStatusEffectsSnapshot();
             for (int instanceIndex = 0; instanceIndex < instances.Length; instanceIndex++)
             {
                 StatusEffectInstance instance = instances[instanceIndex];
@@ -455,6 +467,28 @@ namespace SlotRogue.Core.Combat
             for (int index = 0; index < instance.Components.Count; index++)
             {
                 instance.Components[index].OnApplied(context);
+            }
+        }
+
+        private static void InvokeAfterApplied(StatusEffectInstance instance, StatusEffectContext context)
+        {
+            for (int index = 0; index < instance.Components.Count; index++)
+            {
+                if (instance.Components[index] is IAfterStatusApplied component)
+                {
+                    component.OnAfterStatusApplied(context);
+                }
+            }
+        }
+
+        private static void InvokeTeamTurnEnded(StatusEffectInstance instance, StatusEffectContext context)
+        {
+            for (int index = 0; index < instance.Components.Count; index++)
+            {
+                if (instance.Components[index] is ITeamTurnEnded component)
+                {
+                    component.OnTeamTurnEnded(context);
+                }
             }
         }
 

@@ -159,7 +159,10 @@ namespace SlotRogue.Core.Combat
                 return AcceptedResult();
             }
 
-            NotifyTeamTurnEnded(CombatTeam.Player);
+            if (RunBattleStep(() => NotifyTeamTurnEnded(CombatTeam.Player)))
+            {
+                return AcceptedResult();
+            }
 
             if (RunBattleStep(() => ResetShieldByTeam(CombatTeam.Enemy)))
             {
@@ -204,7 +207,10 @@ namespace SlotRogue.Core.Combat
                 }
             }
 
-            NotifyTeamTurnEnded(CombatTeam.Enemy);
+            if (RunBattleStep(() => NotifyTeamTurnEnded(CombatTeam.Enemy)))
+            {
+                return;
+            }
 
             if (RunBattleStep(() => ResetShieldByTeam(CombatTeam.Player)))
             {

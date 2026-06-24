@@ -336,12 +336,12 @@ namespace SlotRogue.Core.Tests.Combat
             ApplyStatus(participant, StatusEffectKind.Thorns, magnitude: 5, StatusStackMode.Refresh);
 
             Assert.That(thorns.Magnitude, Is.EqualTo(5));
-            Assert.That(thorns.StackCount, Is.EqualTo(1));
+            Assert.That(thorns.StackCount, Is.EqualTo(0));
 
             ApplyStatus(participant, StatusEffectKind.Thorns, magnitude: 7, StatusStackMode.Stack);
 
             Assert.That(thorns.Magnitude, Is.EqualTo(7));
-            Assert.That(thorns.StackCount, Is.EqualTo(2));
+            Assert.That(thorns.StackCount, Is.EqualTo(0));
         }
 
         [Test]

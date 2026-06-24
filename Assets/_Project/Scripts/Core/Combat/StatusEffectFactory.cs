@@ -8,13 +8,13 @@ namespace SlotRogue.Core.Combat
             {
                 StatusEffectKind.Burn => new StatusEffectInstance(
                     spec.Kind,
-                    spec.Duration,
+                    remainingTurns: 0,
                     spec.Magnitude,
-                    stackCount: 1,
+                    stackCount: 0,
                     new IStatusEffectComponent[]
                     {
-                        new PeriodicDamageComponent(StatusDamageMode.FixedMagnitude),
-                        new DurationComponent(),
+                        new BurnOnAppliedDamageComponent(),
+                        new BurnOnTeamTurnEndedComponent(),
                     }),
                 StatusEffectKind.Freeze => new StatusEffectInstance(
                     spec.Kind,
@@ -70,7 +70,7 @@ namespace SlotRogue.Core.Combat
                     spec.Kind,
                     remainingTurns: 0,
                     magnitude: spec.Magnitude,
-                    stackCount: 1,
+                    stackCount: 0,
                     new IStatusEffectComponent[]
                     {
                         new ThornsComponent(),

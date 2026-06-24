@@ -38,9 +38,11 @@
 
 `StackCount`의 “누적량”과 “남은 횟수”는 모두 현재 유효한 상태량이며, 각 상태 컴포넌트가 구체적인 감소 조건을 소유한다. 공통 UI와 디버깅 코드는 `StackCount`를 무조건 “중첩 횟수”로 표시하지 않고 `StatusEffectKind`별 표시 규칙을 사용해야 한다.
 
-다음 두 항목은 이번 결정에서 보류한다.
+`Magnitude`만 사용하는 `Burn`과 `Thorns`는 의미 없는 중첩 수치를 만들지 않도록 `StackCount`를 0으로 유지한다. 현재 공통 `Stack` 정책은 새 `Magnitude`로 교체하므로, 두 상태의 `Stack`은 피해량 합산이나 지속 횟수 증가를 의미하지 않는다.
 
-- `Magnitude`만 사용하는 가시에 `StatusStackMode.Stack`이 들어왔을 때 `StackCount`를 증가시킬지, `Magnitude`를 합산할지, Stack을 금지할지 여부는 나머지 속성 구현 후 공통 Stack/Refresh 정책 리팩터링에서 결정한다.
+다음 항목은 이번 결정에서 보류한다.
+
+- `Magnitude`만 사용하는 상태의 `StatusStackMode.Stack`을 금지할지, `Magnitude`를 합산할지 여부는 나머지 속성 구현 후 공통 Stack/Refresh 정책 리팩터링에서 결정한다. 결정 전에는 새 `Magnitude`로 교체하고 `StackCount`를 0으로 유지한다.
 - 기존 `RelicDerivedHeal` 흡혈을 Core `Lifesteal` 상태로 교체하거나 병행할지 여부는 기획자와 회복 기준 및 실행 시점을 확정한 뒤 결정한다.
 
 ## Alternatives considered
@@ -56,7 +58,7 @@
 - 상태 Factory와 컴포넌트가 상태별 수치 의미를 명시적으로 소유한다.
 - 감염 구현 시 피해량은 감소 전 `StackCount`, 피해 후 감소량은 1, 0 도달 시 기존 만료 경로를 사용한다.
 - 상태 UI는 `Magnitude`, `StackCount`, `RemainingTurns` 중 무엇을 표시할지 상태별 정책이 필요하다.
-- 가시 Stack 정책과 흡혈 경로 통합은 열린 결정으로 남아 있으며, 후속 결정 전에는 현재 동작을 조용히 일반화하지 않는다.
+- `Magnitude` 전용 상태의 Stack 계산 정책과 흡혈 경로 통합은 열린 결정으로 남아 있으며, 후속 결정 전에는 현재 동작을 조용히 일반화하지 않는다.
 
 ## Notes
 
