@@ -83,23 +83,15 @@ namespace SlotRogue.UI.GameFlow
             TutorialSignalRaised?.Invoke(BattleTutorialSignal.BattleStarted);
         }
 
-        public void DevApplyStatusTurn(
+        public void DevApplyRelicStatusTurn(
             StatusEffectKind statusEffectKind,
-            int duration,
-            int magnitude,
-            StatusStackMode stackMode,
-            bool includeDamage,
-            int damage,
-            int attackCount)
+            int amount,
+            CombatTargetMode targetMode)
         {
-            DevApplyStatusTurnAsync(
+            DevApplyRelicStatusTurnAsync(
                 statusEffectKind,
-                duration,
-                magnitude,
-                stackMode,
-                includeDamage,
-                damage,
-                attackCount).Forget();
+                amount,
+                targetMode).Forget();
         }
 
         public void Dispose()
@@ -220,14 +212,10 @@ namespace SlotRogue.UI.GameFlow
             }
         }
 
-        private async UniTaskVoid DevApplyStatusTurnAsync(
+        private async UniTaskVoid DevApplyRelicStatusTurnAsync(
             StatusEffectKind statusEffectKind,
-            int duration,
-            int magnitude,
-            StatusStackMode stackMode,
-            bool includeDamage,
-            int damage,
-            int attackCount)
+            int amount,
+            CombatTargetMode targetMode)
         {
             if (statusEffectKind == StatusEffectKind.None || !CanStartTurn())
             {
@@ -236,7 +224,7 @@ namespace SlotRogue.UI.GameFlow
             }
 
             CombatParticipantId selectedTargetId = _screenController.SelectedEnemyId;
-            if (!selectedTargetId.IsValid)
+            if (targetMode == CombatTargetMode.SelectedEnemy && !selectedTargetId.IsValid)
             {
                 return;
             }
@@ -246,32 +234,34 @@ namespace SlotRogue.UI.GameFlow
 
             try
             {
-                var statusEffect = new StatusEffectSpec(
-                    statusEffectKind,
-                    Math.Max(0, duration),
-                    Math.Max(0, magnitude),
-                    stackMode);
                 var request = new SlotCombatRequest(
-                    includeDamage ? Math.Max(0, damage) : 0,
-                    0,
-                    Math.Max(1, attackCount),
-                    0,
-                    false,
-                    $"DEV {statusEffectKind}");
+                    damage: 0,
+                    defense: 0,
+                    attackCount: 1,
+                    healAmount: 0,
+                    isCritical: false,
+                    patternName: $"DEV {statusEffectKind}");
+                StatusEffectRequest[] statusRequests =
+                {
+                    new(
+                        statusEffectKind,
+                        Math.Max(1, amount),
+                        targetMode),
+                };
                 var requestResult = new RunCombatRequestResult(
-                    request,
-                    request,
-                    string.Empty,
-                    $"DEV {statusEffectKind}",
-                    new[] { new TargetedStatusEffectSpec(statusEffect, CombatTargetMode.SelectedEnemy), });
+                    baseRequest: request,
+                    finalRequest: request,
+                    relicActivationSummary: $"DEV RELIC: {statusEffectKind} {Math.Max(1, amount)}",
+                    runBonusSummary: string.Empty,
+                    statusEffectsToApply: CombatTurnRequestBuilder.BuildStatusEffectSpecs(statusRequests));
                 _screenController.UpdateTurnResult(null, requestResult);
 
                 CombatEffect[] playerEffects = _converter.Convert(
-                    request,
+                    requestResult.FinalRequest,
                     selectedTargetId,
                     requestResult.StatusEffectsToApply);
                 var presentationContext =
-                    new PresentationContext(isCritical: false, request.PatternName);
+                    new PresentationContext(isCritical: false, requestResult.FinalRequest.PatternName);
                 int eventCursor = _battle.Events.Count;
                 BattleApplyResult result = _battle.ApplyPlayerTurn(playerEffects, selectedTargetId);
 

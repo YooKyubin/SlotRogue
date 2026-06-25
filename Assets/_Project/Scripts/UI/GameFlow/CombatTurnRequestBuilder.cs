@@ -126,7 +126,7 @@ namespace SlotRogue.UI.GameFlow
             request.Defense <= 0 &&
             request.HealAmount <= 0;
 
-        private static IReadOnlyList<TargetedStatusEffectSpec> BuildStatusEffectSpecs(
+        internal static IReadOnlyList<TargetedStatusEffectSpec> BuildStatusEffectSpecs(
             IReadOnlyList<StatusEffectRequest> requests)
         {
             if (requests == null || requests.Count == 0)

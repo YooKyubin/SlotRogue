@@ -11,11 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 283210c2693a46bd86c025983ff67669, type: 3}
   m_Name: StatusEffectIconSet
-  m_EditorClassIdentifier:
-  _burn: {fileID: 1113496719894339027, guid: 840379d562848544e9d69fcf3527eb72, type: 3}
-  _infection: {fileID: -5195802425858562760, guid: 840379d562848544e9d69fcf3527eb72, type: 3}
-  _vulnerable: {fileID: 8750852756730097681, guid: 840379d562848544e9d69fcf3527eb72, type: 3}
-  _weaken: {fileID: 3678278031639005610, guid: 840379d562848544e9d69fcf3527eb72, type: 3}
-  _lifesteal: {fileID: 8725165613147346364, guid: 840379d562848544e9d69fcf3527eb72, type: 3}
-  _thorns: {fileID: -3966588139861760865, guid: 840379d562848544e9d69fcf3527eb72, type: 3}
-  _freeze: {fileID: 183551970700960649, guid: 840379d562848544e9d69fcf3527eb72, type: 3}
+  m_EditorClassIdentifier: 
+  _burn: {fileID: 1113496719894339027, guid: 93c338089471a6c4e94a99fd84fc12f3, type: 3}
+  _infection: {fileID: -5195802425858562760, guid: 93c338089471a6c4e94a99fd84fc12f3, type: 3}
+  _vulnerable: {fileID: 3678278031639005610, guid: 93c338089471a6c4e94a99fd84fc12f3, type: 3}
+  _weaken: {fileID: 8750852756730097681, guid: 93c338089471a6c4e94a99fd84fc12f3, type: 3}
+  _lifesteal: {fileID: 8725165613147346364, guid: 93c338089471a6c4e94a99fd84fc12f3, type: 3}
+  _thorns: {fileID: -3966588139861760865, guid: 93c338089471a6c4e94a99fd84fc12f3, type: 3}
+  _freeze: {fileID: 183551970700960649, guid: 93c338089471a6c4e94a99fd84fc12f3, type: 3}
