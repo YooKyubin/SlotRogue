@@ -1,3 +1,4 @@
+using System;
 using NUnit.Framework;
 using SlotRogue.Core.Combat;
 using SlotRogue.Slot.Data;
@@ -22,6 +23,27 @@ namespace SlotRogue.UI.Tests.Combat
             CombatEffect[] effects = _converter.Convert(null!);
 
             Assert.That(effects, Is.Empty);
+        }
+
+        [Test]
+        public void Convert_UnsupportedTargetMode_Throws()
+        {
+            var statusEffects = new[]
+            {
+                new TargetedStatusEffectSpec(
+                    new StatusEffectSpec(
+                        StatusEffectKind.Thorns,
+                        duration: 0,
+                        magnitude: 3,
+                        StatusStackMode.Refresh),
+                    (CombatTargetMode)999),
+            };
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                _converter.Convert(
+                    SlotCombatRequest.Empty,
+                    default,
+                    statusEffects));
         }
 
         [Test]

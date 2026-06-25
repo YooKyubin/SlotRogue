@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using SlotRogue.Core.Combat;
 using SlotRogue.Slot.Data;
@@ -92,10 +93,15 @@ namespace SlotRogue.UI.Combat
                     return new CombatEffectTarget(CombatTargetMode.AllEnemies);
                 case CombatTargetMode.RandomEnemy:
                     return new CombatEffectTarget(CombatTargetMode.RandomEnemy);
-                default:
+                case CombatTargetMode.SelectedEnemy:
                     return selectedTargetId.IsValid
                         ? CombatEffectTarget.SelectedEnemy(selectedTargetId)
                         : CombatEffectTarget.Enemy;
+                default:
+                    throw new ArgumentOutOfRangeException(
+                        nameof(targetMode),
+                        targetMode,
+                        "Unsupported combat target mode.");
             }
         }
     }

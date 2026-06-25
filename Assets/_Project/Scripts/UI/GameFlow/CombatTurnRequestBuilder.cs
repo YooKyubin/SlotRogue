@@ -155,6 +155,11 @@ namespace SlotRogue.UI.GameFlow
                             request.Amount,
                             request.TargetMode));
                         break;
+                    default:
+                        throw new ArgumentOutOfRangeException(
+                            nameof(request.Kind),
+                            request.Kind,
+                            "Unsupported status effect kind.");
                 }
             }
 
@@ -230,7 +235,9 @@ namespace SlotRogue.UI.GameFlow
                             magnitude: request.Amount,
                             stackMode: StatusStackMode.Refresh),
                         request.TargetMode);
-                default:
+                case StatusEffectKind.Vulnerable:
+                case StatusEffectKind.Weaken:
+                case StatusEffectKind.Lifesteal:
                     return new TargetedStatusEffectSpec(
                         new StatusEffectSpec(
                             request.Kind,
@@ -238,6 +245,11 @@ namespace SlotRogue.UI.GameFlow
                             magnitude: request.Amount,
                             stackMode: StatusStackMode.Stack),
                         request.TargetMode);
+                default:
+                    throw new ArgumentOutOfRangeException(
+                        nameof(request.Kind),
+                        request.Kind,
+                        "Unsupported status effect kind.");
             }
         }
 

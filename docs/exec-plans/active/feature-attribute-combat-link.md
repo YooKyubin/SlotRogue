@@ -89,6 +89,7 @@
 - 반사 피해는 `DamageOrigin.Reflection`으로 직접 적용해 가시·흡혈·취약·약화 경로를 모두 우회한다.
 - 가시 판정은 직접 피해 `EffectApplied`와 흡혈 Heal `EffectApplied` 다음에 수행하며, 반사 처리 후 기존 승패 판정을 실행한다.
 - 유물 상태 요청은 `CombatTargetMode`로 대상을 반드시 명시한다. `CombatTurnRequestBuilder`는 `(StatusEffectKind, CombatTargetMode)`가 같은 요청만 병합하고, `SlotCombatRequestToCombatEffectsConverter`가 최종 `CombatEffectTarget`으로 변환한다.
+- 상태 종류와 대상 enum을 해석하는 변환 경계는 지원하지 않는 값을 기본 상태나 선택 적 대상으로 대체하지 않고 `ArgumentOutOfRangeException`으로 계약 위반을 드러낸다.
 - `Freeze`는 debug/test 경로에 남길 수 있지만, 공식 유물/몬스터 데이터의 1차 속성에는 포함하지 않는다.
 
 ## Open questions

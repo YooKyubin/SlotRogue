@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using NUnit.Framework;
 using SlotRogue.Core.Combat;
@@ -220,6 +221,31 @@ namespace SlotRogue.UI.Tests.GameFlow
             Assert.That(targetedSpec.Spec.Magnitude, Is.EqualTo(4));
             Assert.That(targetedSpec.Spec.StackMode, Is.EqualTo(StatusStackMode.Refresh));
             Assert.That(targetedSpec.TargetMode, Is.EqualTo(CombatTargetMode.Self));
+        }
+
+        [Test]
+        public void Build_UnsupportedStatusEffectKind_Throws()
+        {
+            var request = new SlotCombatRequest(0, 5, 1, 0, false, "Guard");
+            var relicResult = new RelicResolveResult(
+                additionalDamage: 0,
+                additionalBlock: 0,
+                healAmount: 0,
+                statusEffectsToApply: new[]
+                {
+                    new StatusEffectRequest(
+                        (StatusEffectKind)999,
+                        3,
+                        CombatTargetMode.Self),
+                },
+                activationSummary: "Invalid status");
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                _builder.Build(
+                    request,
+                    relicResult,
+                    runDamageBonus: 0,
+                    runDefenseBonus: 0));
         }
 
         [Test]
