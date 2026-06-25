@@ -13,7 +13,8 @@ namespace SlotRogue.UI.GameFlow
         ICombatDamageAnchorRegistry,
         ICombatShieldGaugeRegistry,
         ICombatHealthBarPresentationTarget,
-        IEnemyCombatVisualPresentationTarget
+        IEnemyCombatVisualPresentationTarget,
+        ICombatStatusPresentationCommands
     {
         [SerializeField, AutoWire("10_BattleView", AutoWireSearchScope.Children)]
         private RunBattlePlayerHudView _playerHudView;
@@ -174,6 +175,30 @@ namespace SlotRogue.UI.GameFlow
                     participantId,
                     cancellationToken)
                 : UniTask.CompletedTask;
+        }
+
+        public UniTask AddEnemyStatusAsync(
+            CombatParticipantId participantId,
+            StatusEffectViewData status,
+            CancellationToken cancellationToken)
+        {
+            return _worldView.AddEnemyStatusAsync(participantId, status, cancellationToken);
+        }
+
+        public UniTask UpdateEnemyStatusValueAsync(
+            CombatParticipantId participantId,
+            StatusEffectViewData status,
+            CancellationToken cancellationToken)
+        {
+            return _worldView.UpdateEnemyStatusValueAsync(participantId, status, cancellationToken);
+        }
+
+        public UniTask RemoveEnemyStatusAsync(
+            CombatParticipantId participantId,
+            StatusEffectKind kind,
+            CancellationToken cancellationToken)
+        {
+            return _worldView.RemoveEnemyStatusAsync(participantId, kind, cancellationToken);
         }
 
         public UniTask ShowShieldGainAsync(

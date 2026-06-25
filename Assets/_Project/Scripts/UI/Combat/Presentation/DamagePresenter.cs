@@ -17,7 +17,8 @@ namespace SlotRogue.UI.Combat.Presentation
             PresentationContext context,
             CancellationToken cancellationToken)
         {
-            if (combatEvent.Kind != CombatEventKind.EffectApplied ||
+            if ((combatEvent.Kind != CombatEventKind.EffectApplied &&
+                 combatEvent.Kind != CombatEventKind.StatusTicked) ||
                 combatEvent.Effect.Kind != CombatEffectKind.Damage)
             {
                 return;
@@ -44,7 +45,7 @@ namespace SlotRogue.UI.Combat.Presentation
 
             var request = new FloatingDamageRequest(
                 combatEvent.ApplyResult.DamageDealt,
-                context.IsCritical,
+                combatEvent.Kind == CombatEventKind.EffectApplied && context.IsCritical,
                 combatEvent.IsPlayerParticipant,
                 combatEvent.TargetParticipantId);
 

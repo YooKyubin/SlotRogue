@@ -16,7 +16,10 @@ namespace SlotRogue.Core.Combat
             if (context.Instance.StackCount == 0)
             {
                 context.RequestExpiration();
+                return;
             }
+
+            context.EmitValueChanged();
         }
     }
 }

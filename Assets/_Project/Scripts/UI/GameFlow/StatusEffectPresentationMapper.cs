@@ -1,7 +1,7 @@
 using System;
 using SlotRogue.Core.Combat;
 
-namespace SlotRogue.UI.GameFlow
+namespace SlotRogue.UI.Combat.Presentation
 {
     public static class StatusEffectPresentationMapper
     {

@@ -142,29 +142,12 @@ namespace SlotRogue.UI.GameFlow
                         snapshot.Shield,
                         selected,
                         !enemy.IsDead && !isBusy && !isSpinRunning,
-                        BuildStatusViewData(enemy.StatusEffects),
+                        combatViewModel.GetStatuses(enemy.Id),
                         upcomingActions);
                 }
             });
 
             return computedSlotIndices;
-        }
-
-        private static StatusEffectViewData[] BuildStatusViewData(
-            IReadOnlyList<StatusEffectInstance> statusEffects)
-        {
-            if (statusEffects == null || statusEffects.Count == 0)
-            {
-                return System.Array.Empty<StatusEffectViewData>();
-            }
-
-            var statuses = new StatusEffectViewData[statusEffects.Count];
-            for (int index = 0; index < statusEffects.Count; index++)
-            {
-                statuses[index] = StatusEffectPresentationMapper.Map(statusEffects[index]);
-            }
-
-            return statuses;
         }
 
         internal static int ResolveHudSlotIndex(

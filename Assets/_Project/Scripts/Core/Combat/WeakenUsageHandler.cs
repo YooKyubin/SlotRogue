@@ -12,6 +12,7 @@ namespace SlotRogue.Core.Combat
             context.Instance.StackCount--;
             if (context.Instance.StackCount > 0)
             {
+                context.EmitValueChanged();
                 return;
             }
 

@@ -976,6 +976,11 @@ namespace SlotRogue.Core.Tests.Combat
             Assert.That(appliedDamage, Is.EqualTo(new[] { 8, 4 }));
             Assert.That(enemy.CurrentHp, Is.EqualTo(18));
             Assert.That(player.StatusEffects.Single().StackCount, Is.EqualTo(1));
+            CombatEvent statusValueChanged = events.Single(
+                e => e.Kind == CombatEventKind.StatusValueChanged);
+            Assert.That(statusValueChanged.TargetParticipantId.Value, Is.EqualTo(player.Id.Value));
+            Assert.That(statusValueChanged.StatusEffectKind, Is.EqualTo(StatusEffectKind.Weaken));
+            Assert.That(statusValueChanged.StatusStackCount, Is.EqualTo(1));
         }
 
         [Test]
@@ -1515,6 +1520,11 @@ namespace SlotRogue.Core.Tests.Combat
             Assert.That(appliedDamage, Is.EqualTo(new[] { 12, 12 }));
             Assert.That(enemy.CurrentHp, Is.EqualTo(6));
             Assert.That(enemy.StatusEffects.Single().StackCount, Is.EqualTo(1));
+            CombatEvent statusValueChanged = events.Single(
+                e => e.Kind == CombatEventKind.StatusValueChanged);
+            Assert.That(statusValueChanged.TargetParticipantId.Value, Is.EqualTo(enemy.Id.Value));
+            Assert.That(statusValueChanged.StatusEffectKind, Is.EqualTo(StatusEffectKind.Vulnerable));
+            Assert.That(statusValueChanged.StatusStackCount, Is.EqualTo(1));
         }
 
         [Test]

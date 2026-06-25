@@ -59,14 +59,18 @@ namespace SlotRogue.Core.Tests.Combat
             Assert.That(events.Select(combatEvent => combatEvent.Kind), Is.EqualTo(new[]
             {
                 CombatEventKind.StatusTicked,
+                CombatEventKind.StatusValueChanged,
                 CombatEventKind.StatusTicked,
+                CombatEventKind.StatusValueChanged,
                 CombatEventKind.StatusTicked,
                 CombatEventKind.StatusExpired,
             }));
             Assert.That(events[0].StatusStackCount, Is.EqualTo(3));
             Assert.That(events[1].StatusStackCount, Is.EqualTo(2));
-            Assert.That(events[2].StatusStackCount, Is.EqualTo(1));
-            Assert.That(events[2].Effect.DamageOrigin, Is.EqualTo(DamageOrigin.Status));
+            Assert.That(events[2].StatusStackCount, Is.EqualTo(2));
+            Assert.That(events[3].StatusStackCount, Is.EqualTo(1));
+            Assert.That(events[4].StatusStackCount, Is.EqualTo(1));
+            Assert.That(events[4].Effect.DamageOrigin, Is.EqualTo(DamageOrigin.Status));
         }
 
         [Test]

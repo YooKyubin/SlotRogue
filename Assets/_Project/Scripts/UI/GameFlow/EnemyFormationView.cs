@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
+using SlotRogue.UI.Combat.Presentation;
 using UnityEngine;
 
 namespace SlotRogue.UI.GameFlow
@@ -191,6 +192,30 @@ namespace SlotRogue.UI.GameFlow
             return UniTask.CompletedTask;
         }
 
+        public UniTask AddStatusAsync(
+            CombatParticipantId participantId,
+            StatusEffectViewData status,
+            CancellationToken cancellationToken)
+        {
+            return ResolveStatusSlot(participantId).AddStatusAsync(status, cancellationToken);
+        }
+
+        public UniTask UpdateStatusValueAsync(
+            CombatParticipantId participantId,
+            StatusEffectViewData status,
+            CancellationToken cancellationToken)
+        {
+            return ResolveStatusSlot(participantId).UpdateStatusValueAsync(status, cancellationToken);
+        }
+
+        public UniTask RemoveStatusAsync(
+            CombatParticipantId participantId,
+            StatusEffectKind kind,
+            CancellationToken cancellationToken)
+        {
+            return ResolveStatusSlot(participantId).RemoveStatusAsync(kind, cancellationToken);
+        }
+
         public UniTask PlayCombatVisualActionUntilEffectPointAsync(
             CombatParticipantId participantId,
             string actionName,
@@ -262,6 +287,19 @@ namespace SlotRogue.UI.GameFlow
             }
 
             return true;
+        }
+
+        private EnemyFormationSlotView ResolveStatusSlot(CombatParticipantId participantId)
+        {
+            if (!participantId.IsValid ||
+                !_slotIndexByParticipantId.TryGetValue(participantId.Value, out int slotIndex) ||
+                !TryGetFormationSlotView(slotIndex, out EnemyFormationSlotView formationSlotView))
+            {
+                throw new InvalidOperationException(
+                    $"Status presentation slot is missing for participant {participantId.Value}.");
+            }
+
+            return formationSlotView;
         }
     }
 }

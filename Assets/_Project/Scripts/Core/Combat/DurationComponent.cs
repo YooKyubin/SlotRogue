@@ -7,6 +7,10 @@ namespace SlotRogue.Core.Combat
             if (context.Instance.RemainingTurns > 0)
             {
                 context.Instance.RemainingTurns--;
+                if (context.Instance.RemainingTurns > 0)
+                {
+                    context.EmitValueChanged();
+                }
             }
         }
     }

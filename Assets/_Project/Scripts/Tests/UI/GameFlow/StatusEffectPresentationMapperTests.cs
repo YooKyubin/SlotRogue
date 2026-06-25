@@ -1,7 +1,7 @@
 using System;
 using NUnit.Framework;
 using SlotRogue.Core.Combat;
-using SlotRogue.UI.GameFlow;
+using SlotRogue.UI.Combat.Presentation;
 
 namespace SlotRogue.UI.Tests.GameFlow
 {
@@ -67,6 +67,43 @@ namespace SlotRogue.UI.Tests.GameFlow
                     magnitude: 1,
                     stackCount: 1,
                     remainingTurns: 1));
+        }
+
+        [Test]
+        public void PresentationState_AddOrReplace_DoesNotDuplicateSameKind()
+        {
+            var state = new CombatStatusPresentationState();
+            var participantId = new CombatParticipantId(100);
+
+            state.AddOrReplace(
+                participantId,
+                new StatusEffectViewData(StatusEffectKind.Infection, 2, showValue: true));
+            state.AddOrReplace(
+                participantId,
+                new StatusEffectViewData(StatusEffectKind.Infection, 5, showValue: true));
+
+            StatusEffectViewData[] statuses = state.GetAll(participantId);
+            Assert.That(statuses, Has.Length.EqualTo(1));
+            Assert.That(statuses[0].DisplayValue, Is.EqualTo(5));
+        }
+
+        [Test]
+        public void PresentationState_Remove_DoesNotAffectOtherParticipant()
+        {
+            var state = new CombatStatusPresentationState();
+            var firstParticipantId = new CombatParticipantId(100);
+            var secondParticipantId = new CombatParticipantId(101);
+            var status = new StatusEffectViewData(
+                StatusEffectKind.Vulnerable,
+                displayValue: 2,
+                showValue: true);
+            state.AddOrReplace(firstParticipantId, status);
+            state.AddOrReplace(secondParticipantId, status);
+
+            state.Remove(firstParticipantId, StatusEffectKind.Vulnerable);
+
+            Assert.That(state.GetAll(firstParticipantId), Is.Empty);
+            Assert.That(state.GetAll(secondParticipantId), Has.Length.EqualTo(1));
         }
     }
 }

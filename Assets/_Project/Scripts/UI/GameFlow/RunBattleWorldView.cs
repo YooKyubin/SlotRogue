@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
+using SlotRogue.UI.Combat.Presentation;
 using UnityEngine;
 
 namespace SlotRogue.UI.GameFlow
@@ -159,6 +160,33 @@ namespace SlotRogue.UI.GameFlow
             return _enemyFormationView != null
                 ? _enemyFormationView.WaitHpFillAsync(participantId, cancellationToken)
                 : UniTask.CompletedTask;
+        }
+
+        public UniTask AddEnemyStatusAsync(
+            CombatParticipantId participantId,
+            StatusEffectViewData status,
+            CancellationToken cancellationToken)
+        {
+            EnsureReferences();
+            return _enemyFormationView.AddStatusAsync(participantId, status, cancellationToken);
+        }
+
+        public UniTask UpdateEnemyStatusValueAsync(
+            CombatParticipantId participantId,
+            StatusEffectViewData status,
+            CancellationToken cancellationToken)
+        {
+            EnsureReferences();
+            return _enemyFormationView.UpdateStatusValueAsync(participantId, status, cancellationToken);
+        }
+
+        public UniTask RemoveEnemyStatusAsync(
+            CombatParticipantId participantId,
+            StatusEffectKind kind,
+            CancellationToken cancellationToken)
+        {
+            EnsureReferences();
+            return _enemyFormationView.RemoveStatusAsync(participantId, kind, cancellationToken);
         }
 
         private Transform ResolveBattleShakeRoot()

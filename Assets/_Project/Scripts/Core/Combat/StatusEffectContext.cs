@@ -88,6 +88,19 @@ namespace SlotRogue.Core.Combat
                 statusStackCount: Instance.StackCount));
         }
 
+        internal void EmitValueChanged()
+        {
+            _events.Add(new CombatEvent(
+                CombatEventKind.StatusValueChanged,
+                Phase,
+                isPlayerParticipant: Participant.Team == CombatTeam.Player,
+                targetParticipantId: Participant.Id,
+                statusEffectKind: Instance.Kind,
+                statusDuration: Instance.RemainingTurns,
+                statusMagnitude: Instance.Magnitude,
+                statusStackCount: Instance.StackCount));
+        }
+
         internal void EmitActionSkipped()
         {
             _events.Add(new CombatEvent(

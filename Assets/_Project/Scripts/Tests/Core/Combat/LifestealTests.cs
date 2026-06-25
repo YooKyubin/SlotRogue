@@ -141,6 +141,11 @@ namespace SlotRogue.Core.Tests.Combat
             Assert.That(player.CurrentHp, Is.EqualTo(53));
             Assert.That(HealEvents(events).Select(e => e.ApplyResult.HealApplied), Is.EqualTo(new[] { 1, 2 }));
             Assert.That(lifesteal.StackCount, Is.EqualTo(1));
+            CombatEvent statusValueChanged = events.Single(
+                combatEvent => combatEvent.Kind == CombatEventKind.StatusValueChanged);
+            Assert.That(statusValueChanged.TargetParticipantId.Value, Is.EqualTo(player.Id.Value));
+            Assert.That(statusValueChanged.StatusEffectKind, Is.EqualTo(StatusEffectKind.Lifesteal));
+            Assert.That(statusValueChanged.StatusStackCount, Is.EqualTo(1));
         }
 
         [Test]

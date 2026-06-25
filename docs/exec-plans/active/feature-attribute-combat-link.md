@@ -58,7 +58,7 @@
 - [x] Core/Combat: `Thorns`를 타격별 50% 고정 반사 피해로 구현 — Codex
 - [x] Core/Combat: 팀 턴 종료 알림과 `IExpireOnOpponentTeamTurnEnd` 컴포넌트 정책으로 상대 팀 가시 제거 — Codex
 - [x] Core/Combat: 반사 피해가 취약·약화·흡혈·가시를 발동하지 않도록 `Reflection` 경계 적용 — Codex
-- [ ] Core/Combat: 상태 적용/틱/소모/반사/흡혈 회복 이벤트를 UI가 구분 가능하게 보강 — _(전투 담당)_
+- [x] Core/Combat: 상태 적용/틱/소모/반사/흡혈 회복 이벤트를 UI가 구분 가능하게 보강 — Codex
 - [ ] UI/GameFlow: `StatusEffectRequest`와 `CombatTurnRequestBuilder`를 v6 상태 요청으로 갱신 — _(전투 담당)_
 - [ ] UI/GameFlow: `RelicTurnResolver`의 상태 조회를 `Burn`/`Infection`/`Vulnerable`/`Weaken` 구분으로 갱신 — _(전투 담당)_
 - [x] UI/GameFlow: `RelicEffectRunner`에서 `ApplyBurn`, `ApplyInfect`, `ApplyVulnerable`, `ApplyWeak`, `GainThorns` 요청 생성 — Codex
@@ -67,6 +67,7 @@
 - [ ] UI/GameFlow: 적 행동 planner factory에서 새 몬스터 효과 정의를 Core 효과로 변환 — _(전투 담당)_
 - [x] UI/GameFlow: 상태별 대표 수치 Mapper와 `StatusEffectIconSet`을 추가하고 적 상태 아이콘/표시 텍스트를 v6 6속성 기준으로 갱신 — Codex
 - [x] UI/GameFlow: RunGame DEV 버튼에서 화상·감염·취약·약화를 실제 유물 상태 요청 파이프라인으로 적용하는 수동 검증 경로 추가 — Codex
+- [x] UI/GameFlow: 상태 `CombatEvent` 재생 시점에 맞춰 적 상태 아이콘을 추가·수치 변경·제거하고 최종 Core 상태로 보정 — Codex
 - [x] Tests/Core: Burn 즉시 피해 + 팀 턴 종료 피해 + 만료 테스트 추가/갱신 — Codex
 - [x] Tests/Core: Infection 누적, 턴 종료 피해, 1 감소, 상한 없음 테스트 추가 — Codex
 - [x] Tests/Core: Vulnerable/Weaken 정산 단위와 소모 테스트 추가 — Codex
@@ -91,6 +92,7 @@
 - 가시 판정은 직접 피해 `EffectApplied`와 흡혈 Heal `EffectApplied` 다음에 수행하며, 반사 처리 후 기존 승패 판정을 실행한다.
 - 유물 상태 요청은 `CombatTargetMode`로 대상을 반드시 명시한다. `CombatTurnRequestBuilder`는 `(StatusEffectKind, CombatTargetMode)`가 같은 요청만 병합하고, `SlotCombatRequestToCombatEffectsConverter`가 최종 `CombatEffectTarget`으로 변환한다.
 - 상태 종류와 대상 enum을 해석하는 변환 경계는 지원하지 않는 값을 기본 상태나 선택 적 대상으로 대체하지 않고 `ArgumentOutOfRangeException`으로 계약 위반을 드러낸다.
+- 상태 UI는 `CombatViewModel`의 연출 상태를 읽는다. `StatusApplied`는 아이콘을 추가하고 최소 한 프레임 표시하며, `StatusValueChanged`는 기존 아이콘 수치만 바꾸고, `StatusExpired`는 해당 아이콘만 제거한다. 이벤트 재생 완료 후 Core 상태 동기화는 아이콘 인스턴스를 유지한 채 최종 보정만 수행한다.
 - 상태 유물 중 `C-02`, `C-07`, `C-08`, `C-09`, `C-11`, `C-20`, `C-21`, `C-22`, `U-07`, `U-08`, `U-09`, `U-12`를 활성화했다. `U-19`와 `R-06`은 각각 전투 시작 훅, 방어도 획득 감지·턴당 제한이 없어 비활성 상태를 유지한다.
 - `Freeze`는 debug/test 경로에 남길 수 있지만, 공식 유물/몬스터 데이터의 1차 속성에는 포함하지 않는다.
 

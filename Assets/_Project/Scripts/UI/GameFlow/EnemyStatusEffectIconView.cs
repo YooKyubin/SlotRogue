@@ -1,3 +1,6 @@
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using SlotRogue.UI.Combat.Presentation;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -23,6 +26,31 @@ namespace SlotRogue.UI.GameFlow
             _valueText.text = status.ShowValue
                 ? status.DisplayValue.ToString()
                 : string.Empty;
+        }
+
+        public async UniTask ShowAsync(
+            StatusEffectViewData status,
+            CancellationToken cancellationToken)
+        {
+            gameObject.SetActive(true);
+            Set(status);
+            await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate, cancellationToken);
+        }
+
+        public UniTask UpdateValueAsync(
+            StatusEffectViewData status,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Set(status);
+            return UniTask.CompletedTask;
+        }
+
+        public UniTask HideAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            gameObject.SetActive(false);
+            return UniTask.CompletedTask;
         }
     }
 }
