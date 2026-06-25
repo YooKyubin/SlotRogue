@@ -138,21 +138,21 @@ namespace SlotRogue.Editor.GameFlow
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_turnBannerView"));
 
             EditorGUILayout.Space(6f);
-            EditorGUILayout.LabelField("Temporary Test Override", EditorStyles.boldLabel);
-            EditorGUILayout.HelpBox(
-                "TEMPORARY TEST HOOK: Assign a MonsterDefinition here to bypass the tier-based encounter builder while verifying MonsterDefinition/MonsterTurnPattern assets.",
-                MessageType.Warning);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_devMonsterDefinitionOverride"));
-
-            EditorGUILayout.Space(6f);
             EditorGUILayout.LabelField("Encounter Selection", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
-                "Assign an EncounterTable when Dev Monster Definition Override is empty. " +
-                "The WaveSchedule provides tier/cycle and EncounterSelector selects from the table.",
+                "The WaveSchedule provides tier/cycle and EncounterSelector selects from the EncounterTable.",
                 MessageType.Info);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_waveScheduleDefinition"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_encounterTable"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_encounterBalanceSettings"));
+
+            EditorGUILayout.Space(6f);
+            EditorGUILayout.LabelField("Tutorial Battle", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox(
+                "Assign the MonsterDefinition used as the visual/data source for tutorial enemies. " +
+                "Tutorial HP and action plans are still fixed in code.",
+                MessageType.Info);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_tutorialMonsterDefinition"));
 
             EditorGUILayout.Space(6f);
             DrawBindingSummary();
@@ -174,6 +174,7 @@ namespace SlotRogue.Editor.GameFlow
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_waveScheduleDefinition"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_encounterTable"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_encounterBalanceSettings"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("_tutorialMonsterDefinition"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_floatingTextLayerView"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_turnBannerView"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_spinLeverView"));

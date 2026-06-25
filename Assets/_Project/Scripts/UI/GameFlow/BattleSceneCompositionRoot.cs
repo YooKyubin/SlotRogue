@@ -25,14 +25,10 @@ namespace SlotRogue.UI.GameFlow
     /// </summary>
     public class BattleSceneCompositionRoot : MonoBehaviour
     {
-        // TEMPORARY TEST HOOK: use this MonsterDefinition to verify SO-driven monster
-        // actions and Intent UI. Remove this override when the real encounter selection
-        // path supplies MonsterDefinition assets.
-        [SerializeField] private MonsterDefinition _devMonsterDefinitionOverride;
-
         [SerializeField] private EncounterTable _encounterTable;
         [SerializeField] private WaveScheduleDefinition _waveScheduleDefinition;
         [SerializeField] private EncounterBalanceSettings _encounterBalanceSettings;
+        [SerializeField] private MonsterDefinition _tutorialMonsterDefinition;
 
         [SerializeField] private RunBattleScreenView _view;
         [SerializeField] private FloatingCombatTextLayerView _floatingTextLayerView;
@@ -256,19 +252,11 @@ namespace SlotRogue.UI.GameFlow
                 wave.ThemeSectionIndex);
             EncounterBalanceConfig balanceConfig = CreateEncounterBalanceConfig();
 
-            if (_devMonsterDefinitionOverride != null)
-            {
-                // TEMPORARY TEST HOOK: this bypasses the tier-based infinite-mode builder
-                // only while manually verifying MonsterDefinition/MonsterTurnPattern assets.
-                EncounterSelection encounterSelection = CreateDevOverrideSelection(_devMonsterDefinitionOverride);
-                return RunEncounterRosterBuilder.Build(encounterSelection, buildContext, balanceConfig);
-            }
-
             if (_encounterTable == null)
             {
                 throw new InvalidOperationException(
                     "[BattleSceneCompositionRoot] EncounterTable is missing. " +
-                    "Assign an EncounterTable asset before starting battle without Dev Monster Override.");
+                    "Assign an EncounterTable asset before starting battle.");
             }
 
             int themeGroupIndex = _themeIndexSelector.Select(
@@ -285,22 +273,13 @@ namespace SlotRogue.UI.GameFlow
             return RunEncounterRosterBuilder.Build(selection, buildContext, balanceConfig);
         }
 
-        private static EncounterSelection CreateDevOverrideSelection(MonsterDefinition definition)
-        {
-            int formationSlot = EnemyFormationLayout.ResolveSlots(monsterCount: 1)[0];
-            return new EncounterSelection(new[]
-            {
-                new SelectedEncounterMonster(definition, formationSlot),
-            });
-        }
-
         private WaveSchedule CreateWaveSchedule()
         {
             if (_waveScheduleDefinition == null)
             {
                 throw new InvalidOperationException(
                     "[BattleSceneCompositionRoot] WaveScheduleDefinition is missing. " +
-                    "Assign a WaveScheduleDefinition asset before starting battle without Dev Monster Override.");
+                    "Assign a WaveScheduleDefinition asset before starting battle.");
             }
 
             if (!_waveScheduleDefinition.TryValidate(out string error))
@@ -327,17 +306,14 @@ namespace SlotRogue.UI.GameFlow
 
         private RunEncounterRoster CreateTutorialEncounterRoster()
         {
-            if (_devMonsterDefinitionOverride == null)
+            if (_tutorialMonsterDefinition == null)
             {
-                Debug.LogError(
-                    "[BattleSceneCompositionRoot] Tutorial mode requires a serialized monster definition.");
-                return RunEncounterRosterBuilder.BuildForTier(
-                    GameFlowSession.CurrentTier,
-                    GameFlowSession.CurrentBattleNumber);
+                throw new InvalidOperationException(
+                    "[BattleSceneCompositionRoot] Tutorial mode requires a Tutorial Monster Definition.");
             }
 
             EnemyEncounterUnit leftEnemy = CreateTutorialEnemy(
-                _devMonsterDefinitionOverride,
+                _tutorialMonsterDefinition,
                 TutorialBattleDefinition.LeftMonsterRosterIndex,
                 TutorialBattleDefinition.LeftMonsterFormationSlot,
                 TutorialBattleDefinition.LeftMonsterMaxHp,
@@ -359,7 +335,7 @@ namespace SlotRogue.UI.GameFlow
                 }));
 
             EnemyEncounterUnit rightEnemy = CreateTutorialEnemy(
-                _devMonsterDefinitionOverride,
+                _tutorialMonsterDefinition,
                 TutorialBattleDefinition.RightMonsterRosterIndex,
                 TutorialBattleDefinition.RightMonsterFormationSlot,
                 TutorialBattleDefinition.RightMonsterMaxHp,
