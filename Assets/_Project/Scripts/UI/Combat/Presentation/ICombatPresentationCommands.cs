@@ -66,6 +66,11 @@ namespace SlotRogue.UI.Combat.Presentation
             StatusEffectViewData status,
             CancellationToken cancellationToken);
 
+        UniTask PlayEnemyStatusActivationAsync(
+            CombatParticipantId participantId,
+            StatusEffectKind kind,
+            CancellationToken cancellationToken);
+
         UniTask RemoveEnemyStatusAsync(
             CombatParticipantId participantId,
             StatusEffectKind kind,

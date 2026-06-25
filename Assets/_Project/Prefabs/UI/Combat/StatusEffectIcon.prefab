@@ -62,6 +62,10 @@ MonoBehaviour:
   _icon: {fileID: 4829674301413175672}
   _valueText: {fileID: 1991864392820589122}
   _iconSet: {fileID: 11400000, guid: ca3dedf26dc44061a896bafe5ced4d93, type: 2}
+  _showSlideDistance: 20
+  _showDuration: 0.22
+  _activationShakeDuration: 0.28
+  _activationShakeAngle: 12
 --- !u!1 &4029586118685072209
 GameObject:
   m_ObjectHideFlags: 0

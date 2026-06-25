@@ -89,7 +89,7 @@ namespace SlotRogue.UI.Combat.Presentation
                     return RouteEffectApplied(combatEvent, viewModel, context, cancellationToken);
 
                 case CombatEventKind.StatusTicked:
-                    return _damagePresenter.PresentAsync(
+                    return PresentStatusTickedAsync(
                         combatEvent,
                         viewModel,
                         context,
@@ -143,6 +143,24 @@ namespace SlotRogue.UI.Combat.Presentation
 
             return presenter.PresentAsync(combatEvent, viewModel, context, cancellationToken);
         }
+
+        private async UniTask PresentStatusTickedAsync(
+            CombatEvent combatEvent,
+            CombatViewModel viewModel,
+            PresentationContext context,
+            CancellationToken cancellationToken)
+        {
+            await _statusEffectPresenter.PresentAsync(
+                combatEvent,
+                viewModel,
+                context,
+                cancellationToken);
+            await _damagePresenter.PresentAsync(
+                combatEvent,
+                viewModel,
+                context,
+                cancellationToken);
+        }
     }
 
     public sealed class StatusEffectPresenter : ICombatEventPresenter
@@ -170,6 +188,12 @@ namespace SlotRogue.UI.Combat.Presentation
 
             switch (combatEvent.Kind)
             {
+                case CombatEventKind.StatusTicked:
+                    await _commands.PlayEnemyStatusActivationAsync(
+                        combatEvent.TargetParticipantId,
+                        combatEvent.StatusEffectKind,
+                        cancellationToken);
+                    break;
                 case CombatEventKind.StatusApplied:
                 {
                     StatusEffectViewData status = Map(combatEvent);
@@ -185,6 +209,14 @@ namespace SlotRogue.UI.Combat.Presentation
                 {
                     StatusEffectViewData status = Map(combatEvent);
                     viewModel.AddOrReplaceStatus(combatEvent.TargetParticipantId, status);
+                    if (combatEvent.StatusEffectKind != StatusEffectKind.Infection)
+                    {
+                        await _commands.PlayEnemyStatusActivationAsync(
+                            combatEvent.TargetParticipantId,
+                            combatEvent.StatusEffectKind,
+                            cancellationToken);
+                    }
+
                     await _commands.UpdateEnemyStatusValueAsync(
                         combatEvent.TargetParticipantId,
                         status,

@@ -180,6 +180,18 @@ namespace SlotRogue.UI.GameFlow
             return _enemyFormationView.UpdateStatusValueAsync(participantId, status, cancellationToken);
         }
 
+        public UniTask PlayEnemyStatusActivationAsync(
+            CombatParticipantId participantId,
+            StatusEffectKind kind,
+            CancellationToken cancellationToken)
+        {
+            EnsureReferences();
+            return _enemyFormationView.PlayStatusActivationAsync(
+                participantId,
+                kind,
+                cancellationToken);
+        }
+
         public UniTask RemoveEnemyStatusAsync(
             CombatParticipantId participantId,
             StatusEffectKind kind,

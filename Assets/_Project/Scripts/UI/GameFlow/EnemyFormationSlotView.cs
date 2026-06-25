@@ -385,6 +385,23 @@ namespace SlotRogue.UI.GameFlow
             return icon.UpdateValueAsync(status, cancellationToken);
         }
 
+        public UniTask PlayStatusActivationAsync(
+            StatusEffectKind kind,
+            CancellationToken cancellationToken)
+        {
+            if (!_statusEffectIconsByKind.TryGetValue(
+                    kind,
+                    out EnemyStatusEffectIconView icon))
+            {
+                Debug.LogError(
+                    $"[EnemyFormationSlotView] Cannot animate missing status icon '{kind}'.",
+                    this);
+                return UniTask.CompletedTask;
+            }
+
+            return icon.PlayActivationAsync(cancellationToken);
+        }
+
         public async UniTask RemoveStatusAsync(
             StatusEffectKind kind,
             CancellationToken cancellationToken)
