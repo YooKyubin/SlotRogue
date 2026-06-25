@@ -61,18 +61,18 @@ namespace SlotRogue.UI.Combat.Presentation
 
             if (Host.StatusCommands != null)
             {
-                for (int index = 0; index < combatEvent.StatusEffectActivations.Count; index++)
+                for (int index = 0; index < combatEvent.AppliedStatusModifiers.Count; index++)
                 {
-                    StatusEffectActivation activation = combatEvent.StatusEffectActivations[index];
-                    if (activation.IsPlayerParticipant)
+                    AppliedStatusModifier modifier = combatEvent.AppliedStatusModifiers[index];
+                    if (modifier.OwnerTeam != CombatTeam.Enemy)
                     {
                         continue;
                     }
 
                     presentationTasks.Add(
-                        Host.StatusCommands.PlayEnemyStatusActivationAsync(
-                            activation.ParticipantId,
-                            activation.Kind,
+                        Host.StatusCommands.PlayEnemyStatusModifierActivationAsync(
+                            modifier.OwnerParticipantId,
+                            modifier.Kind,
                             cancellationToken));
                 }
             }

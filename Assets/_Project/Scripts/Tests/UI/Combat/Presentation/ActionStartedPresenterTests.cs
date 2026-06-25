@@ -36,12 +36,12 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                     isPlayerParticipant: false,
                     targetParticipantId: targetParticipantId,
                     targetAfter: new CombatParticipantSnapshot(hp: 6, shield: 0),
-                    statusEffectActivations: new[]
+                    appliedStatusModifiers: new[]
                     {
-                        new StatusEffectActivation(
+                        new AppliedStatusModifier(
                             targetParticipantId,
                             StatusEffectKind.Vulnerable,
-                            isPlayerParticipant: false),
+                            CombatTeam.Enemy),
                     });
 
                 Task presentTask = presenter.PresentAsync(
@@ -109,6 +109,16 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
 
             public UniTask PlayEnemyStatusActivationAsync(
                 CombatParticipantId participantId,
+                StatusEffectKind kind,
+                CancellationToken cancellationToken)
+            {
+                ActivationCallCount++;
+                LastKind = kind;
+                return WaitAsync(_activationCompletion, cancellationToken);
+            }
+
+            public UniTask PlayEnemyStatusModifierActivationAsync(
+                CombatParticipantId ownerParticipantId,
                 StatusEffectKind kind,
                 CancellationToken cancellationToken)
             {
@@ -754,6 +764,15 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 CancellationToken cancellationToken)
             {
                 Calls.Add("Activate");
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask PlayEnemyStatusModifierActivationAsync(
+                CombatParticipantId ownerParticipantId,
+                StatusEffectKind kind,
+                CancellationToken cancellationToken)
+            {
+                Calls.Add("ModifierActivate");
                 return UniTask.CompletedTask;
             }
 

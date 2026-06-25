@@ -204,6 +204,17 @@ namespace SlotRogue.UI.GameFlow
                 cancellationToken);
         }
 
+        public UniTask PlayEnemyStatusModifierActivationAsync(
+            CombatParticipantId ownerParticipantId,
+            StatusEffectKind kind,
+            CancellationToken cancellationToken)
+        {
+            return _worldView.PlayEnemyStatusModifierActivationAsync(
+                ownerParticipantId,
+                kind,
+                cancellationToken);
+        }
+
         public UniTask RemoveEnemyStatusAsync(
             CombatParticipantId participantId,
             StatusEffectKind kind,

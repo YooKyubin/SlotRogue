@@ -3,23 +3,23 @@ using System.Collections.Generic;
 
 namespace SlotRogue.Core.Combat
 {
-    public readonly struct StatusEffectActivation
+    public readonly struct AppliedStatusModifier
     {
-        public StatusEffectActivation(
-            CombatParticipantId participantId,
+        public AppliedStatusModifier(
+            CombatParticipantId ownerParticipantId,
             StatusEffectKind kind,
-            bool isPlayerParticipant)
+            CombatTeam ownerTeam)
         {
-            ParticipantId = participantId;
+            OwnerParticipantId = ownerParticipantId;
             Kind = kind;
-            IsPlayerParticipant = isPlayerParticipant;
+            OwnerTeam = ownerTeam;
         }
 
-        public CombatParticipantId ParticipantId { get; }
+        public CombatParticipantId OwnerParticipantId { get; }
 
         public StatusEffectKind Kind { get; }
 
-        public bool IsPlayerParticipant { get; }
+        public CombatTeam OwnerTeam { get; }
     }
 
     public readonly struct CombatEvent
@@ -40,7 +40,7 @@ namespace SlotRogue.Core.Combat
             int statusStackCount = 0,
             CombatParticipantId sourceParticipantId = default,
             string actionName = "",
-            IReadOnlyList<StatusEffectActivation> statusEffectActivations = null)
+            IReadOnlyList<AppliedStatusModifier> appliedStatusModifiers = null)
         {
             Kind = kind;
             Phase = phase;
@@ -57,7 +57,7 @@ namespace SlotRogue.Core.Combat
             StatusStackCount = statusStackCount;
             SourceParticipantId = sourceParticipantId;
             ActionName = actionName ?? string.Empty;
-            StatusEffectActivations = statusEffectActivations ?? Array.Empty<StatusEffectActivation>();
+            AppliedStatusModifiers = appliedStatusModifiers ?? Array.Empty<AppliedStatusModifier>();
         }
 
         public CombatEventKind Kind { get; }
@@ -90,7 +90,7 @@ namespace SlotRogue.Core.Combat
 
         public string ActionName { get; }
 
-        public IReadOnlyList<StatusEffectActivation> StatusEffectActivations { get; }
+        public IReadOnlyList<AppliedStatusModifier> AppliedStatusModifiers { get; }
 
         public bool HasTargetSnapshot =>
             Kind == CombatEventKind.EffectApplied ||

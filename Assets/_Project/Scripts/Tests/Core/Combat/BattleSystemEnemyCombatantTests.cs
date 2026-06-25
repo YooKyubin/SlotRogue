@@ -1383,13 +1383,16 @@ namespace SlotRogue.Core.Tests.Combat
                 e.Kind == CombatEventKind.EffectApplied &&
                 e.Effect.Kind == CombatEffectKind.Damage);
             Assert.That(damageEvent.Effect.Amount, Is.EqualTo(6));
-            Assert.That(damageEvent.StatusEffectActivations, Has.Count.EqualTo(2));
+            Assert.That(damageEvent.AppliedStatusModifiers, Has.Count.EqualTo(2));
             Assert.That(
-                damageEvent.StatusEffectActivations.Select(activation => activation.Kind),
+                damageEvent.AppliedStatusModifiers.Select(modifier => modifier.Kind),
                 Is.EqualTo(new[] { StatusEffectKind.Weaken, StatusEffectKind.Vulnerable }));
             Assert.That(
-                damageEvent.StatusEffectActivations.Select(activation => activation.ParticipantId.Value),
+                damageEvent.AppliedStatusModifiers.Select(modifier => modifier.OwnerParticipantId.Value),
                 Is.EqualTo(new[] { player.Id.Value, enemy.Id.Value }));
+            Assert.That(
+                damageEvent.AppliedStatusModifiers.Select(modifier => modifier.OwnerTeam),
+                Is.EqualTo(new[] { CombatTeam.Player, CombatTeam.Enemy }));
             Assert.That(player.StatusEffects.Single().StackCount, Is.EqualTo(1));
             Assert.That(enemy.StatusEffects.Single().StackCount, Is.EqualTo(1));
         }

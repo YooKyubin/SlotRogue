@@ -216,6 +216,16 @@ namespace SlotRogue.UI.GameFlow
             return ResolveStatusSlot(participantId).PlayStatusActivationAsync(kind, cancellationToken);
         }
 
+        public UniTask PlayStatusModifierActivationAsync(
+            CombatParticipantId ownerParticipantId,
+            StatusEffectKind kind,
+            CancellationToken cancellationToken)
+        {
+            return ResolveStatusSlot(ownerParticipantId).PlayStatusActivationAsync(
+                kind,
+                cancellationToken);
+        }
+
         public UniTask RemoveStatusAsync(
             CombatParticipantId participantId,
             StatusEffectKind kind,
