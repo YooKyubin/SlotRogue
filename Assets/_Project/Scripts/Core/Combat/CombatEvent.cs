@@ -1,5 +1,27 @@
+using System;
+using System.Collections.Generic;
+
 namespace SlotRogue.Core.Combat
 {
+    public readonly struct StatusEffectActivation
+    {
+        public StatusEffectActivation(
+            CombatParticipantId participantId,
+            StatusEffectKind kind,
+            bool isPlayerParticipant)
+        {
+            ParticipantId = participantId;
+            Kind = kind;
+            IsPlayerParticipant = isPlayerParticipant;
+        }
+
+        public CombatParticipantId ParticipantId { get; }
+
+        public StatusEffectKind Kind { get; }
+
+        public bool IsPlayerParticipant { get; }
+    }
+
     public readonly struct CombatEvent
     {
         public CombatEvent(
@@ -17,7 +39,8 @@ namespace SlotRogue.Core.Combat
             int statusMagnitude = 0,
             int statusStackCount = 0,
             CombatParticipantId sourceParticipantId = default,
-            string actionName = "")
+            string actionName = "",
+            IReadOnlyList<StatusEffectActivation> statusEffectActivations = null)
         {
             Kind = kind;
             Phase = phase;
@@ -34,6 +57,7 @@ namespace SlotRogue.Core.Combat
             StatusStackCount = statusStackCount;
             SourceParticipantId = sourceParticipantId;
             ActionName = actionName ?? string.Empty;
+            StatusEffectActivations = statusEffectActivations ?? Array.Empty<StatusEffectActivation>();
         }
 
         public CombatEventKind Kind { get; }
@@ -65,6 +89,8 @@ namespace SlotRogue.Core.Combat
         public CombatParticipantId SourceParticipantId { get; }
 
         public string ActionName { get; }
+
+        public IReadOnlyList<StatusEffectActivation> StatusEffectActivations { get; }
 
         public bool HasTargetSnapshot =>
             Kind == CombatEventKind.EffectApplied ||

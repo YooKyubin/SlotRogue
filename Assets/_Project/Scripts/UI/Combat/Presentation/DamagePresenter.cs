@@ -1,4 +1,5 @@
 using System.Threading;
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
 
@@ -49,12 +50,34 @@ namespace SlotRogue.UI.Combat.Presentation
                 combatEvent.IsPlayerParticipant,
                 combatEvent.TargetParticipantId);
 
-            await UniTask.WhenAll(
+            var presentationTasks = new List<UniTask>
+            {
                 Host.Commands.ShowFloatingDamageAsync(request, cancellationToken),
                 Host.Commands.WaitHealthBarAsync(
                     combatEvent.TargetParticipantId,
                     combatEvent.IsPlayerParticipant,
-                    cancellationToken));
+                    cancellationToken),
+            };
+
+            if (Host.StatusCommands != null)
+            {
+                for (int index = 0; index < combatEvent.StatusEffectActivations.Count; index++)
+                {
+                    StatusEffectActivation activation = combatEvent.StatusEffectActivations[index];
+                    if (activation.IsPlayerParticipant)
+                    {
+                        continue;
+                    }
+
+                    presentationTasks.Add(
+                        Host.StatusCommands.PlayEnemyStatusActivationAsync(
+                            activation.ParticipantId,
+                            activation.Kind,
+                            cancellationToken));
+                }
+            }
+
+            await UniTask.WhenAll(presentationTasks);
         }
     }
 }

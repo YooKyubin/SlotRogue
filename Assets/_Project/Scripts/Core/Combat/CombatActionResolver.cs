@@ -180,7 +180,8 @@ namespace SlotRogue.Core.Combat
                 phase,
                 events,
                 actionState,
-                out CombatEffect appliedEffect);
+                out CombatEffect appliedEffect,
+                out StatusEffectActivation[] statusEffectActivations);
             CombatParticipantSnapshot targetAfter = target.CaptureSnapshot();
 
             events.Add(new CombatEvent(
@@ -192,7 +193,8 @@ namespace SlotRogue.Core.Combat
                 targetParticipantId: target.Id,
                 targetBefore: targetBefore,
                 targetAfter: targetAfter,
-                sourceParticipantId: source.Id));
+                sourceParticipantId: source.Id,
+                statusEffectActivations: statusEffectActivations));
 
             if (appliedEffect.Kind == CombatEffectKind.Damage)
             {
@@ -214,9 +216,11 @@ namespace SlotRogue.Core.Combat
             BattlePhase phase,
             List<CombatEvent> events,
             ActionExecutionState actionState,
-            out CombatEffect appliedEffect)
+            out CombatEffect appliedEffect,
+            out StatusEffectActivation[] statusEffectActivations)
         {
             appliedEffect = effect;
+            statusEffectActivations = Array.Empty<StatusEffectActivation>();
 
             if (effect.Kind == CombatEffectKind.ApplyStatus)
             {
@@ -226,7 +230,10 @@ namespace SlotRogue.Core.Combat
 
             if (effect.Kind == CombatEffectKind.Damage)
             {
-                appliedEffect = actionState.ApplyDamageModifiers(effect, target);
+                appliedEffect = actionState.ApplyDamageModifiers(
+                    effect,
+                    target,
+                    out statusEffectActivations);
             }
 
             return _effectApplicator.ApplyToParticipant(appliedEffect, target);
@@ -353,13 +360,18 @@ namespace SlotRogue.Core.Combat
                 }
             }
 
-            internal CombatEffect ApplyDamageModifiers(CombatEffect effect, CombatParticipant target)
+            internal CombatEffect ApplyDamageModifiers(
+                CombatEffect effect,
+                CombatParticipant target,
+                out StatusEffectActivation[] statusEffectActivations)
             {
                 if (effect.DamageOrigin != DamageOrigin.DirectAction)
                 {
+                    statusEffectActivations = Array.Empty<StatusEffectActivation>();
                     return effect;
                 }
 
+                int usageStartIndex = _usedDamageModifiers.Count;
                 int modifiedDamage = _statusEffectEngine.ModifyOutgoingDamage(
                     _outgoingDamageModifiers,
                     target,
@@ -381,12 +393,36 @@ namespace SlotRogue.Core.Combat
                     effect.DamageOrigin,
                     _usedDamageModifiers);
 
+                statusEffectActivations = BuildStatusEffectActivations(usageStartIndex);
                 return new CombatEffect(
                     effect.Kind,
                     modifiedDamage,
                     effect.Target,
                     effect.StatusEffect,
                     effect.DamageOrigin);
+            }
+
+            private StatusEffectActivation[] BuildStatusEffectActivations(int startIndex)
+            {
+                int count = _usedDamageModifiers.Count - startIndex;
+                if (count <= 0)
+                {
+                    return Array.Empty<StatusEffectActivation>();
+                }
+
+                var activations = new StatusEffectActivation[count];
+                for (int index = 0; index < count; index++)
+                {
+                    StatusEffectEngine.DamageModifierUsage usage =
+                        _usedDamageModifiers[startIndex + index];
+                    CombatParticipant participant = usage.Context.Participant;
+                    activations[index] = new StatusEffectActivation(
+                        participant.Id,
+                        usage.Context.Instance.Kind,
+                        participant.Team == CombatTeam.Player);
+                }
+
+                return activations;
             }
 
             internal void ReactAfterHealthDamageDealt(
