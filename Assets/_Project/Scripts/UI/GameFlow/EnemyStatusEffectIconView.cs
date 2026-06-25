@@ -1,4 +1,3 @@
-using SlotRogue.Core.Combat;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -6,23 +5,24 @@ namespace SlotRogue.UI.GameFlow
 {
     public sealed class EnemyStatusEffectIconView : MonoBehaviour
     {
-        [SerializeField] private Text _leftTurnText;
-        [SerializeField] private Text _stackText;
+        [SerializeField] private Image _icon;
+        [SerializeField] private Text _valueText;
+        [SerializeField] private StatusEffectIconSet _iconSet;
 
         public void Set(StatusEffectViewData status)
         {
-            if (_leftTurnText != null)
+            if (_icon == null || _valueText == null || _iconSet == null)
             {
-                int remainingTurns = Mathf.Max(0, status.RemainingTurns);
-                _leftTurnText.text = remainingTurns > 0 ? remainingTurns.ToString() : string.Empty;
+                Debug.LogError(
+                    "[EnemyStatusEffectIconView] Icon, value text, and icon set references are required.",
+                    this);
+                return;
             }
 
-            if (_stackText != null)
-            {
-                int stackCount = Mathf.Max(0, status.StackCount);
-                bool shouldShowStack = stackCount > 1 || status.Kind == StatusEffectKind.Infection;
-                _stackText.text = shouldShowStack && stackCount > 0 ? stackCount.ToString() : string.Empty;
-            }
+            _icon.sprite = _iconSet.GetIcon(status.Kind);
+            _valueText.text = status.ShowValue
+                ? status.DisplayValue.ToString()
+                : string.Empty;
         }
     }
 }

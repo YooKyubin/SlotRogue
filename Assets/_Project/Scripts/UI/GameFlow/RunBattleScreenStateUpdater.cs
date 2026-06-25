@@ -161,12 +161,7 @@ namespace SlotRogue.UI.GameFlow
             var statuses = new StatusEffectViewData[statusEffects.Count];
             for (int index = 0; index < statusEffects.Count; index++)
             {
-                StatusEffectInstance status = statusEffects[index];
-                statuses[index] = new StatusEffectViewData(
-                    status.Kind,
-                    status.RemainingTurns,
-                    status.Magnitude,
-                    status.StackCount);
+                statuses[index] = StatusEffectPresentationMapper.Map(statusEffects[index]);
             }
 
             return statuses;

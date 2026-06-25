@@ -117,9 +117,9 @@
 |------|-----------|--------------|
 | 상태 엔진 | `StatusEffectEngine`, `StatusEffectFactory`, component 구조 존재 | 적용 이벤트 후 반응, 팀 턴 종료, 피해 정산 전후, 피격 후 반응 Hook을 지원한다. |
 | 상태 종류 | `Burn`, `Freeze`, `Infection`, `Vulnerable`, `Weaken`, `Lifesteal`, `Thorns` | v6 6속성은 Core에 표현되며 `Freeze`는 debug/test 호환 경로로만 남는다. |
-| 화상 | 부여 이벤트 후 즉시 `Magnitude` 피해, 보유자 팀 턴 종료 시 같은 피해 후 만료 구현 완료 | 유물 요청 생성과 상태 UI 연결이 필요하다. |
+| 화상 | 부여 이벤트 후 즉시 `Magnitude` 피해, 보유자 팀 턴 종료 시 같은 피해 후 만료 구현 완료 | 적 상태 UI는 종류별 아이콘과 `Magnitude`를 표시한다. |
 | 감염 | 보유자 팀 턴 종료에 감소 전 `StackCount` 피해, 피해 후 1 감소, 0이면 만료 | 총 스택 상한 없이 v6 계약 구현 완료. 유물 보상풀 활성화는 후속 범위다. |
-| 취약/약화/흡혈/가시 | 취약·약화 modifier, 실제 HP 피해 후 흡혈, 직접 피격 후 50% 반사 및 상대 팀 턴 종료 제거까지 Core 구현 완료 | 유물 요청 생성과 상태 UI 연결이 필요하다. |
+| 취약/약화/흡혈/가시 | 취약·약화 modifier, 실제 HP 피해 후 흡혈, 직접 피격 후 50% 반사 및 상대 팀 턴 종료 제거까지 Core 구현 완료 | 적 상태 UI는 취약·약화·흡혈의 `StackCount`, 가시의 `Magnitude`를 표시한다. |
 | 유물 | `RelicCatalog`에 상태 유물이 등록되어 있으나 대부분 `Phase1=false` | 전투 계약 구현 후 보상풀 활성화 필요. |
 | 몬스터 행동 | Damage/Shield/Heal/LockSlot 런타임 변환 존재 | 상태 부여/흡혈/가시 태세는 아직 데이터 효과 정의와 변환이 없다. |
 | 보스 방해 | `LockSlotEffectDefinition`과 `EnemyActionEffectKind.LockSlot` 표현 존재 | 실제 슬롯 잠금 적용, 슬롯 가리기, 라인 약화, 저주 심볼은 미구현이다. |

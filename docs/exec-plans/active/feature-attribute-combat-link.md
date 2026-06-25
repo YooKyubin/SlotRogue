@@ -65,7 +65,7 @@
 - [x] Relics: 일반 심볼·태그 조건만 필요한 상태 유물을 `Phase1=true`로 단계적 전환 — Codex
 - [ ] Data/Combat: 몬스터 행동 데이터가 상태 부여/흡혈 공격/가시 태세를 표현할 수 있게 효과 정의 추가 — _(전투 담당)_
 - [ ] UI/GameFlow: 적 행동 planner factory에서 새 몬스터 효과 정의를 Core 효과로 변환 — _(전투 담당)_
-- [ ] UI/GameFlow: 상태 아이콘/표시 텍스트를 v6 6속성 기준으로 갱신 — _(전투 담당)_
+- [x] UI/GameFlow: 상태별 대표 수치 Mapper와 `StatusEffectIconSet`을 추가하고 적 상태 아이콘/표시 텍스트를 v6 6속성 기준으로 갱신 — Codex
 - [x] Tests/Core: Burn 즉시 피해 + 팀 턴 종료 피해 + 만료 테스트 추가/갱신 — Codex
 - [x] Tests/Core: Infection 누적, 턴 종료 피해, 1 감소, 상한 없음 테스트 추가 — Codex
 - [x] Tests/Core: Vulnerable/Weaken 정산 단위와 소모 테스트 추가 — Codex
