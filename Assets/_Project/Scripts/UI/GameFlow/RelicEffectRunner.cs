@@ -3,7 +3,6 @@ using System.Text;
 using SlotRogue.Core.Combat;
 using SlotRogue.Relics.Pool;
 using SlotRogue.Slot.Data;
-using UnityEngine;
 
 namespace SlotRogue.UI.GameFlow
 {
@@ -12,12 +11,12 @@ namespace SlotRogue.UI.GameFlow
     /// 전투를 직접 실행하지 않으며, 전투 코어(BattleSystem/StatusEffectEngine)도 건드리지 않는다.
     /// 효과 분기는 문자열이 아니라 <see cref="RelicEffectType"/>로만 처리한다.
     ///
-    /// Phase 1 계산 대상: AddDamage / AddBlock / Heal.
+    /// Phase 1 계산 대상: AddDamage / AddBlock / Heal / 지원 상태 효과 요청.
     /// 흡혈/방어전환(Lifesteal/BlockToHeal)은 전투 코어 없이도 "최종 피해/방어 → 회복" 환산만으로
     /// 성립하므로, 여기서는 규칙(<see cref="RelicDerivedHeal"/>)만 만들고 회복량은
     /// <see cref="CombatTurnRequestBuilder"/>가 최종 수치 확정 후 계산한다.
-    /// 화상/감염/취약/약화/가시는 v23 전투 규칙이 코어에 갖춰질 때까지 계산하지 않는다
-    /// (해당 유물은 카탈로그에서 Phase1=false라 보상풀에도 등장하지 않는다).
+    /// 화상/감염/취약/약화/가시는 상태를 직접 적용하지 않고
+    /// <see cref="StatusEffectRequest"/>로 기존 전투 파이프라인에 전달한다.
     /// </summary>
     public sealed class RelicEffectRunner
     {
@@ -313,14 +312,35 @@ namespace SlotRogue.UI.GameFlow
                     return true;
 
                 case RelicEffectType.ApplyBurn:
+                    statuses.Add(new StatusEffectRequest(
+                        StatusEffectKind.Burn,
+                        relic.EffectValue,
+                        CombatTargetMode.SelectedEnemy));
+                    return true;
                 case RelicEffectType.ApplyInfect:
+                    statuses.Add(new StatusEffectRequest(
+                        StatusEffectKind.Infection,
+                        relic.EffectValue,
+                        CombatTargetMode.SelectedEnemy));
+                    return true;
                 case RelicEffectType.ApplyVulnerable:
+                    statuses.Add(new StatusEffectRequest(
+                        StatusEffectKind.Vulnerable,
+                        relic.EffectValue,
+                        CombatTargetMode.SelectedEnemy));
+                    return true;
                 case RelicEffectType.ApplyWeak:
+                    statuses.Add(new StatusEffectRequest(
+                        StatusEffectKind.Weaken,
+                        relic.EffectValue,
+                        CombatTargetMode.SelectedEnemy));
+                    return true;
                 case RelicEffectType.GainThorns:
-                    // 상태이상 계열은 전투 코어의 v23 동작이 준비될 때까지 실행하지 않는다.
-                    Debug.LogWarning(
-                        $"[Relic] Unsupported status effect in Phase 1: {relic.EffectType} ({relic.Id}). Skipped.");
-                    return false;
+                    statuses.Add(new StatusEffectRequest(
+                        StatusEffectKind.Thorns,
+                        relic.EffectValue,
+                        CombatTargetMode.Self));
+                    return true;
 
                 default:
                     // Phase 2 효과(배율/보상 변형/부활 등)는 계산하지 않는다.

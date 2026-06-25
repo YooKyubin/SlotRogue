@@ -3,6 +3,7 @@ using NUnit.Framework;
 using SlotRogue.Core.Combat;
 using SlotRogue.Relics.Pool;
 using SlotRogue.Slot.Data;
+using SlotRogue.UI.Combat;
 using SlotRogue.UI.GameFlow;
 
 namespace SlotRogue.UI.Tests.GameFlow
@@ -170,45 +171,116 @@ namespace SlotRogue.UI.Tests.GameFlow
             Assert.That(result.Contributions[0].TriggerPatternIndex, Is.EqualTo(1));
         }
 
-        [Test]
-        public void BurnRelic_IsExcludedUntilCombatCoreMatchesV23()
+        [TestCase("C-07", SlotSymbolType.Cherry, StatusEffectKind.Burn, 2)]
+        [TestCase("C-08", SlotSymbolType.Clover, StatusEffectKind.Infection, 2)]
+        [TestCase("C-09", SlotSymbolType.Lemon, StatusEffectKind.Vulnerable, 1)]
+        [TestCase("C-21", SlotSymbolType.Lemon, StatusEffectKind.Weaken, 1)]
+        public void EnemyStatusRelic_EmitsSelectedEnemyRequest(
+            string relicId,
+            SlotSymbolType symbol,
+            StatusEffectKind expectedKind,
+            int expectedAmount)
         {
-            RelicDefinition c07 = RelicCatalog.GetById("C-07");
+            RelicDefinition relic = RelicCatalog.GetById(relicId);
 
             RelicResolveResult result = _runner.Resolve(
-                Matches(SlotSymbolType.Cherry, 4),
-                new[] { c07 },
+                Matches(symbol, relic.RequiredCount),
+                new[] { relic },
                 FullHp());
 
-            Assert.That(c07.Phase1, Is.False);
-            Assert.That(result.StatusEffectsToApply, Is.Empty);
+            Assert.That(result.StatusEffectsToApply, Has.Count.EqualTo(1));
+            StatusEffectRequest request = result.StatusEffectsToApply[0];
+            Assert.That(request.Kind, Is.EqualTo(expectedKind));
+            Assert.That(request.Amount, Is.EqualTo(expectedAmount));
+            Assert.That(request.TargetMode, Is.EqualTo(CombatTargetMode.SelectedEnemy));
         }
 
         [Test]
-        public void InfectRelic_IsExcludedUntilCombatCoreMatchesV23()
+        public void ThornsRelic_EmitsSelfRequest()
         {
-            RelicDefinition c08 = RelicCatalog.GetById("C-08");
+            RelicDefinition relic = RelicCatalog.GetById("C-02");
+
+            RelicResolveResult result = _runner.Resolve(
+                Matches(SlotSymbolType.Clover, 3),
+                new[] { relic },
+                FullHp());
+
+            Assert.That(result.StatusEffectsToApply, Has.Count.EqualTo(1));
+            StatusEffectRequest request = result.StatusEffectsToApply[0];
+            Assert.That(request.Kind, Is.EqualTo(StatusEffectKind.Thorns));
+            Assert.That(request.Amount, Is.EqualTo(2));
+            Assert.That(request.TargetMode, Is.EqualTo(CombatTargetMode.Self));
+        }
+
+        [Test]
+        public void StatusRelic_DoesNotEmitRequest_WhenTriggerDoesNotMatch()
+        {
+            RelicDefinition relic = RelicCatalog.GetById("C-07");
 
             RelicResolveResult result = _runner.Resolve(
                 Matches(SlotSymbolType.Clover, 4),
-                new[] { c08 },
+                new[] { relic },
                 FullHp());
 
-            Assert.That(c08.Phase1, Is.False);
             Assert.That(result.StatusEffectsToApply, Is.Empty);
         }
 
         [Test]
-        public void VulnerableRelic_IsNotPhase1_AndProducesNothing()
+        public void MultipleStatusRelics_EmitEveryRequest()
         {
-            RelicDefinition c09 = RelicCatalog.GetById("C-09"); // 취약 — Phase 2
-            Assert.That(c09.Phase1, Is.False, "취약 유물은 Phase 1 미지원이어야 한다");
+            var matches = new[]
+            {
+                Single(SlotSymbolType.Cherry, 4),
+                Single(SlotSymbolType.Clover, 4),
+            };
+            var owned = new[]
+            {
+                RelicCatalog.GetById("C-07"),
+                RelicCatalog.GetById("C-08"),
+            };
 
-            var owned = new[] { c09 };
-            RelicResolveResult result = _runner.Resolve(Matches(SlotSymbolType.Lemon, 4), owned, FullHp());
+            RelicResolveResult result = _runner.Resolve(matches, owned, FullHp());
 
-            Assert.That(result.StatusEffectsToApply.Count, Is.EqualTo(0), "취약은 전투에 넘기지 않는다");
-            Assert.That(result.AdditionalDamage, Is.EqualTo(0));
+            Assert.That(result.StatusEffectsToApply, Has.Count.EqualTo(2));
+            Assert.That(result.StatusEffectsToApply[0].Kind, Is.EqualTo(StatusEffectKind.Burn));
+            Assert.That(result.StatusEffectsToApply[1].Kind, Is.EqualTo(StatusEffectKind.Infection));
+        }
+
+        [Test]
+        public void StatusRelics_FlowToCombatEffectsWithRequestedTargets()
+        {
+            var matches = new[]
+            {
+                Single(SlotSymbolType.Cherry, 4),
+                Single(SlotSymbolType.Clover, 3),
+            };
+            var owned = new[]
+            {
+                RelicCatalog.GetById("C-07"),
+                RelicCatalog.GetById("C-02"),
+            };
+            RelicResolveResult relicResult = _runner.Resolve(matches, owned, FullHp());
+            var builder = new CombatTurnRequestBuilder();
+            RunCombatRequestResult requestResult = builder.Build(
+                new SlotCombatRequest(5, 0, 1, 0, false, "Attack"),
+                relicResult,
+                runDamageBonus: 0,
+                runDefenseBonus: 0);
+            var converter = new SlotCombatRequestToCombatEffectsConverter();
+            var selectedTargetId = new CombatParticipantId(101);
+
+            CombatEffect[] effects = converter.Convert(
+                requestResult.FinalRequest,
+                selectedTargetId,
+                requestResult.StatusEffectsToApply);
+
+            Assert.That(effects, Has.Length.EqualTo(3));
+            Assert.That(effects[1].StatusEffect.Kind, Is.EqualTo(StatusEffectKind.Burn));
+            Assert.That(
+                effects[1].Target,
+                Is.EqualTo(CombatEffectTarget.SelectedEnemy(selectedTargetId)));
+            Assert.That(effects[2].StatusEffect.Kind, Is.EqualTo(StatusEffectKind.Thorns));
+            Assert.That(effects[2].Target, Is.EqualTo(CombatEffectTarget.Self));
         }
 
         [Test]

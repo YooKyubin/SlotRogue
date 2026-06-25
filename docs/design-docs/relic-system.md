@@ -1,7 +1,7 @@
 # 유물 시스템
 
 **Status**: draft
-**Last updated**: 2026-06-24
+**Last updated**: 2026-06-25
 
 ## Purpose
 
@@ -75,9 +75,11 @@ RelicDefinition.IconKey
 
 ## Phase 1
 
-Phase 1은 시작 6종과 기획대로 실행 가능한 Common/Uncommon 일부를 실행한다. 현재는 피해, 방어, 회복만 지원한다.
+Phase 1은 시작 6종과 기획대로 실행 가능한 Common/Uncommon 일부를 실행한다. 피해, 방어, 회복과 기존 전투 파이프라인으로 연결된 화상·감염·취약·약화·가시 상태 요청을 지원한다.
 
-화상, 감염, 취약, 약화, 가시, 흡혈과 전투당 1회 상태, 전투 시작 훅, 패시브 배율, 보상 선택지 변경, 부활, 복합 저주 효과는 전투 계약이 준비될 때까지 Phase 2다. 해당 유물은 `All`에는 남지만 `RewardPool`과 실행에서는 제외한다. 속성 전투 계약은 [`attribute-status-interference.md`](./attribute-status-interference.md)를 기준으로 구현한다.
+상태 유물 중 일반 심볼·태그 조건만 필요한 화상·감염·취약·약화·가시는 `RelicEffectRunner`가 `StatusEffectRequest`를 생성한다. 전투 시작 훅이 필요한 `U-19`, 방어도 획득 감지와 턴당 제한이 필요한 `R-06`은 비활성 상태로 유지한다.
+
+기존 예상 피해 기반 흡혈, 전투당 1회 상태, 전투 시작 훅, 패시브 배율, 보상 선택지 변경, 부활, 복합 저주 효과는 필요한 실행 계약이 준비될 때까지 Phase 2다. 해당 유물은 `All`에는 남지만 `RewardPool`과 실행에서는 제외한다. 속성 전투 계약은 [`attribute-status-interference.md`](./attribute-status-interference.md)를 기준으로 구현한다.
 
 ## 전투 담당 요청사항
 

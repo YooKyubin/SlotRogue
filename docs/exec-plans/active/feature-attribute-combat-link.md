@@ -61,8 +61,8 @@
 - [ ] Core/Combat: 상태 적용/틱/소모/반사/흡혈 회복 이벤트를 UI가 구분 가능하게 보강 — _(전투 담당)_
 - [ ] UI/GameFlow: `StatusEffectRequest`와 `CombatTurnRequestBuilder`를 v6 상태 요청으로 갱신 — _(전투 담당)_
 - [ ] UI/GameFlow: `RelicTurnResolver`의 상태 조회를 `Burn`/`Infection`/`Vulnerable`/`Weaken` 구분으로 갱신 — _(전투 담당)_
-- [ ] UI/GameFlow: `RelicEffectRunner`에서 `ApplyBurn`, `ApplyInfect`, `ApplyVulnerable`, `ApplyWeak`, `GainThorns`, `Lifesteal` 요청 생성 — _(전투 담당)_
-- [ ] Relics: 구현 완료된 상태 유물만 `Phase1=true`로 단계적 전환 — _(전투 담당)_
+- [x] UI/GameFlow: `RelicEffectRunner`에서 `ApplyBurn`, `ApplyInfect`, `ApplyVulnerable`, `ApplyWeak`, `GainThorns` 요청 생성 — Codex
+- [x] Relics: 일반 심볼·태그 조건만 필요한 상태 유물을 `Phase1=true`로 단계적 전환 — Codex
 - [ ] Data/Combat: 몬스터 행동 데이터가 상태 부여/흡혈 공격/가시 태세를 표현할 수 있게 효과 정의 추가 — _(전투 담당)_
 - [ ] UI/GameFlow: 적 행동 planner factory에서 새 몬스터 효과 정의를 Core 효과로 변환 — _(전투 담당)_
 - [ ] UI/GameFlow: 상태 아이콘/표시 텍스트를 v6 6속성 기준으로 갱신 — _(전투 담당)_
@@ -71,7 +71,7 @@
 - [x] Tests/Core: Vulnerable/Weaken 정산 단위와 소모 테스트 추가 — Codex
 - [x] Tests/Core: Lifesteal 실제 HP 피해 기반 회복, 행동당 소모, Snapshot/Revision, 이벤트 순서 테스트 추가 — Codex
 - [x] Tests/Core: Thorns 확률, 다단히트·다중 대상, 방어막, 반사 재귀 방지, 이벤트 순서, 팀 턴 종료 제거 테스트 추가 — Codex
-- [ ] Tests/UI: 유물 resolver → status request → combat effect 변환 테스트 갱신 — _(전투 담당)_
+- [x] Tests/UI: 유물 resolver → status request → combat effect 변환 테스트 갱신 — Codex
 - [x] `dotnet build SlotRogue.slnx` 통과 — Codex
 - [ ] Unity Editor에서 EditMode 테스트 결과 확인 — _(전투 담당)_
 
@@ -90,6 +90,7 @@
 - 가시 판정은 직접 피해 `EffectApplied`와 흡혈 Heal `EffectApplied` 다음에 수행하며, 반사 처리 후 기존 승패 판정을 실행한다.
 - 유물 상태 요청은 `CombatTargetMode`로 대상을 반드시 명시한다. `CombatTurnRequestBuilder`는 `(StatusEffectKind, CombatTargetMode)`가 같은 요청만 병합하고, `SlotCombatRequestToCombatEffectsConverter`가 최종 `CombatEffectTarget`으로 변환한다.
 - 상태 종류와 대상 enum을 해석하는 변환 경계는 지원하지 않는 값을 기본 상태나 선택 적 대상으로 대체하지 않고 `ArgumentOutOfRangeException`으로 계약 위반을 드러낸다.
+- 상태 유물 중 `C-02`, `C-07`, `C-08`, `C-09`, `C-11`, `C-20`, `C-21`, `C-22`, `U-07`, `U-08`, `U-09`, `U-12`를 활성화했다. `U-19`와 `R-06`은 각각 전투 시작 훅, 방어도 획득 감지·턴당 제한이 없어 비활성 상태를 유지한다.
 - `Freeze`는 debug/test 경로에 남길 수 있지만, 공식 유물/몬스터 데이터의 1차 속성에는 포함하지 않는다.
 
 ## Open questions
