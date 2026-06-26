@@ -1,13 +1,12 @@
 using Cysharp.Threading.Tasks;
-using SlotRogue.Core.Tooling;
 using SlotRogue.UI.Ads;
-using SlotRogue.UI.App;
 using SlotRogue.UI.GameFlow;
 using SlotRogue.UI.Iap;
 using SlotRogue.UI.Leaderboard;
 using SlotRogue.UI.RunGame.ViewModels;
 using UnityEngine;
 using UnityEngine.Serialization;
+using UnityEngine.UI;
 
 namespace SlotRogue.UI.RunGame
 {
@@ -28,16 +27,10 @@ namespace SlotRogue.UI.RunGame
         // ── Inspector 연결 ───────────────────────────────────────────────
 
         [Header("Navigator")]
-        [SerializeField, AutoWire("RunGameNavigator")]
-        private RunGameNavigator _navigator;
+        [SerializeField] private RunGameNavigator _navigator;
 
         [Header("Game Views  (IRunGameView 구현체)")]
-        [SerializeField, AutoWire("00_StartRelicSelectView")]
-        private StartArtifactSelectionView _startRelicSelectView;
-        [SerializeField, AutoWire("10_BattleView")]
-        private BattleView _battleView;
-        [SerializeField, AutoWire("20_RewardView")]
-        private RunRewardView _rewardView;
+        [SerializeField] private RunRewardView _rewardView;
         [SerializeField] private RunDefeatView _defeatView;
         [SerializeField] private LeaderboardView _leaderboardView;
 
@@ -45,20 +38,24 @@ namespace SlotRogue.UI.RunGame
         [SerializeField] private RunHUDView _hudView;
         [SerializeField] private RunInventoryView _inventoryView;
         [SerializeField] private RunTutorialOverlayView _tutorialOverlayView;
+        [SerializeField] private GameObject _settingPanel;
+        [SerializeField] private Button _settingContinueButton;
+        [SerializeField] private Button _settingGiveUpButton;
 
         [Header("Battle Flow")]
         [FormerlySerializedAs("_battleFlowController")]
-        [SerializeField, AutoWire("BattleSceneCompositionRoot")]
-        private BattleSceneCompositionRoot _battleSceneCompositionRoot;
+        [SerializeField] private BattleSceneCompositionRoot _battleSceneCompositionRoot;
 
-        private StartRelicSelectViewModel _startRelicSelectVM;
         private RunRewardViewModel        _rewardVM;
         private RunHUDViewModel           _hudVM;
         private RunInventoryViewModel     _inventoryVM;
         private RunDefeatViewModel        _defeatVM;
         private LeaderboardViewModel       _leaderboardVM;
         private RelicIconRenderer          _relicIconRenderer;
+        private BattleStateEntry           _battleEntry;
         private RunGameFlowController      _flow;
+        private bool                       _isTimePausedBySettings;
+        private float                      _timeScaleBeforeSettingsPause = 1f;
 
         // ── 초기화 ──────────────────────────────────────────────────────
 
@@ -82,14 +79,84 @@ namespace SlotRogue.UI.RunGame
             CreateViewModels();
             EnsureDefeatView();
             EnsureLeaderboardView();
+            EnsureHudView();
             EnsureInventoryView();
             EnsureTutorialOverlayView();
             CreateFlowController();
             BindViews();
             RegisterViews();
             SubscribeEvents();
+            SetupRuntimeOverlays();
             _flow.RefreshRewardedAvailability();
             _flow.RefreshHud();
+        }
+
+        // ── 임시 런타임 UI (일시정지) ────────────────────────────────────
+        // 인벤토리 열기는 RunInventoryView가 Bottom Panel의 버튼을 직접 찾아 연결한다.
+        // 일시정지는 HUD View가 없을 때만 씬의 "Pause Button"을 찾아 임시 입력을 연결한다.
+
+        private void SetupRuntimeOverlays()
+        {
+            EnsureSettingsPanel();
+        }
+
+        private void HandlePauseRequested()
+        {
+            _flow?.OnPauseRequested();
+            ShowSettingsPanel();
+        }
+
+        private void ShowSettingsPanel()
+        {
+            EnsureSettingsPanel();
+            if (_settingPanel == null)
+            {
+                Debug.LogError("[RunGameSceneRoot] SettingPanel must be wired in the inspector.");
+                return;
+            }
+
+            PauseGameTimeForSettings();
+            _settingPanel.SetActive(true);
+            _settingPanel.transform.SetAsLastSibling();
+        }
+
+        private void HideSettingsPanel()
+        {
+            if (_settingPanel != null)
+            {
+                _settingPanel.SetActive(false);
+            }
+
+            ResumeGameTimeFromSettings();
+        }
+
+        private void HandleGiveUpRequested()
+        {
+            HideSettingsPanel();
+            _flow?.HandleGiveUpRequested();
+        }
+
+        private void PauseGameTimeForSettings()
+        {
+            if (_isTimePausedBySettings)
+            {
+                return;
+            }
+
+            _timeScaleBeforeSettingsPause = Time.timeScale;
+            Time.timeScale = 0f;
+            _isTimePausedBySettings = true;
+        }
+
+        private void ResumeGameTimeFromSettings()
+        {
+            if (!_isTimePausedBySettings)
+            {
+                return;
+            }
+
+            Time.timeScale = _timeScaleBeforeSettingsPause;
+            _isTimePausedBySettings = false;
         }
 
         // RunGame 단독 실행 방어: 진행 중인 런이 없으면 새 런을 시작합니다.
@@ -109,6 +176,7 @@ namespace SlotRogue.UI.RunGame
 
         protected virtual void OnDestroy()
         {
+            ResumeGameTimeFromSettings();
             _flow?.Dispose();
             UnsubscribeEvents();
             _relicIconRenderer?.Dispose();
@@ -124,7 +192,6 @@ namespace SlotRogue.UI.RunGame
 
         private void CreateViewModels()
         {
-            _startRelicSelectVM = new StartRelicSelectViewModel();
             _rewardVM           = new RunRewardViewModel();
             _hudVM              = new RunHUDViewModel();
             _inventoryVM        = new RunInventoryViewModel();
@@ -136,19 +203,19 @@ namespace SlotRogue.UI.RunGame
 
         private void CreateFlowController()
         {
+            _battleEntry = new BattleStateEntry();
             _flow = new RunGameFlowController(
                 _navigator,
-                _startRelicSelectVM,
                 _rewardVM,
                 _hudVM,
                 _inventoryVM,
                 _defeatVM,
                 _leaderboardVM,
-                _battleView,
+                _battleEntry,
                 _battleSceneCompositionRoot,
                 _tutorialOverlayView,
                 _defeatView,
-                _leaderboardView,
+                _leaderboardView != null,
                 this.GetCancellationTokenOnDestroy());
         }
 
@@ -159,21 +226,19 @@ namespace SlotRogue.UI.RunGame
             // 각 View가 자기 ViewModel을 구독(상태→Render, .AddTo(this))하고 입력 event를
             // FlowController(presenter)로 연결한다(ADR-0020). R3 구독은 즉시 초기값을 흘려보내
             // 첫 Render를 처리하므로 여기서 따로 Render하지 않는다.
-            _startRelicSelectView?.Bind(_startRelicSelectVM, _flow, _relicIconRenderer);
             _rewardView?.Bind(_rewardVM, _flow, _relicIconRenderer);
             _hudView?.Bind(_hudVM);
             _inventoryView?.Bind(_inventoryVM, _flow);
             _defeatView?.Bind(_defeatVM);
             _leaderboardView?.Bind(_leaderboardVM);
-            _battleView?.Bind(_flow);
+            _battleEntry.Bind(_flow);
         }
 
         // ── Navigator 등록 ───────────────────────────────────────────────
 
         private void RegisterViews()
         {
-            RegisterIfPresent(RunGameState.StartRelicSelect, _startRelicSelectView);
-            RegisterIfPresent(RunGameState.Battle,           _battleView);
+            _navigator.Register(RunGameState.Battle,         _battleEntry);
             RegisterIfPresent(RunGameState.Reward,           _rewardView);
             RegisterIfPresent(RunGameState.Defeat,           _defeatView);
         }
@@ -194,9 +259,8 @@ namespace SlotRogue.UI.RunGame
         {
             // View 상태 구독과 View 입력 event 연결은 각 View의 Bind(BindViews)가 소유한다(ADR-0020).
             // 여기서는 ViewModel/System → presenter 같은 비-View 배선만 담당한다.
-            _startRelicSelectVM.RelicSelected += _flow.HandleStarterRelicSelected;
             _rewardVM.RewardClaimed += _flow.HandleRewardClaimed;
-            _hudVM.PauseRequested += _flow.OnPauseRequested;
+            _hudVM.PauseRequested += HandlePauseRequested;
             _defeatVM.RestartRequested += _flow.HandleRestartRequested;
             _defeatVM.RankingRequested += _flow.HandleRankingRequested;
             _defeatVM.HomeRequested += _flow.HandleHomeRequested;
@@ -226,16 +290,11 @@ namespace SlotRogue.UI.RunGame
 
         private void UnsubscribeEvents()
         {
-            // State 구독(_startRelicSelectVM/_rewardVM/_hudVM/_inventoryVM/_defeatVM)은
+            // State 구독(_rewardVM/_hudVM/_inventoryVM/_defeatVM)은
             // R3 AddTo(this)로 자동 해제되므로 여기서 수동 -= 하지 않는다.
             if (_flow == null)
             {
                 return;
-            }
-
-            if (_startRelicSelectVM != null)
-            {
-                _startRelicSelectVM.RelicSelected -= _flow.HandleStarterRelicSelected;
             }
 
             if (_rewardVM != null)
@@ -245,7 +304,7 @@ namespace SlotRogue.UI.RunGame
 
             if (_hudVM != null)
             {
-                _hudVM.PauseRequested -= _flow.OnPauseRequested;
+                _hudVM.PauseRequested -= HandlePauseRequested;
             }
 
             if (_defeatVM != null)
@@ -282,30 +341,14 @@ namespace SlotRogue.UI.RunGame
 
         private void EnsureDefeatView()
         {
-            if (_defeatView != null)
-            {
-                _defeatView.EnsureRuntimeLayout();
-                return;
-            }
-
-            Transform searchRoot = _navigator != null ? _navigator.transform.root : transform.root;
-            Transform host = SceneComponentResolver.FindDeepChild(searchRoot, "DefeatView") ??
-                SceneComponentResolver.FindDeepChild(searchRoot, "GameOverView");
-            if (host == null)
-            {
-                Debug.LogError("[RunGameSceneRoot] DefeatView host must be placed in the scene hierarchy.");
-                return;
-            }
-
-            _defeatView = host.GetComponent<RunDefeatView>();
             if (_defeatView == null)
             {
-                Debug.LogError("[RunGameSceneRoot] DefeatView host requires RunDefeatView.");
+                Debug.LogError("[RunGameSceneRoot] DefeatView must be wired in the inspector.");
                 return;
             }
 
             _defeatView.EnsureRuntimeLayout();
-            host.gameObject.SetActive(false);
+            _defeatView.gameObject.SetActive(false);
         }
 
         private void EnsureLeaderboardView()
@@ -328,6 +371,49 @@ namespace SlotRogue.UI.RunGame
 
             _leaderboardView.EnsureRuntimeLayout();
             _leaderboardView.SetLauncherVisible(false);
+        }
+
+        private void EnsureHudView()
+        {
+            if (_hudView != null)
+            {
+                _hudView.EnsureRuntimeLayout();
+                return;
+            }
+
+            Transform searchRoot = _navigator != null ? _navigator.transform.root : transform.root;
+            _hudView =
+                searchRoot.GetComponentInChildren<RunHUDView>(
+                    includeInactive: true);
+
+            if (_hudView == null)
+            {
+                Debug.LogError(
+                    "[RunGameSceneRoot] RunHUDView must be placed in the scene hierarchy.");
+                return;
+            }
+
+            _hudView.EnsureRuntimeLayout();
+        }
+
+        private void EnsureSettingsPanel()
+        {
+            if (_settingPanel != null && _settingPanel.activeSelf)
+            {
+                _settingPanel.SetActive(false);
+            }
+
+            if (_settingContinueButton != null)
+            {
+                _settingContinueButton.onClick.RemoveListener(HideSettingsPanel);
+                _settingContinueButton.onClick.AddListener(HideSettingsPanel);
+            }
+
+            if (_settingGiveUpButton != null)
+            {
+                _settingGiveUpButton.onClick.RemoveListener(HandleGiveUpRequested);
+                _settingGiveUpButton.onClick.AddListener(HandleGiveUpRequested);
+            }
         }
 
         private void EnsureInventoryView()
@@ -378,11 +464,6 @@ namespace SlotRogue.UI.RunGame
     }
 
     // ── View Bind 인터페이스 ─────────────────────────────────────────────
-
-    public interface IStartRelicSelectView : IRunGameView
-    {
-        void Render(StartRelicSelectViewState state);
-    }
 
     public interface IRunRewardView : IRunGameView
     {

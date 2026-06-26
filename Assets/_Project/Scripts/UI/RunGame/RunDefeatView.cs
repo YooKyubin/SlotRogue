@@ -1,62 +1,79 @@
 using System;
+using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using R3;
+using SlotRogue.Slot.Data;
+using SlotRogue.UI.GameFlow;
 using SlotRogue.UI.RunGame.ViewModels;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+#if DOTWEEN
+using DG.Tweening;
+#endif
 
 namespace SlotRogue.UI.RunGame
 {
-    public sealed class RunDefeatView : MonoBehaviour, IRunGameView
+    /// <summary>
+    /// 패배 화면(부활 제안 / 결과) View입니다. TMP 전용.
+    /// 상태 구독·입력 event 연결은 Bind가 소유합니다(ADR-0020).
+    /// RANKING 버튼과 SCORE 텍스트는 선택 요소입니다(없어도 동작).
+    /// </summary>
+    public sealed partial class RunDefeatView : ViewComponentBase, IRunGameView, IDefeatPortraitView
     {
         private const int SymbolStatRowCount = 6;
-        private const string AttackTabSpritePath = "Textures/UI/bt_rankingdata1";
-        private const string DefenseTabSpritePath = "Textures/UI/bt_rankingdata2";
-
-        [SerializeField] private RectTransform _layoutRoot;
-        [SerializeField] private Text _titleText;
-        [SerializeField] private TMP_Text _titleTmpText;
 
         [Header("Revive Offer")]
         [SerializeField] private GameObject _reviveOfferRoot;
+        [Tooltip("WAVE 숫자 텍스트 (코드가 채움). '돌파 실패' 문구는 프리팹 고정.")]
+        [SerializeField] private TMP_Text _reviveWaveText;
         [SerializeField] private Image _monsterImage;
-        [SerializeField] private Text _countdownText;
-        [SerializeField] private TMP_Text _countdownTmpText;
+        [SerializeField] private TMP_Text _countdownText;
         [SerializeField] private Button _reviveButton;
-        [SerializeField] private Text _reviveButtonText;
-        [SerializeField] private TMP_Text _reviveButtonTmpText;
+        [SerializeField] private TMP_Text _reviveButtonText;
 
         [Header("Run Result")]
         [SerializeField] private GameObject _resultRoot;
-        [SerializeField] private Text _summaryText;
-        [SerializeField] private TMP_Text _summaryTmpText;
-        [SerializeField] private Text _contributionText;
-        [SerializeField] private TMP_Text _contributionTmpText;
+        [Tooltip("WAVE 숫자 텍스트 (코드가 채움). '돌파 …' 문구는 프리팹 고정.")]
+        [SerializeField] private TMP_Text _resultWaveText;
+        [Tooltip("선택: 점수 시스템이 생기면 채운다(현재 placeholder).")]
+        [SerializeField] private TMP_Text _scoreText;
+        [SerializeField] private TMP_Text _summaryText;
+        [SerializeField] private TMP_Text _contributionText;
         [SerializeField] private Button _attackTabButton;
-        [SerializeField] private Text _attackTabText;
-        [SerializeField] private TMP_Text _attackTabTmpText;
+        [SerializeField] private TMP_Text _attackTabText;
         [SerializeField] private Button _defenseTabButton;
-        [SerializeField] private Text _defenseTabText;
-        [SerializeField] private TMP_Text _defenseTabTmpText;
+        [SerializeField] private TMP_Text _defenseTabText;
+        [Header("Tab Sprites (선택 상태 교체용)")]
+        [SerializeField] private Sprite _attackTabActiveSprite;
+        [SerializeField] private Sprite _attackTabInactiveSprite;
+        [SerializeField] private Sprite _defenseTabActiveSprite;
+        [SerializeField] private Sprite _defenseTabInactiveSprite;
+        [Tooltip("심볼 아이콘 스프라이트(SlotSymbolPool.Symbols 순서: 체리·세븐·다이아·벨·클로버·레몬). 정렬 순서대로 코드가 행에 배치한다.")]
+        [SerializeField] private Sprite[] _symbolIcons = Array.Empty<Sprite>();
         [SerializeField] private RectTransform _symbolStatsRoot;
         [SerializeField] private Button _newRunButton;
-        [SerializeField] private Text _newRunButtonText;
-        [SerializeField] private TMP_Text _newRunButtonTmpText;
+        [SerializeField] private TMP_Text _newRunButtonText;
+        [Tooltip("선택: 결과 화면에 RANKING 진입 버튼이 있을 때만.")]
         [SerializeField] private Button _rankingButton;
-        [SerializeField] private Text _rankingButtonText;
-        [SerializeField] private TMP_Text _rankingButtonTmpText;
+        [SerializeField] private TMP_Text _rankingButtonText;
         [SerializeField] private Button _homeButton;
-        [SerializeField] private Text _homeButtonText;
-        [SerializeField] private TMP_Text _homeButtonTmpText;
+        [SerializeField] private TMP_Text _homeButtonText;
 
         private Sprite _monsterPortrait;
         private bool _subscribed;
+        private const float BarFillDuration = 0.5f;
+        private const float BarFillStagger = 0.06f;
+
         private RunDefeatViewState _lastState = RunDefeatViewState.Empty;
         private ResultStatTab _activeStatTab = ResultStatTab.Attack;
-        private Sprite _attackTabSprite;
-        private Sprite _defenseTabSprite;
+        private bool _resultVisible;
         private readonly SymbolStatRow[] _symbolStatRows =
             new SymbolStatRow[SymbolStatRowCount];
+        private AddressableSpriteProvider _symbolIconProvider;
+        private CancellationTokenSource _symbolIconCts;
+        private int _symbolIconVersion;
 
         public event Action RestartRequested;
 
@@ -69,6 +86,12 @@ namespace SlotRogue.UI.RunGame
         private void OnDestroy()
         {
             UnsubscribeButtons();
+            KillBarTweens();
+            _symbolIconCts?.Cancel();
+            _symbolIconCts?.Dispose();
+            _symbolIconCts = null;
+            _symbolIconProvider?.Dispose();
+            _symbolIconProvider = null;
         }
 
         /// <summary>
@@ -103,6 +126,8 @@ namespace SlotRogue.UI.RunGame
 
         public void OnExit()
         {
+            KillBarTweens();
+            _resultVisible = false;
             gameObject.SetActive(false);
         }
 
@@ -123,27 +148,27 @@ namespace SlotRogue.UI.RunGame
                 return;
             }
 
-            SetText(_titleText, state.Title);
-            SetText(_titleTmpText, state.Title);
+            // WAVE 숫자만 코드가 채우고, '돌파 실패/성공' 문구는 프리팹 고정 텍스트를 유지한다.
+            string waveLabel = $"WAVE {state.BattleNumber}";
+            SetText(_reviveWaveText, waveLabel);
+            SetText(_resultWaveText, waveLabel);
             SetText(_countdownText, state.CountdownLabel);
-            SetText(_countdownTmpText, state.CountdownLabel);
             SetText(_summaryText, state.Summary);
-            SetText(_summaryTmpText, state.Summary);
             SetText(_contributionText, state.ContributionSummary);
-            SetText(_contributionTmpText, state.ContributionSummary);
             SetText(_newRunButtonText, state.RestartLabel);
-            SetText(_newRunButtonTmpText, state.RestartLabel);
             SetText(_rankingButtonText, state.RankingLabel);
-            SetText(_rankingButtonTmpText, state.RankingLabel);
             SetText(_homeButtonText, state.HomeLabel);
-            SetText(_homeButtonTmpText, state.HomeLabel);
             SetText(_reviveButtonText, state.ReviveLabel);
-            SetText(_reviveButtonTmpText, state.ReviveLabel);
+
+            // SCORE는 점수 시스템 생기기 전까지 placeholder(프리팹 작성값 유지).
 
             SetActive(_reviveOfferRoot, state.IsReviveOffer);
             SetActive(_resultRoot, state.IsResultVisible);
             _lastState = state;
-            RenderSymbolStats(state);
+            // 결과 화면이 막 나타날 때만 막대를 0→목표로 차오르게 한다(탭 전환은 즉시).
+            bool enteringResult = state.IsResultVisible && !_resultVisible;
+            _resultVisible = state.IsResultVisible;
+            RenderSymbolStats(state, enteringResult);
 
             if (_monsterImage != null)
             {
@@ -161,7 +186,7 @@ namespace SlotRogue.UI.RunGame
 
         public bool EnsureRuntimeLayout()
         {
-            ResolveSceneReferences();
+            ResolveSymbolStatRows();
             if (!HasRequiredReferences())
             {
                 Debug.LogError(
@@ -174,111 +199,44 @@ namespace SlotRogue.UI.RunGame
             return true;
         }
 
-        private void ResolveSceneReferences()
-        {
-            _layoutRoot ??= FindDeepChild(transform, "Defeat Layout") as RectTransform;
-            _titleText ??= FindChildComponent<Text>("Defeat Title");
-            _titleTmpText ??= FindChildComponent<TMP_Text>("Defeat Title Text") ??
-                FindChildComponent<TMP_Text>("Defeat Title");
-            _reviveOfferRoot ??= FindDeepChild(transform, "Revive Offer Root")?.gameObject;
-            _monsterImage ??= FindChildComponent<Image>("Defeating Monster Image");
-            _countdownText ??= FindChildComponent<Text>("Revive Countdown");
-            _countdownTmpText ??= FindChildComponent<TMP_Text>("Revive Countdown");
-            _reviveButton ??= FindChildComponent<Button>("Revive Button");
-            _reviveButtonText ??= FindChildComponent<Text>("Revive Button Text");
-            _reviveButtonTmpText ??= FindChildComponent<TMP_Text>("Revive Button Text");
-            _resultRoot ??= FindDeepChild(transform, "Run Result Root")?.gameObject;
-            _summaryText ??= FindChildComponent<Text>("Defeat Summary");
-            _summaryTmpText ??= FindChildComponent<TMP_Text>("Defeat Summary");
-            _contributionText ??= FindChildComponent<Text>("Symbol Contribution Text") ??
-                FindChildComponent<Text>("Relic Contribution Text");
-            _contributionTmpText ??= FindChildComponent<TMP_Text>("Symbol Contribution Text") ??
-                FindChildComponent<TMP_Text>("Relic Contribution Text");
-            _attackTabButton ??= FindChildComponent<Button>("Attack Tab Button");
-            _attackTabText ??= FindChildComponent<Text>("Attack Tab Text");
-            _attackTabTmpText ??= FindChildComponent<TMP_Text>("Attack Tab Text");
-            _defenseTabButton ??= FindChildComponent<Button>("Defense Tab Button");
-            _defenseTabText ??= FindChildComponent<Text>("Defense Tab Text");
-            _defenseTabTmpText ??= FindChildComponent<TMP_Text>("Defense Tab Text");
-            _symbolStatsRoot ??= FindDeepChild(transform, "Result Symbol Stats Root") as RectTransform;
-            _newRunButton ??= FindChildComponent<Button>("New Run Button");
-            _newRunButtonText ??= FindChildComponent<Text>("New Run Button Text");
-            _newRunButtonTmpText ??= FindChildComponent<TMP_Text>("New Run Button Text");
-            _rankingButton ??= FindChildComponent<Button>("Ranking Button");
-            _rankingButtonText ??= FindChildComponent<Text>("Ranking Button Text");
-            _rankingButtonTmpText ??= FindChildComponent<TMP_Text>("Ranking Button Text");
-            _homeButton ??= FindChildComponent<Button>("Home Button");
-            _homeButtonText ??= FindChildComponent<Text>("Home Button Text");
-            _homeButtonTmpText ??= FindChildComponent<TMP_Text>("Home Button Text");
-            ResolveSymbolStatRows();
-        }
-
+        // RANKING/SCORE/탭은 선택 요소이므로 필수에서 제외한다.
         private bool HasRequiredReferences()
         {
-            return _layoutRoot != null &&
-                (_titleText != null || _titleTmpText != null) &&
-                _reviveOfferRoot != null &&
-                HasText(_countdownText, _countdownTmpText) &&
+            return _reviveOfferRoot != null &&
+                _countdownText != null &&
                 _reviveButton != null &&
-                HasText(_reviveButtonText, _reviveButtonTmpText) &&
+                _reviveButtonText != null &&
                 _resultRoot != null &&
-                HasText(_summaryText, _summaryTmpText) &&
-                (HasText(_contributionText, _contributionTmpText) || HasSymbolStatRows()) &&
+                (_summaryText != null || HasSymbolStatRows()) &&
                 _newRunButton != null &&
-                HasText(_newRunButtonText, _newRunButtonTmpText) &&
-                _rankingButton != null &&
-                HasText(_rankingButtonText, _rankingButtonTmpText) &&
+                _newRunButtonText != null &&
                 _homeButton != null &&
-                HasText(_homeButtonText, _homeButtonTmpText);
+                _homeButtonText != null;
         }
 
         private string BuildMissingReferenceSummary()
         {
             var builder = new System.Text.StringBuilder();
-            AppendMissing(builder, _layoutRoot != null, "Defeat Layout");
-            AppendMissing(builder, _titleText != null || _titleTmpText != null, "Defeat Title/Text");
             AppendMissing(builder, _reviveOfferRoot != null, "Revive Offer Root");
-            AppendMissing(builder, HasText(_countdownText, _countdownTmpText), "Revive Countdown");
+            AppendMissing(builder, _countdownText != null, "Revive Countdown");
             AppendMissing(builder, _reviveButton != null, "Revive Button");
-            AppendMissing(builder, HasText(_reviveButtonText, _reviveButtonTmpText), "Revive Button Text");
+            AppendMissing(builder, _reviveButtonText != null, "Revive Button Text");
             AppendMissing(builder, _resultRoot != null, "Run Result Root");
-            AppendMissing(builder, HasText(_summaryText, _summaryTmpText), "Defeat Summary");
             AppendMissing(
                 builder,
-                HasText(_contributionText, _contributionTmpText) || HasSymbolStatRows(),
-                "Symbol Contribution Text or Result Symbol Stat Rows");
+                _summaryText != null || HasSymbolStatRows(),
+                "Defeat Summary or Result Symbol Stat Rows");
             AppendMissing(builder, _newRunButton != null, "New Run Button");
-            AppendMissing(builder, HasText(_newRunButtonText, _newRunButtonTmpText), "New Run Button Text");
-            AppendMissing(builder, _rankingButton != null, "Ranking Button");
-            AppendMissing(builder, HasText(_rankingButtonText, _rankingButtonTmpText), "Ranking Button Text");
+            AppendMissing(builder, _newRunButtonText != null, "New Run Button Text");
             AppendMissing(builder, _homeButton != null, "Home Button");
-            AppendMissing(builder, HasText(_homeButtonText, _homeButtonTmpText), "Home Button Text");
+            AppendMissing(builder, _homeButtonText != null, "Home Button Text");
             return builder.Length > 0 ? builder.ToString() : "none";
-        }
-
-        private static void AppendMissing(
-            System.Text.StringBuilder builder,
-            bool hasReference,
-            string label)
-        {
-            if (hasReference)
-            {
-                return;
-            }
-
-            if (builder.Length > 0)
-            {
-                builder.Append(", ");
-            }
-
-            builder.Append(label);
         }
 
         private void SubscribeButtons()
         {
             if (_subscribed ||
                 _newRunButton == null ||
-                _rankingButton == null ||
                 _homeButton == null ||
                 _reviveButton == null)
             {
@@ -286,9 +244,9 @@ namespace SlotRogue.UI.RunGame
             }
 
             _newRunButton.onClick.AddListener(HandleRestartClicked);
-            _rankingButton.onClick.AddListener(HandleRankingClicked);
             _homeButton.onClick.AddListener(HandleHomeClicked);
             _reviveButton.onClick.AddListener(HandleReviveClicked);
+            _rankingButton?.onClick.AddListener(HandleRankingClicked);
             _attackTabButton?.onClick.AddListener(HandleAttackTabClicked);
             _defenseTabButton?.onClick.AddListener(HandleDefenseTabClicked);
             _subscribed = true;
@@ -302,9 +260,9 @@ namespace SlotRogue.UI.RunGame
             }
 
             _newRunButton?.onClick.RemoveListener(HandleRestartClicked);
-            _rankingButton?.onClick.RemoveListener(HandleRankingClicked);
             _homeButton?.onClick.RemoveListener(HandleHomeClicked);
             _reviveButton?.onClick.RemoveListener(HandleReviveClicked);
+            _rankingButton?.onClick.RemoveListener(HandleRankingClicked);
             _attackTabButton?.onClick.RemoveListener(HandleAttackTabClicked);
             _defenseTabButton?.onClick.RemoveListener(HandleDefenseTabClicked);
             _subscribed = false;
@@ -333,13 +291,13 @@ namespace SlotRogue.UI.RunGame
         private void HandleAttackTabClicked()
         {
             _activeStatTab = ResultStatTab.Attack;
-            RenderSymbolStats(_lastState);
+            RenderSymbolStats(_lastState, animate: false);
         }
 
         private void HandleDefenseTabClicked()
         {
             _activeStatTab = ResultStatTab.Defense;
-            RenderSymbolStats(_lastState);
+            RenderSymbolStats(_lastState, animate: false);
         }
 
         private void ResolveSymbolStatRows()
@@ -369,27 +327,27 @@ namespace SlotRogue.UI.RunGame
             return false;
         }
 
-        private void RenderSymbolStats(RunDefeatViewState state)
+        private void RenderSymbolStats(RunDefeatViewState state, bool animate)
         {
             bool hasRows = HasSymbolStatRows();
             // 직렬화 필드는 미할당 시 C# null이 아니라 Unity "가짜 null"이라 `?.`이 통과해 버린다.
             // Component 오버로드(SetActive)가 Unity 오버로드 `!= null`로 안전하게 가른다(AGENTS §6).
             SetActive(_symbolStatsRoot, state.IsResultVisible && hasRows);
             SetActive(_contributionText, state.IsResultVisible && !hasRows);
-            SetActive(_contributionTmpText, state.IsResultVisible && !hasRows);
 
             if (!hasRows)
             {
                 return;
             }
 
+            int iconVersion = ++_symbolIconVersion;
             bool attackActive = _activeStatTab == ResultStatTab.Attack;
             SetTabSprite(attackActive);
             SetTextColor(_attackTabText, Color.white);
-            SetTextColor(_attackTabTmpText, Color.white);
             SetTextColor(_defenseTabText, Color.white);
-            SetTextColor(_defenseTabTmpText, Color.white);
 
+            // 활성 탭(공격/방어) 수치 기준 내림차순으로 정렬해, 많이 기여한 심볼이 위로 온다.
+            List<RunDefeatSymbolStatViewState> sorted = BuildSortedStats(state);
             int maxValue = CalculateMaxStatValue(state);
             for (int index = 0; index < _symbolStatRows.Length; index++)
             {
@@ -399,14 +357,115 @@ namespace SlotRogue.UI.RunGame
                     continue;
                 }
 
-                bool hasStat = state.SymbolStats != null && index < state.SymbolStats.Count;
-                RunDefeatSymbolStatViewState stat = hasStat
-                    ? state.SymbolStats[index]
-                    : default;
-                int value = _activeStatTab == ResultStatTab.Attack
-                    ? stat.AttackPower
-                    : stat.DefensePower;
-                row.Render(stat, value, maxValue);
+                bool hasStat = index < sorted.Count;
+                RunDefeatSymbolStatViewState stat = hasStat ? sorted[index] : default;
+                int value = StatValue(stat);
+                Sprite icon = hasStat ? ResolveSymbolIcon(stat.Symbol) : null;
+                row.Render(
+                    stat, value, maxValue, animate, index * BarFillStagger, BarFillDuration, icon);
+                if (hasStat && icon == null)
+                {
+                    ApplyAddressableSymbolIcon(row, stat.Symbol, iconVersion);
+                }
+            }
+        }
+
+        private List<RunDefeatSymbolStatViewState> BuildSortedStats(RunDefeatViewState state)
+        {
+            var list = new List<RunDefeatSymbolStatViewState>();
+            if (state.SymbolStats != null)
+            {
+                list.AddRange(state.SymbolStats);
+            }
+
+            list.Sort((left, right) => StatValue(right).CompareTo(StatValue(left)));
+            return list;
+        }
+
+        private int StatValue(RunDefeatSymbolStatViewState stat)
+        {
+            return _activeStatTab == ResultStatTab.Attack
+                ? stat.AttackPower
+                : stat.DefensePower;
+        }
+
+        private Sprite ResolveSymbolIcon(SlotSymbolType symbol)
+        {
+            if (_symbolIcons == null)
+            {
+                return null;
+            }
+
+            IReadOnlyList<SlotSymbolType> order = SlotSymbolPool.Symbols;
+            for (int index = 0; index < order.Count && index < _symbolIcons.Length; index++)
+            {
+                if (order[index] == symbol)
+                {
+                    return _symbolIcons[index];
+                }
+            }
+
+            return null;
+        }
+
+        private void ApplyAddressableSymbolIcon(
+            SymbolStatRow row,
+            SlotSymbolType symbol,
+            int version)
+        {
+            if (row == null)
+            {
+                return;
+            }
+
+            string key = SlotSymbolIconKeys.For(symbol);
+            if (string.IsNullOrEmpty(key))
+            {
+                return;
+            }
+
+            _symbolIconCts ??= new CancellationTokenSource();
+            LoadSymbolIconAsync(
+                row,
+                key,
+                SymbolProvider(),
+                version,
+                _symbolIconCts.Token).Forget();
+        }
+
+        private AddressableSpriteProvider SymbolProvider()
+        {
+            return _symbolIconProvider ??= new AddressableSpriteProvider(string.Empty);
+        }
+
+        private async UniTaskVoid LoadSymbolIconAsync(
+            SymbolStatRow row,
+            string key,
+            AddressableSpriteProvider provider,
+            int version,
+            CancellationToken cancellationToken)
+        {
+            Sprite sprite;
+            try
+            {
+                sprite = await provider.LoadAsync(key, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            if (version == _symbolIconVersion && sprite != null)
+            {
+                row.SetIcon(sprite);
+            }
+        }
+
+        private void KillBarTweens()
+        {
+            for (int index = 0; index < _symbolStatRows.Length; index++)
+            {
+                _symbolStatRows[index]?.KillFill();
             }
         }
 
@@ -430,278 +489,35 @@ namespace SlotRogue.UI.RunGame
             return max;
         }
 
-        private T FindChildComponent<T>(string objectName) where T : Component
-        {
-            Transform child = FindDeepChild(transform, objectName);
-            return child != null ? child.GetComponent<T>() : null;
-        }
-
-        private static Transform FindDeepChild(Transform parent, string objectName)
-        {
-            if (parent == null)
-            {
-                return null;
-            }
-
-            if (parent.name == objectName)
-            {
-                return parent;
-            }
-
-            for (int index = 0; index < parent.childCount; index++)
-            {
-                Transform found = FindDeepChild(parent.GetChild(index), objectName);
-                if (found != null)
-                {
-                    return found;
-                }
-            }
-
-            return null;
-        }
-
-        private static void SetText(Text text, string value)
-        {
-            if (text != null)
-            {
-                text.text = value ?? string.Empty;
-            }
-        }
-
-        private static void SetText(TMP_Text text, string value)
-        {
-            if (text != null)
-            {
-                text.text = value ?? string.Empty;
-            }
-        }
-
-        private static bool HasText(Text text, TMP_Text tmpText)
-        {
-            return text != null || tmpText != null;
-        }
-
-        private static void SetTextColor(Text text, Color color)
-        {
-            if (text != null)
-            {
-                text.color = color;
-            }
-        }
-
-        private static void SetTextColor(TMP_Text text, Color color)
-        {
-            if (text != null)
-            {
-                text.color = color;
-            }
-        }
-
+        // 선택된 탭은 active 스프라이트, 나머지는 inactive 스프라이트로 교체한다(직렬화 참조 — ADR-0006).
         private void SetTabSprite(bool attackActive)
         {
-            if (_attackTabButton?.targetGraphic is Image tabImage)
-            {
-                tabImage.sprite = attackActive
-                    ? LoadTabSprite(ref _attackTabSprite, AttackTabSpritePath)
-                    : LoadTabSprite(ref _defenseTabSprite, DefenseTabSpritePath);
-                tabImage.color = Color.white;
-                tabImage.preserveAspect = true;
-            }
-
-            if (_defenseTabButton?.targetGraphic != null)
-            {
-                _defenseTabButton.targetGraphic.color = Color.clear;
-            }
+            ApplyTabSprite(
+                _attackTabButton,
+                attackActive ? _attackTabActiveSprite : _attackTabInactiveSprite);
+            ApplyTabSprite(
+                _defenseTabButton,
+                attackActive ? _defenseTabInactiveSprite : _defenseTabActiveSprite);
         }
 
-        private static Sprite LoadTabSprite(ref Sprite cachedSprite, string resourcePath)
+        private static void ApplyTabSprite(Button tabButton, Sprite sprite)
         {
-            if (cachedSprite != null)
+            if (tabButton == null ||
+                sprite == null ||
+                tabButton.targetGraphic is not Image image)
             {
-                return cachedSprite;
+                return;
             }
 
-            Sprite[] sprites = Resources.LoadAll<Sprite>(resourcePath);
-            cachedSprite = sprites != null && sprites.Length > 0 ? sprites[0] : null;
-            return cachedSprite;
-        }
-
-        private static void SetActive(GameObject target, bool active)
-        {
-            if (target != null)
-            {
-                target.SetActive(active);
-            }
-        }
-
-        // Component 오버로드: 미할당/파괴된 직렬화 참조를 Unity 오버로드 `!= null`로 안전하게 거른다.
-        // (`component?.gameObject`는 Unity "가짜 null"에서 UnassignedReferenceException을 던진다.)
-        private static void SetActive(Component target, bool active)
-        {
-            if (target != null)
-            {
-                target.gameObject.SetActive(active);
-            }
+            image.sprite = sprite;
+            image.color = Color.white;
+            image.enabled = true;
         }
 
         private enum ResultStatTab
         {
             Attack = 0,
             Defense = 1,
-        }
-
-        private sealed class SymbolStatRow
-        {
-            private readonly GameObject _root;
-            private readonly Text _rowText;
-            private readonly TMP_Text _rowTmpText;
-            private readonly Image _iconFrame;
-            private readonly Text _nameText;
-            private readonly TMP_Text _nameTmpText;
-            private readonly Text _valueText;
-            private readonly TMP_Text _valueTmpText;
-            private readonly Image _fillImage;
-
-            private SymbolStatRow(
-                GameObject root,
-                Text rowText,
-                TMP_Text rowTmpText,
-                Image iconFrame,
-                Text nameText,
-                TMP_Text nameTmpText,
-                Text valueText,
-                TMP_Text valueTmpText,
-                Image fillImage)
-            {
-                _root = root;
-                _rowText = rowText;
-                _rowTmpText = rowTmpText;
-                _iconFrame = iconFrame;
-                _nameText = nameText;
-                _nameTmpText = nameTmpText;
-                _valueText = valueText;
-                _valueTmpText = valueTmpText;
-                _fillImage = fillImage;
-            }
-
-            internal bool IsValid =>
-                _root != null &&
-                (_rowText != null ||
-                    _rowTmpText != null ||
-                    _nameText != null ||
-                    _nameTmpText != null ||
-                    _valueText != null ||
-                    _valueTmpText != null);
-
-            internal static SymbolStatRow Resolve(Transform row)
-            {
-                if (row == null)
-                {
-                    return null;
-                }
-
-                Text rowText = row.GetComponent<Text>();
-                TMP_Text rowTmpText = row.GetComponent<TMP_Text>();
-                Image iconFrame = FindNestedComponent<Image>(row, "Symbol Icon Frame");
-                Text nameText = FindNestedComponent<Text>(row, "Symbol Name");
-                TMP_Text nameTmpText = FindNestedComponent<TMP_Text>(row, "Symbol Name");
-                Text valueText = FindNestedComponent<Text>(row, "Symbol Value Text");
-                TMP_Text valueTmpText = FindNestedComponent<TMP_Text>(row, "Symbol Value Text");
-                Image fillImage = FindNestedComponent<Image>(row, "Symbol Value Bar Fill");
-                return new SymbolStatRow(
-                    row.gameObject,
-                    rowText,
-                    rowTmpText,
-                    iconFrame,
-                    nameText,
-                    nameTmpText,
-                    valueText,
-                    valueTmpText,
-                    fillImage);
-            }
-
-            internal void Render(
-                RunDefeatSymbolStatViewState stat,
-                int value,
-                int maxValue)
-            {
-                _root.SetActive(true);
-                string displayName = string.IsNullOrWhiteSpace(stat.DisplayName)
-                    ? "-"
-                    : stat.DisplayName;
-                bool hasAuthoredRow =
-                    _nameText != null ||
-                    _nameTmpText != null ||
-                    _valueText != null ||
-                    _valueTmpText != null ||
-                    _fillImage != null;
-
-                if (_rowText != null)
-                {
-                    _rowText.enabled = !hasAuthoredRow;
-                    if (!hasAuthoredRow)
-                    {
-                        string prefix = _iconFrame != null ? "      " : string.Empty;
-                        _rowText.text =
-                            $"{prefix}{displayName,-8}  x{stat.PatternCount}  {BuildBar(value, maxValue)}  {value}";
-                    }
-                }
-
-                if (_rowTmpText != null)
-                {
-                    _rowTmpText.enabled = !hasAuthoredRow;
-                    if (!hasAuthoredRow)
-                    {
-                        string prefix = _iconFrame != null ? "      " : string.Empty;
-                        _rowTmpText.text =
-                            $"{prefix}{displayName,-8}  x{stat.PatternCount}  {BuildBar(value, maxValue)}  {value}";
-                    }
-                }
-
-                if (_nameText != null)
-                {
-                    _nameText.text = $"{displayName}  x{stat.PatternCount}";
-                }
-
-                if (_nameTmpText != null)
-                {
-                    _nameTmpText.text = $"{displayName}  x{stat.PatternCount}";
-                }
-
-                if (_valueText != null)
-                {
-                    _valueText.text = value.ToString();
-                }
-
-                if (_valueTmpText != null)
-                {
-                    _valueTmpText.text = value.ToString();
-                }
-
-                if (_fillImage != null)
-                {
-                    _fillImage.type = Image.Type.Filled;
-                    _fillImage.fillMethod = Image.FillMethod.Horizontal;
-                    _fillImage.fillOrigin = (int)Image.OriginHorizontal.Left;
-                    _fillImage.fillAmount = maxValue <= 0 ? 0f : Mathf.Clamp01((float)value / maxValue);
-                }
-            }
-
-            private static string BuildBar(int value, int maxValue)
-            {
-                const int Width = 10;
-                int filled = maxValue <= 0
-                    ? 0
-                    : Mathf.RoundToInt(Mathf.Clamp01((float)value / maxValue) * Width);
-                return new string('|', filled).PadRight(Width, '.');
-            }
-
-            private static T FindNestedComponent<T>(Transform root, string objectName)
-                where T : Component
-            {
-                Transform found = FindDeepChild(root, objectName);
-                return found != null ? found.GetComponent<T>() : null;
-            }
         }
     }
 }

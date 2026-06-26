@@ -13,11 +13,13 @@ namespace SlotRogue.UI.RunGame.ViewModels
     public sealed class RunRewardViewModel
     {
         private const int BaseOptionCount = 3;
+        private const string StarterTitle = "시작 유물 선택";
+        private const string RewardTitle = "보상 선택";
 
-        private static readonly Random Rng = new();
-
+        private readonly IRunRewardService _service;
         private readonly List<RunRewardDefinition> _options = new();
         private int _optionCount = BaseOptionCount;
+        private bool _isStarterSelection;
         private bool _rerollAdReady;
         private bool _extraRewardAdReady;
         private bool _rewardDoubleAdReady;
@@ -27,16 +29,25 @@ namespace SlotRogue.UI.RunGame.ViewModels
         private bool _rewardDoubleUsed;
         private bool _rewardDoubleEnabled;
         private bool _rewardClaimed;
-
-        private IReadOnlyList<RunRewardDefinition> SourcePool =>
-            RunRewardCatalog.ForTier(GameFlowSession.CurrentTier);
+        private bool _hasRefreshed;
 
         private readonly ReactiveProperty<RunRewardViewState> _state =
             new(RunRewardViewState.Empty);
 
+        public RunRewardViewModel(IRunRewardService service = null)
+        {
+            _service = service ?? new RunRewardService();
+        }
+
         public event Action RewardClaimed;
 
         public ReadOnlyReactiveProperty<RunRewardViewState> State => _state;
+
+        /// <summary>
+        /// 직전 <see cref="Refresh"/> 시점 기준으로, 지금 화면이 '시작 유물 선택' 단계인지 여부.
+        /// 흐름 제어자가 수령 후 다음 처리(첫 전투 진입 vs 다음 전투 진행)를 분기하는 데 씁니다.
+        /// </summary>
+        public bool IsStarterSelection => _isStarterSelection;
 
         public void ClaimReward(int optionIndex)
         {
@@ -49,11 +60,19 @@ namespace SlotRogue.UI.RunGame.ViewModels
 
             _rewardClaimed = true;
             RunRewardDefinition reward = _options[optionIndex];
-            ApplyReward(reward);
 
-            if (_rewardDoubleEnabled)
+            if (_isStarterSelection)
             {
-                ApplyReward(reward);
+                _service.ApplyStarter(reward);
+            }
+            else
+            {
+                _service.Apply(reward);
+
+                if (_rewardDoubleEnabled)
+                {
+                    _service.Apply(reward);
+                }
             }
 
             PublishChanged();
@@ -62,6 +81,8 @@ namespace SlotRogue.UI.RunGame.ViewModels
 
         public void Refresh()
         {
+            _hasRefreshed = true;
+            _isStarterSelection = _service.IsStarterSelection;
             _optionCount = BaseOptionCount;
             _rerollUsed = false;
             _extraRewardUsed = false;
@@ -111,6 +132,11 @@ namespace SlotRogue.UI.RunGame.ViewModels
             _extraRewardAdReady = extraRewardAdReady;
             _rewardDoubleAdReady = rewardDoubleAdReady;
             _adsRemoved = adsRemoved;
+            if (!_hasRefreshed)
+            {
+                return;
+            }
+
             PublishChanged();
         }
 
@@ -118,12 +144,12 @@ namespace SlotRogue.UI.RunGame.ViewModels
         {
             if (_extraRewardUsed ||
                 _rewardClaimed ||
-                !GameFlowSession.CurrentBattleGrantsArtifact)
+                !_service.CurrentBattleGrantsArtifact)
             {
                 return;
             }
 
-            RunRewardDefinition extra = PickOneExcluding(_options);
+            RunRewardDefinition extra = _service.PickOneExcluding(_options);
             if (extra == null)
             {
                 return;
@@ -150,27 +176,10 @@ namespace SlotRogue.UI.RunGame.ViewModels
         private void RollOptions(int count)
         {
             _options.Clear();
-
-            var pool = new List<RunRewardDefinition>(SourcePool);
-            int take = Math.Min(count, pool.Count);
-
-            for (int i = 0; i < take; i++)
-            {
-                int idx = Rng.Next(pool.Count);
-                _options.Add(pool[idx]);
-                pool.RemoveAt(idx);
-            }
-        }
-
-        private RunRewardDefinition PickOneExcluding(List<RunRewardDefinition> exclude)
-        {
-            var remaining = new List<RunRewardDefinition>();
-            foreach (RunRewardDefinition def in SourcePool)
-            {
-                if (!exclude.Contains(def)) remaining.Add(def);
-            }
-
-            return remaining.Count == 0 ? null : remaining[Rng.Next(remaining.Count)];
+            _options.AddRange(
+                _isStarterSelection
+                    ? _service.RollStarterOptions(count)
+                    : _service.RollOptions(count));
         }
 
         private void PublishChanged()
@@ -184,22 +193,26 @@ namespace SlotRogue.UI.RunGame.ViewModels
                     reward.DisplayName,
                     reward.Description,
                     reward.IconKey,
-                    reward.ModifierIconKey);
+                    reward.ModifierLabel,
+                    reward.Rarity);
             }
 
             _state.Value = new RunRewardViewState(
-                GameFlowSession.BuildSummary(),
-                GameFlowSession.CurrentBattleGrantsArtifact,
+                _isStarterSelection ? StarterTitle : RewardTitle,
+                _service.BuildSummary(),
+                _service.CurrentBattleGrantsArtifact,
                 CanUseRewarded(_rerollAdReady) &&
                     !_rerollUsed &&
                     !_rewardClaimed,
                 BuildRerollLabel(),
-                GameFlowSession.CurrentBattleGrantsArtifact &&
+                !_isStarterSelection &&
+                    _service.CurrentBattleGrantsArtifact &&
                     CanUseRewarded(_extraRewardAdReady) &&
                     !_extraRewardUsed &&
                     !_rewardClaimed,
                 BuildExtraRewardLabel(),
-                CanUseRewarded(_rewardDoubleAdReady) &&
+                !_isStarterSelection &&
+                    CanUseRewarded(_rewardDoubleAdReady) &&
                     !_rewardDoubleUsed &&
                     !_rewardClaimed,
                 BuildRewardDoubleLabel(),
@@ -276,29 +289,13 @@ namespace SlotRogue.UI.RunGame.ViewModels
         {
             return _adsRemoved || adReady;
         }
-
-        private static void ApplyReward(RunRewardDefinition reward)
-        {
-            switch (reward.Kind)
-            {
-                case RunRewardKind.Relic:
-                    GameFlowSession.AddRelic(reward.Relic);
-                    GameFlowSession.MarkRewardClaimed();
-                    break;
-                case RunRewardKind.Symbol:
-                    GameFlowSession.ApplySymbolReward(reward.Symbol, reward.Amount);
-                    break;
-                default:
-                    GameFlowSession.ApplyReward(reward.Type);
-                    break;
-            }
-        }
     }
 
     public sealed class RunRewardViewState
     {
         public static readonly RunRewardViewState Empty =
             new(
+                string.Empty,
                 string.Empty,
                 false,
                 false,
@@ -312,6 +309,7 @@ namespace SlotRogue.UI.RunGame.ViewModels
         private readonly RunRewardOptionViewState[] _options;
 
         public RunRewardViewState(
+            string title,
             string summary,
             bool isBigReward,
             bool canReroll,
@@ -322,6 +320,7 @@ namespace SlotRogue.UI.RunGame.ViewModels
             string doubleRewardLabel,
             IReadOnlyList<RunRewardOptionViewState> options)
         {
+            Title = title ?? string.Empty;
             Summary = summary ?? string.Empty;
             IsBigReward = isBigReward;
             CanReroll = canReroll;
@@ -332,6 +331,8 @@ namespace SlotRogue.UI.RunGame.ViewModels
             DoubleRewardLabel = doubleRewardLabel ?? string.Empty;
             _options = Copy(options);
         }
+
+        public string Title { get; }
 
         public string Summary { get; }
 
@@ -376,13 +377,15 @@ namespace SlotRogue.UI.RunGame.ViewModels
             string title,
             string description,
             string iconKey,
-            string modifierIconKey)
+            string modifierLabel,
+            SlotRogue.UI.GameFlow.RewardRarity rarity = SlotRogue.UI.GameFlow.RewardRarity.Common)
         {
             Index = index;
             Title = title ?? string.Empty;
             Description = description ?? string.Empty;
             IconKey = iconKey ?? string.Empty;
-            ModifierIconKey = modifierIconKey ?? string.Empty;
+            ModifierLabel = modifierLabel ?? string.Empty;
+            Rarity = rarity;
         }
 
         public int Index { get; }
@@ -393,6 +396,8 @@ namespace SlotRogue.UI.RunGame.ViewModels
 
         public string IconKey { get; }
 
-        public string ModifierIconKey { get; }
+        public string ModifierLabel { get; }
+
+        public SlotRogue.UI.GameFlow.RewardRarity Rarity { get; }
     }
 }

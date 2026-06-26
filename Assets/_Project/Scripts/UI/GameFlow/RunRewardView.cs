@@ -8,8 +8,11 @@ using UnityEngine.UI;
 
 namespace SlotRogue.UI.GameFlow
 {
-    public sealed class RunRewardView : MonoBehaviour, IRunRewardView
+    public sealed class RunRewardView : ViewComponentBase, IRunRewardView
     {
+        private const string RewardTitle = "보상 선택";
+
+        [SerializeField] private TMP_Text _titleText;
         [SerializeField] private Text _summaryText;
         [SerializeField] private GameFlowOptionView[] _rewardOptions;
 
@@ -17,13 +20,8 @@ namespace SlotRogue.UI.GameFlow
         [Tooltip("Rerolls all reward options after a rewarded ad.")]
         [SerializeField] private Button _rerollButton;
         [SerializeField] private TMP_Text _rerollButtonText;
-        [Tooltip("Adds one reward for elite or boss rewards.")]
-        [SerializeField] private Button _addRewardButton;
-        [SerializeField] private TMP_Text _addRewardButtonText;
-        [Tooltip("Doubles the selected reward once.")]
-        [SerializeField] private Button _doubleRewardButton;
-        [SerializeField] private TMP_Text _doubleRewardButtonText;
 
+        private bool _isEntered;
         private bool _reportedMissingAdButtons;
         private bool _reportedMissingRewardOptions;
 
@@ -34,10 +32,6 @@ namespace SlotRogue.UI.GameFlow
         public event Action<int> RewardSelectionRequested;
 
         public event Action RerollRequested;
-
-        public event Action ExtraRewardRequested;
-
-        public event Action RewardDoubleRequested;
 
         public void Bind(Text summaryText, GameFlowOptionView[] rewardOptions)
         {
@@ -51,7 +45,7 @@ namespace SlotRogue.UI.GameFlow
         /// </summary>
         public void Bind(
             RunRewardViewModel viewModel,
-            RunGameFlowController presenter,
+            IRunGameFlow presenter,
             RelicIconRenderer iconRenderer)
         {
             if (viewModel == null || presenter == null)
@@ -62,8 +56,6 @@ namespace SlotRogue.UI.GameFlow
             Entered += presenter.HandleRewardEntered;
             RewardSelectionRequested += presenter.HandleRewardSelectionRequested;
             RerollRequested += presenter.HandleRewardRerollRequested;
-            ExtraRewardRequested += presenter.HandleExtraRewardRequested;
-            RewardDoubleRequested += presenter.HandleRewardDoubleRequested;
 
             viewModel.State
                 .Subscribe(state =>
@@ -76,13 +68,13 @@ namespace SlotRogue.UI.GameFlow
 
         private void Awake()
         {
-            ResolveAdButtonReferences();
+            ValidateSerializedReferences();
             WireAdButtons();
         }
 
         private void OnEnable()
         {
-            ResolveAdButtonReferences();
+            ValidateSerializedReferences();
             WireAdButtons();
         }
 
@@ -93,12 +85,14 @@ namespace SlotRogue.UI.GameFlow
 
         public void OnEnter()
         {
+            _isEntered = true;
             gameObject.SetActive(true);
             Entered?.Invoke();
         }
 
         public void OnExit()
         {
+            _isEntered = false;
             gameObject.SetActive(false);
         }
 
@@ -108,6 +102,8 @@ namespace SlotRogue.UI.GameFlow
             {
                 return;
             }
+
+            SetPanelTitle(string.IsNullOrEmpty(state.Title) ? RewardTitle : state.Title);
 
             if (_summaryText != null)
             {
@@ -124,45 +120,10 @@ namespace SlotRogue.UI.GameFlow
             {
                 _rerollButtonText.text = state.RerollLabel;
             }
-
-            if (_addRewardButton != null)
-            {
-                _addRewardButton.interactable = state.CanAddReward;
-            }
-
-            if (_addRewardButtonText != null)
-            {
-                _addRewardButtonText.text = state.AddRewardLabel;
-            }
-
-            if (_doubleRewardButton != null)
-            {
-                _doubleRewardButton.interactable = state.CanDoubleReward;
-            }
-
-            if (_doubleRewardButtonText != null)
-            {
-                _doubleRewardButtonText.text = state.DoubleRewardLabel;
-            }
-
-            UpdateAdButtonVisibility(state);
         }
 
-        private void ResolveAdButtonReferences()
+        private void ValidateSerializedReferences()
         {
-            _rerollButton ??= FindChildComponent<Button>("Reroll Button");
-            _rerollButtonText ??=
-                FindChildComponent<TMP_Text>("Reroll Text") ??
-                _rerollButton?.GetComponentInChildren<TMP_Text>(includeInactive: true);
-            _addRewardButton ??= FindChildComponent<Button>("Add Reward Button");
-            _doubleRewardButton ??= FindChildComponent<Button>("Double Reward Button");
-            _addRewardButtonText ??=
-                FindChildComponent<TMP_Text>("Add Reward Text") ??
-                _addRewardButton?.GetComponentInChildren<TMP_Text>(includeInactive: true);
-            _doubleRewardButtonText ??=
-                FindChildComponent<TMP_Text>("Double Reward Text") ??
-                _doubleRewardButton?.GetComponentInChildren<TMP_Text>(includeInactive: true);
-
             ReportMissingAdButtonReferences();
         }
 
@@ -170,17 +131,13 @@ namespace SlotRogue.UI.GameFlow
         {
             if (_reportedMissingAdButtons ||
                 (_rerollButton != null &&
-                _rerollButtonText != null &&
-                _addRewardButton != null &&
-                _addRewardButtonText != null &&
-                _doubleRewardButton != null &&
-                _doubleRewardButtonText != null))
+                _rerollButtonText != null))
             {
                 return;
             }
 
             Debug.LogError(
-                "[RunRewardView] Reward ad buttons must be placed in the hierarchy. " +
+                "[RunRewardView] Reward reroll button must be placed in the hierarchy. " +
                 $"Missing: {BuildMissingAdButtonSummary()}");
             _reportedMissingAdButtons = true;
         }
@@ -190,29 +147,7 @@ namespace SlotRogue.UI.GameFlow
             var builder = new System.Text.StringBuilder();
             AppendMissing(builder, _rerollButton != null, "Reroll Button");
             AppendMissing(builder, _rerollButtonText != null, "Reroll Text");
-            AppendMissing(builder, _addRewardButton != null, "Add Reward Button");
-            AppendMissing(builder, _addRewardButtonText != null, "Add Reward Text");
-            AppendMissing(builder, _doubleRewardButton != null, "Double Reward Button");
-            AppendMissing(builder, _doubleRewardButtonText != null, "Double Reward Text");
             return builder.Length > 0 ? builder.ToString() : "none";
-        }
-
-        private static void AppendMissing(
-            System.Text.StringBuilder builder,
-            bool hasReference,
-            string label)
-        {
-            if (hasReference)
-            {
-                return;
-            }
-
-            if (builder.Length > 0)
-            {
-                builder.Append(", ");
-            }
-
-            builder.Append(label);
         }
 
         private void WireAdButtons()
@@ -222,84 +157,31 @@ namespace SlotRogue.UI.GameFlow
                 _rerollButton.onClick.RemoveListener(OnRerollClicked);
                 _rerollButton.onClick.AddListener(OnRerollClicked);
             }
-
-            if (_addRewardButton != null)
-            {
-                _addRewardButton.onClick.RemoveListener(OnAddRewardClicked);
-                _addRewardButton.onClick.AddListener(OnAddRewardClicked);
-            }
-
-            if (_doubleRewardButton != null)
-            {
-                _doubleRewardButton.onClick.RemoveListener(OnDoubleRewardClicked);
-                _doubleRewardButton.onClick.AddListener(OnDoubleRewardClicked);
-            }
         }
 
         private void UnwireAdButtons()
         {
             _rerollButton?.onClick.RemoveListener(OnRerollClicked);
-            _addRewardButton?.onClick.RemoveListener(OnAddRewardClicked);
-            _doubleRewardButton?.onClick.RemoveListener(OnDoubleRewardClicked);
         }
 
         private void OnRerollClicked()
         {
-            Debug.Log("[RunRewardView] Rewarded reroll clicked.");
+            if (!_isEntered)
+            {
+                return;
+            }
+
+            GameLog.Info("[RunRewardView] Rewarded reroll clicked.");
             RerollRequested?.Invoke();
         }
 
-        private void OnAddRewardClicked()
+        private void SetPanelTitle(string title)
         {
-            ExtraRewardRequested?.Invoke();
-        }
-
-        private void OnDoubleRewardClicked()
-        {
-            RewardDoubleRequested?.Invoke();
-        }
-
-        private void UpdateAdButtonVisibility(RunRewardViewState state)
-        {
-            if (_addRewardButton != null)
+            ValidateSerializedReferences();
+            if (_titleText != null)
             {
-                _addRewardButton.gameObject.SetActive(state.IsBigReward);
+                _titleText.text = title;
             }
-
-            if (_doubleRewardButton != null)
-            {
-                _doubleRewardButton.gameObject.SetActive(true);
-            }
-        }
-
-        private T FindChildComponent<T>(string objectName) where T : Component
-        {
-            Transform child = FindDeepChild(transform, objectName);
-            return child != null ? child.GetComponent<T>() : null;
-        }
-
-        private static Transform FindDeepChild(Transform parent, string objectName)
-        {
-            if (parent == null)
-            {
-                return null;
-            }
-
-            if (parent.name == objectName)
-            {
-                return parent;
-            }
-
-            for (int index = 0; index < parent.childCount; index++)
-            {
-                Transform found = FindDeepChild(parent.GetChild(index), objectName);
-                if (found != null)
-                {
-                    return found;
-                }
-            }
-
-            return null;
         }
 
         private void RenderOptions(
@@ -330,6 +212,8 @@ namespace SlotRogue.UI.GameFlow
 
                 RunRewardOptionViewState option = options[index];
                 optionView.SetText(option.Title, option.Description);
+                optionView.SetRarity(option.Rarity);
+                optionView.SetModifierLabel(option.ModifierLabel);
                 optionView.Button.onClick.RemoveAllListeners();
 
                 int optionIndex = option.Index;

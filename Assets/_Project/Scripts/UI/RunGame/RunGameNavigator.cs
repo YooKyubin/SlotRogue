@@ -8,7 +8,7 @@ namespace SlotRogue.UI.RunGame
     /// RunGameScene 내 View 전환만 담당합니다.
     /// 게임 규칙·보상 처리·전투 계산은 이 클래스에 넣지 않습니다.
     /// </summary>
-    public sealed class RunGameNavigator : MonoBehaviour
+    public sealed class RunGameNavigator : MonoBehaviour, IRunGameNavigator
     {
         public static RunGameNavigator Instance { get; private set; }
 

@@ -21,7 +21,10 @@ namespace SlotRogue.UI.GameFlow
             DisplayName = relic != null ? relic.Name : "유물";
             Description = RelicDisplay.BuildSelectionDescription(relic);
             IconKey = relic != null ? relic.IconKey : string.Empty;
-            ModifierIconKey = string.Empty;
+            ModifierLabel = string.Empty;
+            Rarity = relic != null
+                ? RewardRarityMap.FromGrade(relic.Grade)
+                : RewardRarity.Common;
         }
 
         /// <summary>스탯/효과 보상.</summary>
@@ -32,7 +35,8 @@ namespace SlotRogue.UI.GameFlow
             DisplayName = displayName;
             Description = description;
             IconKey = string.Empty;
-            ModifierIconKey = string.Empty;
+            ModifierLabel = string.Empty;
+            Rarity = RewardRarity.Common;
         }
 
         /// <summary>슬롯 풀 심볼 추가/제거 보상.</summary>
@@ -44,7 +48,18 @@ namespace SlotRogue.UI.GameFlow
             DisplayName = displayName;
             Description = description;
             IconKey = SlotSymbolIconKeys.For(symbol);
-            ModifierIconKey = RewardModifierIconKeys.ForAmount(amount);
+            ModifierLabel = FormatAmountLabel(amount);
+            Rarity = RewardRarity.Common;
+        }
+
+        private static string FormatAmountLabel(int amount)
+        {
+            if (amount > 0)
+            {
+                return $"+{amount}";
+            }
+
+            return amount < 0 ? amount.ToString() : string.Empty;
         }
 
         public RunRewardKind Kind { get; }
@@ -63,7 +78,11 @@ namespace SlotRogue.UI.GameFlow
 
         public string IconKey { get; }
 
-        public string ModifierIconKey { get; }
+        /// <summary>수치 배지에 표시할 텍스트(+1/-1 등). 없으면 빈 문자열.</summary>
+        public string ModifierLabel { get; }
+
+        /// <summary>표시용 등급(테두리/배경 색 결정).</summary>
+        public RewardRarity Rarity { get; }
 
         public bool Equals(RunRewardDefinition other)
         {
@@ -194,24 +213,6 @@ namespace SlotRogue.UI.GameFlow
             }
 
             return 0;
-        }
-    }
-
-    public static class RewardModifierIconKeys
-    {
-        public const string SheetAddress = "ui/icons/reward-symbol-delta";
-
-        public const string AddOne = SheetAddress + "[icon_relicplus_0]";
-        public const string RemoveOne = SheetAddress + "[icon_relicplus_1]";
-
-        public static string ForAmount(int amount)
-        {
-            if (amount > 0)
-            {
-                return AddOne;
-            }
-
-            return amount < 0 ? RemoveOne : string.Empty;
         }
     }
 }

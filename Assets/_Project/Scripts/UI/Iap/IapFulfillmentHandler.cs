@@ -48,6 +48,9 @@ namespace SlotRogue.UI.Iap
         private static void HandleStoreDisconnected(
             StoreConnectionFailureDescription failure)
         {
+            // 스토어 연결 실패는 무음으로 두면 구매/복원 무반응의 원인 추적이 어렵다.
+            Debug.LogWarning(
+                $"[Iap] Store disconnected: {failure.message}");
         }
     }
 

@@ -15,6 +15,12 @@ MonoBehaviour:
   m_GroupName: Default Local Group
   m_GUID: 94987ebf8eac0ae40b8196063ce421eb
   m_SerializeEntries:
+  - m_GUID: 0d49b37f465e4d389fb2d1b5cafeb826
+    m_Address: staticon-Sheet-TMP
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - default
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 28d4f719a07d2f948952c95a683f1862
     m_Address: Relic Sheet Normal
     m_ReadOnly: 0
@@ -28,8 +34,14 @@ MonoBehaviour:
     m_SerializedLabels:
     - default
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 4c21c67aa51b19b4fa5582b99f4b787c
-    m_Address: ui/icons/reward-symbol-delta
+  - m_GUID: 7c96e312b9763b84ba9908c5e00beb60
+    m_Address: Symbols-Sheet-TMP
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - default
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 93c338089471a6c4e94a99fd84fc12f3
+    m_Address: staticon-Sheet
     m_ReadOnly: 0
     m_SerializedLabels:
     - default
@@ -55,12 +67,6 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: cbecda5b44bc239428396b50af071622
     m_Address: Symbol Sheet Animation
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - default
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 7c96e312b9763b84ba9908c5e00beb60
-    m_Address: Symbols-Sheet-TMP
     m_ReadOnly: 0
     m_SerializedLabels:
     - default

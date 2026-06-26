@@ -1,40 +1,69 @@
 using System;
-using System.Text;
+using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using R3;
+using SlotRogue.Relics.Pool;
+using SlotRogue.Slot.Data;
 using SlotRogue.UI.GameFlow;
 using SlotRogue.UI.RunGame.ViewModels;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace SlotRogue.UI.RunGame
 {
-    // MonoBehaviour는 클래스명과 같은 파일명에 있어야 Unity가 MonoScript를 만들어
-    // 에디터에서 컴포넌트로 부착할 수 있다. (RunGameSceneRoot.cs에서 분리)
-    public sealed class RunInventoryView : MonoBehaviour
+    /// <summary>
+    /// 런 인벤토리 그리드 View(TMP 전용). 심볼/유물 탭을 셀 프리팹 풀로 채우고,
+    /// 셀 선택 시 상세 패널(Tier/Name/Desc)을 갱신한다. 선택은 View 내부 상태,
+    /// open/close/tab 입력은 presenter로 전달한다(ADR-0020).
+    /// </summary>
+    public sealed class RunInventoryView : ViewComponentBase
     {
-        private static readonly Color TabActiveColor = new(0.88f, 0.62f, 0.18f, 1f);
-        private static readonly Color TabInactiveColor = new(0.18f, 0.18f, 0.24f, 1f);
-
+        private const string OpenButtonSlotId = "battle/presentation/relic-inventory-origin";
         [SerializeField] private Button _openButton;
         [SerializeField] private RectTransform _panelRoot;
-        [SerializeField] private Text _titleText;
-        [SerializeField] private TMP_Text _titleTmpText;
-        [SerializeField] private Text _summaryText;
-        [SerializeField] private TMP_Text _summaryTmpText;
+        [SerializeField] private TMP_Text _titleText;
         [SerializeField] private Button _symbolTabButton;
-        [SerializeField] private Text _symbolTabText;
-        [SerializeField] private TMP_Text _symbolTabTmpText;
+        [SerializeField] private TMP_Text _symbolTabText;
         [SerializeField] private Button _relicTabButton;
-        [SerializeField] private Text _relicTabText;
-        [SerializeField] private TMP_Text _relicTabTmpText;
-        [SerializeField] private ScrollRect _scrollRect;
-        [SerializeField] private Text _contentText;
-        [SerializeField] private TMP_Text _contentTmpText;
+        [SerializeField] private TMP_Text _relicTabText;
+
+        [Header("Tab Sprites")]
+        [SerializeField] private Sprite _symbolTabActiveSprite;
+        [SerializeField] private Sprite _symbolTabInactiveSprite;
+        [SerializeField] private Sprite _relicTabActiveSprite;
+        [SerializeField] private Sprite _relicTabInactiveSprite;
+
         [SerializeField] private Button _closeButton;
 
+        [Header("Cells")]
+        [Tooltip("Scroll View > Viewport > Content")]
+        [SerializeField] private Transform _cellsContainer;
+        [Tooltip("셀 프리팹(Frame). 비우면 Content의 첫 Frame을 템플릿으로 사용.")]
+        [SerializeField] private GameObject _cellPrefab;
+
+        [Header("Detail Panel")]
+        [Tooltip("설명 패널 루트. 평소엔 숨기고, 항목을 클릭하면 표시한다. 비우면 'Inventory Desc Panel'을 자동 탐색.")]
+        [SerializeField] private GameObject _detailPanel;
+        [SerializeField] private TMP_Text _detailTierText;
+        [SerializeField] private TMP_Text _detailNameText;
+        [SerializeField] private TMP_Text _detailDescText;
+
+        private readonly List<InventoryCell> _cellPool = new();
+        private GameObject _cellTemplate;
+        private bool _poolInitialized;
         private bool _subscribed;
+        private Button _subscribedOpenButton;
         private bool _reportedMissingReferences;
+        private int _selectedIndex = -1;
+        private int _iconVersion;
+
+        private AddressableSpriteProvider _relicIconProvider;
+        private AddressableSpriteProvider _symbolIconProvider;
+        private CancellationTokenSource _iconCts;
+        private RunInventoryViewState _lastState = RunInventoryViewState.Empty;
 
         public event Action OpenRequested;
 
@@ -49,10 +78,20 @@ namespace SlotRogue.UI.RunGame
             EnsureRuntimeLayout();
         }
 
-        /// <summary>
-        /// 자기 ViewModel을 구독(상태→Render)하고 입력 event를 presenter로 연결한다(ADR-0020).
-        /// </summary>
-        public void Bind(RunInventoryViewModel viewModel, RunGameFlowController presenter)
+        private void OnDestroy()
+        {
+            UnsubscribeButtons();
+            _iconCts?.Cancel();
+            _iconCts?.Dispose();
+            _iconCts = null;
+            _relicIconProvider?.Dispose();
+            _relicIconProvider = null;
+            _symbolIconProvider?.Dispose();
+            _symbolIconProvider = null;
+        }
+
+        /// <summary>자기 ViewModel을 구독하고 open/close/tab 입력을 presenter로 연결한다(ADR-0020).</summary>
+        public void Bind(RunInventoryViewModel viewModel, IRunGameFlow presenter)
         {
             if (viewModel == null || presenter == null)
             {
@@ -67,14 +106,8 @@ namespace SlotRogue.UI.RunGame
             viewModel.State.Subscribe(Render).AddTo(this);
         }
 
-        private void OnDestroy()
-        {
-            UnsubscribeButtons();
-        }
-
         public bool EnsureRuntimeLayout()
         {
-            ResolveSceneReferences();
             EnsureOpenButton();
 
             if (!HasRequiredReferences())
@@ -90,6 +123,7 @@ namespace SlotRogue.UI.RunGame
                 return false;
             }
 
+            InitCellPool();
             SubscribeButtons();
             return true;
         }
@@ -102,6 +136,14 @@ namespace SlotRogue.UI.RunGame
             }
 
             state ??= RunInventoryViewState.Empty;
+            _lastState = state;
+
+            // 인벤토리 루트가 비활성으로 저작돼 있어도 열릴 때 활성화한다(닫히면 숨김).
+            if (gameObject.activeSelf != state.IsOpen)
+            {
+                gameObject.SetActive(state.IsOpen);
+            }
+
             if (_panelRoot != null)
             {
                 _panelRoot.gameObject.SetActive(state.IsOpen);
@@ -114,50 +156,219 @@ namespace SlotRogue.UI.RunGame
 
             transform.SetAsLastSibling();
             SetText(_titleText, "런 인벤토리");
-            SetText(_titleTmpText, "런 인벤토리");
-            SetText(_summaryText, state.Summary);
-            SetText(_summaryTmpText, state.Summary);
             RenderTabs(state.ActiveTab);
-            string content = BuildContentText(state);
-            SetText(_contentText, content);
-            SetText(_contentTmpText, content);
-
-            if (_contentText != null)
-            {
-                LayoutRebuilder.ForceRebuildLayoutImmediate(
-                    _contentText.rectTransform);
-            }
-
-            if (_contentTmpText != null)
-            {
-                LayoutRebuilder.ForceRebuildLayoutImmediate(
-                    _contentTmpText.rectTransform);
-            }
-
-            if (_scrollRect != null)
-            {
-                _scrollRect.verticalNormalizedPosition = 1f;
-            }
+            PopulateCells(state);
         }
 
-        private void ResolveSceneReferences()
+        // ── 셀 채우기 ────────────────────────────────────────────────────
+
+        private void PopulateCells(RunInventoryViewState state)
         {
-            _panelRoot ??= FindDeepChild(transform, "Run Inventory Panel") as RectTransform;
-            _titleText ??= FindChildComponent<Text>("Run Inventory Title");
-            _titleTmpText ??= FindChildComponent<TMP_Text>("Run Inventory Title");
-            _summaryText ??= FindChildComponent<Text>("Run Inventory Summary");
-            _summaryTmpText ??= FindChildComponent<TMP_Text>("Run Inventory Summary");
-            _symbolTabButton ??= FindChildComponent<Button>("Symbol Pool Tab Button");
-            _symbolTabText ??= FindChildComponent<Text>("Symbol Pool Tab Text");
-            _symbolTabTmpText ??= FindChildComponent<TMP_Text>("Symbol Pool Tab Text");
-            _relicTabButton ??= FindChildComponent<Button>("Relic Tab Button");
-            _relicTabText ??= FindChildComponent<Text>("Relic Tab Text");
-            _relicTabTmpText ??= FindChildComponent<TMP_Text>("Relic Tab Text");
-            _scrollRect ??= FindChildComponent<ScrollRect>("Run Inventory Scroll");
-            _contentText ??= FindChildComponent<Text>("Run Inventory Content");
-            _contentTmpText ??= FindChildComponent<TMP_Text>("Run Inventory Content");
-            _closeButton ??= FindChildComponent<Button>("Run Inventory Close Button");
+            bool isRelic = state.ActiveTab == RunInventoryTab.Relics;
+            int count = isRelic ? state.Relics.Count : state.Symbols.Count;
+
+            EnsureCellPool(count);
+            _iconVersion++;
+            _iconCts ??= new CancellationTokenSource();
+
+            for (int index = 0; index < _cellPool.Count; index++)
+            {
+                InventoryCell cell = _cellPool[index];
+                if (index >= count)
+                {
+                    cell.SetActive(false);
+                    continue;
+                }
+
+                cell.SetActive(true);
+                cell.SetHighlight(false);
+                int captured = index;
+                cell.SetClick(() => Select(captured));
+
+                if (isRelic)
+                {
+                    RunInventoryRelicViewState relic = state.Relics[index];
+                    ApplyIcon(cell, relic.IconKey, RelicProvider(), _iconVersion);
+                }
+                else
+                {
+                    RunInventorySymbolViewState symbol = state.Symbols[index];
+                    ApplyIcon(
+                        cell,
+                        SlotSymbolIconKeys.For(symbol.Symbol),
+                        SymbolProvider(),
+                        _iconVersion);
+                }
+            }
+
+            // 설명 패널은 평소 숨김. 항목을 클릭하면 그때 표시한다(기본 선택 없음).
+            _selectedIndex = -1;
+            ClearDetail();
         }
+
+        private void Select(int index)
+        {
+            bool isRelic = _lastState.ActiveTab == RunInventoryTab.Relics;
+            int count = isRelic ? _lastState.Relics.Count : _lastState.Symbols.Count;
+            if (index < 0 || index >= count)
+            {
+                return;
+            }
+
+            _selectedIndex = index;
+            SetActive(_detailPanel, true);
+            for (int cellIndex = 0; cellIndex < _cellPool.Count; cellIndex++)
+            {
+                _cellPool[cellIndex].SetHighlight(cellIndex == index);
+            }
+
+            if (isRelic)
+            {
+                RunInventoryRelicViewState relic = _lastState.Relics[index];
+                SetText(_detailTierText, relic.Grade);
+                SetText(_detailNameText, relic.Name);
+                SetText(_detailDescText, relic.Description);
+            }
+            else
+            {
+                RunInventorySymbolViewState symbol = _lastState.Symbols[index];
+                SetText(_detailTierText, symbol.IsHighProbability ? "고확률" : "저확률");
+                SetText(_detailNameText, symbol.DisplayName);
+                SetText(
+                    _detailDescText,
+                    $"슬롯 풀 보유 {symbol.Count}개\n기본 {(symbol.IsHighProbability ? "고확률" : "저확률")} 심볼입니다.");
+            }
+        }
+
+        private void ClearDetail()
+        {
+            SetActive(_detailPanel, false);
+            SetText(_detailTierText, string.Empty);
+            SetText(_detailNameText, string.Empty);
+            SetText(_detailDescText, string.Empty);
+        }
+
+        private AddressableSpriteProvider RelicProvider()
+        {
+            return _relicIconProvider ??= new AddressableSpriteProvider(RelicIconKeys.Default);
+        }
+
+        private AddressableSpriteProvider SymbolProvider()
+        {
+            return _symbolIconProvider ??= new AddressableSpriteProvider(string.Empty);
+        }
+
+        private void ApplyIcon(
+            InventoryCell cell,
+            string key,
+            AddressableSpriteProvider provider,
+            int version)
+        {
+            cell.SetIcon(null);
+            if (string.IsNullOrEmpty(key) || provider == null)
+            {
+                return;
+            }
+
+            LoadIconAsync(cell, key, provider, version, _iconCts.Token).Forget();
+        }
+
+        private async UniTaskVoid LoadIconAsync(
+            InventoryCell cell,
+            string key,
+            AddressableSpriteProvider provider,
+            int version,
+            CancellationToken cancellationToken)
+        {
+            Sprite sprite;
+            try
+            {
+                sprite = await provider.LoadAsync(key, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            // 로드 중 탭이 바뀌었으면(버전 불일치) 버린다.
+            if (version == _iconVersion && sprite != null)
+            {
+                cell.SetIcon(sprite);
+            }
+        }
+
+        // ── 셀 풀 ────────────────────────────────────────────────────────
+
+        private void InitCellPool()
+        {
+            if (_poolInitialized)
+            {
+                return;
+            }
+
+            _cellTemplate = ResolveCellTemplate();
+            if (_cellsContainer != null)
+            {
+                for (int index = 0; index < _cellsContainer.childCount; index++)
+                {
+                    _cellsContainer.GetChild(index).gameObject.SetActive(false);
+                }
+            }
+
+            _poolInitialized = true;
+        }
+
+        private GameObject ResolveCellTemplate()
+        {
+            if (_cellPrefab != null)
+            {
+                return _cellPrefab;
+            }
+
+            if (_cellsContainer == null)
+            {
+                return null;
+            }
+
+            for (int index = 0; index < _cellsContainer.childCount; index++)
+            {
+                Transform child = _cellsContainer.GetChild(index);
+                if (ContainsOrdinalIgnoreCase(child.name, "Frame") ||
+                    ContainsOrdinalIgnoreCase(child.name, "Cell") ||
+                    ContainsOrdinalIgnoreCase(child.name, "Slot"))
+                {
+                    return child.gameObject;
+                }
+            }
+
+            return _cellsContainer.childCount > 0
+                ? _cellsContainer.GetChild(0).gameObject
+                : null;
+        }
+
+        private void EnsureCellPool(int count)
+        {
+            if (count <= _cellPool.Count)
+            {
+                return;
+            }
+
+            if (_cellTemplate == null || _cellsContainer == null)
+            {
+                Debug.LogError(
+                    "[RunInventoryView] Cell prefab/template was not found; cannot build the grid.");
+                return;
+            }
+
+            while (_cellPool.Count < count)
+            {
+                GameObject clone = Instantiate(_cellTemplate, _cellsContainer);
+                clone.name = $"Frame ({_cellPool.Count})";
+                _cellPool.Add(InventoryCell.Resolve(clone));
+            }
+        }
+
+        // ── 참조 해석 / 버튼 ─────────────────────────────────────────────
 
         private void EnsureOpenButton()
         {
@@ -166,18 +377,14 @@ namespace SlotRogue.UI.RunGame
                 return;
             }
 
-            Transform searchRoot = transform.root != null ? transform.root : transform;
-            Transform origin =
-                SceneComponentResolver.FindDeepChild(searchRoot, "Relic Inventory Origin");
-            if (origin == null)
+            _openButton = FindOpenButtonInScene();
+            if (_openButton == null)
             {
                 return;
             }
 
-            _openButton = origin.GetComponent<Button>();
-            Image image = origin.GetComponent<Image>();
-
-            if (image != null && _openButton != null)
+            Image image = _openButton.GetComponent<Image>();
+            if (image != null)
             {
                 image.raycastTarget = true;
                 _openButton.targetGraphic = image;
@@ -186,284 +393,253 @@ namespace SlotRogue.UI.RunGame
 
         private bool HasRequiredReferences()
         {
-            return _openButton != null &&
-                _panelRoot != null &&
-                HasText(_titleText, _titleTmpText) &&
-                HasText(_summaryText, _summaryTmpText) &&
+            // 열기 버튼은 선택 사항이다. 인벤토리 열기는 외부(HUD의 Inventory Button → presenter)가
+            // ViewModel.Open으로 구동하므로, View 자체 열기 버튼이 없어도 패널은 동작한다.
+            return _panelRoot != null &&
                 _symbolTabButton != null &&
-                HasText(_symbolTabText, _symbolTabTmpText) &&
                 _relicTabButton != null &&
-                HasText(_relicTabText, _relicTabTmpText) &&
-                _scrollRect != null &&
-                HasText(_contentText, _contentTmpText) &&
+                _cellsContainer != null &&
                 _closeButton != null;
         }
 
         private string BuildMissingReferenceSummary()
         {
-            var builder = new StringBuilder();
-            AppendMissing(builder, _openButton != null, "Relic Inventory Origin Button");
-            AppendMissing(builder, _panelRoot != null, "Run Inventory Panel");
-            AppendMissing(builder, HasText(_titleText, _titleTmpText), "Run Inventory Title");
-            AppendMissing(builder, HasText(_summaryText, _summaryTmpText), "Run Inventory Summary");
+            var builder = new System.Text.StringBuilder();
+            AppendMissing(builder, _panelRoot != null, "Inventory Panel");
             AppendMissing(builder, _symbolTabButton != null, "Symbol Pool Tab Button");
-            AppendMissing(builder, HasText(_symbolTabText, _symbolTabTmpText), "Symbol Pool Tab Text");
             AppendMissing(builder, _relicTabButton != null, "Relic Tab Button");
-            AppendMissing(builder, HasText(_relicTabText, _relicTabTmpText), "Relic Tab Text");
-            AppendMissing(builder, _scrollRect != null, "Run Inventory Scroll");
-            AppendMissing(builder, HasText(_contentText, _contentTmpText), "Run Inventory Content");
-            AppendMissing(builder, _closeButton != null, "Run Inventory Close Button");
+            AppendMissing(builder, _cellsContainer != null, "Content");
+            AppendMissing(builder, _closeButton != null, "Inventory Close Button");
             return builder.Length > 0 ? builder.ToString() : "none";
-        }
-
-        private static void AppendMissing(
-            StringBuilder builder,
-            bool hasReference,
-            string label)
-        {
-            if (hasReference)
-            {
-                return;
-            }
-
-            if (builder.Length > 0)
-            {
-                builder.Append(", ");
-            }
-
-            builder.Append(label);
-        }
-
-        private void SubscribeButtons()
-        {
-            UnsubscribeButtons();
-
-            if (_openButton != null)
-            {
-                _openButton.onClick.AddListener(HandleOpenClicked);
-            }
-
-            if (_closeButton != null)
-            {
-                _closeButton.onClick.AddListener(HandleCloseClicked);
-            }
-
-            if (_panelRoot != null)
-            {
-                Button backdropButton = _panelRoot.GetComponent<Button>();
-                if (backdropButton != null)
-                {
-                    backdropButton.onClick.AddListener(HandleCloseClicked);
-                }
-            }
-
-            if (_symbolTabButton != null)
-            {
-                _symbolTabButton.onClick.AddListener(HandleSymbolTabClicked);
-            }
-
-            if (_relicTabButton != null)
-            {
-                _relicTabButton.onClick.AddListener(HandleRelicTabClicked);
-            }
-
-            _subscribed = true;
-        }
-
-        private void UnsubscribeButtons()
-        {
-            if (!_subscribed)
-            {
-                return;
-            }
-
-            _openButton?.onClick.RemoveListener(HandleOpenClicked);
-            _closeButton?.onClick.RemoveListener(HandleCloseClicked);
-            if (_panelRoot != null)
-            {
-                Button backdropButton = _panelRoot.GetComponent<Button>();
-                backdropButton?.onClick.RemoveListener(HandleCloseClicked);
-            }
-
-            _symbolTabButton?.onClick.RemoveListener(HandleSymbolTabClicked);
-            _relicTabButton?.onClick.RemoveListener(HandleRelicTabClicked);
-            _subscribed = false;
         }
 
         private void RenderTabs(RunInventoryTab activeTab)
         {
             bool symbolsActive = activeTab == RunInventoryTab.SymbolPool;
-            SetButtonColor(_symbolTabButton, symbolsActive ? TabActiveColor : TabInactiveColor);
-            SetButtonColor(_relicTabButton, symbolsActive ? TabInactiveColor : TabActiveColor);
-            SetTextColor(_symbolTabText, symbolsActive ? Color.black : Color.white);
-            SetTextColor(_symbolTabTmpText, symbolsActive ? Color.black : Color.white);
-            SetTextColor(_relicTabText, symbolsActive ? Color.white : Color.black);
-            SetTextColor(_relicTabTmpText, symbolsActive ? Color.white : Color.black);
+            ApplyTabSprite(
+                _symbolTabButton,
+                symbolsActive ? _symbolTabActiveSprite : _symbolTabInactiveSprite);
+            ApplyTabSprite(
+                _relicTabButton,
+                symbolsActive ? _relicTabInactiveSprite : _relicTabActiveSprite);
+            SetTextColor(_symbolTabText, Color.white);
+            SetTextColor(_relicTabText, Color.white);
         }
 
-        private static string BuildContentText(RunInventoryViewState state)
+        private void SubscribeButtons()
         {
-            return state.ActiveTab == RunInventoryTab.SymbolPool
-                ? BuildSymbolContent(state)
-                : BuildRelicContent(state);
-        }
+            SubscribeOpenButton();
 
-        private static string BuildSymbolContent(RunInventoryViewState state)
-        {
-            if (state.Symbols.Count == 0)
+            if (_subscribed)
             {
-                return "심볼 풀이 비어 있습니다.";
+                return;
             }
 
-            var builder = new StringBuilder();
-            builder.AppendLine("현재 심볼 풀");
-            builder.AppendLine();
-            for (int index = 0; index < state.Symbols.Count; index++)
+            _closeButton?.onClick.AddListener(HandleCloseClicked);
+            _symbolTabButton?.onClick.AddListener(HandleSymbolTabClicked);
+            _relicTabButton?.onClick.AddListener(HandleRelicTabClicked);
+            _subscribed = true;
+        }
+
+        private void UnsubscribeButtons()
+        {
+            if (_subscribedOpenButton != null)
             {
-                RunInventorySymbolViewState symbol = state.Symbols[index];
-                builder.Append(symbol.DisplayName);
-                builder.Append("  ");
-                builder.Append(symbol.Count);
-                builder.Append("개");
-                builder.Append(symbol.IsHighProbability ? "  기본 고확률" : "  기본 저확률");
-                if (index < state.Symbols.Count - 1)
-                {
-                    builder.AppendLine();
-                }
+                _subscribedOpenButton.onClick.RemoveListener(HandleOpenClicked);
+                _subscribedOpenButton = null;
             }
 
-            return builder.ToString();
-        }
-
-        private static string BuildRelicContent(RunInventoryViewState state)
-        {
-            if (state.Relics.Count == 0)
+            if (!_subscribed)
             {
-                return "보유 유물이 없습니다.";
+                return;
             }
 
-            var builder = new StringBuilder();
-            builder.Append("현재 유물 ");
-            builder.Append(state.Relics.Count);
-            builder.AppendLine("개");
-            for (int index = 0; index < state.Relics.Count; index++)
+            _closeButton?.onClick.RemoveListener(HandleCloseClicked);
+            _symbolTabButton?.onClick.RemoveListener(HandleSymbolTabClicked);
+            _relicTabButton?.onClick.RemoveListener(HandleRelicTabClicked);
+            _subscribed = false;
+        }
+
+        private void SubscribeOpenButton()
+        {
+            if (_openButton == null || _subscribedOpenButton == _openButton)
             {
-                RunInventoryRelicViewState relic = state.Relics[index];
-                builder.AppendLine();
-                builder.Append(index + 1);
-                builder.Append(". ");
-                builder.Append(relic.Name);
-                builder.Append(" [");
-                builder.Append(relic.Id);
-                builder.Append("]");
-                builder.AppendLine();
-                builder.Append('[');
-                builder.Append(relic.Grade);
-                builder.Append(" · ");
-                builder.Append(relic.Role);
-                builder.AppendLine("]");
-                builder.Append(relic.Description);
-                if (index < state.Relics.Count - 1)
-                {
-                    builder.AppendLine();
-                }
+                return;
             }
 
-            return builder.ToString();
+            if (_subscribedOpenButton != null)
+            {
+                _subscribedOpenButton.onClick.RemoveListener(HandleOpenClicked);
+            }
+
+            _openButton.onClick.RemoveListener(HandleOpenClicked);
+            _openButton.onClick.AddListener(HandleOpenClicked);
+            _subscribedOpenButton = _openButton;
         }
 
-        private void HandleOpenClicked()
+        private void HandleOpenClicked() => OpenRequested?.Invoke();
+
+        private void HandleCloseClicked() => CloseRequested?.Invoke();
+
+        private void HandleSymbolTabClicked() => SymbolTabRequested?.Invoke();
+
+        private void HandleRelicTabClicked() => RelicTabRequested?.Invoke();
+
+        private static void ApplyTabSprite(Button tabButton, Sprite sprite)
         {
-            OpenRequested?.Invoke();
+            if (tabButton == null ||
+                sprite == null ||
+                tabButton.targetGraphic is not Image image)
+            {
+                return;
+            }
+
+            image.sprite = sprite;
+            image.color = Color.white;
+            image.enabled = true;
         }
 
-        private void HandleCloseClicked()
+        private static bool ContainsOrdinalIgnoreCase(string value, string part)
         {
-            CloseRequested?.Invoke();
+            return !string.IsNullOrEmpty(value) &&
+                value.IndexOf(part, StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
-        private void HandleSymbolTabClicked()
+        private Button FindOpenButtonInScene()
         {
-            SymbolTabRequested?.Invoke();
-        }
+            Transform root = transform.root != null ? transform.root : transform;
+            Button button = FindOpenButton(root);
+            if (button != null)
+            {
+                return button;
+            }
 
-        private void HandleRelicTabClicked()
-        {
-            RelicTabRequested?.Invoke();
-        }
-
-        private T FindChildComponent<T>(string objectName) where T : Component
-        {
-            Transform child = FindDeepChild(transform, objectName);
-            return child != null ? child.GetComponent<T>() : null;
-        }
-
-        private static Transform FindDeepChild(Transform parent, string objectName)
-        {
-            if (parent == null)
+            Scene scene = gameObject.scene;
+            if (!scene.IsValid() || !scene.isLoaded)
             {
                 return null;
             }
 
-            if (parent.name == objectName)
+            GameObject[] roots = scene.GetRootGameObjects();
+            for (int index = 0; index < roots.Length; index++)
             {
-                return parent;
-            }
-
-            for (int index = 0; index < parent.childCount; index++)
-            {
-                Transform found = FindDeepChild(parent.GetChild(index), objectName);
-                if (found != null)
+                button = FindOpenButton(roots[index].transform);
+                if (button != null)
                 {
-                    return found;
+                    return button;
                 }
             }
 
             return null;
         }
 
-        private static void SetText(Text text, string value)
+        private static Button FindOpenButton(Transform root)
         {
-            if (text != null)
+            if (root == null)
             {
-                text.text = value ?? string.Empty;
+                return null;
             }
-        }
 
-        private static void SetText(TMP_Text text, string value)
-        {
-            if (text != null)
+            GameFlowImageSlot[] slots =
+                root.GetComponentsInChildren<GameFlowImageSlot>(includeInactive: true);
+            for (int index = 0; index < slots.Length; index++)
             {
-                text.text = value ?? string.Empty;
+                GameFlowImageSlot slot = slots[index];
+                if (slot != null && slot.SlotId == OpenButtonSlotId)
+                {
+                    return ResolveButton(slot.transform);
+                }
             }
+
+            return null;
         }
 
-        private static bool HasText(Text text, TMP_Text tmpText)
+        private static Button ResolveButton(Transform target)
         {
-            return text != null || tmpText != null;
+            return target.GetComponent<Button>() ??
+                target.GetComponentInChildren<Button>(includeInactive: true) ??
+                target.GetComponentInParent<Button>(includeInactive: true);
         }
 
-        private static void SetTextColor(Text text, Color color)
+        // 셀(Frame): Button(클릭) + Icon(Image) + Highlight(선택 표시).
+        private sealed class InventoryCell
         {
-            if (text != null)
+            private readonly GameObject _root;
+            private readonly Button _button;
+            private readonly Image _icon;
+            private readonly GameObject _highlight;
+
+            private InventoryCell(GameObject root, Button button, Image icon, GameObject highlight)
             {
-                text.color = color;
+                _root = root;
+                _button = button;
+                _icon = icon;
+                _highlight = highlight;
             }
-        }
 
-        private static void SetTextColor(TMP_Text text, Color color)
-        {
-            if (text != null)
+            internal static InventoryCell Resolve(GameObject root)
             {
-                text.color = color;
+                Transform t = root.transform;
+                Button button = root.GetComponent<Button>() ??
+                    root.GetComponentInChildren<Button>(includeInactive: true);
+                Image icon = FindChild<Image>(t, "Icon");
+                GameObject highlight = FindChild<Transform>(t, "Highlight")?.gameObject;
+                return new InventoryCell(root, button, icon, highlight);
             }
-        }
 
-        private static void SetButtonColor(Button button, Color color)
-        {
-            if (button != null && button.targetGraphic != null)
+            internal void SetActive(bool active)
             {
-                button.targetGraphic.color = color;
+                if (_root != null)
+                {
+                    _root.SetActive(active);
+                }
+            }
+
+            internal void SetIcon(Sprite sprite)
+            {
+                if (_icon == null)
+                {
+                    return;
+                }
+
+                _icon.sprite = sprite;
+                _icon.enabled = sprite != null;
+            }
+
+            internal void SetHighlight(bool on)
+            {
+                if (_highlight != null)
+                {
+                    _highlight.SetActive(on);
+                }
+            }
+
+            internal void SetClick(Action action)
+            {
+                if (_button == null)
+                {
+                    return;
+                }
+
+                _button.onClick.RemoveAllListeners();
+                if (action != null)
+                {
+                    _button.onClick.AddListener(() => action());
+                }
+            }
+
+            private static T FindChild<T>(Transform root, string name) where T : Component
+            {
+                Transform[] all = root.GetComponentsInChildren<Transform>(includeInactive: true);
+                for (int index = 0; index < all.Length; index++)
+                {
+                    if (string.Equals(all[index].name, name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return all[index].GetComponent<T>();
+                    }
+                }
+
+                return null;
             }
         }
     }

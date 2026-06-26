@@ -2,7 +2,6 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
-using SlotRogue.Core.Tooling;
 using SlotRogue.UI.Combat.Presentation;
 using UnityEngine;
 
@@ -16,16 +15,11 @@ namespace SlotRogue.UI.GameFlow
         IEnemyCombatVisualPresentationTarget,
         ICombatStatusPresentationCommands
     {
-        [SerializeField, AutoWire("10_BattleView", AutoWireSearchScope.Children)]
-        private RunBattlePlayerHudView _playerHudView;
-        [SerializeField, AutoWire("Slot Machine Panel", AutoWireSearchScope.Children)]
-        private RunBattleSlotBoardView _slotBoardView;
-        [SerializeField, AutoWire("10_BattleView", AutoWireSearchScope.Children)]
-        private RunBattleActionView _actionView;
-        [SerializeField, AutoWire("Presentation Overlay", AutoWireSearchScope.Children)]
-        private RunBattlePresentationOverlayView _presentationOverlayView;
-        [SerializeField, AutoWire("10_World")]
-        private RunBattleWorldView _worldView;
+        [SerializeField] private RunBattlePlayerHudView _playerHudView;
+        [SerializeField] private RunBattleSlotBoardView _slotBoardView;
+        [SerializeField] private RunBattleActionView _actionView;
+        [SerializeField] private RunBattlePresentationOverlayView _presentationOverlayView;
+        [SerializeField] private RunBattleWorldView _worldView;
 
         public event Action SpinRequested;
 
@@ -67,18 +61,37 @@ namespace SlotRogue.UI.GameFlow
 
         public bool EnsureReferences()
         {
-            _playerHudView ??= GetComponentInChildren<RunBattlePlayerHudView>(true);
-            _slotBoardView ??= GetComponentInChildren<RunBattleSlotBoardView>(true);
-            _actionView ??= GetComponentInChildren<RunBattleActionView>(true);
-            _presentationOverlayView ??= GetComponentInChildren<RunBattlePresentationOverlayView>(true);
+            // 씬 전체 탐색(FindInSceneRoot)으로 해결한다. 자식 한정 GetComponentInChildren는
+            // 계층 재배치 시 깨지므로, 인스펙터 미할당이어도 위치와 무관하게 찾도록 한다.
+            // (각 뷰는 전투 화면당 하나뿐이라 씬 전체 탐색이 안전하다.)
+            _playerHudView ??= SceneComponentResolver.FindInSceneRoot<RunBattlePlayerHudView>(transform);
+            _slotBoardView ??= SceneComponentResolver.FindInSceneRoot<RunBattleSlotBoardView>(transform);
+            _actionView ??= SceneComponentResolver.FindInSceneRoot<RunBattleActionView>(transform);
+            _presentationOverlayView ??= SceneComponentResolver.FindInSceneRoot<RunBattlePresentationOverlayView>(transform);
             _worldView ??= SceneComponentResolver.FindInSceneRoot<RunBattleWorldView>(transform);
             _worldView?.EnsureReferences();
 
-            return _playerHudView != null &&
+            bool complete = _playerHudView != null &&
                 _slotBoardView != null &&
                 _actionView != null &&
                 _presentationOverlayView != null &&
                 _worldView != null;
+
+            if (!complete)
+            {
+                // 어떤 하위 뷰 컴포넌트가 씬에 없는지 정확히 알려, 인스펙터/MCP 없이도 진단 가능하게 한다.
+                var missing = new System.Text.StringBuilder();
+                if (_playerHudView == null) missing.Append("RunBattlePlayerHudView, ");
+                if (_slotBoardView == null) missing.Append("RunBattleSlotBoardView, ");
+                if (_actionView == null) missing.Append("RunBattleActionView, ");
+                if (_presentationOverlayView == null) missing.Append("RunBattlePresentationOverlayView, ");
+                if (_worldView == null) missing.Append("RunBattleWorldView, ");
+                Debug.LogError(
+                    $"[RunBattleScreenView] 씬에서 못 찾은 하위 뷰: {missing.ToString().TrimEnd(',', ' ')}. " +
+                    "해당 컴포넌트가 씬 어딘가의 오브젝트에 붙어 있는지 확인하세요.");
+            }
+
+            return complete;
         }
 
         public bool HasRequiredControls()

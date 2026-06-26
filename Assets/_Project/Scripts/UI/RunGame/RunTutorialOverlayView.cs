@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 namespace SlotRogue.UI.RunGame
 {
-    public sealed class RunTutorialOverlayView : MonoBehaviour
+    public sealed class RunTutorialOverlayView : ViewComponentBase, ITutorialOverlay
     {
         [SerializeField] private RectTransform _panelRoot;
         [SerializeField] private Text _bodyText;
@@ -19,8 +19,6 @@ namespace SlotRogue.UI.RunGame
 
         public bool EnsureRuntimeLayout()
         {
-            ResolveSceneReferences();
-
             if (_panelRoot != null && HasBodyText())
             {
                 return true;
@@ -70,43 +68,6 @@ namespace SlotRogue.UI.RunGame
             }
         }
 
-        private void ResolveSceneReferences()
-        {
-            _panelRoot ??= FindDeepChild(transform, "Tutorial Overlay Panel") as RectTransform;
-            _bodyText ??= FindChildComponent<Text>("Tutorial Overlay Body");
-            _bodyTmpText ??= FindChildComponent<TMP_Text>("Tutorial Overlay Body");
-        }
-
-        private T FindChildComponent<T>(string objectName) where T : Component
-        {
-            Transform child = FindDeepChild(transform, objectName);
-            return child != null ? child.GetComponent<T>() : null;
-        }
-
-        private static Transform FindDeepChild(Transform parent, string objectName)
-        {
-            if (parent == null)
-            {
-                return null;
-            }
-
-            if (parent.name == objectName)
-            {
-                return parent;
-            }
-
-            for (int index = 0; index < parent.childCount; index++)
-            {
-                Transform found = FindDeepChild(parent.GetChild(index), objectName);
-                if (found != null)
-                {
-                    return found;
-                }
-            }
-
-            return null;
-        }
-
         private bool HasBodyText()
         {
             return _bodyText != null || _bodyTmpText != null;
@@ -118,24 +79,6 @@ namespace SlotRogue.UI.RunGame
             AppendMissing(builder, _panelRoot != null, "Tutorial Overlay Panel");
             AppendMissing(builder, HasBodyText(), "Tutorial Overlay Body");
             return builder.Length > 0 ? builder.ToString() : "none";
-        }
-
-        private static void AppendMissing(
-            System.Text.StringBuilder builder,
-            bool hasReference,
-            string label)
-        {
-            if (hasReference)
-            {
-                return;
-            }
-
-            if (builder.Length > 0)
-            {
-                builder.Append(", ");
-            }
-
-            builder.Append(label);
         }
     }
 }
