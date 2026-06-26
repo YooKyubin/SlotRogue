@@ -77,6 +77,13 @@ namespace SlotRogue.UI.Combat.Presentation
                 : UniTask.CompletedTask;
         }
 
+        public UniTask PlayPlayerHitFeedbackAsync(CancellationToken cancellationToken)
+        {
+            return _healthBarPresentationTarget != null
+                ? _healthBarPresentationTarget.PlayPlayerHitFeedbackAsync(cancellationToken)
+                : UniTask.CompletedTask;
+        }
+
         public UniTask ShowShieldGainAsync(
             ShieldPresentationRequest request,
             CancellationToken cancellationToken)

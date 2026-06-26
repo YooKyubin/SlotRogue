@@ -78,6 +78,53 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
             }
         }
 
+        [Test]
+        public async Task PresentAsync_PlayerReflectionDamagePlaysHitFeedback()
+        {
+            var hostObject = new GameObject("Presentation Host");
+            try
+            {
+                var commands = new DamageRecordingCommands();
+                var presenter = new DamagePresenter(new CombatPresentationHost(hostObject, commands));
+                var combatEvent = new CombatEvent(
+                    CombatEventKind.EffectApplied,
+                    effect: new CombatEffect(
+                        CombatEffectKind.Damage,
+                        amount: 4,
+                        CombatEffectTarget.Self,
+                        DamageOrigin.Reflection),
+                    applyResult: new EffectApplyResult(
+                        damageDealt: 4,
+                        shieldConsumed: 0,
+                        shieldGained: 0,
+                        healApplied: 0),
+                    isPlayerParticipant: true,
+                    targetParticipantId: new CombatParticipantId(1),
+                    targetAfter: new CombatParticipantSnapshot(hp: 6, shield: 0));
+
+                Task presentTask = presenter.PresentAsync(
+                        combatEvent,
+                        new CombatViewModel(),
+                        new PresentationContext(isCritical: false, patternName: string.Empty),
+                        CancellationToken.None)
+                    .AsTask();
+
+                await Task.Yield();
+                Assert.That(presentTask.IsCompleted, Is.False);
+
+                commands.CompleteFloatingDamage();
+                commands.CompleteHealthBar();
+                commands.CompletePlayerHitFeedback();
+                await presentTask;
+
+                Assert.That(commands.PlayerHitFeedbackCallCount, Is.EqualTo(1));
+            }
+            finally
+            {
+                Object.DestroyImmediate(hostObject);
+            }
+        }
+
         private sealed class DamageStatusRecordingCommands : ICombatStatusPresentationCommands
         {
             private readonly UniTaskCompletionSource _activationCompletion = new();
@@ -149,10 +196,13 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
         {
             private readonly UniTaskCompletionSource _floatingDamageCompletion = new();
             private readonly UniTaskCompletionSource _healthBarCompletion = new();
+            private readonly UniTaskCompletionSource _playerHitFeedbackCompletion = new();
 
             public int FloatingDamageCallCount { get; private set; }
 
             public int HealthBarCallCount { get; private set; }
+
+            public int PlayerHitFeedbackCallCount { get; private set; }
 
             public CombatParticipantId LastHealthBarParticipantId { get; private set; }
 
@@ -166,6 +216,11 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
             public void CompleteHealthBar()
             {
                 _healthBarCompletion.TrySetResult();
+            }
+
+            public void CompletePlayerHitFeedback()
+            {
+                _playerHitFeedbackCompletion.TrySetResult();
             }
 
             public UniTask PlayEnemyActionUntilEffectPointAsync(
@@ -200,6 +255,12 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 LastHealthBarParticipantId = participantId;
                 LastHealthBarIsPlayerTarget = isPlayerTarget;
                 return WaitAsync(_healthBarCompletion, cancellationToken);
+            }
+
+            public UniTask PlayPlayerHitFeedbackAsync(CancellationToken cancellationToken)
+            {
+                PlayerHitFeedbackCallCount++;
+                return WaitAsync(_playerHitFeedbackCompletion, cancellationToken);
             }
 
             public UniTask ShowShieldGainAsync(
@@ -406,6 +467,12 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 return UniTask.CompletedTask;
             }
 
+            public UniTask PlayPlayerHitFeedbackAsync(CancellationToken cancellationToken)
+            {
+                OtherCommandCallCount++;
+                return UniTask.CompletedTask;
+            }
+
             public UniTask ShowShieldGainAsync(
                 ShieldPresentationRequest request,
                 CancellationToken cancellationToken)
@@ -604,6 +671,12 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 CombatParticipantId participantId,
                 bool isPlayerTarget,
                 CancellationToken cancellationToken)
+            {
+                OtherCommandCallCount++;
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask PlayPlayerHitFeedbackAsync(CancellationToken cancellationToken)
             {
                 OtherCommandCallCount++;
                 return UniTask.CompletedTask;

@@ -59,6 +59,12 @@ namespace SlotRogue.UI.Combat.Presentation
                     cancellationToken),
             };
 
+            if (combatEvent.IsPlayerParticipant &&
+                combatEvent.Effect.DamageOrigin == DamageOrigin.Reflection)
+            {
+                presentationTasks.Add(Host.Commands.PlayPlayerHitFeedbackAsync(cancellationToken));
+            }
+
             if (Host.StatusCommands != null)
             {
                 for (int index = 0; index < combatEvent.AppliedStatusModifiers.Count; index++)

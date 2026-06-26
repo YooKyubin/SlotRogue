@@ -280,6 +280,13 @@ namespace SlotRogue.UI.GameFlow
                 : UniTask.CompletedTask;
         }
 
+        public UniTask PlayPlayerHitFeedbackAsync(CancellationToken cancellationToken)
+        {
+            return _playerHudView != null
+                ? _playerHudView.PlayHitFeedbackAsync(cancellationToken)
+                : UniTask.CompletedTask;
+        }
+
         private ShieldGaugeView ResolveShieldGauge(ShieldPresentationRequest request)
         {
             if (request.IsPlayerTarget)
