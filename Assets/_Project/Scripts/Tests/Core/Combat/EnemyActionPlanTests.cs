@@ -45,30 +45,22 @@ namespace SlotRogue.Core.Tests.Combat
                 new EnemyPlannedAction(
                     new EnemyActionKey(1),
                     "Attack",
-                    new[]
-                    {
-                        EnemyActionEffect.FromCombatEffect(
-                            new CombatEffect(CombatEffectKind.Damage, 3, CombatEffectTarget.Enemy)),
-                    }),
+                    EnemyActionEffect.FromCombatEffect(
+                        new CombatEffect(CombatEffectKind.Damage, 3, CombatEffectTarget.Enemy))),
                 new EnemyPlannedAction(
                     new EnemyActionKey(2),
-                    "Defend",
-                    new[]
-                    {
-                        EnemyActionEffect.FromCombatEffect(
-                            new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy)),
-                        EnemyActionEffect.LockSlot(lockCount: 1, durationTurns: 2),
-                    }),
+                    "Lock",
+                    EnemyActionEffect.LockSlot(lockCount: 1, durationTurns: 2)),
             });
 
             Assert.That(plan.Actions.Count, Is.EqualTo(2));
             Assert.That(plan.Actions[0].ActionKey.Value, Is.EqualTo(1));
             Assert.That(plan.Actions[0].ActionName, Is.EqualTo("Attack"));
             Assert.That(plan.Actions[1].ActionKey.Value, Is.EqualTo(2));
-            Assert.That(plan.Actions[1].ActionName, Is.EqualTo("Defend"));
-            Assert.That(plan.Actions[1].Effects.Count, Is.EqualTo(2));
-            Assert.That(plan.Actions[1].Effects[1].Kind, Is.EqualTo(EnemyActionEffectKind.LockSlot));
-            Assert.That(plan.Effects.Count, Is.EqualTo(2));
+            Assert.That(plan.Actions[1].ActionName, Is.EqualTo("Lock"));
+            Assert.That(plan.Actions[1].HasEffect, Is.True);
+            Assert.That(plan.Actions[1].Effect.Kind, Is.EqualTo(EnemyActionEffectKind.LockSlot));
+            Assert.That(plan.Effects.Count, Is.EqualTo(1));
         }
 
         [Test]
@@ -79,11 +71,8 @@ namespace SlotRogue.Core.Tests.Combat
                 new EnemyPlannedAction(
                     new EnemyActionKey(1),
                     "Attack",
-                    new[]
-                    {
-                        EnemyActionEffect.FromCombatEffect(
-                            new CombatEffect(CombatEffectKind.Damage, 3, CombatEffectTarget.Enemy)),
-                    }),
+                    EnemyActionEffect.FromCombatEffect(
+                        new CombatEffect(CombatEffectKind.Damage, 3, CombatEffectTarget.Enemy))),
             });
 
             IReadOnlyList<EnemyPlannedAction> firstRead = plan.Actions;
@@ -102,11 +91,8 @@ namespace SlotRogue.Core.Tests.Combat
                 new EnemyPlannedAction(
                     new EnemyActionKey(1),
                     "Defend",
-                    new[]
-                    {
-                        EnemyActionEffect.FromCombatEffect(
-                            new CombatEffect(CombatEffectKind.Shield, 3, CombatEffectTarget.Self)),
-                    }),
+                    EnemyActionEffect.FromCombatEffect(
+                        new CombatEffect(CombatEffectKind.Shield, 3, CombatEffectTarget.Self))),
             });
 
             IReadOnlyList<EnemyPlannedAction> actions = plan.Actions;

@@ -409,13 +409,10 @@ namespace SlotRogue.UI.GameFlow
                 new EnemyPlannedAction(
                     new EnemyActionKey(actionKey),
                     actionName,
-                    new[]
-                    {
-                        EnemyActionEffect.FromCombatEffect(new CombatEffect(
-                            effectKind,
-                            amount,
-                            target)),
-                    }),
+                    EnemyActionEffect.FromCombatEffect(new CombatEffect(
+                        effectKind,
+                        amount,
+                        target))),
             });
         }
 

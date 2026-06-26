@@ -1,7 +1,7 @@
 # 전투 코어 (Combat Core)
 
 **Status**: draft  
-**Last updated**: 2026-06-25 (감염 팀 턴 종료 피해·감소 반영)
+**Last updated**: 2026-06-26 (몬스터 행동 단일 effect 계약 반영)
 
 ## Purpose
 
@@ -219,6 +219,7 @@ MaxHp = round(
 | `CombatEffectTargetDefinition` | 참가자 대상 정의 (`targetMode`, `targetParticipantId`) |
 | `EnemyEffectDefinition` | SO 직렬화용 효과 정의 기반 타입 (`Damage`, `Shield`, `Heal`, `LockSlot`) |
 | `EnemyActionDefinition` | `ActionName`(표시 이름 + Animator State 이름), Intent 아이콘, 단일 효과 정의 |
+| `StatusEffectDefinition` | 상태 종류, `Amount`, 대상 정의를 보관하고 GameFlow 변환 계층에서 `CombatEffect.ApplyStatus`로 변환 |
 | `MonsterTurnPatternDefinition` | 턴별 `EnemyActionDefinition[]` 배열 (불변 패턴) |
 | `MonsterDefinition` | base `maxHp`, `turnPattern`, visual 참조 |
 | `EnemyActionPlannerFactory` (UI/GameFlow) | pattern SO → `EnemyActionPlan[]` + `FixedSequenceEnemyActionPlanner` + 행동 표시 맵 |
@@ -230,6 +231,10 @@ MaxHp = round(
 - 구현: [`feature-monster-pattern-so`](../exec-plans/completed/feature-monster-pattern-so.md).
 
 `EnemyActionDefinition.ActionName`은 GameFlow 조립 시 `EnemyPlannedAction.ActionName`과 `EnemyActionPresentation.DisplayName`으로 전달한다. `EnemyActionDefinition.IntentIcon`은 Data/UI 계층의 `Sprite`이므로 Core Plan에 직접 들어가지 않는다. GameFlow 조립 시 `EnemyActionKey`와 표시 정보를 `EnemyActionPresentationMap`으로 묶고, Intent UI는 저장된 `UpcomingPlan.Actions`를 이 맵으로 해석한다.
+
+`EnemyActionDefinition.Effect`는 피해·Shield·Heal·상태 효과·슬롯 잠금 정의 중 하나만 저장한다. 속성 자체도 하나의 action으로 취급하므로 몬스터 턴에서 여러 효과를 쓰려면 같은 turn 안에 여러 `EnemyActionDefinition`을 순서대로 작성한다. `EnemyActionPlannerFactory`는 단일 정의를 단일 `EnemyActionEffect`로 변환한다. 상태 효과는 `StatusEffectSpec.FromAmount`를 사용해 유물 요청과 동일한 `Amount` 해석 규칙을 공유하고, `CombatTargetMode`를 실제 참가자 대상 규칙으로 변환한다. 지원하지 않는 상태 종류, 효과 정의 타입, 대상 모드는 기본값으로 대체하지 않고 변환 시점에 계약 위반으로 실패한다.
+
+`RandomEnemy` 대상은 `CombatActionResolver`에 주입된 전투 RNG의 `NextIndex`로 생존 상대 중 하나를 선택한다. Inspector의 `SerializeReference` 타입 메뉴는 `EnemyEffectDefinition` 파생 타입을 자동 검색하므로 `StatusEffectDefinition`도 별도 Editor 등록 없이 선택할 수 있다.
 
 `LockSlotEffectDefinition`은 현재 Data 정의와 Core-safe `EnemyActionEffectKind.LockSlot` 런타임 표현까지만 제공한다. 실제 슬롯 상태 잠금은 `SlotMachineService`/`SlotMachineViewModel`에 지속 상태와 Spin 반영 API가 필요하므로 후속 작업으로 분리한다.
 

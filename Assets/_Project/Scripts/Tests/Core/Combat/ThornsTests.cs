@@ -358,14 +358,11 @@ namespace SlotRogue.Core.Tests.Combat
             var action = new EnemyPlannedAction(
                 new EnemyActionKey(1),
                 "Attack",
-                new[]
-                {
-                    EnemyActionEffect.FromCombatEffect(
-                        new CombatEffect(
-                            CombatEffectKind.Damage,
-                            3,
-                            CombatEffectTarget.Enemy)),
-                });
+                EnemyActionEffect.FromCombatEffect(
+                    new CombatEffect(
+                        CombatEffectKind.Damage,
+                        3,
+                        CombatEffectTarget.Enemy)));
 
             resolver.ResolveEnemyPlannedActions(
                 new[] { action },
@@ -559,6 +556,16 @@ namespace SlotRogue.Core.Tests.Combat
                 _index++;
                 RollCount++;
                 return result;
+            }
+
+            public int NextIndex(int count)
+            {
+                if (count <= 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(count));
+                }
+
+                return 0;
             }
         }
     }

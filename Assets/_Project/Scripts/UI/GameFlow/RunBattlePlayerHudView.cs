@@ -20,8 +20,6 @@ namespace SlotRogue.UI.GameFlow
         private const string PlayerHpTextName = "Player HP Text";
         private const string PlayerShieldTextName = "Player Shield Text";
         private const float FillTweenDuration = 0.35f;
-        private const float HitFeedbackDistance = 10f;
-        private const float HitFeedbackDuration = 0.22f;
 
         [SerializeField] private Text _hudText;
         [SerializeField] private TMP_Text _hpText;
@@ -39,7 +37,6 @@ namespace SlotRogue.UI.GameFlow
 #if DOTWEEN
         private Tween _hpFillTween;
         private Tween _shieldFillTween;
-        private Tween _hitFeedbackTween;
 #endif
 
         private void Awake()
@@ -52,7 +49,6 @@ namespace SlotRogue.UI.GameFlow
 #if DOTWEEN
             _hpFillTween?.Kill();
             _shieldFillTween?.Kill();
-            _hitFeedbackTween?.Kill();
 #endif
         }
 
@@ -86,44 +82,6 @@ namespace SlotRogue.UI.GameFlow
                 _hpFillTween,
                 cancellationToken);
 #else
-            return UniTask.CompletedTask;
-#endif
-        }
-
-        public UniTask PlayHitFeedbackAsync(CancellationToken cancellationToken)
-        {
-#if DOTWEEN
-            EnsureReferences();
-            RectTransform target = _hpGaugeRoot != null
-                ? _hpGaugeRoot
-                : transform as RectTransform;
-            if (target == null)
-            {
-                return UniTask.CompletedTask;
-            }
-
-            Vector2 restingPosition = target.anchoredPosition;
-            _hitFeedbackTween?.Kill();
-            _hitFeedbackTween = DOVirtual
-                .Float(
-                    0f,
-                    1f,
-                    HitFeedbackDuration,
-                    progress =>
-                    {
-                        float damping = 1f - progress;
-                        float offset = Mathf.Sin(progress * Mathf.PI * 6f) * HitFeedbackDistance * damping;
-                        target.anchoredPosition = restingPosition + new Vector2(offset, 0f);
-                    })
-                .SetEase(Ease.Linear)
-                .SetLink(gameObject)
-                .OnComplete(() => target.anchoredPosition = restingPosition)
-                .OnKill(() => target.anchoredPosition = restingPosition);
-            return SlotRogue.UI.Combat.Presentation.CombatPresentationTweens.AwaitTweenAsync(
-                _hitFeedbackTween,
-                cancellationToken);
-#else
-            cancellationToken.ThrowIfCancellationRequested();
             return UniTask.CompletedTask;
 #endif
         }

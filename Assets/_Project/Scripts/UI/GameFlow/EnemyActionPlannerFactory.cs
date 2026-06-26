@@ -117,75 +117,71 @@ namespace SlotRogue.UI.GameFlow
                 plannedActions[index] = new EnemyPlannedAction(
                     actionKey,
                     action.ActionName,
-                    ToActionEffects(action.Effect));
+                    ToActionEffect(action.Effect));
             }
 
             return EnemyActionPlan.FromActions(plannedActions);
         }
 
-        private static EnemyActionEffect[] ToActionEffects(EnemyEffectDefinition definition)
+        private static EnemyActionEffect ToActionEffect(EnemyEffectDefinition definition)
         {
             if (definition == null)
             {
-                return Array.Empty<EnemyActionEffect>();
+                throw new InvalidOperationException("Enemy action effect is not configured.");
             }
 
-            return TryToActionEffect(definition, out EnemyActionEffect effect)
-                ? new[] { effect }
-                : Array.Empty<EnemyActionEffect>();
-        }
-
-        private static bool TryToActionEffect(
-            EnemyEffectDefinition definition,
-            out EnemyActionEffect actionEffect)
-        {
             switch (definition)
             {
                 case DamageEffectDefinition damage:
-                    actionEffect = EnemyActionEffect.FromCombatEffect(new CombatEffect(
+                    return EnemyActionEffect.FromCombatEffect(new CombatEffect(
                         CombatEffectKind.Damage,
                         damage.Amount,
                         ToCombatEffectTarget(damage.Target)));
-                    return true;
                 case ShieldEffectDefinition shield:
-                    actionEffect = EnemyActionEffect.FromCombatEffect(new CombatEffect(
+                    return EnemyActionEffect.FromCombatEffect(new CombatEffect(
                         CombatEffectKind.Shield,
                         shield.Amount,
                         ToCombatEffectTarget(shield.Target)));
-                    return true;
                 case HealEffectDefinition heal:
-                    actionEffect = EnemyActionEffect.FromCombatEffect(new CombatEffect(
+                    return EnemyActionEffect.FromCombatEffect(new CombatEffect(
                         CombatEffectKind.Heal,
                         heal.Amount,
                         ToCombatEffectTarget(heal.Target)));
-                    return true;
+                case StatusEffectDefinition status:
+                    return EnemyActionEffect.FromCombatEffect(CombatEffect.ApplyStatus(
+                        StatusEffectSpec.FromAmount(status.StatusKind, status.Amount),
+                        ToCombatEffectTarget(status.Target)));
                 case LockSlotEffectDefinition lockSlot:
-                    actionEffect = EnemyActionEffect.LockSlot(lockSlot.LockCount, lockSlot.DurationTurns);
-                    return true;
+                    return EnemyActionEffect.LockSlot(lockSlot.LockCount, lockSlot.DurationTurns);
                 default:
-                    actionEffect = default;
-                    return false;
+                    throw new ArgumentOutOfRangeException(
+                        nameof(definition),
+                        definition.GetType(),
+                        "Unsupported enemy effect definition.");
             }
         }
 
         private static CombatEffectTarget ToCombatEffectTarget(CombatEffectTargetDefinition target)
         {
-            if (target.TargetMode == CombatTargetMode.Self)
+            switch (target.TargetMode)
             {
-                return CombatEffectTarget.Self;
+                case CombatTargetMode.Self:
+                    return CombatEffectTarget.Self;
+                case CombatTargetMode.SelectedEnemy:
+                    return target.TargetParticipantId > 0
+                        ? CombatEffectTarget.SelectedEnemy(
+                            new CombatParticipantId(target.TargetParticipantId))
+                        : CombatEffectTarget.Enemy;
+                case CombatTargetMode.AllEnemies:
+                    return new CombatEffectTarget(CombatTargetMode.AllEnemies);
+                case CombatTargetMode.RandomEnemy:
+                    return new CombatEffectTarget(CombatTargetMode.RandomEnemy);
+                default:
+                    throw new ArgumentOutOfRangeException(
+                        nameof(target),
+                        target.TargetMode,
+                        "Unsupported combat target mode.");
             }
-
-            if (target.TargetParticipantId > 0)
-            {
-                return CombatEffectTarget.SelectedEnemy(new CombatParticipantId(target.TargetParticipantId));
-            }
-
-            return target.TargetMode switch
-            {
-                CombatTargetMode.AllEnemies => new CombatEffectTarget(CombatTargetMode.AllEnemies),
-                CombatTargetMode.RandomEnemy => new CombatEffectTarget(CombatTargetMode.RandomEnemy),
-                _ => CombatEffectTarget.Enemy,
-            };
         }
 
     }

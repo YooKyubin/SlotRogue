@@ -42,11 +42,6 @@ namespace SlotRogue.UI.Combat.Presentation
             return UniTask.CompletedTask;
         }
 
-        public UniTask PlayPlayerHitFeedbackAsync(CancellationToken cancellationToken)
-        {
-            return UniTask.CompletedTask;
-        }
-
         public UniTask ShowTurnBannerAsync(
             string message,
             float duration,

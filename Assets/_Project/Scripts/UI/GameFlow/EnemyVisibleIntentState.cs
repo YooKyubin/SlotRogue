@@ -137,15 +137,10 @@ namespace SlotRogue.UI.GameFlow
                 return false;
             }
 
-            IReadOnlyList<EnemyActionEffect> effects = action.Effects;
-            for (int index = 0; index < effects.Count; index++)
+            if (action.HasEffect && action.Effect.Kind == EnemyActionEffectKind.Combat)
             {
-                EnemyActionEffect effect = effects[index];
-                if (effect.Kind == EnemyActionEffectKind.Combat)
-                {
-                    combatEffect = effect.CombatEffect;
-                    return true;
-                }
+                combatEffect = action.Effect.CombatEffect;
+                return true;
             }
 
             combatEffect = default;

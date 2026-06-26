@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
@@ -246,10 +247,7 @@ namespace SlotRogue.Core.Tests.Combat
                 new EnemyPlannedAction(
                     new EnemyActionKey(1),
                     actionName,
-                    new[]
-                    {
-                        EnemyActionEffect.FromCombatEffect(new CombatEffect(kind, amount, target)),
-                    }),
+                    EnemyActionEffect.FromCombatEffect(new CombatEffect(kind, amount, target))),
             });
         }
 
@@ -471,7 +469,7 @@ namespace SlotRogue.Core.Tests.Combat
         }
 
         [Test]
-        public void ResolveEnemyPlannedActions_MultiHit_UsesActionStartModifierSnapshot()
+        public void ResolveEnemyPlannedActions_SeparateActions_UseLatestModifierSnapshot()
         {
             var effectApplicator = new EffectApplicator();
             var statusEffectEngine = new StatusEffectEngine(effectApplicator);
@@ -495,22 +493,25 @@ namespace SlotRogue.Core.Tests.Combat
                 {
                     new EnemyPlannedAction(
                         new EnemyActionKey(1),
-                        "Double Attack",
-                        new[]
-                        {
-                            EnemyActionEffect.FromCombatEffect(
-                                CombatEffect.ApplyStatus(
-                                    new StatusEffectSpec(
-                                        StatusEffectKind.Burn,
-                                        duration: 1,
-                                        magnitude: 10,
-                                        StatusStackMode.Refresh),
-                                    CombatEffectTarget.Self)),
-                            EnemyActionEffect.FromCombatEffect(
-                                new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy)),
-                            EnemyActionEffect.FromCombatEffect(
-                                new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy)),
-                        }),
+                        "Focus",
+                        EnemyActionEffect.FromCombatEffect(
+                            CombatEffect.ApplyStatus(
+                                new StatusEffectSpec(
+                                    StatusEffectKind.Burn,
+                                    duration: 1,
+                                    magnitude: 10,
+                                    StatusStackMode.Refresh),
+                                CombatEffectTarget.Self))),
+                    new EnemyPlannedAction(
+                        new EnemyActionKey(2),
+                        "Attack 1",
+                        EnemyActionEffect.FromCombatEffect(
+                            new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy))),
+                    new EnemyPlannedAction(
+                        new EnemyActionKey(3),
+                        "Attack 2",
+                        EnemyActionEffect.FromCombatEffect(
+                            new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy))),
                 },
                 enemy,
                 player,
@@ -526,13 +527,13 @@ namespace SlotRogue.Core.Tests.Combat
                 .Select(e => e.Effect.Amount)
                 .ToArray();
 
-            Assert.That(appliedDamage, Is.EqualTo(new[] { 3, 3 }));
-            Assert.That(player.CurrentHp, Is.EqualTo(24));
+            Assert.That(appliedDamage, Is.EqualTo(new[] { 12, 12 }));
+            Assert.That(player.CurrentHp, Is.EqualTo(6));
             Assert.That(enemy.StatusEffects[0].Magnitude, Is.EqualTo(10));
         }
 
         [Test]
-        public void ResolveEnemyPlannedActions_MultiHit_ConsumesUsedModifierOncePerAction()
+        public void ResolveEnemyPlannedActions_SeparateActions_ConsumeModifierPerAction()
         {
             var effectApplicator = new EffectApplicator();
             var statusEffectEngine = new StatusEffectEngine(effectApplicator);
@@ -553,14 +554,14 @@ namespace SlotRogue.Core.Tests.Combat
                 {
                     new EnemyPlannedAction(
                         new EnemyActionKey(1),
-                        "Double Attack",
-                        new[]
-                        {
-                            EnemyActionEffect.FromCombatEffect(
-                                new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy)),
-                            EnemyActionEffect.FromCombatEffect(
-                                new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy)),
-                        }),
+                        "Attack 1",
+                        EnemyActionEffect.FromCombatEffect(
+                            new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy))),
+                    new EnemyPlannedAction(
+                        new EnemyActionKey(2),
+                        "Attack 2",
+                        EnemyActionEffect.FromCombatEffect(
+                            new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy))),
                 },
                 enemy,
                 player,
@@ -571,7 +572,7 @@ namespace SlotRogue.Core.Tests.Combat
                 events,
                 shouldEndBattle: () => false);
 
-            Assert.That(modifier.ConsumedCount, Is.EqualTo(1));
+            Assert.That(modifier.ConsumedCount, Is.EqualTo(2));
         }
 
         [Test]
@@ -602,19 +603,13 @@ namespace SlotRogue.Core.Tests.Combat
                     new EnemyPlannedAction(
                         new EnemyActionKey(1),
                         "Attack 1",
-                        new[]
-                        {
-                            EnemyActionEffect.FromCombatEffect(
-                                new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy)),
-                        }),
+                        EnemyActionEffect.FromCombatEffect(
+                            new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy))),
                     new EnemyPlannedAction(
                         new EnemyActionKey(2),
                         "Attack 2",
-                        new[]
-                        {
-                            EnemyActionEffect.FromCombatEffect(
-                                new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy)),
-                        }),
+                        EnemyActionEffect.FromCombatEffect(
+                            new CombatEffect(CombatEffectKind.Damage, 2, CombatEffectTarget.Enemy))),
                 },
                 enemy,
                 player,
@@ -1322,11 +1317,8 @@ namespace SlotRogue.Core.Tests.Combat
                     new EnemyPlannedAction(
                         new EnemyActionKey(1),
                         "Attack",
-                        new[]
-                        {
-                            EnemyActionEffect.FromCombatEffect(
-                                new CombatEffect(CombatEffectKind.Damage, 10, CombatEffectTarget.Enemy)),
-                        }),
+                        EnemyActionEffect.FromCombatEffect(
+                            new CombatEffect(CombatEffectKind.Damage, 10, CombatEffectTarget.Enemy))),
                 },
                 enemy,
                 player,
@@ -2020,11 +2012,8 @@ namespace SlotRogue.Core.Tests.Combat
                     new EnemyPlannedAction(
                         new EnemyActionKey(1),
                         "Attack",
-                        new[]
-                        {
-                            EnemyActionEffect.FromCombatEffect(
-                                new CombatEffect(CombatEffectKind.Damage, 10, CombatEffectTarget.Enemy)),
-                        }),
+                        EnemyActionEffect.FromCombatEffect(
+                            new CombatEffect(CombatEffectKind.Damage, 10, CombatEffectTarget.Enemy))),
                 },
                 enemy,
                 player,
@@ -2166,6 +2155,122 @@ namespace SlotRogue.Core.Tests.Combat
             {
                 LastContext = context;
                 return currentDamage * _multiplier;
+            }
+        }
+    }
+
+    public sealed class CombatActionResolverTargetTests
+    {
+        [Test]
+        public void ResolvePlayerEffects_RandomEnemy_UsesCombatRandom()
+        {
+            var random = new FixedIndexCombatRandom(index: 1);
+            var applicator = new EffectApplicator();
+            var statusEngine = new StatusEffectEngine(applicator);
+            var resolver = new CombatActionResolver(applicator, statusEngine, random);
+            CombatParticipant player = Participant(1, CombatTeam.Player);
+            CombatParticipant firstEnemy = Participant(100, CombatTeam.Enemy);
+            CombatParticipant secondEnemy = Participant(101, CombatTeam.Enemy);
+            var enemies = new[] { firstEnemy, secondEnemy };
+            var participantsById = new Dictionary<int, CombatParticipant>
+            {
+                [player.Id.Value] = player,
+                [firstEnemy.Id.Value] = firstEnemy,
+                [secondEnemy.Id.Value] = secondEnemy,
+            };
+
+            resolver.ResolvePlayerEffects(
+                new[]
+                {
+                    new CombatEffect(
+                        CombatEffectKind.Damage,
+                        amount: 3,
+                        target: new CombatEffectTarget(CombatTargetMode.RandomEnemy)),
+                },
+                player,
+                player,
+                enemies,
+                participantsById,
+                selectedTargetId: default,
+                BattlePhase.Resolving,
+                new List<CombatEvent>(),
+                shouldEndBattle: () => false);
+
+            Assert.That(firstEnemy.CurrentHp, Is.EqualTo(10));
+            Assert.That(secondEnemy.CurrentHp, Is.EqualTo(7));
+            Assert.That(random.LastCount, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void ResolvePlayerEffects_UnsupportedTargetModeFails()
+        {
+            var applicator = new EffectApplicator();
+            var resolver = new CombatActionResolver(
+                applicator,
+                new StatusEffectEngine(applicator),
+                new FixedIndexCombatRandom(index: 0));
+            CombatParticipant player = Participant(1, CombatTeam.Player);
+            CombatParticipant enemy = Participant(100, CombatTeam.Enemy);
+            var participantsById = new Dictionary<int, CombatParticipant>
+            {
+                [player.Id.Value] = player,
+                [enemy.Id.Value] = enemy,
+            };
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                resolver.ResolvePlayerEffects(
+                    new[]
+                    {
+                        new CombatEffect(
+                            CombatEffectKind.Damage,
+                            amount: 3,
+                            target: new CombatEffectTarget((CombatTargetMode)999)),
+                    },
+                    player,
+                    player,
+                    new[] { enemy },
+                    participantsById,
+                    selectedTargetId: default,
+                    BattlePhase.Resolving,
+                    new List<CombatEvent>(),
+                    shouldEndBattle: () => false));
+        }
+
+        private static CombatParticipant Participant(int id, CombatTeam team)
+        {
+            return new CombatParticipant(
+                maxHp: 10,
+                currentHp: 10,
+                shield: 0,
+                id: new CombatParticipantId(id),
+                team: team);
+        }
+
+        private sealed class FixedIndexCombatRandom : ICombatRandom
+        {
+            private readonly int _index;
+
+            public FixedIndexCombatRandom(int index)
+            {
+                _index = index;
+            }
+
+            public int LastCount { get; private set; }
+
+            public bool RollPercent(int successPercent)
+            {
+                return false;
+            }
+
+            public int NextIndex(int count)
+            {
+                if (count <= 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(count));
+                }
+
+                LastCount = count;
+                return _index;
             }
         }
     }

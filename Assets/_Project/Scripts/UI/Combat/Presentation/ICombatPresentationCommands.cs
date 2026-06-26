@@ -24,8 +24,6 @@ namespace SlotRogue.UI.Combat.Presentation
             bool isPlayerTarget,
             CancellationToken cancellationToken);
 
-        UniTask PlayPlayerHitFeedbackAsync(CancellationToken cancellationToken);
-
         UniTask ShowShieldGainAsync(
             ShieldPresentationRequest request,
             CancellationToken cancellationToken);
@@ -54,8 +52,6 @@ namespace SlotRogue.UI.Combat.Presentation
             CombatParticipantId participantId,
             bool isPlayerTarget,
             CancellationToken cancellationToken);
-
-        UniTask PlayPlayerHitFeedbackAsync(CancellationToken cancellationToken);
     }
 
     public interface ICombatStatusPresentationCommands

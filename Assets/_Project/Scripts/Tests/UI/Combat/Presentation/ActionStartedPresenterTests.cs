@@ -79,13 +79,16 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
         }
 
         [Test]
-        public async Task PresentAsync_PlayerReflectionDamagePlaysHitFeedback()
+        public async Task PresentAsync_PlayerReflectionDamagePlaysThornsStatusActivation()
         {
             var hostObject = new GameObject("Presentation Host");
             try
             {
                 var commands = new DamageRecordingCommands();
-                var presenter = new DamagePresenter(new CombatPresentationHost(hostObject, commands));
+                var statusCommands = new DamageStatusRecordingCommands();
+                var presenter = new DamagePresenter(
+                    new CombatPresentationHost(hostObject, commands, statusCommands));
+                var thornOwnerId = new CombatParticipantId(101);
                 var combatEvent = new CombatEvent(
                     CombatEventKind.EffectApplied,
                     effect: new CombatEffect(
@@ -100,7 +103,8 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                         healApplied: 0),
                     isPlayerParticipant: true,
                     targetParticipantId: new CombatParticipantId(1),
-                    targetAfter: new CombatParticipantSnapshot(hp: 6, shield: 0));
+                    targetAfter: new CombatParticipantSnapshot(hp: 6, shield: 0),
+                    sourceParticipantId: thornOwnerId);
 
                 Task presentTask = presenter.PresentAsync(
                         combatEvent,
@@ -114,10 +118,12 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
 
                 commands.CompleteFloatingDamage();
                 commands.CompleteHealthBar();
-                commands.CompletePlayerHitFeedback();
+                statusCommands.CompleteActivation();
                 await presentTask;
 
-                Assert.That(commands.PlayerHitFeedbackCallCount, Is.EqualTo(1));
+                Assert.That(statusCommands.ActivationCallCount, Is.EqualTo(1));
+                Assert.That(statusCommands.LastParticipantId.Value, Is.EqualTo(thornOwnerId.Value));
+                Assert.That(statusCommands.LastKind, Is.EqualTo(StatusEffectKind.Thorns));
             }
             finally
             {
@@ -132,6 +138,8 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
             public int ActivationCallCount { get; private set; }
 
             public StatusEffectKind LastKind { get; private set; }
+
+            public CombatParticipantId LastParticipantId { get; private set; }
 
             public void CompleteActivation()
             {
@@ -160,6 +168,7 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 CancellationToken cancellationToken)
             {
                 ActivationCallCount++;
+                LastParticipantId = participantId;
                 LastKind = kind;
                 return WaitAsync(_activationCompletion, cancellationToken);
             }
@@ -170,6 +179,7 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 CancellationToken cancellationToken)
             {
                 ActivationCallCount++;
+                LastParticipantId = ownerParticipantId;
                 LastKind = kind;
                 return WaitAsync(_activationCompletion, cancellationToken);
             }
@@ -196,13 +206,10 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
         {
             private readonly UniTaskCompletionSource _floatingDamageCompletion = new();
             private readonly UniTaskCompletionSource _healthBarCompletion = new();
-            private readonly UniTaskCompletionSource _playerHitFeedbackCompletion = new();
 
             public int FloatingDamageCallCount { get; private set; }
 
             public int HealthBarCallCount { get; private set; }
-
-            public int PlayerHitFeedbackCallCount { get; private set; }
 
             public CombatParticipantId LastHealthBarParticipantId { get; private set; }
 
@@ -216,11 +223,6 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
             public void CompleteHealthBar()
             {
                 _healthBarCompletion.TrySetResult();
-            }
-
-            public void CompletePlayerHitFeedback()
-            {
-                _playerHitFeedbackCompletion.TrySetResult();
             }
 
             public UniTask PlayEnemyActionUntilEffectPointAsync(
@@ -255,12 +257,6 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 LastHealthBarParticipantId = participantId;
                 LastHealthBarIsPlayerTarget = isPlayerTarget;
                 return WaitAsync(_healthBarCompletion, cancellationToken);
-            }
-
-            public UniTask PlayPlayerHitFeedbackAsync(CancellationToken cancellationToken)
-            {
-                PlayerHitFeedbackCallCount++;
-                return WaitAsync(_playerHitFeedbackCompletion, cancellationToken);
             }
 
             public UniTask ShowShieldGainAsync(
@@ -467,12 +463,6 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 return UniTask.CompletedTask;
             }
 
-            public UniTask PlayPlayerHitFeedbackAsync(CancellationToken cancellationToken)
-            {
-                OtherCommandCallCount++;
-                return UniTask.CompletedTask;
-            }
-
             public UniTask ShowShieldGainAsync(
                 ShieldPresentationRequest request,
                 CancellationToken cancellationToken)
@@ -511,6 +501,217 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 CancellationToken cancellationToken)
             {
                 OtherCommandCallCount++;
+                return UniTask.CompletedTask;
+            }
+
+            private static async UniTask WaitAsync(
+                UniTaskCompletionSource completion,
+                CancellationToken cancellationToken)
+            {
+                using CancellationTokenRegistration registration =
+                    cancellationToken.Register(() => completion.TrySetCanceled(cancellationToken));
+                await completion.Task;
+            }
+        }
+    }
+
+    public sealed class HealPresenterTests
+    {
+        [Test]
+        public async Task PresentAsync_EnemyLifestealHealPlaysStatusActivation()
+        {
+            var hostObject = new GameObject("Presentation Host");
+            try
+            {
+                var commands = new HealRecordingCommands();
+                var statusCommands = new HealStatusRecordingCommands();
+                var presenter = new HealPresenter(
+                    new CombatPresentationHost(hostObject, commands, statusCommands));
+                var participantId = new CombatParticipantId(101);
+                var combatEvent = new CombatEvent(
+                    CombatEventKind.EffectApplied,
+                    effect: new CombatEffect(
+                        CombatEffectKind.Heal,
+                        amount: 3,
+                        CombatEffectTarget.Self),
+                    applyResult: new EffectApplyResult(
+                        damageDealt: 0,
+                        shieldConsumed: 0,
+                        shieldGained: 0,
+                        healApplied: 3),
+                    isPlayerParticipant: false,
+                    targetParticipantId: participantId,
+                    targetAfter: new CombatParticipantSnapshot(hp: 8, shield: 0),
+                    statusEffectKind: StatusEffectKind.Lifesteal);
+
+                Task presentTask = presenter.PresentAsync(
+                        combatEvent,
+                        new CombatViewModel(),
+                        new PresentationContext(isCritical: false, patternName: string.Empty),
+                        CancellationToken.None)
+                    .AsTask();
+
+                await Task.Yield();
+                Assert.That(presentTask.IsCompleted, Is.False);
+
+                commands.CompleteHealthBar();
+                statusCommands.CompleteActivation();
+                await presentTask;
+
+                Assert.That(commands.HealthBarCallCount, Is.EqualTo(1));
+                Assert.That(statusCommands.ActivationCallCount, Is.EqualTo(1));
+                Assert.That(statusCommands.LastParticipantId.Value, Is.EqualTo(participantId.Value));
+                Assert.That(statusCommands.LastKind, Is.EqualTo(StatusEffectKind.Lifesteal));
+            }
+            finally
+            {
+                Object.DestroyImmediate(hostObject);
+            }
+        }
+
+        private sealed class HealStatusRecordingCommands : ICombatStatusPresentationCommands
+        {
+            private readonly UniTaskCompletionSource _activationCompletion = new();
+
+            public int ActivationCallCount { get; private set; }
+
+            public StatusEffectKind LastKind { get; private set; }
+
+            public CombatParticipantId LastParticipantId { get; private set; }
+
+            public void CompleteActivation()
+            {
+                _activationCompletion.TrySetResult();
+            }
+
+            public UniTask AddEnemyStatusAsync(
+                CombatParticipantId participantId,
+                StatusEffectViewData status,
+                CancellationToken cancellationToken)
+            {
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask UpdateEnemyStatusValueAsync(
+                CombatParticipantId participantId,
+                StatusEffectViewData status,
+                CancellationToken cancellationToken)
+            {
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask PlayEnemyStatusActivationAsync(
+                CombatParticipantId participantId,
+                StatusEffectKind kind,
+                CancellationToken cancellationToken)
+            {
+                ActivationCallCount++;
+                LastParticipantId = participantId;
+                LastKind = kind;
+                return WaitAsync(_activationCompletion, cancellationToken);
+            }
+
+            public UniTask PlayEnemyStatusModifierActivationAsync(
+                CombatParticipantId ownerParticipantId,
+                StatusEffectKind kind,
+                CancellationToken cancellationToken)
+            {
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask RemoveEnemyStatusAsync(
+                CombatParticipantId participantId,
+                StatusEffectKind kind,
+                CancellationToken cancellationToken)
+            {
+                return UniTask.CompletedTask;
+            }
+
+            private static async UniTask WaitAsync(
+                UniTaskCompletionSource completion,
+                CancellationToken cancellationToken)
+            {
+                using CancellationTokenRegistration registration =
+                    cancellationToken.Register(() => completion.TrySetCanceled(cancellationToken));
+                await completion.Task;
+            }
+        }
+
+        private sealed class HealRecordingCommands : ICombatPresentationCommands
+        {
+            private readonly UniTaskCompletionSource _healthBarCompletion = new();
+
+            public int HealthBarCallCount { get; private set; }
+
+            public void CompleteHealthBar()
+            {
+                _healthBarCompletion.TrySetResult();
+            }
+
+            public UniTask PlayEnemyActionUntilEffectPointAsync(
+                CombatParticipantId participantId,
+                string actionName,
+                CancellationToken cancellationToken)
+            {
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask WaitEnemyActionCompletedAsync(
+                CombatParticipantId participantId,
+                CancellationToken cancellationToken)
+            {
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask ShowFloatingDamageAsync(
+                FloatingDamageRequest request,
+                CancellationToken cancellationToken)
+            {
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask WaitHealthBarAsync(
+                CombatParticipantId participantId,
+                bool isPlayerTarget,
+                CancellationToken cancellationToken)
+            {
+                HealthBarCallCount++;
+                return WaitAsync(_healthBarCompletion, cancellationToken);
+            }
+
+            public UniTask ShowShieldGainAsync(
+                ShieldPresentationRequest request,
+                CancellationToken cancellationToken)
+            {
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask ShowShieldHitAsync(
+                ShieldPresentationRequest request,
+                CancellationToken cancellationToken)
+            {
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask ShowShieldBreakAsync(
+                ShieldPresentationRequest request,
+                CancellationToken cancellationToken)
+            {
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask ShowShieldExpireAsync(
+                ShieldPresentationRequest request,
+                CancellationToken cancellationToken)
+            {
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask ShowTurnBannerAsync(
+                string message,
+                float duration,
+                CancellationToken cancellationToken)
+            {
                 return UniTask.CompletedTask;
             }
 
@@ -676,12 +877,6 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 return UniTask.CompletedTask;
             }
 
-            public UniTask PlayPlayerHitFeedbackAsync(CancellationToken cancellationToken)
-            {
-                OtherCommandCallCount++;
-                return UniTask.CompletedTask;
-            }
-
             public UniTask ShowShieldGainAsync(
                 ShieldPresentationRequest request,
                 CancellationToken cancellationToken)
@@ -788,6 +983,40 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
 
                 Assert.That(commands.Calls, Is.EqualTo(new[] { "Add:3", "Update:2", "Remove" }));
                 Assert.That(viewModel.GetStatuses(participantId), Is.Empty);
+            }
+            finally
+            {
+                Object.DestroyImmediate(hostObject);
+            }
+        }
+
+        [Test]
+        public void PresentAsync_LifestealValueChanged_UpdatesWithoutActivation()
+        {
+            var hostObject = new GameObject("Presentation Host");
+            try
+            {
+                var commands = new StatusRecordingCommands();
+                var host = new CombatPresentationHost(
+                    hostObject,
+                    NullCombatPresentationCommands.Instance,
+                    commands);
+                var presenter = new StatusEffectPresenter(host);
+                var participantId = new CombatParticipantId(101);
+
+                presenter.PresentAsync(
+                        StatusEvent(
+                            CombatEventKind.StatusValueChanged,
+                            participantId,
+                            StatusEffectKind.Lifesteal,
+                            stackCount: 1),
+                        new CombatViewModel(),
+                        new PresentationContext(isCritical: false, patternName: string.Empty),
+                        CancellationToken.None)
+                    .GetAwaiter()
+                    .GetResult();
+
+                Assert.That(commands.Calls, Is.EqualTo(new[] { "Update:1" }));
             }
             finally
             {

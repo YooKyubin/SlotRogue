@@ -15,16 +15,40 @@ MonoBehaviour:
   turns:
   - actions:
     - _actionName: Common
-      _intentIcon: {fileID: 8707594959427059097, guid: f054b3ee2c7a79c42b2c7179b173387e, type: 3}
+      _intentIcon: {fileID: 8725165613147346364, guid: 93c338089471a6c4e94a99fd84fc12f3, type: 3}
       _effect:
-        rid: 5421931881862791246
+        rid: 5421932126527029363
+    - _actionName: Common
+      _intentIcon: {fileID: -6544292231458662415, guid: 93c338089471a6c4e94a99fd84fc12f3, type: 3}
+      _effect:
+        rid: 5421932126527029364
+  - actions:
+    - _actionName: Common
+      _intentIcon: {fileID: -6544292231458662415, guid: 93c338089471a6c4e94a99fd84fc12f3, type: 3}
+      _effect:
+        rid: 5421932126527029365
   references:
     version: 2
     RefIds:
-    - rid: 5421931881862791246
-      type: {class: HealEffectDefinition, ns: SlotRogue.Data.Combat, asm: SlotRogue.Data}
+    - rid: 5421932126527029363
+      type: {class: StatusEffectDefinition, ns: SlotRogue.Data.Combat, asm: SlotRogue.Data}
       data:
-        _amount: 2
+        _statusKind: 6
+        _amount: 10
         _target:
           _targetMode: 0
+          _targetParticipantId: 0
+    - rid: 5421932126527029364
+      type: {class: DamageEffectDefinition, ns: SlotRogue.Data.Combat, asm: SlotRogue.Data}
+      data:
+        _amount: 20
+        _target:
+          _targetMode: 1
+          _targetParticipantId: 0
+    - rid: 5421932126527029365
+      type: {class: DamageEffectDefinition, ns: SlotRogue.Data.Combat, asm: SlotRogue.Data}
+      data:
+        _amount: 10
+        _target:
+          _targetMode: 1
           _targetParticipantId: 0

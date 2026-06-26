@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
@@ -11,7 +12,7 @@ namespace SlotRogue.UI.Combat.Presentation
         {
         }
 
-        public override UniTask PresentAsync(
+        public override async UniTask PresentAsync(
             CombatEvent combatEvent,
             CombatViewModel viewModel,
             PresentationContext context,
@@ -20,14 +21,34 @@ namespace SlotRogue.UI.Combat.Presentation
             if (combatEvent.Kind != CombatEventKind.EffectApplied ||
                 combatEvent.Effect.Kind != CombatEffectKind.Heal)
             {
-                return UniTask.CompletedTask;
+                return;
             }
 
             viewModel.ApplyParticipantSnapshot(
                 combatEvent.TargetParticipantId,
                 combatEvent.TargetAfter,
                 combatEvent.IsPlayerParticipant);
-            return UniTask.CompletedTask;
+
+            var presentationTasks = new List<UniTask>
+            {
+                Host.Commands.WaitHealthBarAsync(
+                    combatEvent.TargetParticipantId,
+                    combatEvent.IsPlayerParticipant,
+                    cancellationToken),
+            };
+
+            if (!combatEvent.IsPlayerParticipant &&
+                combatEvent.StatusEffectKind == StatusEffectKind.Lifesteal &&
+                Host.StatusCommands != null)
+            {
+                presentationTasks.Add(
+                    Host.StatusCommands.PlayEnemyStatusActivationAsync(
+                        combatEvent.TargetParticipantId,
+                        StatusEffectKind.Lifesteal,
+                        cancellationToken));
+            }
+
+            await UniTask.WhenAll(presentationTasks);
         }
     }
 }
