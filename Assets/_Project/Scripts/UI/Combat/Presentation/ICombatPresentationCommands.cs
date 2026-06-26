@@ -53,4 +53,32 @@ namespace SlotRogue.UI.Combat.Presentation
             bool isPlayerTarget,
             CancellationToken cancellationToken);
     }
+
+    public interface ICombatStatusPresentationCommands
+    {
+        UniTask AddEnemyStatusAsync(
+            CombatParticipantId participantId,
+            StatusEffectViewData status,
+            CancellationToken cancellationToken);
+
+        UniTask UpdateEnemyStatusValueAsync(
+            CombatParticipantId participantId,
+            StatusEffectViewData status,
+            CancellationToken cancellationToken);
+
+        UniTask PlayEnemyStatusActivationAsync(
+            CombatParticipantId participantId,
+            StatusEffectKind kind,
+            CancellationToken cancellationToken);
+
+        UniTask PlayEnemyStatusModifierActivationAsync(
+            CombatParticipantId ownerParticipantId,
+            StatusEffectKind kind,
+            CancellationToken cancellationToken);
+
+        UniTask RemoveEnemyStatusAsync(
+            CombatParticipantId participantId,
+            StatusEffectKind kind,
+            CancellationToken cancellationToken);
+    }
 }

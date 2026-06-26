@@ -2,7 +2,6 @@ namespace SlotRogue.Relics.Pool
 {
     /// <summary>
     /// Conditional 트리거 유물이 요구하는 적 상태이상(v23).
-    /// 감염은 기존 전투의 Poison으로 실행되므로 Infect 요구는 Poison 보유 여부로 판정한다.
     /// </summary>
     public enum EnemyStatusRequirement
     {
@@ -14,7 +13,7 @@ namespace SlotRogue.Relics.Pool
         /// <summary>화상 상태(U-16 그을린 추격자).</summary>
         Burn = 2,
 
-        /// <summary>감염 상태(U-17 감염 추격자). 전투에서는 Poison으로 매핑.</summary>
+        /// <summary>감염 상태(U-17 감염 추격자).</summary>
         Infect = 3,
     }
 }

@@ -1,7 +1,7 @@
 # 전투 코어 (Combat Core)
 
 **Status**: draft  
-**Last updated**: 2026-06-20 (규칙 기반 Encounter 선택 및 HP scaling 반영)
+**Last updated**: 2026-06-25 (감염 팀 턴 종료 피해·감소 반영)
 
 ## Purpose
 
@@ -13,10 +13,11 @@
 |---|------|------|
 | C1 | [ADR-0001](../adr/0001-combat-turn-effect-pipeline.md) | 1스핀=1턴, Effect 목록 파이프라인, Shield-only 방어, Participant 소유 상태, CombatEvent 로그 |
 | C2 | **슬롯 계산 / 전투 진행 분리** | 슬롯 asmdef는 Combat 타입을 참조하지 않는다 (`slot-core.md` S4). 연동 계층에서 `Effect[]` 변환. |
-| C3 | **Resolver 순수 로직** | `BattleResolver`는 MonoBehaviour·UI 없이 EditMode 테스트 가능. |
+| C3 | **Resolver 순수 로직** | `CombatActionResolver`와 `EffectApplicator`는 MonoBehaviour·UI 없이 EditMode 테스트 가능. |
 | C4 | **플레이어·몬스터 동일 Effect 타입** | 행동 주체는 다르지만 `Kind + Amount + Target` 구조 공유. |
 | C5 | [ADR-0003](../adr/0003-combat-presentation-replay.md) | MVP 연출: Replay — 동기 `ApplyPlayerTurn` 후 `CombatEvent` 순차 재생; HUD는 `CombatViewModel`; `EffectApplied` 스냅샷 |
 | C6 | [ADR-0004](../adr/0004-multi-participant-combat.md) | 다인전은 participant id 기반 roster, `TargetMode + TargetParticipantId`, 적 턴 좌→우 순차, player team 1명(MVP) |
+| C7 | **직접 피해 상태 개입 지점** | `DamageOrigin.DirectAction` 피해는 공격자 outgoing modifier 후 대상 incoming modifier를 적용하고, `Status`/`Reflection` 피해는 기본적으로 modifier 대상에서 제외한다. |
 
 ## Turn pipeline
 
@@ -114,6 +115,48 @@ sequenceDiagram
 | `Heal` | `target.hp = min(target.hp + Amount, target.maxHp)` |
 
 스탯 방어력은 없다. 방어도는 `Shield` Effect로만 얻는다.
+
+### Action execution boundary
+
+`BattleSystem`은 전투 시작/종료, 페이즈 전환, 플레이어 턴과 몬스터 턴 진행, 상태 효과 턴 시작·종료 알림, 사망 및 승패 판정을 담당한다. 행동을 언제 실행할지만 결정하고, 행동 내부 효과 순서나 대상별 적용은 직접 처리하지 않는다. 팀 턴 종료 시에는 종료된 팀과 각 참가자를 `StatusEffectEngine`에 전달하며, 어떤 상태가 반응하거나 만료되는지는 직접 판단하지 않는다.
+
+`CombatActionResolver`는 기존 입력 형태를 유지한 채 행동 하나의 실행 과정을 처리한다. 플레이어는 기존 `CombatEffect` 목록으로, 몬스터는 기존 `EnemyPlannedAction` 목록으로 들어오며, resolver는 효과 순서, 대상 해석, 대상별 순차 적용, `ActionStarted` / `EffectApplied` / `ActionCompleted` 이벤트 생성을 담당한다. 플레이어와 몬스터 입력을 새 공통 `CombatAction` 타입으로 억지 통합하지 않는다.
+
+`EffectApplicator`는 이미 결정된 최종 수치를 `CombatParticipant`에 실제 반영한다. 피해, shield 획득, heal 적용과 `EffectApplyResult` 반환만 담당하며 턴, 페이즈, 행동자, 몬스터 계획, 전투 이벤트, 승패 판정은 알지 않는다.
+
+```text
+BattleSystem
+    -> CombatActionResolver
+        -> StatusEffectEngine
+        -> EffectApplicator
+```
+
+### Damage modifier extension
+
+기존 일반 피해의 기본 원인은 `DamageOrigin.DirectAction`이다. `CombatActionResolver`는 행동 시작 시 공격자의 `IOutgoingDamageModifier`와 각 참가자의 `IIncomingDamageModifier`를 snapshot으로 고정한다. 플레이어 행동 수명은 슬롯 스핀 1회이며, 몬스터 행동 수명은 `EnemyPlannedAction` 하나다. 같은 행동 안의 직접 피해는 매번 현재 상태 목록을 다시 조회하지 않고 이 snapshot만 사용한다. Modifier에는 전투 상태를 바꿀 수 있는 `StatusEffectContext`를 전달하지 않고, `DamageModifierContext`와 불변 `StatusEffectSnapshot`만 전달한다.
+
+처리 순서:
+
+```text
+기본 피해
+    -> 공격자의 IOutgoingDamageModifier
+    -> 대상의 IIncomingDamageModifier
+    -> EffectApplicator
+```
+
+실제로 호출된 modifier는 행동 실행 상태에 상태 인스턴스 단위로 기록하고, 행동 종료 시 사용된 각 상태 인스턴스의 `IDamageModifierUsageHandler` 컴포넌트에 한 번만 사용 처리를 요청할 수 있다. Modifier 컴포넌트와 사용 처리 컴포넌트는 같은 상태 안에서 분리해 조합할 수 있다. `Vulnerable`은 이 구조를 사용해 대상의 직접 피해를 `ceil(피해 * 1.2)`로 증가시키고, 행동 종료 시 적용 횟수(`StackCount`)를 1 감소시킨다. 적용 횟수가 0이 되면 기존 `StatusExpired` 이벤트 경로로 제거한다.
+
+상태 인스턴스는 modifier 계산에 영향을 주는 값(`RemainingTurns`, `Magnitude`, `StackCount`)이 바뀌거나 같은 종류의 상태가 다시 적용될 때 `Revision`을 증가시킨다. `Refresh`는 incoming 상태의 지속시간, 수치, 횟수로 교체하고, `Stack`은 기존 횟수에 incoming 횟수를 더한다. 행동 시작 snapshot은 원본 상태 인스턴스와 당시 revision을 함께 캡처한다. 행동 종료 사용 처리 시점에 원본 상태가 참가자에게 그대로 남아 있고 revision도 같을 때만 사용 처리 hook을 호출한다. 행동 중 상태가 갱신, 제거, 교체되면 이전 snapshot의 사용으로 새 상태를 소모하지 않는다.
+
+`Weaken`은 공격자의 outgoing modifier로 직접 공격 피해를 `ceil(피해 × 0.8)`로 감소시키고, 기본 피해가 1 이상이면 최소 피해 1을 유지한다. 같은 행동의 모든 직접 피해에 적용하되 행동 종료 시 적용 횟수(`StackCount`)를 1만 감소시킨다. 다단히트, 다중 대상, 방어막에 전부 막힌 피해도 같은 행동의 사용으로 처리한다. 유효한 대상이 없어 피해 처리가 시작되지 않거나 피해량이 0이면 사용하지 않는다.
+
+`DamageOrigin.Status`와 `DamageOrigin.Reflection`은 현재 modifier 호출 대상에서 제외한다. 화상·감염 같은 상태 피해는 `StatusEffectContext`가 `EffectApplicator`에 직접 최종 피해를 넘기는 경로를 사용한다. `EffectApplied` 이벤트에는 실제 보정되어 적용된 `CombatEffect`를 기록하고, `ActionCompleted`는 원본 행동 정보를 유지한다.
+
+`DamageModifierContext`는 피해 계산에 필요한 원인, 공격자 ID, 대상 ID, 현재 피해량, 캡처된 상태 snapshot만 가진다. 추가 피해, 회복, 방어막, 상태 부여/제거, 이벤트 발생 같은 전투 상태 변경 기능은 modifier 호출 경로에 노출하지 않는다. 실제 상태 생명주기와 이벤트 처리는 계속 `StatusEffectContext`의 책임이다.
+
+상대 팀 턴 종료 시 만료되는 상태는 `IExpireOnOpponentTeamTurnEnd` 컴포넌트를 조합한다. `StatusEffectEngine`은 종료된 팀의 반대편 참가자만 검사하고 해당 컴포넌트가 있는 상태를 기존 `OnExpired` → 상태 제거 → `StatusExpired` 이벤트 순서로 만료한다. 현재 `Thorns`가 이 정책을 사용한다.
+
+보유자 팀 턴 종료에 반응하는 상태는 `ITeamTurnEnded` 컴포넌트를 조합한다. `StatusEffectEngine`은 종료된 팀에 속한 참가자의 해당 컴포넌트를 실행하고, 컴포넌트가 만료를 요청하면 반응 처리가 끝난 뒤 기존 만료 경로를 사용한다. `Burn`은 `StatusApplied` 이벤트 이후 즉시 상태 피해를 주고, 보유자 팀 턴 종료 시 같은 피해를 준 뒤 만료한다. `Infection`은 감소 전 `StackCount`만큼 상태 피해를 준 다음 수치를 1 감소시키고, 0이 되면 만료를 요청한다.
 
 ### Participant
 

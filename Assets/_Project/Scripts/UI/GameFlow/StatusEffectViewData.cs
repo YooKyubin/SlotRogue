@@ -1,28 +1,23 @@
 using SlotRogue.Core.Combat;
 
-namespace SlotRogue.UI.GameFlow
+namespace SlotRogue.UI.Combat.Presentation
 {
     public readonly struct StatusEffectViewData
     {
         public StatusEffectViewData(
             StatusEffectKind kind,
-            int remainingTurns,
-            int magnitude,
-            int stackCount)
+            int displayValue,
+            bool showValue)
         {
             Kind = kind;
-            RemainingTurns = remainingTurns;
-            Magnitude = magnitude;
-            StackCount = stackCount;
+            DisplayValue = displayValue;
+            ShowValue = showValue;
         }
 
         public StatusEffectKind Kind { get; }
 
-        public int RemainingTurns { get; }
+        public int DisplayValue { get; }
 
-        public int Magnitude { get; }
-
-        public int StackCount { get; }
-
+        public bool ShowValue { get; }
     }
 }

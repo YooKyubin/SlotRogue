@@ -1,7 +1,9 @@
+using System;
 using NUnit.Framework;
 using SlotRogue.Core.Combat;
 using SlotRogue.Slot.Data;
 using SlotRogue.UI.Combat;
+using SlotRogue.UI.GameFlow;
 
 namespace SlotRogue.UI.Tests.Combat
 {
@@ -21,6 +23,27 @@ namespace SlotRogue.UI.Tests.Combat
             CombatEffect[] effects = _converter.Convert(null!);
 
             Assert.That(effects, Is.Empty);
+        }
+
+        [Test]
+        public void Convert_UnsupportedTargetMode_Throws()
+        {
+            var statusEffects = new[]
+            {
+                new TargetedStatusEffectSpec(
+                    new StatusEffectSpec(
+                        StatusEffectKind.Thorns,
+                        duration: 0,
+                        magnitude: 3,
+                        StatusStackMode.Refresh),
+                    (CombatTargetMode)999),
+            };
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                _converter.Convert(
+                    SlotCombatRequest.Empty,
+                    default,
+                    statusEffects));
         }
 
         [Test]
@@ -128,13 +151,57 @@ namespace SlotRogue.UI.Tests.Combat
             CombatEffect[] effects = _converter.Convert(
                 request,
                 selectedTargetId,
-                new StatusEffectSpec(StatusEffectKind.Poison, duration: 0, magnitude: 1, StatusStackMode.Stack));
+                new[]
+                {
+                    new TargetedStatusEffectSpec(
+                        new StatusEffectSpec(
+                            StatusEffectKind.Infection,
+                            duration: 0,
+                            magnitude: 1,
+                            StatusStackMode.Stack),
+                        CombatTargetMode.SelectedEnemy),
+                });
 
             Assert.That(effects, Has.Length.EqualTo(2));
             Assert.That(effects[0].Kind, Is.EqualTo(CombatEffectKind.Damage));
             Assert.That(effects[1].Kind, Is.EqualTo(CombatEffectKind.ApplyStatus));
-            Assert.That(effects[1].StatusEffect.Kind, Is.EqualTo(StatusEffectKind.Poison));
+            Assert.That(effects[1].StatusEffect.Kind, Is.EqualTo(StatusEffectKind.Infection));
             Assert.That(effects[1].Target.ParticipantId, Is.EqualTo(selectedTargetId));
+        }
+
+        [Test]
+        public void Convert_TargetedStatusEffects_UsesEachRequestedTarget()
+        {
+            var request = new SlotCombatRequest(5, 0, 1, 0, false, "Attack");
+            var selectedTargetId = new CombatParticipantId(101);
+            var statusEffects = new[]
+            {
+                new TargetedStatusEffectSpec(
+                    new StatusEffectSpec(
+                        StatusEffectKind.Infection,
+                        duration: 0,
+                        magnitude: 2,
+                        StatusStackMode.Stack),
+                    CombatTargetMode.SelectedEnemy),
+                new TargetedStatusEffectSpec(
+                    new StatusEffectSpec(
+                        StatusEffectKind.Thorns,
+                        duration: 0,
+                        magnitude: 3,
+                        StatusStackMode.Refresh),
+                    CombatTargetMode.Self),
+            };
+
+            CombatEffect[] effects = _converter.Convert(
+                request,
+                selectedTargetId,
+                statusEffects);
+
+            Assert.That(effects, Has.Length.EqualTo(3));
+            Assert.That(
+                effects[1].Target,
+                Is.EqualTo(CombatEffectTarget.SelectedEnemy(selectedTargetId)));
+            Assert.That(effects[2].Target, Is.EqualTo(CombatEffectTarget.Self));
         }
     }
 }

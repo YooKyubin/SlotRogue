@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using SlotRogue.Core.Combat;
 using SlotRogue.Slot.Data;
+using SlotRogue.UI.GameFlow;
 
 namespace SlotRogue.UI.Combat
 {
@@ -14,14 +16,6 @@ namespace SlotRogue.UI.Combat
         public CombatEffect[] Convert(
             SlotCombatRequest request,
             CombatParticipantId selectedTargetId)
-        {
-            return Convert(request, selectedTargetId, StatusEffectSpec.None);
-        }
-
-        public CombatEffect[] Convert(
-            SlotCombatRequest request,
-            CombatParticipantId selectedTargetId,
-            StatusEffectSpec statusEffectToApply)
         {
             if (request == null)
             {
@@ -52,14 +46,6 @@ namespace SlotRogue.UI.Combat
                 }
             }
 
-            if (statusEffectToApply.IsValid)
-            {
-                CombatEffectTarget target = selectedTargetId.IsValid
-                    ? CombatEffectTarget.SelectedEnemy(selectedTargetId)
-                    : CombatEffectTarget.Enemy;
-                effects.Add(CombatEffect.ApplyStatus(statusEffectToApply, target));
-            }
-
             return effects.ToArray();
         }
 
@@ -70,30 +56,53 @@ namespace SlotRogue.UI.Combat
         public CombatEffect[] Convert(
             SlotCombatRequest request,
             CombatParticipantId selectedTargetId,
-            IReadOnlyList<StatusEffectSpec> statusEffects)
+            IReadOnlyList<TargetedStatusEffectSpec> statusEffects)
         {
-            CombatEffect[] baseEffects = Convert(request, selectedTargetId, StatusEffectSpec.None);
+            CombatEffect[] baseEffects = Convert(request, selectedTargetId);
 
             if (statusEffects == null || statusEffects.Count == 0)
             {
                 return baseEffects;
             }
 
-            CombatEffectTarget target = selectedTargetId.IsValid
-                ? CombatEffectTarget.SelectedEnemy(selectedTargetId)
-                : CombatEffectTarget.Enemy;
-
             var effects = new List<CombatEffect>(baseEffects);
             for (int index = 0; index < statusEffects.Count; index++)
             {
-                StatusEffectSpec spec = statusEffects[index];
+                TargetedStatusEffectSpec targetedSpec = statusEffects[index];
+                StatusEffectSpec spec = targetedSpec.Spec;
                 if (spec.IsValid)
                 {
-                    effects.Add(CombatEffect.ApplyStatus(spec, target));
+                    effects.Add(CombatEffect.ApplyStatus(
+                        spec,
+                        ResolveTarget(targetedSpec.TargetMode, selectedTargetId)));
                 }
             }
 
             return effects.ToArray();
+        }
+
+        private static CombatEffectTarget ResolveTarget(
+            CombatTargetMode targetMode,
+            CombatParticipantId selectedTargetId)
+        {
+            switch (targetMode)
+            {
+                case CombatTargetMode.Self:
+                    return CombatEffectTarget.Self;
+                case CombatTargetMode.AllEnemies:
+                    return new CombatEffectTarget(CombatTargetMode.AllEnemies);
+                case CombatTargetMode.RandomEnemy:
+                    return new CombatEffectTarget(CombatTargetMode.RandomEnemy);
+                case CombatTargetMode.SelectedEnemy:
+                    return selectedTargetId.IsValid
+                        ? CombatEffectTarget.SelectedEnemy(selectedTargetId)
+                        : CombatEffectTarget.Enemy;
+                default:
+                    throw new ArgumentOutOfRangeException(
+                        nameof(targetMode),
+                        targetMode,
+                        "Unsupported combat target mode.");
+            }
         }
     }
 }

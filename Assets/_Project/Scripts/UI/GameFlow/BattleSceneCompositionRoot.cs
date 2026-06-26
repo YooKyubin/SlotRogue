@@ -96,14 +96,10 @@ namespace SlotRogue.UI.GameFlow
             _resultRecorder.FinalizePendingDefeat();
         }
 
-        public void DevApplyStatusTurn(
+        public void DevApplyRelicStatusTurn(
             StatusEffectKind statusEffectKind,
-            int duration,
-            int magnitude,
-            StatusStackMode stackMode,
-            bool includeDamage,
-            int damage,
-            int attackCount)
+            int amount,
+            CombatTargetMode targetMode)
         {
             if (_battleFlowController == null)
             {
@@ -111,14 +107,10 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
-            _battleFlowController.DevApplyStatusTurn(
+            _battleFlowController.DevApplyRelicStatusTurn(
                 statusEffectKind,
-                duration,
-                magnitude,
-                stackMode,
-                includeDamage,
-                damage,
-                attackCount);
+                amount,
+                targetMode);
         }
 
         public void SetTutorialSpinBlocked(bool blocked)
@@ -201,8 +193,9 @@ namespace SlotRogue.UI.GameFlow
                 _turnBannerView,
                 _view,
                 _view,
+                _view,
                 _view);
-            var presentationHost = new CombatPresentationHost(gameObject, commands);
+            var presentationHost = new CombatPresentationHost(gameObject, commands, commands);
             CombatPresentationPipeline pipeline = CombatPresentationPipeline.CreateDefault(presentationHost);
             var presentationController =
                 new BattlePresentationController(pipeline, combatViewModel);

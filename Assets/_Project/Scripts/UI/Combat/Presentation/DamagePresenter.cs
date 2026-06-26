@@ -1,4 +1,5 @@
 using System.Threading;
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
 
@@ -17,7 +18,8 @@ namespace SlotRogue.UI.Combat.Presentation
             PresentationContext context,
             CancellationToken cancellationToken)
         {
-            if (combatEvent.Kind != CombatEventKind.EffectApplied ||
+            if ((combatEvent.Kind != CombatEventKind.EffectApplied &&
+                 combatEvent.Kind != CombatEventKind.StatusTicked) ||
                 combatEvent.Effect.Kind != CombatEffectKind.Damage)
             {
                 return;
@@ -44,16 +46,38 @@ namespace SlotRogue.UI.Combat.Presentation
 
             var request = new FloatingDamageRequest(
                 combatEvent.ApplyResult.DamageDealt,
-                context.IsCritical,
+                combatEvent.Kind == CombatEventKind.EffectApplied && context.IsCritical,
                 combatEvent.IsPlayerParticipant,
                 combatEvent.TargetParticipantId);
 
-            await UniTask.WhenAll(
+            var presentationTasks = new List<UniTask>
+            {
                 Host.Commands.ShowFloatingDamageAsync(request, cancellationToken),
                 Host.Commands.WaitHealthBarAsync(
                     combatEvent.TargetParticipantId,
                     combatEvent.IsPlayerParticipant,
-                    cancellationToken));
+                    cancellationToken),
+            };
+
+            if (Host.StatusCommands != null)
+            {
+                for (int index = 0; index < combatEvent.AppliedStatusModifiers.Count; index++)
+                {
+                    AppliedStatusModifier modifier = combatEvent.AppliedStatusModifiers[index];
+                    if (modifier.OwnerTeam != CombatTeam.Enemy)
+                    {
+                        continue;
+                    }
+
+                    presentationTasks.Add(
+                        Host.StatusCommands.PlayEnemyStatusModifierActivationAsync(
+                            modifier.OwnerParticipantId,
+                            modifier.Kind,
+                            cancellationToken));
+                }
+            }
+
+            await UniTask.WhenAll(presentationTasks);
         }
     }
 }

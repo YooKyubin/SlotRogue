@@ -135,11 +135,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RunBattleStatusEffectDebugButton
   _compositionRoot: {fileID: 0}
   _button: {fileID: 9183630116599279813}
-  _useRecommendedDefaults: 1
-  _statusEffectKind: 2
-  _duration: 1
-  _magnitude: 0
-  _stackMode: 0
-  _includeDamage: 1
-  _damage: 2
-  _attackCount: 1
+  _label: {fileID: 0}
+  _createEnemyStatusButtons: 1
+  _statusEffectKind: 1
+  _amount: 3

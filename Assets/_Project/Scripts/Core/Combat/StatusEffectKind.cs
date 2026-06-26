@@ -5,6 +5,10 @@ namespace SlotRogue.Core.Combat
         None = 0,
         Burn = 1,
         Freeze = 2,
-        Poison = 3,
+        Infection = 3,
+        Vulnerable = 4,
+        Weaken = 5,
+        Lifesteal = 6,
+        Thorns = 7,
     }
 }

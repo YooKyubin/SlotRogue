@@ -4,26 +4,31 @@ using SlotRogue.Core.Combat;
 
 namespace SlotRogue.UI.Combat.Presentation
 {
-    public sealed class CombatPresentationCommandDispatcher : ICombatPresentationCommands
+    public sealed class CombatPresentationCommandDispatcher :
+        ICombatPresentationCommands,
+        ICombatStatusPresentationCommands
     {
         private readonly FloatingCombatTextLayerView _floatingTextLayerView;
         private readonly TurnBannerView _turnBannerView;
         private readonly ICombatShieldGaugeRegistry _shieldGaugeRegistry;
         private readonly IEnemyCombatVisualPresentationTarget _enemyCombatVisualTarget;
         private readonly ICombatHealthBarPresentationTarget _healthBarPresentationTarget;
+        private readonly ICombatStatusPresentationCommands _statusPresentationCommands;
 
         public CombatPresentationCommandDispatcher(
             FloatingCombatTextLayerView floatingTextLayerView,
             TurnBannerView turnBannerView,
             ICombatShieldGaugeRegistry shieldGaugeRegistry,
             IEnemyCombatVisualPresentationTarget enemyCombatVisualTarget,
-            ICombatHealthBarPresentationTarget healthBarPresentationTarget)
+            ICombatHealthBarPresentationTarget healthBarPresentationTarget,
+            ICombatStatusPresentationCommands statusPresentationCommands)
         {
             _floatingTextLayerView = floatingTextLayerView;
             _turnBannerView = turnBannerView;
             _shieldGaugeRegistry = shieldGaugeRegistry;
             _enemyCombatVisualTarget = enemyCombatVisualTarget;
             _healthBarPresentationTarget = healthBarPresentationTarget;
+            _statusPresentationCommands = statusPresentationCommands;
         }
 
         public UniTask PlayEnemyActionUntilEffectPointAsync(
@@ -116,6 +121,61 @@ namespace SlotRogue.UI.Combat.Presentation
             return _turnBannerView != null
                 ? _turnBannerView.ShowTurnBannerAsync(message, duration, cancellationToken)
                 : UniTask.CompletedTask;
+        }
+
+        public UniTask AddEnemyStatusAsync(
+            CombatParticipantId participantId,
+            StatusEffectViewData status,
+            CancellationToken cancellationToken)
+        {
+            return _statusPresentationCommands.AddEnemyStatusAsync(
+                participantId,
+                status,
+                cancellationToken);
+        }
+
+        public UniTask UpdateEnemyStatusValueAsync(
+            CombatParticipantId participantId,
+            StatusEffectViewData status,
+            CancellationToken cancellationToken)
+        {
+            return _statusPresentationCommands.UpdateEnemyStatusValueAsync(
+                participantId,
+                status,
+                cancellationToken);
+        }
+
+        public UniTask PlayEnemyStatusActivationAsync(
+            CombatParticipantId participantId,
+            StatusEffectKind kind,
+            CancellationToken cancellationToken)
+        {
+            return _statusPresentationCommands.PlayEnemyStatusActivationAsync(
+                participantId,
+                kind,
+                cancellationToken);
+        }
+
+        public UniTask PlayEnemyStatusModifierActivationAsync(
+            CombatParticipantId ownerParticipantId,
+            StatusEffectKind kind,
+            CancellationToken cancellationToken)
+        {
+            return _statusPresentationCommands.PlayEnemyStatusModifierActivationAsync(
+                ownerParticipantId,
+                kind,
+                cancellationToken);
+        }
+
+        public UniTask RemoveEnemyStatusAsync(
+            CombatParticipantId participantId,
+            StatusEffectKind kind,
+            CancellationToken cancellationToken)
+        {
+            return _statusPresentationCommands.RemoveEnemyStatusAsync(
+                participantId,
+                kind,
+                cancellationToken);
         }
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using SlotRogue.Core.Combat;
+using SlotRogue.UI.Combat.Presentation;
 
 namespace SlotRogue.UI.GameFlow
 {

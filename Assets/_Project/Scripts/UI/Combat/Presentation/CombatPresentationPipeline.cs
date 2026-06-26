@@ -14,6 +14,7 @@ namespace SlotRogue.UI.Combat.Presentation
         private readonly ICombatEventPresenter _healPresenter;
         private readonly ICombatEventPresenter _actionStartedPresenter;
         private readonly ICombatEventPresenter _actionCompletedPresenter;
+        private readonly ICombatEventPresenter _statusEffectPresenter;
         private readonly ICombatEventPresenter _fallbackPresenter;
 
         public CombatPresentationPipeline(
@@ -25,6 +26,7 @@ namespace SlotRogue.UI.Combat.Presentation
             ICombatEventPresenter healPresenter,
             ICombatEventPresenter actionStartedPresenter,
             ICombatEventPresenter actionCompletedPresenter,
+            ICombatEventPresenter statusEffectPresenter,
             ICombatEventPresenter fallbackPresenter)
         {
             _phaseChangedPresenter = phaseChangedPresenter;
@@ -35,6 +37,7 @@ namespace SlotRogue.UI.Combat.Presentation
             _healPresenter = healPresenter;
             _actionStartedPresenter = actionStartedPresenter;
             _actionCompletedPresenter = actionCompletedPresenter;
+            _statusEffectPresenter = statusEffectPresenter;
             _fallbackPresenter = fallbackPresenter;
         }
 
@@ -49,6 +52,7 @@ namespace SlotRogue.UI.Combat.Presentation
                 new HealPresenter(host),
                 new ActionStartedPresenter(host),
                 new ActionCompletedPresenter(host),
+                new StatusEffectPresenter(host),
                 new CombatDummyPresenter());
         }
 
@@ -83,6 +87,22 @@ namespace SlotRogue.UI.Combat.Presentation
 
                 case CombatEventKind.EffectApplied:
                     return RouteEffectApplied(combatEvent, viewModel, context, cancellationToken);
+
+                case CombatEventKind.StatusTicked:
+                    return PresentStatusTickedAsync(
+                        combatEvent,
+                        viewModel,
+                        context,
+                        cancellationToken);
+
+                case CombatEventKind.StatusApplied:
+                case CombatEventKind.StatusValueChanged:
+                case CombatEventKind.StatusExpired:
+                    return _statusEffectPresenter.PresentAsync(
+                        combatEvent,
+                        viewModel,
+                        context,
+                        cancellationToken);
 
                 case CombatEventKind.ActionStarted:
                     return _actionStartedPresenter.PresentAsync(
@@ -122,6 +142,115 @@ namespace SlotRogue.UI.Combat.Presentation
             };
 
             return presenter.PresentAsync(combatEvent, viewModel, context, cancellationToken);
+        }
+
+        private async UniTask PresentStatusTickedAsync(
+            CombatEvent combatEvent,
+            CombatViewModel viewModel,
+            PresentationContext context,
+            CancellationToken cancellationToken)
+        {
+            await _statusEffectPresenter.PresentAsync(
+                combatEvent,
+                viewModel,
+                context,
+                cancellationToken);
+            await _damagePresenter.PresentAsync(
+                combatEvent,
+                viewModel,
+                context,
+                cancellationToken);
+        }
+    }
+
+    public sealed class StatusEffectPresenter : ICombatEventPresenter
+    {
+        private readonly ICombatStatusPresentationCommands _commands;
+
+        public StatusEffectPresenter(CombatPresentationHost host)
+        {
+            _commands = host.StatusCommands ??
+                throw new System.ArgumentException(
+                    "Combat status presentation commands are required.",
+                    nameof(host));
+        }
+
+        public async UniTask PresentAsync(
+            CombatEvent combatEvent,
+            CombatViewModel viewModel,
+            PresentationContext context,
+            CancellationToken cancellationToken)
+        {
+            if (combatEvent.IsPlayerParticipant)
+            {
+                return;
+            }
+
+            switch (combatEvent.Kind)
+            {
+                case CombatEventKind.StatusTicked:
+                    await _commands.PlayEnemyStatusActivationAsync(
+                        combatEvent.TargetParticipantId,
+                        combatEvent.StatusEffectKind,
+                        cancellationToken);
+                    break;
+                case CombatEventKind.StatusApplied:
+                {
+                    StatusEffectViewData status = Map(combatEvent);
+                    viewModel.AddOrReplaceStatus(combatEvent.TargetParticipantId, status);
+                    await _commands.AddEnemyStatusAsync(
+                        combatEvent.TargetParticipantId,
+                        status,
+                        cancellationToken);
+                    viewModel.PublishStatusChanged();
+                    break;
+                }
+                case CombatEventKind.StatusValueChanged:
+                {
+                    StatusEffectViewData status = Map(combatEvent);
+                    viewModel.AddOrReplaceStatus(combatEvent.TargetParticipantId, status);
+                    if (combatEvent.StatusEffectKind != StatusEffectKind.Infection &&
+                        combatEvent.StatusEffectKind != StatusEffectKind.Vulnerable &&
+                        combatEvent.StatusEffectKind != StatusEffectKind.Weaken)
+                    {
+                        await _commands.PlayEnemyStatusActivationAsync(
+                            combatEvent.TargetParticipantId,
+                            combatEvent.StatusEffectKind,
+                            cancellationToken);
+                    }
+
+                    await _commands.UpdateEnemyStatusValueAsync(
+                        combatEvent.TargetParticipantId,
+                        status,
+                        cancellationToken);
+                    viewModel.PublishStatusChanged();
+                    break;
+                }
+                case CombatEventKind.StatusExpired:
+                    viewModel.RemoveStatus(
+                        combatEvent.TargetParticipantId,
+                        combatEvent.StatusEffectKind);
+                    await _commands.RemoveEnemyStatusAsync(
+                        combatEvent.TargetParticipantId,
+                        combatEvent.StatusEffectKind,
+                        cancellationToken);
+                    viewModel.PublishStatusChanged();
+                    break;
+                default:
+                    throw new System.ArgumentOutOfRangeException(
+                        nameof(combatEvent),
+                        combatEvent.Kind,
+                        "Status presenter received an unsupported combat event.");
+            }
+        }
+
+        private static StatusEffectViewData Map(CombatEvent combatEvent)
+        {
+            return StatusEffectPresentationMapper.Map(
+                combatEvent.StatusEffectKind,
+                combatEvent.StatusMagnitude,
+                combatEvent.StatusStackCount,
+                combatEvent.StatusDuration);
         }
     }
 }

@@ -12,7 +12,7 @@ namespace SlotRogue.UI.GameFlow
             SlotCombatRequest finalRequest,
             string relicActivationSummary,
             string runBonusSummary,
-            IReadOnlyList<StatusEffectSpec> statusEffectsToApply = null,
+            IReadOnlyList<TargetedStatusEffectSpec> statusEffectsToApply = null,
             IReadOnlyList<RelicContributionDelta> derivedHealContributions = null)
         {
             BaseRequest = baseRequest;
@@ -20,7 +20,7 @@ namespace SlotRogue.UI.GameFlow
             AttackPower = CalculateAttackPower(finalRequest);
             RelicActivationSummary = relicActivationSummary ?? string.Empty;
             RunBonusSummary = runBonusSummary ?? string.Empty;
-            StatusEffectsToApply = statusEffectsToApply ?? Array.Empty<StatusEffectSpec>();
+            StatusEffectsToApply = statusEffectsToApply ?? Array.Empty<TargetedStatusEffectSpec>();
             DerivedHealContributions =
                 derivedHealContributions ?? Array.Empty<RelicContributionDelta>();
         }
@@ -35,7 +35,7 @@ namespace SlotRogue.UI.GameFlow
 
         public string RunBonusSummary { get; }
 
-        public IReadOnlyList<StatusEffectSpec> StatusEffectsToApply { get; }
+        public IReadOnlyList<TargetedStatusEffectSpec> StatusEffectsToApply { get; }
 
         /// <summary>
         /// 흡혈/방어전환으로 이번 턴 발생한 회복의 유물별 기여(패배 화면 집계용).
@@ -52,5 +52,18 @@ namespace SlotRogue.UI.GameFlow
 
             return request.Damage * Math.Max(1, request.AttackCount);
         }
+    }
+
+    public readonly struct TargetedStatusEffectSpec
+    {
+        public TargetedStatusEffectSpec(StatusEffectSpec spec, CombatTargetMode targetMode)
+        {
+            Spec = spec;
+            TargetMode = targetMode;
+        }
+
+        public StatusEffectSpec Spec { get; }
+
+        public CombatTargetMode TargetMode { get; }
     }
 }

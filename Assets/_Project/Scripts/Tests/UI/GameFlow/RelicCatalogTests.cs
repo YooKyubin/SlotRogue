@@ -89,14 +89,38 @@ namespace SlotRogue.UI.Tests.GameFlow
             Assert.That(RelicCatalog.RewardPool, Has.None.Matches<RelicDefinition>(x => x.Id == "R-01"));
         }
 
-        [TestCase("C-07")]
-        [TestCase("C-08")]
-        [TestCase("U-07")]
-        [TestCase("U-08")]
+        [TestCase("C-02", RelicEffectType.GainThorns)]
+        [TestCase("C-07", RelicEffectType.ApplyBurn)]
+        [TestCase("C-08", RelicEffectType.ApplyInfect)]
+        [TestCase("C-09", RelicEffectType.ApplyVulnerable)]
+        [TestCase("C-11", RelicEffectType.GainThorns)]
+        [TestCase("C-20", RelicEffectType.GainThorns)]
+        [TestCase("C-21", RelicEffectType.ApplyWeak)]
+        [TestCase("C-22", RelicEffectType.ApplyVulnerable)]
+        [TestCase("U-07", RelicEffectType.ApplyBurn)]
+        [TestCase("U-08", RelicEffectType.ApplyInfect)]
+        [TestCase("U-09", RelicEffectType.ApplyWeak)]
+        [TestCase("U-12", RelicEffectType.ApplyVulnerable)]
+        public void SupportedStatusRelic_IsEnabledAndIncludedInRewardPool(
+            string relicId,
+            RelicEffectType expectedEffectType)
+        {
+            RelicDefinition relic = RelicCatalog.GetById(relicId);
+
+            Assert.That(relic, Is.Not.Null);
+            Assert.That(relic.EffectType, Is.EqualTo(expectedEffectType));
+            Assert.That(relic.Phase1, Is.True);
+            Assert.That(
+                RelicCatalog.RewardPool,
+                Has.Some.Matches<RelicDefinition>(candidate => candidate.Id == relicId));
+        }
+
+        [TestCase("U-19")]
+        [TestCase("R-06")]
         [TestCase("U-13")]
         [TestCase("U-16")]
         [TestCase("U-17")]
-        public void V23StatusRelic_IsExcludedUntilCombatCoreContractMatches(string relicId)
+        public void UnsupportedStatusRelic_RemainsExcluded(string relicId)
         {
             RelicDefinition relic = RelicCatalog.GetById(relicId);
 

@@ -12,5 +12,6 @@ namespace SlotRogue.Core.Combat
         ActionSkipped = 7,
         ActionStarted = 8,
         ActionCompleted = 9,
+        StatusValueChanged = 10,
     }
 }

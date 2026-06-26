@@ -5,6 +5,8 @@ using UnityEngine.UI;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using SlotRogue.Core.Combat;
+using SlotRogue.UI.Combat.Presentation;
 #if DOTWEEN
 using DG.Tweening;
 #endif
@@ -42,7 +44,7 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private Transform _intentRoot;
         [SerializeField] private EnemyIntentIconView _intentIconPrefab;
 
-        private readonly List<EnemyStatusEffectIconView> _statusEffectIcons = new();
+        private readonly Dictionary<StatusEffectKind, EnemyStatusEffectIconView> _statusEffectIconsByKind = new();
         private readonly List<EnemyIntentIconView> _intentIcons = new();
         private UnityAction _clickHandler;
         private bool _interactable = true;
@@ -295,32 +297,128 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetStatusEffects(IReadOnlyList<StatusEffectViewData> statuses)
         {
-            //AutoBindStatusEffectRootIfNeeded();
-            if (_statusEffectRoot == null)
+            if (!HasStatusEffectReferences())
             {
-                LogMissingStatusEffectReferenceWarning("Status Effect Root");
                 return;
             }
 
-            if (_statusEffectIconPrefab == null)
-            {
-                LogMissingStatusEffectReferenceWarning("Status Effect Icon Prefab");
-                return;
-            }
-
+            var activeKinds = new HashSet<StatusEffectKind>();
             int statusCount = statuses != null ? statuses.Count : 0;
-            EnsureStatusIconCount(statusCount);
-
-            for (int index = 0; index < _statusEffectIcons.Count; index++)
+            for (int index = 0; index < statusCount; index++)
             {
-                EnemyStatusEffectIconView icon = _statusEffectIcons[index];
-                bool active = index < statusCount;
-                icon.gameObject.SetActive(active);
-                if (active)
+                StatusEffectViewData status = statuses[index];
+                activeKinds.Add(status.Kind);
+                if (!_statusEffectIconsByKind.TryGetValue(
+                        status.Kind,
+                        out EnemyStatusEffectIconView icon))
                 {
-                    icon.Set(statuses[index]);
+                    icon = CreateStatusEffectIcon(status.Kind);
+                    if (icon == null)
+                    {
+                        return;
+                    }
+
+                    _statusEffectIconsByKind.Add(status.Kind, icon);
+                }
+
+                icon.gameObject.SetActive(true);
+                icon.Set(status);
+            }
+
+            var removedKinds = new List<StatusEffectKind>();
+            foreach (KeyValuePair<StatusEffectKind, EnemyStatusEffectIconView> pair in _statusEffectIconsByKind)
+            {
+                if (!activeKinds.Contains(pair.Key))
+                {
+                    DestroyStatusEffectIcon(pair.Value);
+                    removedKinds.Add(pair.Key);
                 }
             }
+
+            for (int index = 0; index < removedKinds.Count; index++)
+            {
+                _statusEffectIconsByKind.Remove(removedKinds[index]);
+            }
+        }
+
+        public async UniTask AddStatusAsync(
+            StatusEffectViewData status,
+            CancellationToken cancellationToken)
+        {
+            if (!HasStatusEffectReferences())
+            {
+                return;
+            }
+
+            if (!_statusEffectIconsByKind.TryGetValue(
+                    status.Kind,
+                    out EnemyStatusEffectIconView icon))
+            {
+                icon = CreateStatusEffectIcon(status.Kind);
+                if (icon == null)
+                {
+                    return;
+                }
+
+                _statusEffectIconsByKind.Add(status.Kind, icon);
+                await icon.ShowAsync(status, cancellationToken);
+                return;
+            }
+
+            await icon.UpdateValueAsync(status, cancellationToken);
+        }
+
+        public UniTask UpdateStatusValueAsync(
+            StatusEffectViewData status,
+            CancellationToken cancellationToken)
+        {
+            if (!_statusEffectIconsByKind.TryGetValue(
+                    status.Kind,
+                    out EnemyStatusEffectIconView icon))
+            {
+                Debug.LogError(
+                    $"[EnemyFormationSlotView] Cannot update missing status icon '{status.Kind}'.",
+                    this);
+                return UniTask.CompletedTask;
+            }
+
+            return icon.UpdateValueAsync(status, cancellationToken);
+        }
+
+        public UniTask PlayStatusActivationAsync(
+            StatusEffectKind kind,
+            CancellationToken cancellationToken)
+        {
+            if (!_statusEffectIconsByKind.TryGetValue(
+                    kind,
+                    out EnemyStatusEffectIconView icon))
+            {
+                Debug.LogError(
+                    $"[EnemyFormationSlotView] Cannot animate missing status icon '{kind}'.",
+                    this);
+                return UniTask.CompletedTask;
+            }
+
+            return icon.PlayActivationAsync(cancellationToken);
+        }
+
+        public async UniTask RemoveStatusAsync(
+            StatusEffectKind kind,
+            CancellationToken cancellationToken)
+        {
+            if (!_statusEffectIconsByKind.TryGetValue(
+                    kind,
+                    out EnemyStatusEffectIconView icon))
+            {
+                Debug.LogError(
+                    $"[EnemyFormationSlotView] Cannot remove missing status icon '{kind}'.",
+                    this);
+                return;
+            }
+
+            await icon.HideAsync(cancellationToken);
+            _statusEffectIconsByKind.Remove(kind);
+            DestroyStatusEffectIcon(icon);
         }
 
         public void SetUpcomingActions(IReadOnlyList<EnemyUpcomingActionViewData> upcomingActions)
@@ -431,29 +529,27 @@ namespace SlotRogue.UI.GameFlow
             _combatVisualInstance = null;
         }
 
-        private void EnsureStatusIconCount(int count)
+        private bool HasStatusEffectReferences()
         {
-            while (_statusEffectIcons.Count < count)
+            if (_statusEffectRoot == null)
             {
-                EnemyStatusEffectIconView icon = CreateStatusEffectIcon();
-                if (icon == null)
-                {
-                    return;
-                }
-
-                _statusEffectIcons.Add(icon);
+                LogMissingStatusEffectReferenceWarning("Status Effect Root");
+                return false;
             }
+
+            if (_statusEffectIconPrefab == null)
+            {
+                LogMissingStatusEffectReferenceWarning("Status Effect Icon Prefab");
+                return false;
+            }
+
+            return true;
         }
 
-        private EnemyStatusEffectIconView CreateStatusEffectIcon()
+        private EnemyStatusEffectIconView CreateStatusEffectIcon(StatusEffectKind kind)
         {
-            if (_statusEffectIconPrefab == null || _statusEffectRoot == null)
-            {
-                return null;
-            }
-
             GameObject iconObject = Instantiate(_statusEffectIconPrefab, _statusEffectRoot);
-            iconObject.name = $"Status Effect Icon {_statusEffectIcons.Count}";
+            iconObject.name = $"Status Effect Icon {kind}";
 
             EnemyStatusEffectIconView icon = iconObject.GetComponent<EnemyStatusEffectIconView>();
             if (icon == null)
@@ -465,6 +561,18 @@ namespace SlotRogue.UI.GameFlow
 
             iconObject.SetActive(false);
             return icon;
+        }
+
+        private static void DestroyStatusEffectIcon(EnemyStatusEffectIconView icon)
+        {
+            if (Application.isPlaying)
+            {
+                Destroy(icon.gameObject);
+            }
+            else
+            {
+                DestroyImmediate(icon.gameObject);
+            }
         }
 
         private void EnsureIntentIconCount(int count)

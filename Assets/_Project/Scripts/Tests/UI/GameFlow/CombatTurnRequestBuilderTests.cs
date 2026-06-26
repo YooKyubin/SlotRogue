@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using NUnit.Framework;
 using SlotRogue.Core.Combat;
@@ -129,8 +130,14 @@ namespace SlotRogue.UI.Tests.GameFlow
                 healAmount: 0,
                 statusEffectsToApply: new[]
                 {
-                    new StatusEffectRequest(StatusEffectKind.Burn, 1),
-                    new StatusEffectRequest(StatusEffectKind.Burn, 2),
+                    new StatusEffectRequest(
+                        StatusEffectKind.Burn,
+                        1,
+                        CombatTargetMode.SelectedEnemy),
+                    new StatusEffectRequest(
+                        StatusEffectKind.Burn,
+                        2,
+                        CombatTargetMode.SelectedEnemy),
                 },
                 activationSummary: "붉은 성냥, 붉은 점화탄");
 
@@ -141,10 +148,175 @@ namespace SlotRogue.UI.Tests.GameFlow
                 runDefenseBonus: 0);
 
             Assert.That(result.StatusEffectsToApply.Count, Is.EqualTo(1));
-            Assert.That(result.StatusEffectsToApply[0].Kind, Is.EqualTo(StatusEffectKind.Burn));
-            Assert.That(result.StatusEffectsToApply[0].Duration, Is.EqualTo(1));
-            Assert.That(result.StatusEffectsToApply[0].Magnitude, Is.EqualTo(3));
-            Assert.That(result.StatusEffectsToApply[0].StackMode, Is.EqualTo(StatusStackMode.Refresh));
+            TargetedStatusEffectSpec targetedSpec = result.StatusEffectsToApply[0];
+            Assert.That(targetedSpec.Spec.Kind, Is.EqualTo(StatusEffectKind.Burn));
+            Assert.That(targetedSpec.Spec.Duration, Is.EqualTo(1));
+            Assert.That(targetedSpec.Spec.Magnitude, Is.EqualTo(3));
+            Assert.That(targetedSpec.Spec.StackMode, Is.EqualTo(StatusStackMode.Refresh));
+            Assert.That(targetedSpec.TargetMode, Is.EqualTo(CombatTargetMode.SelectedEnemy));
+        }
+
+        [Test]
+        public void Build_MultipleInfectionRequests_AreCombinedAsStackCount()
+        {
+            var request = new SlotCombatRequest(6, 0, 1, 0, false, "Blue x4");
+            var relicResult = new RelicResolveResult(
+                additionalDamage: 0,
+                additionalBlock: 0,
+                healAmount: 0,
+                statusEffectsToApply: new[]
+                {
+                    new StatusEffectRequest(
+                        StatusEffectKind.Infection,
+                        3,
+                        CombatTargetMode.SelectedEnemy),
+                    new StatusEffectRequest(
+                        StatusEffectKind.Infection,
+                        4,
+                        CombatTargetMode.SelectedEnemy),
+                },
+                activationSummary: "푸른 감염가루, 푸른 배양액");
+
+            RunCombatRequestResult result = _builder.Build(
+                request,
+                relicResult,
+                runDamageBonus: 0,
+                runDefenseBonus: 0);
+
+            Assert.That(result.StatusEffectsToApply.Count, Is.EqualTo(1));
+            TargetedStatusEffectSpec targetedSpec = result.StatusEffectsToApply[0];
+            Assert.That(targetedSpec.Spec.Kind, Is.EqualTo(StatusEffectKind.Infection));
+            Assert.That(targetedSpec.Spec.Duration, Is.EqualTo(0));
+            Assert.That(targetedSpec.Spec.Magnitude, Is.EqualTo(7));
+            Assert.That(targetedSpec.Spec.StackMode, Is.EqualTo(StatusStackMode.Stack));
+            Assert.That(targetedSpec.TargetMode, Is.EqualTo(CombatTargetMode.SelectedEnemy));
+        }
+
+        [Test]
+        public void Build_ThornsRequest_MapsAmountToMagnitude()
+        {
+            var request = new SlotCombatRequest(0, 5, 1, 0, false, "Guard");
+            var relicResult = new RelicResolveResult(
+                additionalDamage: 0,
+                additionalBlock: 0,
+                healAmount: 0,
+                statusEffectsToApply: new[]
+                {
+                    new StatusEffectRequest(
+                        StatusEffectKind.Thorns,
+                        4,
+                        CombatTargetMode.Self),
+                },
+                activationSummary: "가시 갑옷");
+
+            RunCombatRequestResult result = _builder.Build(
+                request,
+                relicResult,
+                runDamageBonus: 0,
+                runDefenseBonus: 0);
+
+            Assert.That(result.StatusEffectsToApply.Count, Is.EqualTo(1));
+            TargetedStatusEffectSpec targetedSpec = result.StatusEffectsToApply[0];
+            Assert.That(targetedSpec.Spec.Kind, Is.EqualTo(StatusEffectKind.Thorns));
+            Assert.That(targetedSpec.Spec.Magnitude, Is.EqualTo(4));
+            Assert.That(targetedSpec.Spec.StackMode, Is.EqualTo(StatusStackMode.Refresh));
+            Assert.That(targetedSpec.TargetMode, Is.EqualTo(CombatTargetMode.Self));
+        }
+
+        [Test]
+        public void Build_UnsupportedStatusEffectKind_Throws()
+        {
+            var request = new SlotCombatRequest(0, 5, 1, 0, false, "Guard");
+            var relicResult = new RelicResolveResult(
+                additionalDamage: 0,
+                additionalBlock: 0,
+                healAmount: 0,
+                statusEffectsToApply: new[]
+                {
+                    new StatusEffectRequest(
+                        (StatusEffectKind)999,
+                        3,
+                        CombatTargetMode.Self),
+                },
+                activationSummary: "Invalid status");
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                _builder.Build(
+                    request,
+                    relicResult,
+                    runDamageBonus: 0,
+                    runDefenseBonus: 0));
+        }
+
+        [Test]
+        public void Build_SameStatusWithDifferentTargets_DoesNotCombine()
+        {
+            var request = new SlotCombatRequest(6, 0, 1, 0, false, "Mixed");
+            var relicResult = new RelicResolveResult(
+                additionalDamage: 0,
+                additionalBlock: 0,
+                healAmount: 0,
+                statusEffectsToApply: new[]
+                {
+                    new StatusEffectRequest(
+                        StatusEffectKind.Infection,
+                        2,
+                        CombatTargetMode.SelectedEnemy),
+                    new StatusEffectRequest(
+                        StatusEffectKind.Infection,
+                        3,
+                        CombatTargetMode.Self),
+                },
+                activationSummary: "Mixed");
+
+            RunCombatRequestResult result = _builder.Build(
+                request,
+                relicResult,
+                runDamageBonus: 0,
+                runDefenseBonus: 0);
+
+            Assert.That(result.StatusEffectsToApply.Count, Is.EqualTo(2));
+            Assert.That(result.StatusEffectsToApply[0].Spec.Magnitude, Is.EqualTo(2));
+            Assert.That(
+                result.StatusEffectsToApply[0].TargetMode,
+                Is.EqualTo(CombatTargetMode.SelectedEnemy));
+            Assert.That(result.StatusEffectsToApply[1].Spec.Magnitude, Is.EqualTo(3));
+            Assert.That(
+                result.StatusEffectsToApply[1].TargetMode,
+                Is.EqualTo(CombatTargetMode.Self));
+        }
+
+        [Test]
+        public void Build_SelfLifestealRequest_PreservesTargetAndUsageCount()
+        {
+            var request = new SlotCombatRequest(6, 0, 1, 0, false, "Attack");
+            var relicResult = new RelicResolveResult(
+                additionalDamage: 0,
+                additionalBlock: 0,
+                healAmount: 0,
+                statusEffectsToApply: new[]
+                {
+                    new StatusEffectRequest(
+                        StatusEffectKind.Lifesteal,
+                        2,
+                        CombatTargetMode.Self),
+                },
+                activationSummary: "Lifesteal");
+
+            RunCombatRequestResult result = _builder.Build(
+                request,
+                relicResult,
+                runDamageBonus: 0,
+                runDefenseBonus: 0);
+
+            Assert.That(result.StatusEffectsToApply.Count, Is.EqualTo(1));
+            Assert.That(
+                result.StatusEffectsToApply[0].Spec.Kind,
+                Is.EqualTo(StatusEffectKind.Lifesteal));
+            Assert.That(result.StatusEffectsToApply[0].Spec.Magnitude, Is.EqualTo(2));
+            Assert.That(
+                result.StatusEffectsToApply[0].TargetMode,
+                Is.EqualTo(CombatTargetMode.Self));
         }
 
         [Test]

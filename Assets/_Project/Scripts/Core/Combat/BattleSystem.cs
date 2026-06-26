@@ -5,7 +5,7 @@ namespace SlotRogue.Core.Combat
 {
     public sealed class BattleSystem
     {
-        private readonly EffectApplicator _effectApplicator;
+        private readonly CombatActionResolver _actionResolver;
         private readonly StatusEffectEngine _statusEffectEngine;
         private readonly List<CombatEvent> _events = new();
         private readonly List<CombatParticipant> _enemies = new();
@@ -14,14 +14,25 @@ namespace SlotRogue.Core.Combat
         private CombatParticipant _player = null!;
 
         public BattleSystem()
-            : this(new EffectApplicator())
+            : this(new EffectApplicator(), new SystemCombatRandom())
         {
         }
 
         public BattleSystem(EffectApplicator effectApplicator)
+            : this(effectApplicator, new SystemCombatRandom())
         {
-            _effectApplicator = effectApplicator ?? new EffectApplicator();
-            _statusEffectEngine = new StatusEffectEngine(_effectApplicator);
+        }
+
+        public BattleSystem(
+            EffectApplicator effectApplicator,
+            ICombatRandom combatRandom)
+        {
+            EffectApplicator applicator = effectApplicator ?? new EffectApplicator();
+            _statusEffectEngine = new StatusEffectEngine(applicator);
+            _actionResolver = new CombatActionResolver(
+                applicator,
+                _statusEffectEngine,
+                combatRandom ?? throw new ArgumentNullException(nameof(combatRandom)));
         }
 
         public BattlePhase CurrentPhase { get; private set; } = BattlePhase.NotInBattle;
@@ -138,12 +149,17 @@ namespace SlotRogue.Core.Combat
             }
 
             if (!TrySkipParticipantAction(_player) &&
-                ApplyEffects(playerEffects ?? Array.Empty<CombatEffect>(), _player, selectedTargetId))
+                ApplyPlayerEffects(playerEffects ?? Array.Empty<CombatEffect>(), selectedTargetId))
             {
                 return AcceptedResult();
             }
 
             if (RunBattleStep(() => RunParticipantTurnEnd(_player)))
+            {
+                return AcceptedResult();
+            }
+
+            if (RunBattleStep(() => NotifyTeamTurnEnded(CombatTeam.Player)))
             {
                 return AcceptedResult();
             }
@@ -180,7 +196,7 @@ namespace SlotRogue.Core.Combat
                 IReadOnlyList<EnemyPlannedAction> enemyTurnActions = enemyCombatant.UpcomingPlan.Actions;
                 enemyCombatant.PlanNextAction(CreateEnemyActionContext(enemy));
                 if (!shouldSkipAction &&
-                    ApplyPlannedActions(enemyTurnActions, enemy, default))
+                    ApplyEnemyPlannedActions(enemyTurnActions, enemy, default))
                 {
                     return;
                 }
@@ -189,6 +205,11 @@ namespace SlotRogue.Core.Combat
                 {
                     return;
                 }
+            }
+
+            if (RunBattleStep(() => NotifyTeamTurnEnded(CombatTeam.Enemy)))
+            {
+                return;
             }
 
             if (RunBattleStep(() => ResetShieldByTeam(CombatTeam.Player)))
@@ -211,148 +232,53 @@ namespace SlotRogue.Core.Combat
             return TryEndBattle();
         }
 
-        private bool ApplyEffects(
+        private bool ApplyPlayerEffects(
             IReadOnlyList<CombatEffect> effects,
-            CombatParticipant source,
             CombatParticipantId selectedTargetId)
         {
-            for (int index = 0; index < effects.Count; index++)
-            {
-                CombatEffect effect = effects[index];
-                IReadOnlyList<CombatParticipant> targets = ResolveTargets(effect, source, selectedTargetId);
+            bool actionReachedBattleEnd = _actionResolver.ResolvePlayerEffects(
+                effects,
+                _player,
+                _player,
+                _enemies,
+                _participantsById,
+                selectedTargetId,
+                CurrentPhase,
+                _events,
+                IsBattleEndConditionMet);
 
-                for (int targetIndex = 0; targetIndex < targets.Count; targetIndex++)
-                {
-                    CombatParticipant target = targets[targetIndex];
-                    CombatParticipantSnapshot targetBefore = target.CaptureSnapshot();
-                    EffectApplyResult applyResult = ApplyEffectToTarget(effect, target);
-                    CombatParticipantSnapshot targetAfter = target.CaptureSnapshot();
-                    bool isPlayerTarget = target.Team == CombatTeam.Player;
-
-                    _events.Add(new CombatEvent(
-                        CombatEventKind.EffectApplied,
-                        CurrentPhase,
-                        effect,
-                        applyResult,
-                        isPlayerParticipant: isPlayerTarget,
-                        targetParticipantId: target.Id,
-                        targetBefore: targetBefore,
-                        targetAfter: targetAfter,
-                        sourceParticipantId: source.Id));
-
-                    if (TryEndBattle())
-                    {
-                        return true;
-                    }
-                }
-
-                _events.Add(new CombatEvent(
-                    CombatEventKind.ActionCompleted,
-                    CurrentPhase,
-                    effect,
-                    sourceParticipantId: source.Id));
-            }
-
-            return false;
-        }
-
-        private bool ApplyPlannedActions(
-            IReadOnlyList<EnemyPlannedAction> actions,
-            CombatParticipant source,
-            CombatParticipantId selectedTargetId)
-        {
-            if (actions == null || actions.Count == 0)
+            if (!actionReachedBattleEnd)
             {
                 return false;
             }
 
-            for (int actionIndex = 0; actionIndex < actions.Count; actionIndex++)
-            {
-                EnemyPlannedAction action = actions[actionIndex];
-                if (action == null)
-                {
-                    continue;
-                }
-
-                _events.Add(new CombatEvent(
-                    CombatEventKind.ActionStarted,
-                    CurrentPhase,
-                    sourceParticipantId: source.Id,
-                    actionName: action.ActionName));
-
-                IReadOnlyList<EnemyActionEffect> effects = action.Effects;
-                CombatEffect completedEffect = default;
-                bool shouldEndBattle = false;
-                for (int effectIndex = 0; effectIndex < effects.Count; effectIndex++)
-                {
-                    EnemyActionEffect actionEffect = effects[effectIndex];
-                    if (actionEffect.Kind == EnemyActionEffectKind.LockSlot)
-                    {
-                        continue;
-                    }
-
-                    CombatEffect effect = actionEffect.CombatEffect;
-                    completedEffect = effect;
-                    IReadOnlyList<CombatParticipant> targets = ResolveTargets(effect, source, selectedTargetId);
-
-                    for (int targetIndex = 0; targetIndex < targets.Count; targetIndex++)
-                    {
-                        CombatParticipant target = targets[targetIndex];
-                        CombatParticipantSnapshot targetBefore = target.CaptureSnapshot();
-                        EffectApplyResult applyResult = ApplyEffectToTarget(effect, target);
-                        CombatParticipantSnapshot targetAfter = target.CaptureSnapshot();
-                        bool isPlayerTarget = target.Team == CombatTeam.Player;
-
-                        _events.Add(new CombatEvent(
-                            CombatEventKind.EffectApplied,
-                            CurrentPhase,
-                            effect,
-                            applyResult,
-                            isPlayerParticipant: isPlayerTarget,
-                            targetParticipantId: target.Id,
-                            targetBefore: targetBefore,
-                            targetAfter: targetAfter,
-                            sourceParticipantId: source.Id));
-
-                        if (IsPlayerTeamDefeated() || AreAllEnemiesDefeated())
-                        {
-                            shouldEndBattle = true;
-                            break;
-                        }
-                    }
-
-                    if (shouldEndBattle)
-                    {
-                        break;
-                    }
-                }
-
-                _events.Add(new CombatEvent(
-                    CombatEventKind.ActionCompleted,
-                    CurrentPhase,
-                    completedEffect,
-                    sourceParticipantId: source.Id,
-                    actionName: action.ActionName));
-
-                if (shouldEndBattle)
-                {
-                    TryEndBattle();
-                    return true;
-                }
-            }
-
-            return false;
+            TryEndBattle();
+            return true;
         }
 
-        private EffectApplyResult ApplyEffectToTarget(CombatEffect effect, CombatParticipant target)
+        private bool ApplyEnemyPlannedActions(
+            IReadOnlyList<EnemyPlannedAction> actions,
+            CombatParticipant source,
+            CombatParticipantId selectedTargetId)
         {
-            if (effect.Kind == CombatEffectKind.ApplyStatus)
+            bool actionReachedBattleEnd = _actionResolver.ResolveEnemyPlannedActions(
+                actions,
+                source,
+                _player,
+                _enemies,
+                _participantsById,
+                selectedTargetId,
+                CurrentPhase,
+                _events,
+                IsBattleEndConditionMet);
+
+            if (!actionReachedBattleEnd)
             {
-                _statusEffectEngine.ApplyStatus(effect.StatusEffect, target, CurrentPhase, _events);
-                return EffectApplyResult.None;
+                return false;
             }
 
-            return _effectApplicator.ApplyToParticipant(effect, target);
+            TryEndBattle();
+            return true;
         }
 
         private void RunParticipantTurnStart(CombatParticipant participant)
@@ -368,6 +294,24 @@ namespace SlotRogue.Core.Combat
         private void RunParticipantTurnEnd(CombatParticipant participant)
         {
             _statusEffectEngine.TickTurnEnd(participant, CurrentPhase, _events);
+        }
+
+        private void NotifyTeamTurnEnded(CombatTeam endedTeam)
+        {
+            _statusEffectEngine.NotifyTeamTurnEnded(
+                endedTeam,
+                _player,
+                CurrentPhase,
+                _events);
+
+            for (int index = 0; index < _enemies.Count; index++)
+            {
+                _statusEffectEngine.NotifyTeamTurnEnded(
+                    endedTeam,
+                    _enemies[index],
+                    CurrentPhase,
+                    _events);
+            }
         }
 
         private bool TryEndBattle()
@@ -386,6 +330,8 @@ namespace SlotRogue.Core.Combat
 
             return false;
         }
+
+        private bool IsBattleEndConditionMet() => IsPlayerTeamDefeated() || AreAllEnemiesDefeated();
 
         private void EndBattle(BattleEndReason endReason)
         {
@@ -439,67 +385,6 @@ namespace SlotRogue.Core.Combat
                 targetParticipantId: participant.Id,
                 targetBefore: targetBefore,
                 targetAfter: targetAfter));
-        }
-
-        private IReadOnlyList<CombatParticipant> ResolveTargets(
-            CombatEffect effect,
-            CombatParticipant source,
-            CombatParticipantId selectedTargetId)
-        {
-            if (effect.Target.Mode == CombatTargetMode.Self)
-            {
-                return new[] { source };
-            }
-
-            CombatTeam targetTeam = source.Team == CombatTeam.Player ? CombatTeam.Enemy : CombatTeam.Player;
-            List<CombatParticipant> aliveTargets = GetAliveParticipantsByTeam(targetTeam);
-            if (aliveTargets.Count == 0)
-            {
-                return Array.Empty<CombatParticipant>();
-            }
-
-            if (effect.Target.Mode == CombatTargetMode.AllEnemies)
-            {
-                return aliveTargets;
-            }
-
-            CombatParticipantId requestedId = effect.Target.ParticipantId.IsValid
-                ? effect.Target.ParticipantId
-                : selectedTargetId;
-
-            if (requestedId.IsValid &&
-                _participantsById.TryGetValue(requestedId.Value, out CombatParticipant explicitTarget) &&
-                explicitTarget.Team == targetTeam &&
-                !explicitTarget.IsDead)
-            {
-                return new[] { explicitTarget };
-            }
-
-            if (effect.Target.Mode == CombatTargetMode.RandomEnemy)
-            {
-                return new[] { aliveTargets[0] };
-            }
-
-            return new[] { aliveTargets[0] };
-        }
-
-        private List<CombatParticipant> GetAliveParticipantsByTeam(CombatTeam team)
-        {
-            if (team == CombatTeam.Player)
-            {
-                return _player.IsDead ? new List<CombatParticipant>() : new List<CombatParticipant> { _player };
-            }
-
-            var aliveEnemies = new List<CombatParticipant>();
-            for (int index = 0; index < _enemies.Count; index++)
-            {
-                if (!_enemies[index].IsDead)
-                {
-                    aliveEnemies.Add(_enemies[index]);
-                }
-            }
-
-            return aliveEnemies;
         }
 
         private bool IsPlayerTeamDefeated() => _player == null || _player.IsDead;

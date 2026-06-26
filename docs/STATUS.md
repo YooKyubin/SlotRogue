@@ -1,6 +1,6 @@
 ﻿# 프로젝트 상태
 
-_Last updated: 2026-06-23_
+_Last updated: 2026-06-25_
 
 ---
 
@@ -16,7 +16,7 @@ _Last updated: 2026-06-23_
 
 **최초 튜토리얼** — [`feature-first-run-tutorial`](./exec-plans/completed/feature-first-run-tutorial.md), [`feature-tutorial-battle-flow`](./exec-plans/completed/feature-tutorial-battle-flow.md) **완료** (2026-06-19): [ADR-0017](./adr/0017-first-run-tutorial-run-game-mode.md)에 따라 별도 Scene 복제 없이 `RunGame` 튜토리얼 모드로 최초 1회 전투를 시작한다. 확장 흐름은 튜토리얼 유물 지급, 인벤토리 확인, 2마리 몬스터 Intent, 고정 1·2번째 스핀, 유물 반응, 승리 후 로비 복귀까지 포함한다.
 
-**유물 v23 런타임 단일화** — [ADR-0005](./adr/0005-relic-v23-runtime-model.md): v23 80종을 `RelicCatalog`에 등록하고 `OwnedRelics` 전체를 `RelicEffectRunner`로 연결했다. 시작 화면은 S-01~S-06 중 3종을 중복 없이 제시한다. 기존 전투 코어와 동작 계약이 다른 화상·감염 및 연계 유물은 보상풀에서 임시 제외했으며 전투 담당 구현 요청이 남아 있다.
+**유물 v23 런타임 단일화** — [ADR-0005](./adr/0005-relic-v23-runtime-model.md): v23 80종을 `RelicCatalog`에 등록하고 `OwnedRelics` 전체를 `RelicEffectRunner`로 연결했다. 시작 화면은 S-01~S-06 중 3종을 중복 없이 제시한다. 일반 심볼·태그 조건의 화상·감염·취약·약화·가시 유물은 기존 상태 효과 요청 파이프라인으로 활성화했으며, 별도 실행 시점이나 발동 제한이 필요한 연계 유물은 보상풀에서 제외한다.
 
 **런타임 자산 로드 경계** — [ADR-0006](./adr/0006-runtime-asset-loading-boundary.md): 슬롯 패턴과 전투 UI의 `Resources.Load*` fallback을 제거하고 Prefab 직렬화 참조와 Composition Root 주입으로 전환했다. AssetBundle 그룹·배포 전략은 후속 결정으로 남긴다.
 
