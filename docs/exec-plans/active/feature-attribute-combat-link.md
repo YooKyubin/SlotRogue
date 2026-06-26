@@ -63,8 +63,8 @@
 - [ ] UI/GameFlow: `RelicTurnResolver`의 상태 조회를 `Burn`/`Infection`/`Vulnerable`/`Weaken` 구분으로 갱신 — _(전투 담당)_
 - [x] UI/GameFlow: `RelicEffectRunner`에서 `ApplyBurn`, `ApplyInfect`, `ApplyVulnerable`, `ApplyWeak`, `GainThorns` 요청 생성 — Codex
 - [x] Relics: 일반 심볼·태그 조건만 필요한 상태 유물을 `Phase1=true`로 단계적 전환 — Codex
-- [ ] Data/Combat: 몬스터 행동 데이터가 상태 부여/흡혈 공격/가시 태세를 표현할 수 있게 효과 정의 추가 — _(전투 담당)_
-- [ ] UI/GameFlow: 적 행동 planner factory에서 새 몬스터 효과 정의를 Core 효과로 변환 — _(전투 담당)_
+- [x] Data/Combat: 몬스터 행동 데이터가 상태 부여/흡혈 공격/가시 태세를 표현할 수 있게 효과 정의 추가 — Codex
+- [x] UI/GameFlow: 적 행동 planner factory에서 새 몬스터 효과 정의를 Core 효과로 변환 — Codex
 - [x] UI/GameFlow: 상태별 대표 수치 Mapper와 `StatusEffectIconSet`을 추가하고 적 상태 아이콘/표시 텍스트를 v6 6속성 기준으로 갱신 — Codex
 - [x] UI/GameFlow: RunGame DEV 버튼에서 화상·감염·취약·약화를 실제 유물 상태 요청 파이프라인으로 적용하는 수동 검증 경로 추가 — Codex
 - [x] UI/GameFlow: 상태 `CombatEvent` 재생 시점에 맞춰 적 상태 아이콘을 추가·수치 변경·제거하고 최종 Core 상태로 보정 — Codex
@@ -93,6 +93,9 @@
 - 유물 상태 요청은 `CombatTargetMode`로 대상을 반드시 명시한다. `CombatTurnRequestBuilder`는 `(StatusEffectKind, CombatTargetMode)`가 같은 요청만 병합하고, `SlotCombatRequestToCombatEffectsConverter`가 최종 `CombatEffectTarget`으로 변환한다.
 - 상태 종류와 대상 enum을 해석하는 변환 경계는 지원하지 않는 값을 기본 상태나 선택 적 대상으로 대체하지 않고 `ArgumentOutOfRangeException`으로 계약 위반을 드러낸다.
 - 상태 UI는 `CombatViewModel`의 연출 상태를 읽는다. `StatusApplied`는 아이콘을 추가하고 최소 한 프레임 표시하며, `StatusValueChanged`는 기존 아이콘 수치만 바꾸고, `StatusExpired`는 해당 아이콘만 제거한다. 이벤트 재생 완료 후 Core 상태 동기화는 아이콘 인스턴스를 유지한 채 최종 보정만 수행한다.
+- 몬스터 행동은 1 action = 1 effect 계약을 유지한다. 속성 자체도 하나의 action으로 보고, `EnemyActionDefinition.Effect`에 피해·Shield·Heal·상태 효과·슬롯 잠금 중 하나만 보관한다. `StatusEffectDefinition`은 상태 종류·`Amount`·`CombatTargetMode`만 보관하고, `EnemyActionPlannerFactory`가 공통 `StatusEffectSpec.FromAmount` 규칙으로 `CombatEffect.ApplyStatus`를 생성한다.
+- 기존 MoonRabbit pattern asset의 단일 `_effect` 직렬화는 유지하며, `RandomEnemy`는 Resolver에 주입된 전투 RNG로 생존 상대 index를 선택한다.
+- `EnemyEffectDefinitionDrawer`는 Unity `SerializeReference` 배열 복제 시 같은 managed reference가 여러 action에 공유되면 현재 필드를 같은 값의 새 인스턴스로 복제해, 서로 다른 status action 편집이 같은 값으로 묶이지 않게 한다.
 - 상태 유물 중 `C-02`, `C-07`, `C-08`, `C-09`, `C-11`, `C-20`, `C-21`, `C-22`, `U-07`, `U-08`, `U-09`, `U-12`를 활성화했다. `U-19`와 `R-06`은 각각 전투 시작 훅, 방어도 획득 감지·턴당 제한이 없어 비활성 상태를 유지한다.
 - `Freeze`는 debug/test 경로에 남길 수 있지만, 공식 유물/몬스터 데이터의 1차 속성에는 포함하지 않는다.
 

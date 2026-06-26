@@ -112,39 +112,31 @@ namespace SlotRogue.Core.Combat
                 ActionExecutionState actionState = CreateActionState(source, player, enemies, phase, events);
                 CombatEffect completedEffect = default;
                 bool shouldCompleteAndEndBattle = false;
-                IReadOnlyList<EnemyActionEffect> actionEffects = action.Effects;
-                for (int effectIndex = 0; effectIndex < actionEffects.Count; effectIndex++)
+                if (action.HasEffect)
                 {
-                    EnemyActionEffect actionEffect = actionEffects[effectIndex];
-                    if (actionEffect.Kind == EnemyActionEffectKind.LockSlot)
+                    EnemyActionEffect actionEffect = action.Effect;
+                    if (actionEffect.Kind != EnemyActionEffectKind.LockSlot)
                     {
-                        continue;
-                    }
+                        CombatEffect effect = actionEffect.CombatEffect;
+                        completedEffect = effect;
+                        IReadOnlyList<CombatParticipant> targets = ResolveTargets(
+                            effect,
+                            source,
+                            player,
+                            enemies,
+                            participantsById,
+                            selectedTargetId);
 
-                    CombatEffect effect = actionEffect.CombatEffect;
-                    completedEffect = effect;
-                    IReadOnlyList<CombatParticipant> targets = ResolveTargets(
-                        effect,
-                        source,
-                        player,
-                        enemies,
-                        participantsById,
-                        selectedTargetId);
-
-                    for (int targetIndex = 0; targetIndex < targets.Count; targetIndex++)
-                    {
-                        ApplyEffectAndRecordEvent(effect, source, targets[targetIndex], phase, events, actionState);
-
-                        if (shouldEndBattle())
+                        for (int targetIndex = 0; targetIndex < targets.Count; targetIndex++)
                         {
-                            shouldCompleteAndEndBattle = true;
-                            break;
-                        }
-                    }
+                            ApplyEffectAndRecordEvent(effect, source, targets[targetIndex], phase, events, actionState);
 
-                    if (shouldCompleteAndEndBattle)
-                    {
-                        break;
+                            if (shouldEndBattle())
+                            {
+                                shouldCompleteAndEndBattle = true;
+                                break;
+                            }
+                        }
                     }
                 }
 
@@ -256,7 +248,7 @@ namespace SlotRogue.Core.Combat
                 events);
         }
 
-        private static IReadOnlyList<CombatParticipant> ResolveTargets(
+        private IReadOnlyList<CombatParticipant> ResolveTargets(
             CombatEffect effect,
             CombatParticipant source,
             CombatParticipant player,
@@ -295,7 +287,15 @@ namespace SlotRogue.Core.Combat
 
             if (effect.Target.Mode == CombatTargetMode.RandomEnemy)
             {
-                return new[] { aliveTargets[0] };
+                return new[] { aliveTargets[_combatRandom.NextIndex(aliveTargets.Count)] };
+            }
+
+            if (effect.Target.Mode != CombatTargetMode.SelectedEnemy)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(effect),
+                    effect.Target.Mode,
+                    "Unsupported combat target mode.");
             }
 
             return new[] { aliveTargets[0] };

@@ -57,6 +57,10 @@ namespace SlotRogue.Core.Combat
                 targetParticipantId: Attacker.Id,
                 targetBefore: before,
                 targetAfter: after,
+                statusEffectKind: StatusSnapshot.Kind,
+                statusDuration: StatusSnapshot.RemainingTurns,
+                statusMagnitude: StatusSnapshot.Magnitude,
+                statusStackCount: StatusSnapshot.StackCount,
                 sourceParticipantId: Attacker.Id));
 
             return result;

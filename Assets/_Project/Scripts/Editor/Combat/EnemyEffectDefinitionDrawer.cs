@@ -19,6 +19,8 @@ namespace SlotRogue.Editor.Combat
                 return;
             }
 
+            EnsureUniqueManagedReference(property);
+
             EditorGUI.BeginProperty(position, label, property);
 
             Rect headerRect = new(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
@@ -121,6 +123,50 @@ namespace SlotRogue.Editor.Combat
             }
 
             menu.ShowAsContext();
+        }
+
+        private static void EnsureUniqueManagedReference(SerializedProperty property)
+        {
+            if (property.managedReferenceValue == null ||
+                property.serializedObject.isEditingMultipleObjects ||
+                !HasEarlierPropertyWithSameManagedReference(property))
+            {
+                return;
+            }
+
+            UnityEngine.Object targetObject = property.serializedObject.targetObject;
+            Undo.RecordObject(targetObject, $"Duplicate {nameof(EnemyEffectDefinition)} Reference");
+            property.managedReferenceValue = CloneManagedReference(property.managedReferenceValue);
+            property.serializedObject.ApplyModifiedProperties();
+        }
+
+        private static bool HasEarlierPropertyWithSameManagedReference(SerializedProperty property)
+        {
+            long managedReferenceId = property.managedReferenceId;
+            string propertyPath = property.propertyPath;
+            SerializedProperty iterator = property.serializedObject.GetIterator();
+            bool enterChildren = true;
+
+            while (iterator.NextVisible(enterChildren))
+            {
+                enterChildren = false;
+                if (iterator.propertyType != SerializedPropertyType.ManagedReference ||
+                    iterator.managedReferenceId != managedReferenceId)
+                {
+                    continue;
+                }
+
+                return iterator.propertyPath != propertyPath;
+            }
+
+            return false;
+        }
+
+        private static object CloneManagedReference(object value)
+        {
+            Type type = value.GetType();
+            string json = JsonUtility.ToJson(value);
+            return JsonUtility.FromJson(json, type);
         }
 
         private static void SetManagedReferenceValue(

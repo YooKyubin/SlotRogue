@@ -1,42 +1,29 @@
-using System;
-using System.Collections.Generic;
-
 namespace SlotRogue.Core.Combat
 {
     public sealed class EnemyPlannedAction
     {
-        private readonly EnemyActionEffect[] _effects;
+        private readonly EnemyActionEffect _effect;
 
         public EnemyPlannedAction(
             EnemyActionKey actionKey,
             string actionName,
-            IReadOnlyList<EnemyActionEffect> effects)
+            EnemyActionEffect? effect = null)
         {
             ActionKey = actionKey;
             ActionName = actionName ?? string.Empty;
-            _effects = Clone(effects);
+            if (effect.HasValue)
+            {
+                _effect = effect.Value;
+                HasEffect = true;
+            }
         }
 
         public EnemyActionKey ActionKey { get; }
 
         public string ActionName { get; }
 
-        public IReadOnlyList<EnemyActionEffect> Effects => Clone(_effects);
+        public bool HasEffect { get; }
 
-        private static EnemyActionEffect[] Clone(IReadOnlyList<EnemyActionEffect> effects)
-        {
-            if (effects == null || effects.Count == 0)
-            {
-                return Array.Empty<EnemyActionEffect>();
-            }
-
-            var copy = new EnemyActionEffect[effects.Count];
-            for (int index = 0; index < effects.Count; index++)
-            {
-                copy[index] = effects[index];
-            }
-
-            return copy;
-        }
+        public EnemyActionEffect Effect => _effect;
     }
 }

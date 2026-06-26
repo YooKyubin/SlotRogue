@@ -42,6 +42,7 @@ namespace SlotRogue.Core.Tests.Combat
                     CombatEffectTarget.SelectedEnemy(enemy.Id)));
 
             Assert.That(player.CurrentHp, Is.EqualTo(50 + expectedHeal));
+            Assert.That(HealEvents(events).Single().StatusEffectKind, Is.EqualTo(StatusEffectKind.Lifesteal));
             Assert.That(lifesteal.StackCount, Is.EqualTo(1));
         }
 
@@ -314,14 +315,11 @@ namespace SlotRogue.Core.Tests.Combat
             var action = new EnemyPlannedAction(
                 new EnemyActionKey(1),
                 "Drain",
-                new[]
-                {
-                    EnemyActionEffect.FromCombatEffect(
-                        new CombatEffect(
-                            CombatEffectKind.Damage,
-                            6,
-                            CombatEffectTarget.Enemy)),
-                });
+                EnemyActionEffect.FromCombatEffect(
+                    new CombatEffect(
+                        CombatEffectKind.Damage,
+                        6,
+                        CombatEffectTarget.Enemy)));
 
             _resolver.ResolveEnemyPlannedActions(
                 new[] { action },

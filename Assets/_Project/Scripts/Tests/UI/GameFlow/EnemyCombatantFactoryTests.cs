@@ -52,6 +52,79 @@ namespace SlotRogue.UI.Tests.GameFlow
         }
 
         [Test]
+        public void EnemyActionPlannerFactory_CreatePattern_ConvertsStatusEffectsInAuthoredOrder()
+        {
+            MonsterTurnPatternDefinition pattern = Pattern(
+                Turn(
+                    Action("Attack", Damage(5, CombatTargetMode.SelectedEnemy)),
+                    Action("Burn", Status(StatusEffectKind.Burn, 2, CombatTargetMode.SelectedEnemy)),
+                    Action("Infect", Status(StatusEffectKind.Infection, 3, CombatTargetMode.SelectedEnemy))));
+            IEnemyActionPlanner planner = new EnemyActionPlannerFactory().Create(pattern);
+            CombatParticipant enemy = Enemy(id: 100, maxHp: 20);
+
+            IReadOnlyList<CombatEffect> effects = planner.PlanNext(Context(enemy)).Effects;
+
+            Assert.That(effects.Count, Is.EqualTo(3));
+            Assert.That(effects[0].Kind, Is.EqualTo(CombatEffectKind.Damage));
+            Assert.That(effects[0].Amount, Is.EqualTo(5));
+            Assert.That(effects[1].Kind, Is.EqualTo(CombatEffectKind.ApplyStatus));
+            Assert.That(effects[1].StatusEffect.Kind, Is.EqualTo(StatusEffectKind.Burn));
+            Assert.That(effects[1].StatusEffect.Magnitude, Is.EqualTo(2));
+            Assert.That(effects[1].StatusEffect.StackMode, Is.EqualTo(StatusStackMode.Refresh));
+            Assert.That(effects[2].StatusEffect.Kind, Is.EqualTo(StatusEffectKind.Infection));
+            Assert.That(effects[2].StatusEffect.Magnitude, Is.EqualTo(3));
+            Assert.That(effects[2].StatusEffect.StackMode, Is.EqualTo(StatusStackMode.Stack));
+        }
+
+        [Test]
+        public void EnemyActionPlannerFactory_CreatePattern_PreservesStatusTargets()
+        {
+            MonsterTurnPatternDefinition pattern = Pattern(
+                Turn(
+                    Action(
+                        "Thorn Guard",
+                        Status(StatusEffectKind.Thorns, 3, CombatTargetMode.Self)),
+                    Action(
+                        "Mass Weaken",
+                        Status(StatusEffectKind.Weaken, 2, CombatTargetMode.AllEnemies)),
+                    Action(
+                        "Random Vulnerable",
+                        Status(StatusEffectKind.Vulnerable, 1, CombatTargetMode.RandomEnemy))));
+            IEnemyActionPlanner planner = new EnemyActionPlannerFactory().Create(pattern);
+            CombatParticipant enemy = Enemy(id: 100, maxHp: 20);
+
+            IReadOnlyList<CombatEffect> effects = planner.PlanNext(Context(enemy)).Effects;
+
+            Assert.That(effects[0].Target.Mode, Is.EqualTo(CombatTargetMode.Self));
+            Assert.That(effects[1].Target.Mode, Is.EqualTo(CombatTargetMode.AllEnemies));
+            Assert.That(effects[2].Target.Mode, Is.EqualTo(CombatTargetMode.RandomEnemy));
+        }
+
+        [Test]
+        public void EnemyActionPlannerFactory_CreatePattern_UnsupportedStatusKindFails()
+        {
+            MonsterTurnPatternDefinition pattern = Pattern(
+                Turn(Action(
+                    "Invalid",
+                    Status((StatusEffectKind)999, 1, CombatTargetMode.SelectedEnemy))));
+            var factory = new EnemyActionPlannerFactory();
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => factory.Create(pattern));
+        }
+
+        [Test]
+        public void EnemyActionPlannerFactory_CreatePattern_UnsupportedTargetModeFails()
+        {
+            MonsterTurnPatternDefinition pattern = Pattern(
+                Turn(Action(
+                    "Invalid",
+                    Status(StatusEffectKind.Burn, 1, (CombatTargetMode)999))));
+            var factory = new EnemyActionPlannerFactory();
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => factory.Create(pattern));
+        }
+
+        [Test]
         public void EnemyActionPlannerFactory_CreatePattern_PreservesActionBoundaries()
         {
             MonsterTurnPatternDefinition pattern = Pattern(
@@ -64,11 +137,11 @@ namespace SlotRogue.UI.Tests.GameFlow
             EnemyActionPlan plan = planner.PlanNext(Context(enemy));
 
             Assert.That(plan.Actions.Count, Is.EqualTo(2));
-            Assert.That(plan.Actions[0].Effects.Count, Is.EqualTo(1));
-            Assert.That(plan.Actions[1].Effects.Count, Is.EqualTo(1));
-            Assert.That(plan.Actions[1].Effects[0].Kind, Is.EqualTo(EnemyActionEffectKind.LockSlot));
-            Assert.That(plan.Actions[1].Effects[0].LockCount, Is.EqualTo(1));
-            Assert.That(plan.Actions[1].Effects[0].DurationTurns, Is.EqualTo(2));
+            Assert.That(plan.Actions[0].HasEffect, Is.True);
+            Assert.That(plan.Actions[1].HasEffect, Is.True);
+            Assert.That(plan.Actions[1].Effect.Kind, Is.EqualTo(EnemyActionEffectKind.LockSlot));
+            Assert.That(plan.Actions[1].Effect.LockCount, Is.EqualTo(1));
+            Assert.That(plan.Actions[1].Effect.DurationTurns, Is.EqualTo(2));
         }
 
         [Test]
@@ -443,6 +516,17 @@ namespace SlotRogue.UI.Tests.GameFlow
             CombatTargetMode targetMode)
         {
             return new HealEffectDefinition(
+                amount,
+                new CombatEffectTargetDefinition(targetMode));
+        }
+
+        private static StatusEffectDefinition Status(
+            StatusEffectKind kind,
+            int amount,
+            CombatTargetMode targetMode)
+        {
+            return new StatusEffectDefinition(
+                kind,
                 amount,
                 new CombatEffectTargetDefinition(targetMode));
         }

@@ -37,7 +37,7 @@ namespace SlotRogue.Core.Combat
                 actions[index] = new EnemyPlannedAction(
                     new EnemyActionKey(index + 1),
                     string.Empty,
-                    new[] { EnemyActionEffect.FromCombatEffect(effects[index]) });
+                    EnemyActionEffect.FromCombatEffect(effects[index]));
             }
 
             return actions;
@@ -56,7 +56,10 @@ namespace SlotRogue.Core.Combat
                 EnemyPlannedAction action = actions[index];
                 copy[index] = action == null
                     ? new EnemyPlannedAction(default, string.Empty, null)
-                    : new EnemyPlannedAction(action.ActionKey, action.ActionName, action.Effects);
+                    : new EnemyPlannedAction(
+                        action.ActionKey,
+                        action.ActionName,
+                        action.HasEffect ? action.Effect : null);
             }
 
             return copy;
@@ -72,14 +75,16 @@ namespace SlotRogue.Core.Combat
             var effects = new List<CombatEffect>();
             for (int actionIndex = 0; actionIndex < actions.Count; actionIndex++)
             {
-                IReadOnlyList<EnemyActionEffect> actionEffects = actions[actionIndex].Effects;
-                for (int effectIndex = 0; effectIndex < actionEffects.Count; effectIndex++)
+                EnemyPlannedAction action = actions[actionIndex];
+                if (!action.HasEffect)
                 {
-                    EnemyActionEffect effect = actionEffects[effectIndex];
-                    if (effect.Kind == EnemyActionEffectKind.Combat)
-                    {
-                        effects.Add(effect.CombatEffect);
-                    }
+                    continue;
+                }
+
+                EnemyActionEffect effect = action.Effect;
+                if (effect.Kind == EnemyActionEffectKind.Combat)
+                {
+                    effects.Add(effect.CombatEffect);
                 }
             }
 

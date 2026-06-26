@@ -31,5 +31,15 @@ namespace SlotRogue.Core.Combat
 
             return _random.Next(PercentScale) < successPercent;
         }
+
+        public int NextIndex(int count)
+        {
+            if (count <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(count));
+            }
+
+            return _random.Next(count);
+        }
     }
 }

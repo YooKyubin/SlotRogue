@@ -211,7 +211,8 @@ namespace SlotRogue.UI.Combat.Presentation
                     viewModel.AddOrReplaceStatus(combatEvent.TargetParticipantId, status);
                     if (combatEvent.StatusEffectKind != StatusEffectKind.Infection &&
                         combatEvent.StatusEffectKind != StatusEffectKind.Vulnerable &&
-                        combatEvent.StatusEffectKind != StatusEffectKind.Weaken)
+                        combatEvent.StatusEffectKind != StatusEffectKind.Weaken &&
+                        combatEvent.StatusEffectKind != StatusEffectKind.Lifesteal)
                     {
                         await _commands.PlayEnemyStatusActivationAsync(
                             combatEvent.TargetParticipantId,

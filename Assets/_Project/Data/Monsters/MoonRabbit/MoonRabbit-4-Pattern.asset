@@ -15,16 +15,17 @@ MonoBehaviour:
   turns:
   - actions:
     - _actionName: Common
-      _intentIcon: {fileID: 4880119492350309246, guid: dbe4681e3ea4cbd4b9fb6011982807e0, type: 3}
+      _intentIcon: {fileID: -3966588139861760865, guid: 93c338089471a6c4e94a99fd84fc12f3, type: 3}
       _effect:
-        rid: 5421931881862791243
+        rid: 5421932126527029338
   references:
     version: 2
     RefIds:
-    - rid: 5421931881862791243
-      type: {class: ShieldEffectDefinition, ns: SlotRogue.Data.Combat, asm: SlotRogue.Data}
+    - rid: 5421932126527029338
+      type: {class: StatusEffectDefinition, ns: SlotRogue.Data.Combat, asm: SlotRogue.Data}
       data:
-        _amount: 3
+        _statusKind: 7
+        _amount: 10
         _target:
           _targetMode: 0
           _targetParticipantId: 0

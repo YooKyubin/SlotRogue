@@ -201,56 +201,9 @@ namespace SlotRogue.UI.GameFlow
         private static TargetedStatusEffectSpec BuildCombinedSpec(
             CombinedStatusEffectRequest request)
         {
-            switch (request.Kind)
-            {
-                case StatusEffectKind.Burn:
-                    return new TargetedStatusEffectSpec(
-                        new StatusEffectSpec(
-                            StatusEffectKind.Burn,
-                            duration: 1,
-                            magnitude: request.Amount,
-                            stackMode: StatusStackMode.Refresh),
-                        request.TargetMode);
-                case StatusEffectKind.Infection:
-                    return new TargetedStatusEffectSpec(
-                        new StatusEffectSpec(
-                            StatusEffectKind.Infection,
-                            duration: 0,
-                            magnitude: request.Amount,
-                            stackMode: StatusStackMode.Stack),
-                        request.TargetMode);
-                case StatusEffectKind.Freeze:
-                    return new TargetedStatusEffectSpec(
-                        new StatusEffectSpec(
-                            StatusEffectKind.Freeze,
-                            duration: request.Amount,
-                            magnitude: 0,
-                            stackMode: StatusStackMode.Refresh),
-                        request.TargetMode);
-                case StatusEffectKind.Thorns:
-                    return new TargetedStatusEffectSpec(
-                        new StatusEffectSpec(
-                            StatusEffectKind.Thorns,
-                            duration: 0,
-                            magnitude: request.Amount,
-                            stackMode: StatusStackMode.Refresh),
-                        request.TargetMode);
-                case StatusEffectKind.Vulnerable:
-                case StatusEffectKind.Weaken:
-                case StatusEffectKind.Lifesteal:
-                    return new TargetedStatusEffectSpec(
-                        new StatusEffectSpec(
-                            request.Kind,
-                            duration: 0,
-                            magnitude: request.Amount,
-                            stackMode: StatusStackMode.Stack),
-                        request.TargetMode);
-                default:
-                    throw new ArgumentOutOfRangeException(
-                        nameof(request.Kind),
-                        request.Kind,
-                        "Unsupported status effect kind.");
-            }
+            return new TargetedStatusEffectSpec(
+                StatusEffectSpec.FromAmount(request.Kind, request.Amount),
+                request.TargetMode);
         }
 
         private readonly struct CombinedStatusEffectRequest
