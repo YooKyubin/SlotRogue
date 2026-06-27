@@ -1,7 +1,8 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.UI;
+using TMPro;
+
 #if DOTWEEN
 using DG.Tweening;
 #endif
@@ -10,7 +11,7 @@ namespace SlotRogue.UI.Combat.Presentation
 {
     public sealed class FloatingDamageTextView : MonoBehaviour
     {
-        [SerializeField] private Text _text = null!;
+        [SerializeField] private TMP_Text _text = null!;
         [SerializeField] private RectTransform _rectTransform = null!;
 
         [Header("Normal")]
@@ -39,7 +40,7 @@ namespace SlotRogue.UI.Combat.Presentation
 
         private void Reset()
         {
-            _text = GetComponent<Text>();
+            _text = GetComponent<TMP_Text>();
             _rectTransform = GetComponent<RectTransform>();
         }
 
