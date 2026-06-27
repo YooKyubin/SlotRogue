@@ -31,16 +31,20 @@ namespace SlotRogue.UI.GameFlow
 
         internal static async UniTask PreloadAsync(
             IReadOnlyList<string> keys,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            IProgress<float> progress = null)
         {
             if (keys == null || keys.Count == 0)
             {
+                progress?.Report(1f);
                 return;
             }
 
+            progress?.Report(0f);
             for (int index = 0; index < keys.Count; index++)
             {
                 await LoadAsync(keys[index], cancellationToken);
+                progress?.Report((index + 1f) / keys.Count);
             }
         }
 
