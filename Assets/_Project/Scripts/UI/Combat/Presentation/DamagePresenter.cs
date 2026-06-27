@@ -90,6 +90,21 @@ namespace SlotRogue.UI.Combat.Presentation
             }
 
             await UniTask.WhenAll(presentationTasks);
+
+            if (ShouldPlayEnemyDeath(combatEvent))
+            {
+                await Host.Commands.PlayEnemyDeathAsync(
+                    combatEvent.TargetParticipantId,
+                    cancellationToken);
+            }
+        }
+
+        private static bool ShouldPlayEnemyDeath(CombatEvent combatEvent)
+        {
+            return !combatEvent.IsPlayerParticipant &&
+                combatEvent.TargetParticipantId.IsValid &&
+                combatEvent.TargetBefore.Hp > 0 &&
+                combatEvent.TargetAfter.Hp <= 0;
         }
     }
 }

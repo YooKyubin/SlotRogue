@@ -69,8 +69,101 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 Assert.That(commands.HealthBarCallCount, Is.EqualTo(1));
                 Assert.That(commands.LastHealthBarParticipantId.Value, Is.EqualTo(targetParticipantId.Value));
                 Assert.That(commands.LastHealthBarIsPlayerTarget, Is.False);
+                Assert.That(commands.EnemyDeathCallCount, Is.EqualTo(0));
                 Assert.That(statusCommands.ActivationCallCount, Is.EqualTo(1));
                 Assert.That(statusCommands.LastKind, Is.EqualTo(StatusEffectKind.Vulnerable));
+            }
+            finally
+            {
+                Object.DestroyImmediate(hostObject);
+            }
+        }
+
+        [Test]
+        public async Task PresentAsync_LethalEnemyDamageWaitsThenPlaysEnemyDeath()
+        {
+            var hostObject = new GameObject("Presentation Host");
+            try
+            {
+                var commands = new DamageRecordingCommands();
+                var presenter = new DamagePresenter(new CombatPresentationHost(hostObject, commands));
+                var targetParticipantId = new CombatParticipantId(101);
+                var combatEvent = new CombatEvent(
+                    CombatEventKind.EffectApplied,
+                    effect: new CombatEffect(
+                        CombatEffectKind.Damage,
+                        amount: 6,
+                        CombatEffectTarget.Enemy),
+                    applyResult: new EffectApplyResult(
+                        damageDealt: 6,
+                        shieldConsumed: 0,
+                        shieldGained: 0,
+                        healApplied: 0),
+                    isPlayerParticipant: false,
+                    targetParticipantId: targetParticipantId,
+                    targetBefore: new CombatParticipantSnapshot(hp: 6, shield: 0),
+                    targetAfter: new CombatParticipantSnapshot(hp: 0, shield: 0));
+
+                Task presentTask = presenter.PresentAsync(
+                        combatEvent,
+                        new CombatViewModel(),
+                        new PresentationContext(isCritical: false, patternName: string.Empty),
+                        CancellationToken.None)
+                    .AsTask();
+
+                await Task.Yield();
+                Assert.That(presentTask.IsCompleted, Is.False);
+                Assert.That(commands.EnemyDeathCallCount, Is.EqualTo(0));
+
+                commands.CompleteFloatingDamage();
+                commands.CompleteHealthBar();
+                await presentTask;
+
+                Assert.That(commands.EnemyDeathCallCount, Is.EqualTo(1));
+                Assert.That(commands.LastEnemyDeathParticipantId.Value, Is.EqualTo(targetParticipantId.Value));
+            }
+            finally
+            {
+                Object.DestroyImmediate(hostObject);
+            }
+        }
+
+        [Test]
+        public async Task PresentAsync_PlayerLethalDamageDoesNotPlayEnemyDeath()
+        {
+            var hostObject = new GameObject("Presentation Host");
+            try
+            {
+                var commands = new DamageRecordingCommands();
+                var presenter = new DamagePresenter(new CombatPresentationHost(hostObject, commands));
+                var combatEvent = new CombatEvent(
+                    CombatEventKind.EffectApplied,
+                    effect: new CombatEffect(
+                        CombatEffectKind.Damage,
+                        amount: 6,
+                        CombatEffectTarget.Self),
+                    applyResult: new EffectApplyResult(
+                        damageDealt: 6,
+                        shieldConsumed: 0,
+                        shieldGained: 0,
+                        healApplied: 0),
+                    isPlayerParticipant: true,
+                    targetParticipantId: new CombatParticipantId(1),
+                    targetBefore: new CombatParticipantSnapshot(hp: 6, shield: 0),
+                    targetAfter: new CombatParticipantSnapshot(hp: 0, shield: 0));
+
+                Task presentTask = presenter.PresentAsync(
+                        combatEvent,
+                        new CombatViewModel(),
+                        new PresentationContext(isCritical: false, patternName: string.Empty),
+                        CancellationToken.None)
+                    .AsTask();
+
+                commands.CompleteFloatingDamage();
+                commands.CompleteHealthBar();
+                await presentTask;
+
+                Assert.That(commands.EnemyDeathCallCount, Is.EqualTo(0));
             }
             finally
             {
@@ -215,6 +308,10 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
 
             public bool LastHealthBarIsPlayerTarget { get; private set; }
 
+            public int EnemyDeathCallCount { get; private set; }
+
+            public CombatParticipantId LastEnemyDeathParticipantId { get; private set; }
+
             public void CompleteFloatingDamage()
             {
                 _floatingDamageCompletion.TrySetResult();
@@ -244,6 +341,8 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 CombatParticipantId participantId,
                 CancellationToken cancellationToken)
             {
+                EnemyDeathCallCount++;
+                LastEnemyDeathParticipantId = participantId;
                 return UniTask.CompletedTask;
             }
 
