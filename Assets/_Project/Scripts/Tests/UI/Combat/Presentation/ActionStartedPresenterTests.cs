@@ -240,6 +240,13 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 return UniTask.CompletedTask;
             }
 
+            public UniTask PlayEnemyDeathAsync(
+                CombatParticipantId participantId,
+                CancellationToken cancellationToken)
+            {
+                return UniTask.CompletedTask;
+            }
+
             public UniTask ShowFloatingCombatTextAsync(
                 FloatingCombatTextRequest request,
                 CancellationToken cancellationToken)
@@ -444,6 +451,14 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
             {
                 OtherCommandCallCount++;
                 return WaitAsync(_actionCompletedCompletion, cancellationToken);
+            }
+
+            public UniTask PlayEnemyDeathAsync(
+                CombatParticipantId participantId,
+                CancellationToken cancellationToken)
+            {
+                OtherCommandCallCount++;
+                return UniTask.CompletedTask;
             }
 
             public UniTask ShowFloatingCombatTextAsync(
@@ -663,6 +678,13 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 return UniTask.CompletedTask;
             }
 
+            public UniTask PlayEnemyDeathAsync(
+                CombatParticipantId participantId,
+                CancellationToken cancellationToken)
+            {
+                return UniTask.CompletedTask;
+            }
+
             public UniTask ShowFloatingCombatTextAsync(
                 FloatingCombatTextRequest request,
                 CancellationToken cancellationToken)
@@ -858,6 +880,14 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 ActionCompletedCallCount++;
                 LastCompletedParticipantId = participantId;
                 return WaitAsync(_actionCompletedCompletion, cancellationToken);
+            }
+
+            public UniTask PlayEnemyDeathAsync(
+                CombatParticipantId participantId,
+                CancellationToken cancellationToken)
+            {
+                OtherCommandCallCount++;
+                return UniTask.CompletedTask;
             }
 
             public UniTask ShowFloatingCombatTextAsync(

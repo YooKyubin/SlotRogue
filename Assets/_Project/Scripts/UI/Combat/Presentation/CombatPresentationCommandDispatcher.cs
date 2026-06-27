@@ -55,6 +55,13 @@ namespace SlotRogue.UI.Combat.Presentation
                 : UniTask.CompletedTask;
         }
 
+        public UniTask PlayEnemyDeathAsync(
+            CombatParticipantId participantId,
+            CancellationToken cancellationToken)
+        {
+            return UniTask.CompletedTask;
+        }
+
         public UniTask ShowFloatingCombatTextAsync(
             FloatingCombatTextRequest request,
             CancellationToken cancellationToken)
