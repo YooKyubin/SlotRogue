@@ -240,8 +240,8 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 return UniTask.CompletedTask;
             }
 
-            public UniTask ShowFloatingDamageAsync(
-                FloatingDamageRequest request,
+            public UniTask ShowFloatingCombatTextAsync(
+                FloatingCombatTextRequest request,
                 CancellationToken cancellationToken)
             {
                 FloatingDamageCallCount++;
@@ -446,8 +446,8 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 return WaitAsync(_actionCompletedCompletion, cancellationToken);
             }
 
-            public UniTask ShowFloatingDamageAsync(
-                FloatingDamageRequest request,
+            public UniTask ShowFloatingCombatTextAsync(
+                FloatingCombatTextRequest request,
                 CancellationToken cancellationToken)
             {
                 OtherCommandCallCount++;
@@ -663,8 +663,8 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 return UniTask.CompletedTask;
             }
 
-            public UniTask ShowFloatingDamageAsync(
-                FloatingDamageRequest request,
+            public UniTask ShowFloatingCombatTextAsync(
+                FloatingCombatTextRequest request,
                 CancellationToken cancellationToken)
             {
                 return UniTask.CompletedTask;
@@ -860,8 +860,8 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 return WaitAsync(_actionCompletedCompletion, cancellationToken);
             }
 
-            public UniTask ShowFloatingDamageAsync(
-                FloatingDamageRequest request,
+            public UniTask ShowFloatingCombatTextAsync(
+                FloatingCombatTextRequest request,
                 CancellationToken cancellationToken)
             {
                 OtherCommandCallCount++;

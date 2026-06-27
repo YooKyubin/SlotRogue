@@ -1,22 +1,24 @@
-using System;
 using SlotRogue.Core.Combat;
 
 namespace SlotRogue.UI.Combat.Presentation
 {
-    [Obsolete("Use FloatingCombatTextRequest with FloatingCombatTextKind.Damage.")]
-    public readonly struct FloatingDamageRequest
+    public readonly struct FloatingCombatTextRequest
     {
-        public FloatingDamageRequest(
+        public FloatingCombatTextRequest(
+            FloatingCombatTextKind kind,
             int amount,
             bool isCritical,
             bool isPlayerTarget,
             CombatParticipantId targetParticipantId)
         {
+            Kind = kind;
             Amount = amount;
             IsCritical = isCritical;
             IsPlayerTarget = isPlayerTarget;
             TargetParticipantId = targetParticipantId;
         }
+
+        public FloatingCombatTextKind Kind { get; }
 
         public int Amount { get; }
 
@@ -25,15 +27,5 @@ namespace SlotRogue.UI.Combat.Presentation
         public bool IsPlayerTarget { get; }
 
         public CombatParticipantId TargetParticipantId { get; }
-
-        public FloatingCombatTextRequest ToCombatTextRequest()
-        {
-            return new FloatingCombatTextRequest(
-                FloatingCombatTextKind.Damage,
-                Amount,
-                IsCritical,
-                IsPlayerTarget,
-                TargetParticipantId);
-        }
     }
 }

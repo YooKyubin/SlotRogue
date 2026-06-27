@@ -28,8 +28,8 @@ namespace SlotRogue.UI.Combat.Presentation
             if (_playerDamageText != null) _playerDamageText.gameObject.SetActive(false);
         }
 
-        public async UniTask ShowFloatingDamageAsync(
-            FloatingDamageRequest request,
+        public async UniTask ShowFloatingCombatTextAsync(
+            FloatingCombatTextRequest request,
             CancellationToken cancellationToken)
         {
             if (request.Amount <= 0)
@@ -38,7 +38,9 @@ namespace SlotRogue.UI.Combat.Presentation
             }
 
             // 플레이어 피격만 고정 텍스트로 표시(지정된 경우). 몬스터는 기존 플로팅 경로를 탄다.
-            if (request.IsPlayerTarget && _playerDamageText != null)
+            if (request.Kind == FloatingCombatTextKind.Damage &&
+                request.IsPlayerTarget &&
+                _playerDamageText != null)
             {
                 await ShowPlayerFixedDamageAsync(request, cancellationToken);
                 return;
@@ -79,12 +81,12 @@ namespace SlotRogue.UI.Combat.Presentation
             CombatAnchorKind anchorKind = request.IsPlayerTarget
                 ? CombatAnchorKind.Player
                 : CombatAnchorKind.Monster;
-            await damageText.Play(request.Amount, request.IsCritical, anchorKind, cancellationToken);
+            await damageText.Play(request, anchorKind, cancellationToken);
         }
 
         // 플레이어 고정 데미지 텍스트를 띄우고 약간 흔든 뒤 잠시 유지하고 다시 숨긴다.
         private async UniTask ShowPlayerFixedDamageAsync(
-            FloatingDamageRequest request,
+            FloatingCombatTextRequest request,
             CancellationToken cancellationToken)
         {
             TMP_Text target = _playerDamageText;

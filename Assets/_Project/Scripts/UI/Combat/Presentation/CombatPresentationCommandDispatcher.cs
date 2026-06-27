@@ -55,12 +55,12 @@ namespace SlotRogue.UI.Combat.Presentation
                 : UniTask.CompletedTask;
         }
 
-        public UniTask ShowFloatingDamageAsync(
-            FloatingDamageRequest request,
+        public UniTask ShowFloatingCombatTextAsync(
+            FloatingCombatTextRequest request,
             CancellationToken cancellationToken)
         {
             return _floatingTextLayerView != null
-                ? _floatingTextLayerView.ShowFloatingDamageAsync(request, cancellationToken)
+                ? _floatingTextLayerView.ShowFloatingCombatTextAsync(request, cancellationToken)
                 : UniTask.CompletedTask;
         }
 

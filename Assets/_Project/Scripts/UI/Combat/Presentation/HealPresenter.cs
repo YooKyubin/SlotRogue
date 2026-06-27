@@ -29,8 +29,16 @@ namespace SlotRogue.UI.Combat.Presentation
                 combatEvent.TargetAfter,
                 combatEvent.IsPlayerParticipant);
 
+            var request = new FloatingCombatTextRequest(
+                FloatingCombatTextKind.Heal,
+                combatEvent.ApplyResult.HealApplied,
+                isCritical: false,
+                combatEvent.IsPlayerParticipant,
+                combatEvent.TargetParticipantId);
+
             var presentationTasks = new List<UniTask>
             {
+                Host.Commands.ShowFloatingCombatTextAsync(request, cancellationToken),
                 Host.Commands.WaitHealthBarAsync(
                     combatEvent.TargetParticipantId,
                     combatEvent.IsPlayerParticipant,
