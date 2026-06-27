@@ -329,6 +329,78 @@ namespace SlotRogue.UI.Tests.GameFlow
         }
 
         [Test]
+        public void EnemySlotDeathPresentation_RemainsHiddenAcrossRenderUpdatesUntilVisualRebind()
+        {
+            var root = new GameObject("Enemy");
+            var combatVisualPrefab = new GameObject("Enemy Combat Visual Prefab");
+            combatVisualPrefab.AddComponent<TestEnemyCombatVisual>();
+            try
+            {
+                EnemyFormationSlotView view = root.AddComponent<EnemyFormationSlotView>();
+                var visualRoot = new GameObject("VisualRoot");
+                visualRoot.transform.SetParent(root.transform, false);
+                var hudRootObject = new GameObject("HUD Root", typeof(Canvas));
+                hudRootObject.transform.SetParent(root.transform, false);
+                Canvas hudRoot = hudRootObject.GetComponent<Canvas>();
+                var hudTextObject = new GameObject("HUD Text", typeof(Text));
+                hudTextObject.transform.SetParent(hudRootObject.transform, false);
+                Text hudText = hudTextObject.GetComponent<Text>();
+                var statusRootObject = new GameObject("Status Root", typeof(RectTransform));
+                RectTransform statusRoot = statusRootObject.GetComponent<RectTransform>();
+                statusRoot.SetParent(root.transform, false);
+                var intentRoot = new GameObject("Intent Root");
+                intentRoot.transform.SetParent(root.transform, false);
+                var collider = root.AddComponent<BoxCollider2D>();
+
+                view.Bind(
+                    root: root.transform,
+                    shakeGroup: null,
+                    hudRoot: hudRoot,
+                    hudText: hudText,
+                    hpFill: null,
+                    statusBackground: null,
+                    shieldGauge: null,
+                    damageAnchor: null,
+                    clickCollider: collider,
+                    statusEffectRoot: statusRoot,
+                    statusEffectIconPrefab: null,
+                    intentRoot: intentRoot.transform,
+                    intentIconPrefab: null,
+                    visualRoot: visualRoot.transform);
+
+                view.PlayDeathAsync(CancellationToken.None).GetAwaiter().GetResult();
+                view.SetActive(true);
+                view.SetHud("Should Not Render");
+                view.SetUpcomingActions(new[]
+                {
+                    new EnemyUpcomingActionViewData(EnemyUpcomingActionKind.Damage, 4),
+                });
+                view.SetInteractable(true);
+
+                Assert.That(hudRootObject.activeSelf, Is.False);
+                Assert.That(statusRootObject.activeSelf, Is.False);
+                Assert.That(intentRoot.activeSelf, Is.False);
+                Assert.That(collider.enabled, Is.False);
+                Assert.That(hudText.text, Is.Not.EqualTo("Should Not Render"));
+
+                view.SetCombatVisualPrefab(combatVisualPrefab);
+                view.SetHud("Alive Again");
+                view.SetInteractable(true);
+
+                Assert.That(hudRootObject.activeSelf, Is.True);
+                Assert.That(statusRootObject.activeSelf, Is.True);
+                Assert.That(visualRoot.transform.childCount, Is.EqualTo(1));
+                Assert.That(collider.enabled, Is.True);
+                Assert.That(hudText.text, Is.EqualTo("Alive Again"));
+            }
+            finally
+            {
+                Object.DestroyImmediate(combatVisualPrefab);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void ActionViewRender_ResolvesAttackPowerText()
         {
             var root = new GameObject("UI_HUDCanvas");

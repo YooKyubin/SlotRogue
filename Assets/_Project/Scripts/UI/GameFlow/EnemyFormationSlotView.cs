@@ -294,10 +294,20 @@ namespace SlotRogue.UI.GameFlow
             {
                 Root.gameObject.SetActive(active);
             }
+
+            if (active && _deathPresented)
+            {
+                HideDeathPresentation();
+            }
         }
 
         public void SetHud(string value)
         {
+            if (_deathPresented)
+            {
+                return;
+            }
+
             if (_hudText != null)
             {
                 _hudText.text = value;
@@ -306,6 +316,11 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetHpFill(int current, int max)
         {
+            if (_deathPresented)
+            {
+                return;
+            }
+
             if (_hpFill == null)
             {
                 return;
@@ -365,6 +380,11 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetShield(int shield)
         {
+            if (_deathPresented)
+            {
+                return;
+            }
+
             if (_shieldGauge != null)
             {
                 _shieldGauge.Render(shield);
@@ -373,6 +393,12 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetStatusEffects(IReadOnlyList<StatusEffectViewData> statuses)
         {
+            if (_deathPresented)
+            {
+                HideDeathPresentation();
+                return;
+            }
+
             if (!HasStatusEffectReferences())
             {
                 return;
@@ -499,6 +525,12 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetUpcomingActions(IReadOnlyList<EnemyUpcomingActionViewData> upcomingActions)
         {
+            if (_deathPresented)
+            {
+                HideDeathPresentation();
+                return;
+            }
+
             int actionCount = upcomingActions != null ? upcomingActions.Count : 0;
             if (_intentRoot != null)
             {
@@ -539,6 +571,11 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetSelected(bool selected)
         {
+            if (_deathPresented)
+            {
+                return;
+            }
+
             if (_statusBackground != null)
             {
                 _statusBackground.color = selected ? SelectedEnemySlotColor : EnemySlotColor;
@@ -547,6 +584,17 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetInteractable(bool interactable)
         {
+            if (_deathPresented)
+            {
+                _interactable = false;
+                if (_clickCollider != null)
+                {
+                    _clickCollider.enabled = false;
+                }
+
+                return;
+            }
+
             _interactable = interactable;
             if (_clickCollider != null)
             {
