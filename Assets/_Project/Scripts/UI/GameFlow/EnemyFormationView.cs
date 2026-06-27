@@ -273,9 +273,9 @@ namespace SlotRogue.UI.GameFlow
         {
             if (participantId.IsValid &&
                 _slotIndexByParticipantId.TryGetValue(participantId.Value, out int slotIndex) &&
-                TryGetFormationSlotView(slotIndex, out _))
+                TryGetFormationSlotView(slotIndex, out EnemyFormationSlotView formationSlotView))
             {
-                return UniTask.CompletedTask;
+                return formationSlotView.PlayDeathAsync(cancellationToken);
             }
 
             _warnings.MissingCombatVisualSlot(participantId);

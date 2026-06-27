@@ -7,14 +7,16 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
 using SlotRogue.UI.Combat.Presentation;
-#if DOTWEEN
 using DG.Tweening;
-#endif
 
 namespace SlotRogue.UI.GameFlow
 {
     public sealed class EnemyFormationSlotView : MonoBehaviour, IPointerClickHandler
     {
+        private const float DeathDuration = 0.35f;
+        private const float DeathEndScale = 0.82f;
+        private const float DeathDropDistance = 0.18f;
+
         private static readonly Color EnemySlotColor = new Color(0.11f, 0.14f, 0.2f, 0.96f);
         private static readonly Color SelectedEnemySlotColor = new Color(0.45f, 0.26f, 0.12f, 0.96f);
 
@@ -59,9 +61,9 @@ namespace SlotRogue.UI.GameFlow
         private IEnemyCombatVisual _combatVisual;
         private bool _visualRootMissingWarningLogged;
         private bool _combatVisualMissingWarningLogged;
-#if DOTWEEN
+        private bool _deathPresented;
+        private Tween _deathTween;
         private Tween _hpFillTween;
-#endif
 
         public Transform Root => _root != null ? _root : transform;
 
@@ -111,13 +113,13 @@ namespace SlotRogue.UI.GameFlow
 
         private void OnDisable()
         {
-#if DOTWEEN
+            _deathTween?.Kill();
             _hpFillTween?.Kill();
-#endif
         }
 
         private void OnDestroy()
         {
+            _deathTween?.Kill();
             DestroyCombatVisualInstance();
         }
 
@@ -140,6 +142,7 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
+            ResetDeathPresentation();
             _combatVisualPrefab = combatVisualPrefab;
             _combatVisualInstance = Instantiate(combatVisualPrefab, _visualRoot);
             _combatVisualInstance.transform.localPosition = Vector3.zero;
@@ -161,6 +164,7 @@ namespace SlotRogue.UI.GameFlow
 
         public void ClearCombatVisual()
         {
+            _deathTween?.Kill();
             _combatVisualPrefab = null;
             _combatVisual = null;
             DestroyCombatVisualInstance();
@@ -188,6 +192,89 @@ namespace SlotRogue.UI.GameFlow
             }
 
             return _combatVisual.WaitForActionCompletedAsync(cancellationToken);
+        }
+
+        public async UniTask PlayDeathAsync(CancellationToken cancellationToken)
+        {
+            if (_deathPresented)
+            {
+                return;
+            }
+
+            _deathPresented = true;
+            SetInteractable(false);
+            HideIntentIcons(startIndex: 0);
+            if (_intentRoot != null)
+            {
+                _intentRoot.gameObject.SetActive(false);
+            }
+
+            if (_combatVisualInstance == null)
+            {
+                HideDeathPresentation();
+                return;
+            }
+
+            _deathTween?.Kill();
+            Transform visualTransform = _combatVisualInstance.transform;
+            Vector3 startScale = visualTransform.localScale;
+            Vector3 targetScale = startScale * DeathEndScale;
+            Vector3 targetPosition = visualTransform.localPosition + (Vector3.down * DeathDropDistance);
+            SpriteRenderer[] spriteRenderers =
+                _combatVisualInstance.GetComponentsInChildren<SpriteRenderer>(includeInactive: true);
+
+            Sequence sequence = DOTween.Sequence()
+                .SetLink(gameObject);
+            sequence.Join(
+                visualTransform
+                    .DOScale(targetScale, DeathDuration)
+                    .SetEase(Ease.InBack));
+            sequence.Join(
+                visualTransform
+                    .DOLocalMove(targetPosition, DeathDuration)
+                    .SetEase(Ease.InQuad));
+
+            for (int index = 0; index < spriteRenderers.Length; index++)
+            {
+                SpriteRenderer spriteRenderer = spriteRenderers[index];
+                if (spriteRenderer == null)
+                {
+                    continue;
+                }
+
+                Color startColor = spriteRenderer.color;
+                sequence.Join(
+                    DOTween.To(
+                            () => spriteRenderer != null ? spriteRenderer.color.a : 0f,
+                            alpha =>
+                            {
+                                if (spriteRenderer == null)
+                                {
+                                    return;
+                                }
+
+                                Color color = spriteRenderer.color;
+                                color.a = alpha;
+                                spriteRenderer.color = color;
+                            },
+                            0f,
+                            DeathDuration)
+                        .SetEase(Ease.InQuad)
+                        .OnKill(() =>
+                        {
+                            if (spriteRenderer == null || _deathPresented)
+                            {
+                                return;
+                            }
+
+                            spriteRenderer.color = startColor;
+                        }));
+            }
+
+            _deathTween = sequence;
+            await CombatPresentationTweens.AwaitTweenAsync(sequence, cancellationToken);
+
+            HideDeathPresentation();
         }
 
         private void PlayCombatVisualIdle()
@@ -251,7 +338,6 @@ namespace SlotRogue.UI.GameFlow
             float ratio = max <= 0 ? 0f : Mathf.Clamp01((float)current / max);
             _hpFill.type = Image.Type.Simple;
             _hpFill.preserveAspect = false;
-#if DOTWEEN
             float targetWidth = _hpFillMaxWidth * ratio;
             if (!_hpFillRendered)
             {
@@ -268,23 +354,13 @@ namespace SlotRogue.UI.GameFlow
                     0.35f)
                 .SetEase(Ease.OutQuad)
                 .SetLink(gameObject);
-#else
-            fillRect.SetSizeWithCurrentAnchors(
-                RectTransform.Axis.Horizontal,
-                _hpFillMaxWidth * ratio);
-            _hpFillRendered = true;
-#endif
         }
 
         public UniTask WaitHpFillAsync(CancellationToken cancellationToken)
         {
-#if DOTWEEN
             return SlotRogue.UI.Combat.Presentation.CombatPresentationTweens.AwaitTweenAsync(
                 _hpFillTween,
                 cancellationToken);
-#else
-            return UniTask.CompletedTask;
-#endif
         }
 
         public void SetShield(int shield)
@@ -527,6 +603,74 @@ namespace SlotRogue.UI.GameFlow
             }
 
             _combatVisualInstance = null;
+        }
+
+        private void ResetDeathPresentation()
+        {
+            _deathPresented = false;
+            _deathTween?.Kill();
+            _deathTween = null;
+            if (_combatVisualInstance != null)
+            {
+                _combatVisualInstance.SetActive(true);
+                ResetSpriteRendererAlpha(_combatVisualInstance);
+            }
+
+            if (_hudRoot != null)
+            {
+                _hudRoot.gameObject.SetActive(true);
+            }
+
+            if (_statusEffectRoot != null)
+            {
+                _statusEffectRoot.gameObject.SetActive(true);
+            }
+        }
+
+        private void HideDeathPresentation()
+        {
+            if (_combatVisualInstance != null)
+            {
+                _combatVisualInstance.SetActive(false);
+            }
+
+            if (_hudRoot != null)
+            {
+                _hudRoot.gameObject.SetActive(false);
+            }
+
+            if (_statusEffectRoot != null)
+            {
+                _statusEffectRoot.gameObject.SetActive(false);
+            }
+
+            if (_intentRoot != null)
+            {
+                _intentRoot.gameObject.SetActive(false);
+            }
+        }
+
+        private static void ResetSpriteRendererAlpha(GameObject root)
+        {
+            if (root == null)
+            {
+                return;
+            }
+
+            SpriteRenderer[] spriteRenderers =
+                root.GetComponentsInChildren<SpriteRenderer>(includeInactive: true);
+            for (int index = 0; index < spriteRenderers.Length; index++)
+            {
+                SpriteRenderer spriteRenderer = spriteRenderers[index];
+                if (spriteRenderer == null)
+                {
+                    continue;
+                }
+
+                Color color = spriteRenderer.color;
+                color.a = 1f;
+                spriteRenderer.color = color;
+            }
         }
 
         private bool HasStatusEffectReferences()
