@@ -1,6 +1,7 @@
 using System;
 using R3;
 using SlotRogue.UI.RunGame.ViewModels;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -11,20 +12,22 @@ namespace SlotRogue.UI.RunGame
     /// HP, 전투 횟수, 일시정지 버튼 등을 표시합니다.
     /// 화면 전환과 무관하게 항상 활성 상태를 유지합니다.
     /// </summary>
-    public sealed class RunHUDView : MonoBehaviour, IRunHUDView
+    public sealed class RunHUDView : ViewComponentBase, IRunHUDView
     {
-        [SerializeField] private Text  _hpText;
-        [SerializeField] private Text  _battleIndexText;
-        [SerializeField] private Button _pauseButton;
+        [SerializeField] private TMP_Text _hpTmpText;
+        [SerializeField] private TMP_Text _battleIndexTmpText;
+        [SerializeField] private Text     _hpText;
+        [SerializeField] private Text     _battleIndexText;
+        [SerializeField] private Button   _pauseButton;
+
+        private bool _subscribed;
 
         public event Action PauseRequested;
 
         private void Awake()
         {
-            if (_pauseButton != null)
-            {
-                _pauseButton.onClick.AddListener(HandlePauseClicked);
-            }
+            EnsureRuntimeLayout();
+            SubscribeButton();
         }
 
         /// <summary>
@@ -37,6 +40,8 @@ namespace SlotRogue.UI.RunGame
                 return;
             }
 
+            EnsureRuntimeLayout();
+            SubscribeButton();
             PauseRequested += viewModel.RequestPause;
             viewModel.State.Subscribe(Render).AddTo(this);
         }
@@ -46,23 +51,83 @@ namespace SlotRogue.UI.RunGame
 
         public void Render(RunHUDViewState state)
         {
-            if (_hpText != null)
+            EnsureRuntimeLayout();
+
+            string hpLabel = $"{state.CurrentHp} / {state.MaxHp}";
+            if (_hpTmpText != null)
             {
-                _hpText.text = $"{state.CurrentHp} / {state.MaxHp}";
+                _hpTmpText.text = hpLabel;
+            }
+            else if (_hpText != null)
+            {
+                _hpText.text = hpLabel;
             }
 
-            if (_battleIndexText != null)
+            string battleIndexLabel = $"WAVE {Mathf.Max(1, state.BattleIndex)}";
+            if (_battleIndexTmpText != null)
             {
-                _battleIndexText.text = $"Battle {state.BattleIndex}";
+                _battleIndexTmpText.text = battleIndexLabel;
             }
+            else if (_battleIndexText != null)
+            {
+                _battleIndexText.text = battleIndexLabel;
+            }
+        }
+
+        public bool EnsureRuntimeLayout()
+        {
+            Transform searchRoot = transform.root != null ? transform.root : transform;
+            Transform waveText = FindDeepChild(transform, "Wave Text") ??
+                FindDeepChild(searchRoot, "Wave Text");
+            Transform hpText = FindDeepChild(transform, "HP Text");
+
+            if (_battleIndexTmpText == null)
+            {
+                _battleIndexTmpText = waveText != null ? waveText.GetComponent<TMP_Text>() : null;
+            }
+
+            if (_battleIndexText == null)
+            {
+                _battleIndexText = waveText != null ? waveText.GetComponent<Text>() : null;
+            }
+
+            if (_hpTmpText == null)
+            {
+                _hpTmpText = hpText != null ? hpText.GetComponent<TMP_Text>() : null;
+            }
+
+            if (_hpText == null)
+            {
+                _hpText = hpText != null ? hpText.GetComponent<Text>() : null;
+            }
+
+            if (_pauseButton == null)
+            {
+                _pauseButton = FindDeepChild(searchRoot, "Pause Button")?.GetComponent<Button>();
+            }
+
+            return _battleIndexTmpText != null || _battleIndexText != null || _pauseButton != null;
         }
 
         private void OnDestroy()
         {
-            if (_pauseButton != null)
+            if (_subscribed && _pauseButton != null)
             {
                 _pauseButton.onClick.RemoveListener(HandlePauseClicked);
             }
+
+            _subscribed = false;
+        }
+
+        private void SubscribeButton()
+        {
+            if (_subscribed || _pauseButton == null)
+            {
+                return;
+            }
+
+            _pauseButton.onClick.AddListener(HandlePauseClicked);
+            _subscribed = true;
         }
 
         private void HandlePauseClicked()

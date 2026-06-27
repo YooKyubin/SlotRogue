@@ -1,3 +1,4 @@
+using System;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -19,9 +20,9 @@ namespace SlotRogue.UI.App
             SceneManager.LoadScene(SceneNames.Lobby);
         }
 
-        public static UniTask LoadGameStartAsync()
+        public static UniTask LoadGameStartAsync(IProgress<float> progress = null)
         {
-            return LoadSceneAsync(SceneNames.Lobby);
+            return LoadSceneAsync(SceneNames.Lobby, progress);
         }
 
         public static void LoadRunGame()
@@ -29,9 +30,9 @@ namespace SlotRogue.UI.App
             SceneManager.LoadScene(SceneNames.RunGame);
         }
 
-        public static UniTask LoadRunGameAsync()
+        public static UniTask LoadRunGameAsync(IProgress<float> progress = null)
         {
-            return LoadSceneAsync(SceneNames.RunGame);
+            return LoadSceneAsync(SceneNames.RunGame, progress);
         }
 
         public static void ReloadRunGame()
@@ -39,24 +40,30 @@ namespace SlotRogue.UI.App
             SceneManager.LoadScene(SceneNames.RunGame);
         }
 
-        public static UniTask ReloadRunGameAsync()
+        public static UniTask ReloadRunGameAsync(IProgress<float> progress = null)
         {
-            return LoadSceneAsync(SceneNames.RunGame);
+            return LoadSceneAsync(SceneNames.RunGame, progress);
         }
 
-        private static async UniTask LoadSceneAsync(string sceneName)
+        private static async UniTask LoadSceneAsync(
+            string sceneName,
+            IProgress<float> progress = null)
         {
             AsyncOperation operation = SceneManager.LoadSceneAsync(sceneName);
             if (operation == null)
             {
                 SceneManager.LoadScene(sceneName);
+                progress?.Report(1f);
                 return;
             }
 
             while (!operation.isDone)
             {
+                progress?.Report(Mathf.Clamp01(operation.progress / 0.9f));
                 await UniTask.Yield(PlayerLoopTiming.Update);
             }
+
+            progress?.Report(1f);
         }
     }
 }

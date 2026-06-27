@@ -20,7 +20,7 @@ namespace SlotRogue.UI.RunGame
     /// 이 컨트롤러는 Unity 생명주기(Awake/OnDestroy) 대신 SceneRoot의 destroy 토큰으로
     /// 비동기 작업 수명을 관리합니다.
     /// </summary>
-    public sealed class RunGameFlowController
+    public sealed class RunGameFlowController : IRunGameFlow
     {
         private const float ReviveWindowSeconds = 5f;
         private const string TutorialEnemyAttackPrompt =
@@ -38,23 +38,23 @@ namespace SlotRogue.UI.RunGame
         private const string TutorialUpdatedCompletedPrompt =
             "튜토리얼 완료! 로비로 돌아갑니다.";
 
-        private readonly RunGameNavigator _navigator;
-        private readonly StartRelicSelectViewModel _startRelicSelectVM;
+        private readonly IRunGameNavigator _navigator;
         private readonly RunRewardViewModel _rewardVM;
         private readonly RunHUDViewModel _hudVM;
         private readonly RunInventoryViewModel _inventoryVM;
         private readonly RunDefeatViewModel _defeatVM;
         private readonly LeaderboardViewModel _leaderboardVM;
-        private readonly BattleView _battleView;
-        private readonly BattleSceneCompositionRoot _battleSceneCompositionRoot;
-        private readonly RunTutorialOverlayView _tutorialOverlayView;
-        private readonly RunDefeatView _defeatView;
-        private readonly LeaderboardView _leaderboardView;
+        private readonly IRunGameView _battleView;
+        private readonly IBattleSceneController _battleSceneCompositionRoot;
+        private readonly ITutorialOverlay _tutorialOverlayView;
+        private readonly IDefeatPortraitView _defeatView;
+        private readonly bool _hasInSceneLeaderboard;
         private readonly CancellationToken _ownerDestroyToken;
 
         private CancellationTokenSource _defeatCountdownCts;
         private bool _reviveAdPending;
         private bool _resumeBattleOnEnter;
+        private bool _battleEntryPending;
         private bool _tutorialPatternMessageShown;
         private bool _tutorialEnemyAttackMessageShown;
         private bool _tutorialEnemyTurnMessageShown;
@@ -73,22 +73,20 @@ namespace SlotRogue.UI.RunGame
         }
 
         public RunGameFlowController(
-            RunGameNavigator navigator,
-            StartRelicSelectViewModel startRelicSelectVM,
+            IRunGameNavigator navigator,
             RunRewardViewModel rewardVM,
             RunHUDViewModel hudVM,
             RunInventoryViewModel inventoryVM,
             RunDefeatViewModel defeatVM,
             LeaderboardViewModel leaderboardVM,
-            BattleView battleView,
-            BattleSceneCompositionRoot battleSceneCompositionRoot,
-            RunTutorialOverlayView tutorialOverlayView,
-            RunDefeatView defeatView,
-            LeaderboardView leaderboardView,
+            IRunGameView battleView,
+            IBattleSceneController battleSceneCompositionRoot,
+            ITutorialOverlay tutorialOverlayView,
+            IDefeatPortraitView defeatView,
+            bool hasInSceneLeaderboard,
             CancellationToken ownerDestroyToken)
         {
             _navigator = navigator;
-            _startRelicSelectVM = startRelicSelectVM;
             _rewardVM = rewardVM;
             _hudVM = hudVM;
             _inventoryVM = inventoryVM;
@@ -98,39 +96,26 @@ namespace SlotRogue.UI.RunGame
             _battleSceneCompositionRoot = battleSceneCompositionRoot;
             _tutorialOverlayView = tutorialOverlayView;
             _defeatView = defeatView;
-            _leaderboardView = leaderboardView;
+            _hasInSceneLeaderboard = hasInSceneLeaderboard;
             _ownerDestroyToken = ownerDestroyToken;
         }
 
         public static RunGameState GetInitialRunState()
         {
-            return GameFlowSession.IsTutorialRun
-                ? RunGameState.Battle
-                : RunGameState.StartRelicSelect;
+            // 시작 유물 선택은 보상 화면(RunRewardView)에 병합되었습니다.
+            // 비-튜토리얼 런은 Reward 상태로 진입해 '시작 유물 선택' 모드로 표시됩니다.
+            if (GameFlowSession.IsTutorialRun ||
+                GameFlowSession.HasStarterRelic)
+            {
+                return RunGameState.Battle;
+            }
+
+            return RunGameState.Reward;
         }
 
         public void Dispose()
         {
             CancelDefeatCountdown();
-        }
-
-        // ── 시작 유물 ────────────────────────────────────────────────────
-
-        public void HandleStartRelicEntered()
-        {
-            _startRelicSelectVM.Refresh();
-        }
-
-        public void HandleStarterRelicSelectionRequested(string relicId)
-        {
-            _startRelicSelectVM.SelectRelic(relicId);
-        }
-
-        public void HandleStarterRelicSelected()
-        {
-            _tutorialOverlayView?.Hide();
-            RefreshHud();
-            _navigator.GoTo(RunGameState.Battle);
         }
 
         // ── 보상 ─────────────────────────────────────────────────────────
@@ -155,7 +140,7 @@ namespace SlotRogue.UI.RunGame
 
         private void HandleRewardRerollRewarded()
         {
-            Debug.Log("[RunGameFlowController] Applying rewarded reroll.");
+            GameLog.Info("[RunGameFlowController] Applying rewarded reroll.");
             _rewardVM.ApplyRewardedReroll();
         }
 
@@ -198,6 +183,14 @@ namespace SlotRogue.UI.RunGame
 
         public void HandleRewardClaimed()
         {
+            // 시작 유물 선택(병합된 첫 진입)은 전투 번호를 올리지 않고 첫 전투로 진입합니다.
+            if (_rewardVM.IsStarterSelection)
+            {
+                _inventoryVM?.Refresh();
+                EnterBattleAfterStarterRelicAsync().Forget();
+                return;
+            }
+
             GameFlowSession.AdvanceToNextBattle();
             RefreshHud();
             _inventoryVM?.Refresh();
@@ -399,7 +392,7 @@ namespace SlotRogue.UI.RunGame
         public void HandleRankingRequested()
         {
             FinalizePendingDefeat();
-            if (_leaderboardView == null)
+            if (!_hasInSceneLeaderboard)
             {
                 GameStartSceneRoot.RequestOpenLeaderboardOnNextLoad();
                 GameSceneLoader.LoadGameStart();
@@ -413,6 +406,13 @@ namespace SlotRogue.UI.RunGame
         {
             FinalizePendingDefeat();
             GameSceneLoader.LoadGameStart();
+        }
+
+        public void HandleGiveUpRequested()
+        {
+            _inventoryVM?.Close();
+            _tutorialOverlayView?.Hide();
+            ShowAbandonedRunResult();
         }
 
         public void HandleReviveRequested()
@@ -502,13 +502,47 @@ namespace SlotRogue.UI.RunGame
 
         public void OnPauseRequested()
         {
-            // TODO: UI_PopupCanvas의 PausePopup 활성화
-            Debug.Log("[RunGameFlowController] Pause requested.");
+            GameLog.Info("[RunGameFlowController] Pause requested.");
         }
 
         public void RefreshHud()
         {
             _hudVM.Refresh();
+        }
+
+        private async UniTaskVoid EnterBattleAfterStarterRelicAsync()
+        {
+            if (_battleEntryPending)
+            {
+                return;
+            }
+
+            _battleEntryPending = true;
+            try
+            {
+                _tutorialOverlayView?.Hide();
+                RefreshHud();
+
+                if (_battleSceneCompositionRoot != null)
+                {
+                    await _battleSceneCompositionRoot.PrepareBattleEntryAsync(_ownerDestroyToken);
+                }
+
+                if (_ownerDestroyToken.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                _navigator.GoTo(RunGameState.Battle);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+            finally
+            {
+                _battleEntryPending = false;
+            }
         }
 
         private void CompleteFirstRunTutorial()
@@ -614,6 +648,37 @@ namespace SlotRogue.UI.RunGame
                 GameFlowSession.HasRevivedThisRun,
                 GameFlowSession.GetSlotSymbolContributionSummary());
             RefreshRewardedAvailability();
+        }
+
+        private void ShowAbandonedRunResult()
+        {
+            CancelDefeatCountdown();
+            _reviveAdPending = false;
+
+            int battleNumber = GameFlowSession.CurrentBattleNumber;
+            int victories = GameFlowSession.Victories;
+            int rewardsClaimed = GameFlowSession.RewardsClaimed;
+            bool hasRevived = GameFlowSession.HasRevivedThisRun;
+            var symbolContributions =
+                GameFlowSession.GetSlotSymbolContributionSummary();
+
+            if (GameFlowSession.IsDefeatPending)
+            {
+                _battleSceneCompositionRoot?.FinalizePendingDefeat();
+            }
+            else if (GameFlowSession.HasRun)
+            {
+                GameFlowSession.EndRun();
+            }
+
+            _defeatVM.ShowResult(
+                battleNumber,
+                victories,
+                rewardsClaimed,
+                hasRevived,
+                symbolContributions);
+            RefreshRewardedAvailability();
+            _navigator.GoTo(RunGameState.Defeat);
         }
 
         private void CancelDefeatCountdown()

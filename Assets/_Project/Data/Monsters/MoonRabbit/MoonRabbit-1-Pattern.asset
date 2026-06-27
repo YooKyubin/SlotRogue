@@ -41,7 +41,7 @@ MonoBehaviour:
     - rid: 5421931881862791245
       type: {class: DamageEffectDefinition, ns: SlotRogue.Data.Combat, asm: SlotRogue.Data}
       data:
-        _amount: 4
+        _amount: 500
         _target:
           _targetMode: 1
           _targetParticipantId: 0

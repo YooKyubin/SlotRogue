@@ -1,4 +1,3 @@
-using System;
 using Cysharp.Threading.Tasks;
 using R3;
 using SlotRogue.UI.GameFlow;
@@ -11,25 +10,15 @@ using UnityEngine.UI;
 
 namespace SlotRogue.UI.App
 {
+    /// <summary>
+    /// GameStart(로비) 씬의 최상위 조립자입니다.
+    /// ViewModel 생성 → View 바인딩 → 시작/종료 흐름 연결만 담당하고,
+    /// 로비 우주 배경 애니메이션과 임시 디버그 버튼은 전용 헬퍼에 위임합니다(ADR-0020).
+    /// </summary>
     [DefaultExecutionOrder(-10000)]
     public sealed class GameStartSceneRoot : MonoBehaviour
     {
-        private static readonly Color TemporaryDebugButtonColor =
-            new(0.14f, 0.14f, 0.18f, 0.92f);
-        private static readonly Color TemporaryDebugButtonTextColor =
-            new(1f, 0.82f, 0.38f, 1f);
-        private const string LobbyPlanetLayerName = "Animated Planet Layer";
-        private const string LobbyPlanetNamePrefix = "Floating Planet ";
-        private const float LobbyPlanetScale = 4f;
         private static bool _openLeaderboardOnNextLoad;
-
-        private static readonly LobbyPlanetPreset[] LobbyPlanetPresets =
-        {
-            new(new Vector2(-300f, 58f), -10.0f, 16f, 10f, 0.34f, 0.2f, 2.0f, 0.72f),
-            new(new Vector2(-86f, -46f), -7.5f, 12f, 8f, 0.48f, 1.5f, -6.0f, 0.82f),
-            new(new Vector2(148f, 38f), -5.5f, 14f, 9f, 0.40f, 2.7f, 4.0f, 0.72f),
-            new(new Vector2(340f, -22f), -4.0f, 18f, 11f, 0.30f, 4.0f, -1.5f, 0.65f),
-        };
 
         [SerializeField] private GameStartSceneController _view;
         [SerializeField] private LeaderboardView _leaderboardView;
@@ -41,13 +30,8 @@ namespace SlotRogue.UI.App
 
         private GameStartViewModel _viewModel;
         private LeaderboardViewModel _leaderboardViewModel;
-        private Button _temporaryTutorialStartButton;
-        private Button _temporaryTutorialSkipButton;
-        private Button _temporaryTutorialResetButton;
-        private Button _temporaryAdsResetButton;
-        private RectTransform _lobbyPlanetLayer;
-        private LobbyPlanetInstance[] _lobbyPlanetInstances = Array.Empty<LobbyPlanetInstance>();
-        private float _lobbySpaceElapsed;
+        private readonly LobbySpaceBackground _lobbyBackground = new();
+        private readonly LobbyDebugButtons _debugButtons = new();
 
         public static void RequestOpenLeaderboardOnNextLoad()
         {
@@ -68,9 +52,14 @@ namespace SlotRogue.UI.App
 
             EnsureLeaderboardView();
             EnsureLoginView();
-            BindLobbySpaceBackground();
+            _lobbyBackground.Bind(gameObject.scene);
             ConfigureRemoveAdsButton();
-            EnsureTemporaryResetButtons();
+            _debugButtons.Install(
+                ResolveCanvas(),
+                OnDebugTutorialStart,
+                OnDebugTutorialSkip,
+                OnDebugTutorialReset,
+                OnDebugAdsReset);
             AdsRemoveState.Changed += HandleAdsRemoveChanged;
 
             if (_view != null)
@@ -114,13 +103,13 @@ namespace SlotRogue.UI.App
 
         private void Update()
         {
-            AnimateLobbySpaceBackground();
+            _lobbyBackground.Tick(Time.unscaledDeltaTime);
         }
 
         private void OnDestroy()
         {
             AdsRemoveState.Changed -= HandleAdsRemoveChanged;
-            UnsubscribeTemporaryResetButtons();
+            _debugButtons.Dispose();
 
             if (_view != null)
             {
@@ -218,221 +207,6 @@ namespace SlotRogue.UI.App
             Debug.LogError("20_LogInArea was not found in GameStart scene.");
         }
 
-        private void BindLobbySpaceBackground()
-        {
-            _lobbyPlanetLayer = FindSceneChild(LobbyPlanetLayerName) as RectTransform;
-            if (_lobbyPlanetLayer == null)
-            {
-                Debug.LogWarning(
-                    "[GameStartSceneRoot] Animated Planet Layer must be placed in the lobby scene hierarchy.");
-                _lobbyPlanetInstances = Array.Empty<LobbyPlanetInstance>();
-                return;
-            }
-
-            LobbyPlanetInstance[] instances = new LobbyPlanetInstance[LobbyPlanetPresets.Length];
-            int count = 0;
-            for (int index = 0; index < LobbyPlanetPresets.Length; index++)
-            {
-                string objectName = $"{LobbyPlanetNamePrefix}{index + 1:00}";
-                RectTransform planet = _lobbyPlanetLayer.Find(objectName) as RectTransform;
-                if (planet == null)
-                {
-                    Debug.LogWarning(
-                        $"[GameStartSceneRoot] {objectName} must be placed under {LobbyPlanetLayerName}.");
-                    continue;
-                }
-
-                LobbyPlanetPreset preset = LobbyPlanetPresets[index];
-                ConfigureLobbyPlanet(planet, preset);
-                instances[count] = new LobbyPlanetInstance(
-                    planet,
-                    preset,
-                    preset.Phase * 13f);
-                count++;
-            }
-
-            _lobbyPlanetInstances = new LobbyPlanetInstance[count];
-            Array.Copy(instances, _lobbyPlanetInstances, count);
-            _lobbySpaceElapsed = 0f;
-        }
-
-        private void AnimateLobbySpaceBackground()
-        {
-            if (_lobbyPlanetInstances == null || _lobbyPlanetInstances.Length == 0)
-            {
-                return;
-            }
-
-            _lobbySpaceElapsed += Time.unscaledDeltaTime;
-            Vector2 layerSize = ResolveLobbyPlanetLayerSize();
-            float wrapWidth = layerSize.x + 192f;
-
-            for (int index = 0; index < _lobbyPlanetInstances.Length; index++)
-            {
-                LobbyPlanetInstance planet = _lobbyPlanetInstances[index];
-                if (planet.Rect == null)
-                {
-                    continue;
-                }
-
-                LobbyPlanetPreset preset = planet.Preset;
-                float wrappedX = Wrap(
-                    preset.StartPosition.x + (preset.DriftSpeed * _lobbySpaceElapsed),
-                    -wrapWidth * 0.5f,
-                    wrapWidth * 0.5f);
-                float bobX = Mathf.Sin(
-                    (_lobbySpaceElapsed * preset.BobFrequency * 0.73f) + preset.Phase) *
-                    preset.BobX;
-                float bobY = Mathf.Sin(
-                    (_lobbySpaceElapsed * preset.BobFrequency) + preset.Phase) *
-                    preset.BobY;
-
-                planet.Rect.anchoredPosition =
-                    new Vector2(wrappedX + bobX, preset.StartPosition.y + bobY);
-                planet.Rect.localRotation =
-                    Quaternion.Euler(
-                        0f,
-                        0f,
-                        planet.InitialRotation + (preset.RotationSpeed * _lobbySpaceElapsed));
-            }
-        }
-
-        private Vector2 ResolveLobbyPlanetLayerSize()
-        {
-            if (_lobbyPlanetLayer == null)
-            {
-                return new Vector2(820f, 260f);
-            }
-
-            Rect rect = _lobbyPlanetLayer.rect;
-            return rect.size.sqrMagnitude > 0f ? rect.size : new Vector2(820f, 260f);
-        }
-
-        private static void ConfigureLobbyPlanet(
-            RectTransform planet,
-            LobbyPlanetPreset preset)
-        {
-            planet.anchorMin = new Vector2(0.5f, 0.5f);
-            planet.anchorMax = new Vector2(0.5f, 0.5f);
-            planet.pivot = new Vector2(0.5f, 0.5f);
-            planet.anchoredPosition = preset.StartPosition;
-            planet.localScale =
-                new Vector3(LobbyPlanetScale, LobbyPlanetScale, LobbyPlanetScale);
-
-            Image image = planet.GetComponent<Image>();
-            if (image == null)
-            {
-                return;
-            }
-
-            image.raycastTarget = false;
-            image.preserveAspect = true;
-            image.color = new Color(image.color.r, image.color.g, image.color.b, preset.Alpha);
-            if (image.sprite != null)
-            {
-                planet.sizeDelta = image.sprite.rect.size;
-            }
-        }
-
-        private Transform FindSceneChild(string objectName)
-        {
-            GameObject[] roots = gameObject.scene.GetRootGameObjects();
-            for (int index = 0; index < roots.Length; index++)
-            {
-                Transform found = FindDeepChild(roots[index].transform, objectName);
-                if (found != null)
-                {
-                    return found;
-                }
-            }
-
-            return null;
-        }
-
-        private static Transform FindDeepChild(Transform parent, string objectName)
-        {
-            if (parent == null)
-            {
-                return null;
-            }
-
-            if (parent.name == objectName)
-            {
-                return parent;
-            }
-
-            for (int index = 0; index < parent.childCount; index++)
-            {
-                Transform found = FindDeepChild(parent.GetChild(index), objectName);
-                if (found != null)
-                {
-                    return found;
-                }
-            }
-
-            return null;
-        }
-
-        private static float Wrap(float value, float min, float max)
-        {
-            float length = max - min;
-            if (length <= 0f)
-            {
-                return value;
-            }
-
-            return min + Mathf.Repeat(value - min, length);
-        }
-
-        private void EnsureTemporaryResetButtons()
-        {
-            Canvas canvas = ResolveCanvas();
-            if (canvas == null)
-            {
-                Debug.LogWarning(
-                    "[GameStartSceneRoot] Temporary reset buttons require a Canvas.");
-                return;
-            }
-
-            Transform existingHost = canvas.transform.Find("Temporary Reset Buttons");
-            RectTransform host = existingHost as RectTransform;
-            if (host == null)
-            {
-                host = CreateRect("Temporary Reset Buttons", canvas.transform);
-                host.anchorMin = new Vector2(0.04f, 0.03f);
-                host.anchorMax = new Vector2(0.86f, 0.14f);
-                host.offsetMin = Vector2.zero;
-                host.offsetMax = Vector2.zero;
-            }
-
-            _temporaryTutorialStartButton = EnsureTemporaryButton(
-                host,
-                "Temporary Tutorial Start Button",
-                "튜토리얼 시작",
-                new Vector2(0f, 0f),
-                new Vector2(0.235f, 1f));
-            _temporaryTutorialSkipButton = EnsureTemporaryButton(
-                host,
-                "Temporary Tutorial Skip Button",
-                "튜토리얼 스킵",
-                new Vector2(0.255f, 0f),
-                new Vector2(0.49f, 1f));
-            _temporaryTutorialResetButton = EnsureTemporaryButton(
-                host,
-                "Temporary Tutorial Reset Button",
-                "튜토리얼 초기화",
-                new Vector2(0.51f, 0f),
-                new Vector2(0.745f, 1f));
-            _temporaryAdsResetButton = EnsureTemporaryButton(
-                host,
-                "Temporary Ads Reset Button",
-                "광고 구매 초기화",
-                new Vector2(0.765f, 0f),
-                new Vector2(1f, 1f));
-
-            SubscribeTemporaryResetButtons();
-        }
-
         private Canvas ResolveCanvas()
         {
             if (_view != null)
@@ -458,135 +232,32 @@ namespace SlotRogue.UI.App
             return null;
         }
 
-        private static Button EnsureTemporaryButton(
-            RectTransform parent,
-            string objectName,
-            string label,
-            Vector2 anchorMin,
-            Vector2 anchorMax)
-        {
-            Transform existing = parent.Find(objectName);
-            RectTransform buttonRect = existing as RectTransform;
-            if (buttonRect == null)
-            {
-                buttonRect = CreateRect(objectName, parent);
-            }
+        // ── 임시 디버그 버튼 동작 (UI 생성/배선은 LobbyDebugButtons가 담당) ──
 
-            buttonRect.anchorMin = anchorMin;
-            buttonRect.anchorMax = anchorMax;
-            buttonRect.offsetMin = Vector2.zero;
-            buttonRect.offsetMax = Vector2.zero;
-
-            Image image = buttonRect.GetComponent<Image>();
-            if (image == null)
-            {
-                image = buttonRect.gameObject.AddComponent<Image>();
-            }
-
-            image.color = TemporaryDebugButtonColor;
-            image.raycastTarget = true;
-
-            Button button = buttonRect.GetComponent<Button>();
-            if (button == null)
-            {
-                button = buttonRect.gameObject.AddComponent<Button>();
-            }
-
-            button.targetGraphic = image;
-
-            Text text = buttonRect.GetComponentInChildren<Text>(includeInactive: true);
-            if (text == null)
-            {
-                RectTransform textRect = CreateRect($"{objectName} Text", buttonRect);
-                textRect.anchorMin = Vector2.zero;
-                textRect.anchorMax = Vector2.one;
-                textRect.offsetMin = new Vector2(8f, 0f);
-                textRect.offsetMax = new Vector2(-8f, 0f);
-                text = textRect.gameObject.AddComponent<Text>();
-                text.alignment = TextAnchor.MiddleCenter;
-                text.horizontalOverflow = HorizontalWrapMode.Wrap;
-                text.verticalOverflow = VerticalWrapMode.Truncate;
-            }
-
-            Font font = Resources.Load<Font>("Galmuri11-Bold");
-            if (font == null)
-            {
-                font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            }
-
-            text.font = font;
-            text.fontSize = 24;
-            text.color = TemporaryDebugButtonTextColor;
-            text.text = label;
-
-            return button;
-        }
-
-        private void SubscribeTemporaryResetButtons()
-        {
-            UnsubscribeTemporaryResetButtons();
-
-            if (_temporaryTutorialStartButton != null)
-            {
-                _temporaryTutorialStartButton.onClick.AddListener(
-                    HandleTemporaryTutorialStartClicked);
-            }
-
-            if (_temporaryTutorialSkipButton != null)
-            {
-                _temporaryTutorialSkipButton.onClick.AddListener(
-                    HandleTemporaryTutorialSkipClicked);
-            }
-
-            if (_temporaryTutorialResetButton != null)
-            {
-                _temporaryTutorialResetButton.onClick.AddListener(
-                    HandleTemporaryTutorialResetClicked);
-            }
-
-            if (_temporaryAdsResetButton != null)
-            {
-                _temporaryAdsResetButton.onClick.AddListener(
-                    HandleTemporaryAdsResetClicked);
-            }
-        }
-
-        private void UnsubscribeTemporaryResetButtons()
-        {
-            _temporaryTutorialStartButton?.onClick.RemoveListener(
-                HandleTemporaryTutorialStartClicked);
-            _temporaryTutorialSkipButton?.onClick.RemoveListener(
-                HandleTemporaryTutorialSkipClicked);
-            _temporaryTutorialResetButton?.onClick.RemoveListener(
-                HandleTemporaryTutorialResetClicked);
-            _temporaryAdsResetButton?.onClick.RemoveListener(
-                HandleTemporaryAdsResetClicked);
-        }
-
-        private static void HandleTemporaryTutorialStartClicked()
+        private static void OnDebugTutorialStart()
         {
             GameFlowSession.StartTutorialRun();
             GameSceneLoader.LoadRunGame();
         }
 
-        private static void HandleTemporaryTutorialSkipClicked()
+        private static void OnDebugTutorialSkip()
         {
             FirstRunTutorialState.MarkCompleted();
             GameFlowSession.StartNewRun();
             GameSceneLoader.LoadRunGame();
         }
 
-        private void HandleTemporaryTutorialResetClicked()
+        private void OnDebugTutorialReset()
         {
             FirstRunTutorialState.ResetForDebug();
-            Debug.Log("[GameStartSceneRoot] First-run tutorial flag reset.");
+            GameLog.Info("[GameStartSceneRoot] First-run tutorial flag reset.");
         }
 
-        private void HandleTemporaryAdsResetClicked()
+        private void OnDebugAdsReset()
         {
             AdsRemoveState.ResetForDebug();
             RenderRemoveAdsButton(AdsRemoveState.IsRemoved);
-            Debug.Log("[GameStartSceneRoot] Remove Ads local cache reset.");
+            GameLog.Info("[GameStartSceneRoot] Remove Ads local cache reset.");
         }
 
         private void ConfigureRemoveAdsButton()
@@ -638,13 +309,14 @@ namespace SlotRogue.UI.App
                 return;
             }
 
-            if (FirstRunTutorialState.IsCompleted)
+            if (!FirstRunTutorialState.IsCompleted)
             {
-                GameFlowSession.StartNewRun();
+                GameFlowSession.StartTutorialRun();
             }
             else
             {
-                GameFlowSession.StartTutorialRun();
+                // 이어하기는 Boot의 ResumePanel에서만 처리하고, 로비 Play는 새 런을 시작합니다.
+                GameFlowSession.StartNewRun();
             }
 
             GameSceneLoader.LoadRunGame();
@@ -657,72 +329,6 @@ namespace SlotRogue.UI.App
 #else
             Application.Quit();
 #endif
-        }
-
-        private static RectTransform CreateRect(string objectName, Transform parent)
-        {
-            var gameObject = new GameObject(objectName, typeof(RectTransform));
-            var rectTransform = (RectTransform)gameObject.transform;
-            rectTransform.SetParent(parent, false);
-            return rectTransform;
-        }
-
-        private readonly struct LobbyPlanetPreset
-        {
-            internal LobbyPlanetPreset(
-                Vector2 startPosition,
-                float driftSpeed,
-                float bobX,
-                float bobY,
-                float bobFrequency,
-                float phase,
-                float rotationSpeed,
-                float alpha)
-            {
-                StartPosition = startPosition;
-                DriftSpeed = driftSpeed;
-                BobX = bobX;
-                BobY = bobY;
-                BobFrequency = bobFrequency;
-                Phase = phase;
-                RotationSpeed = rotationSpeed;
-                Alpha = alpha;
-            }
-
-            internal Vector2 StartPosition { get; }
-
-            internal float DriftSpeed { get; }
-
-            internal float BobX { get; }
-
-            internal float BobY { get; }
-
-            internal float BobFrequency { get; }
-
-            internal float Phase { get; }
-
-            internal float RotationSpeed { get; }
-
-            internal float Alpha { get; }
-        }
-
-        private readonly struct LobbyPlanetInstance
-        {
-            internal LobbyPlanetInstance(
-                RectTransform rect,
-                LobbyPlanetPreset preset,
-                float initialRotation)
-            {
-                Rect = rect;
-                Preset = preset;
-                InitialRotation = initialRotation;
-            }
-
-            internal RectTransform Rect { get; }
-
-            internal LobbyPlanetPreset Preset { get; }
-
-            internal float InitialRotation { get; }
         }
     }
 }

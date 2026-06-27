@@ -10,7 +10,11 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private TMP_Text _titleText;
         [SerializeField] private TMP_Text _descriptionText;
         [SerializeField] private GameFlowImageSlot _imageSlot;
-        [SerializeField] private Image _modifierIcon;
+        [Tooltip("수치 배지 배경(CountImage). 등급색 tint는 RewardSlotRarity가 입힌다.")]
+        [SerializeField] private Image _countImage;
+        [Tooltip("CountImage 하위의 수치 텍스트(+1/-1 등).")]
+        [SerializeField] private TMP_Text _countText;
+        [SerializeField] private RewardSlotRarity _rarity;
 
         public Button Button => _button;
 
@@ -19,22 +23,20 @@ namespace SlotRogue.UI.GameFlow
         private void Awake()
         {
             EnsureTextReferences();
-            EnsureModifierIconReference();
-            SetModifierIcon(null);
+            EnsureCountReferences();
+            SetModifierLabel(null);
         }
 
         public void Bind(
             Button button,
             TMP_Text titleText,
             TMP_Text descriptionText,
-            GameFlowImageSlot imageSlot,
-            Image modifierIcon = null)
+            GameFlowImageSlot imageSlot)
         {
             _button = button;
             _titleText = titleText;
             _descriptionText = descriptionText;
             _imageSlot = imageSlot;
-            _modifierIcon = modifierIcon;
         }
 
         public void SetText(string title, string description)
@@ -61,19 +63,38 @@ namespace SlotRogue.UI.GameFlow
             }
         }
 
-        public void SetModifierIcon(Sprite sprite)
+        public void SetRarity(RewardRarity rarity)
         {
-            EnsureModifierIconReference();
-
-            if (_modifierIcon == null)
+            if (_rarity == null)
             {
-                return;
+                _rarity = GetComponent<RewardSlotRarity>();
             }
 
-            _modifierIcon.sprite = sprite;
-            _modifierIcon.preserveAspect = true;
-            _modifierIcon.enabled = sprite != null;
-            _modifierIcon.gameObject.SetActive(sprite != null);
+            if (_rarity != null)
+            {
+                _rarity.Apply(rarity);
+            }
+        }
+
+        /// <summary>
+        /// 수치 배지 텍스트(+1/-1 등)를 설정한다. label이 비어 있으면 배지를 숨긴다.
+        /// (과거에는 CountImage 스프라이트를 교체했으나, 이제 CountText만 갱신한다.)
+        /// </summary>
+        public void SetModifierLabel(string label)
+        {
+            EnsureCountReferences();
+
+            bool show = !string.IsNullOrEmpty(label);
+
+            if (_countText != null)
+            {
+                _countText.text = label ?? string.Empty;
+            }
+
+            if (_countImage != null)
+            {
+                _countImage.gameObject.SetActive(show);
+            }
         }
 
         public void SetDescriptionSpriteAsset(TMP_SpriteAsset spriteAsset)
@@ -121,22 +142,35 @@ namespace SlotRogue.UI.GameFlow
             }
         }
 
-        private void EnsureModifierIconReference()
+        private void EnsureCountReferences()
         {
-            if (_modifierIcon != null)
+            if (_countImage == null)
             {
-                return;
+                Image[] images = GetComponentsInChildren<Image>(true);
+                for (int index = 0; index < images.Length; index++)
+                {
+                    Image image = images[index];
+                    if (image != null &&
+                        image.name.IndexOf("CountImage", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        _countImage = image;
+                        break;
+                    }
+                }
             }
 
-            Image[] images = GetComponentsInChildren<Image>(true);
-            for (int index = 0; index < images.Length; index++)
+            if (_countText == null)
             {
-                Image image = images[index];
-                if (image != null &&
-                    image.name.IndexOf("CountImage", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                TMP_Text[] texts = GetComponentsInChildren<TMP_Text>(true);
+                for (int index = 0; index < texts.Length; index++)
                 {
-                    _modifierIcon = image;
-                    return;
+                    TMP_Text text = texts[index];
+                    if (text != null &&
+                        text.name.IndexOf("CountText", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        _countText = text;
+                        break;
+                    }
                 }
             }
         }

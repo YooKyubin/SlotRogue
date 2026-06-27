@@ -91,6 +91,13 @@
 - 2026-06-18: `40_SlotMachineArea`의 `Relic Inventory Origin`을 런타임 버튼으로 연결하고, `RunInventoryViewModel`/`RunInventoryView`로 심볼 풀 현재 개수와 보유 유물 전체를 탭으로 표시한다. `dotnet build SlotRogue.slnx --no-restore` 경고·오류 0개, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0을 확인했다. Unity Play 검증은 보류.
 - 2026-06-23: `BattleSceneCompositionRoot`의 일반 전투용 dev monster override를 제거하고, 튜토리얼은 별도 `_tutorialMonsterDefinition` 참조로 분리했다. 일반 전투는 항상 `EncounterTable` 선택 경로를 사용한다.
 
+- 2026-06-26: `staticon-Sheet`를 `Assets/_Project/Art/UI`로 이동하고 `staticon-Sheet-TMP` Addressable TMP SpriteAsset을 추가했다. 슬롯 최종 결과창은 해당 Addressable을 로드해 공격/방어/힐 아이콘을 표시하고, 스핀 시작 직후 기본 공격력에서 출발해 패턴/유물 적용마다 1씩 증가하는 라이브 값 연출로 갱신된다. `dotnet build SlotRogue.slnx --no-restore`, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0 확인. Unity Play 검증은 보류.
+- 2026-06-26: 시작 유물 선택 후 Battle 화면 진입 전에 슬롯 카탈로그/심볼 Addressable과 초기 슬롯 face를 미리 준비하도록 전환했다. Battle View가 보인 뒤 `SetupImmediate()`가 슬롯 이미지를 한 번 덮어써 보이던 틱 현상을 줄이기 위한 수정이며, 중복 선택으로 Battle 진입 준비가 두 번 실행되지 않도록 막았다. `dotnet build SlotRogue.slnx --no-restore`, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0 확인. Unity Play 검증은 보류.
+- 2026-06-26: `RunInventoryView`가 탭 배경을 오래된 하드코딩 색으로 덮어쓰던 로직을 제거하고, 심볼/유물 탭을 좌우 활성/비활성 스프라이트 교체 방식으로 맞췄다. `InventoryView.prefab`에 탭 스프라이트 4장을 연결해 게임씬 진입 후에도 파란 탭 팔레트가 유지되도록 했다. `dotnet build SlotRogue.slnx --no-restore`, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0 확인. Unity Play 검증은 보류.
+- 2026-06-26: 인벤토리 셀 프리팹(`Frame.prefab`)에 Button 컴포넌트를 추가하고 루트 Frame이 클릭을 받도록 Icon/Highlight의 raycast target을 껐다. 인벤토리 아이콘 클릭 시 기존 `RunInventoryView.Select()` 경로로 선택 하이라이트와 설명창이 표시되도록 보정했다. `dotnet build SlotRogue.slnx --no-restore`, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0 확인. Unity Play 검증은 보류.
+- 2026-06-26: 현재 `20_RunGameScene` 하이어라키 기준으로 `Wave HUD`에 `RunHUDView`를 부착하고 `RunGameSceneRoot._hudView`를 연결했다. HUD는 `Wave Text`를 `WAVE n`으로 갱신하며 TMP_Text를 우선 사용하고 기존 Text는 fallback으로 유지한다. `Pause Button` 입력은 씬의 `SettingPanel`을 열며 `ConsumeButton`은 닫기, `GiveUpButton`은 런 포기 후 홈 이동으로 연결한다. `dotnet build SlotRogue.slnx --no-restore`, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0 확인. Unity Play 검증은 보류.
+- 2026-06-26: `RunHUDView`의 HP 자동 탐색이 전투 HUD의 `Player HP Text`까지 잡아 부활 직후 `50 / 100` 포맷으로 덮어쓰던 문제를 막았다. 공통 HUD는 자기 하위 `HP Text`만 자동 연결하고, 전투 HP 숫자는 `RunBattlePlayerHudView`가 계속 소유한다.
+
 ## Completion
 
 _(completed/로 옮길 때 채움.)_

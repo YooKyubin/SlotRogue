@@ -88,7 +88,8 @@ namespace SlotRogue.UI.Leaderboard
             Publish();
 
             LeaderboardServiceResult<IReadOnlyList<LeaderboardEntryData>> result =
-                await SlotRogueLeaderboardService.GetTopEntriesAsync();
+                await SlotRogueLeaderboardService.GetTopEntriesAsync(
+                    LeaderboardConstants.DisplayLimit);
             _isBusy = false;
 
             if (result.Success)

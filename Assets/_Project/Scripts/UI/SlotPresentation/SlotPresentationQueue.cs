@@ -11,12 +11,6 @@ namespace SlotRogue.UI.SlotPresentation
             if (result != null)
             {
                 AddPatterns(steps, result.Patterns);
-                AddAllRelics(steps, result.RelicTriggers);
-
-                if (result.FinalResult != null)
-                {
-                    steps.Add(SlotPresentationStep.ForFinal(result.FinalResult));
-                }
             }
 
             Steps = steps;
@@ -53,23 +47,5 @@ namespace SlotRogue.UI.SlotPresentation
             }
         }
 
-        private static void AddAllRelics(
-            List<SlotPresentationStep> steps,
-            IReadOnlyList<SlotRelicTriggerPresentationResult> relics)
-        {
-            if (relics == null)
-            {
-                return;
-            }
-
-            for (int index = 0; index < relics.Count; index++)
-            {
-                SlotRelicTriggerPresentationResult relic = relics[index];
-                if (relic != null)
-                {
-                    steps.Add(SlotPresentationStep.ForRelic(relic));
-                }
-            }
-        }
     }
 }

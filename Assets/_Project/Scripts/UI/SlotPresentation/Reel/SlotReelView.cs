@@ -13,7 +13,7 @@ namespace SlotRogue.UI.SlotPresentation.Reel
     /// Viewport (with a <see cref="RectMask2D"/>), a Content child holds a fixed pool of
     /// <see cref="SlotSymbolItemView"/> items that are recycled top &lt;-&gt; bottom so the reel
     /// appears to spin forever. The reel decelerates, snaps, and bounces onto the final rows.
-    /// Geometry and sprite tables are supplied by <see cref="SlotMachineSpinPresenter"/>.
+    /// Geometry and sprite tables are supplied by <see cref="SlotMachineSpinDirector"/>.
     /// </summary>
     [RequireComponent(typeof(RectTransform))]
     public sealed class SlotReelView : MonoBehaviour

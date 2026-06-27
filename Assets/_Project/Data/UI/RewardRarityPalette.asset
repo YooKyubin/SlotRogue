@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd7a3f97ff9168f4fbf7ebf76cf0c722, type: 3}
+  m_Name: RewardRarityPalette
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RewardRarityPalette
+  _entries:
+  - Rarity: 0
+    TintColor: {r: 0.2392157, g: 0.6, b: 0.7843138, a: 1}
+  - Rarity: 1
+    TintColor: {r: 0.13636363, g: 1, b: 0, a: 1}
+  - Rarity: 2
+    TintColor: {r: 0.20784314, g: 0.54901963, b: 0.9411765, a: 1}
+  - Rarity: 3
+    TintColor: {r: 0.6627451, g: 0.29803923, b: 0.9411765, a: 1}
+  - Rarity: 4
+    TintColor: {r: 1, g: 0.8666667, b: 0.3137255, a: 1}
+  - Rarity: 5
+    TintColor: {r: 0.8980392, g: 0.22745098, b: 0.22745098, a: 1}

@@ -169,15 +169,16 @@ namespace SlotRogue.UI.Tests.GameFlow
         [Test]
         public void StartRelicOptions_AreThreeUniqueStarters()
         {
-            GameFlowSession.StartNewRun();
-            var viewModel = new StartRelicSelectViewModel(new System.Random(1234));
+            // 시작 유물 선택은 보상 흐름(RunRewardService)에 병합되었다.
+            var service = new RunRewardService(new System.Random(1234));
             var ids = new HashSet<string>();
-            viewModel.Refresh();
 
-            Assert.That(viewModel.State.CurrentValue.Options.Count, Is.EqualTo(3));
-            foreach (StartRelicOptionViewState option in viewModel.State.CurrentValue.Options)
+            IReadOnlyList<RunRewardDefinition> options = service.RollStarterOptions(3);
+
+            Assert.That(options.Count, Is.EqualTo(3));
+            foreach (RunRewardDefinition option in options)
             {
-                RelicDefinition relic = RelicCatalog.GetById(option.Id);
+                RelicDefinition relic = option.Relic;
                 Assert.That(relic.IsStarter, Is.True);
                 Assert.That(option.IconKey, Is.EqualTo(relic.IconKey));
                 Assert.That(ids.Add(relic.Id), Is.True, $"중복 시작 유물: {relic.Id}");
@@ -191,7 +192,7 @@ namespace SlotRogue.UI.Tests.GameFlow
             var reward = new RunRewardDefinition(relic);
 
             Assert.That(reward.IconKey, Is.EqualTo(relic.IconKey));
-            Assert.That(reward.ModifierIconKey, Is.Empty);
+            Assert.That(reward.ModifierLabel, Is.Empty);
         }
 
         [Test]
@@ -254,11 +255,11 @@ namespace SlotRogue.UI.Tests.GameFlow
                 "Add symbol");
 
             Assert.That(reward.IconKey, Is.EqualTo(expectedIconKey));
-            Assert.That(reward.ModifierIconKey, Is.EqualTo(RewardModifierIconKeys.AddOne));
+            Assert.That(reward.ModifierLabel, Is.EqualTo("+1"));
         }
 
         [Test]
-        public void SymbolRemoveReward_UsesRemoveModifierIcon()
+        public void SymbolRemoveReward_UsesNegativeModifierLabel()
         {
             var reward = new RunRewardDefinition(
                 SlotSymbolType.Cherry,
@@ -266,7 +267,7 @@ namespace SlotRogue.UI.Tests.GameFlow
                 "Cherry",
                 "Remove cherry");
 
-            Assert.That(reward.ModifierIconKey, Is.EqualTo(RewardModifierIconKeys.RemoveOne));
+            Assert.That(reward.ModifierLabel, Is.EqualTo("-1"));
         }
 
         [Test]

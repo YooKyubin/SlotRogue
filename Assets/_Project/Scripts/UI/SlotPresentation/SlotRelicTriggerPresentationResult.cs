@@ -10,7 +10,10 @@ namespace SlotRogue.UI.SlotPresentation
             Sprite icon,
             string description,
             string valueText,
-            int triggerPatternIndex = -1)
+            int triggerPatternIndex = -1,
+            int damagePerHit = 0,
+            int block = 0,
+            int heal = 0)
         {
             RelicId = relicId ?? string.Empty;
             RelicName = relicName ?? string.Empty;
@@ -18,6 +21,9 @@ namespace SlotRogue.UI.SlotPresentation
             Description = description ?? string.Empty;
             ValueText = valueText ?? string.Empty;
             TriggerPatternIndex = triggerPatternIndex;
+            DamagePerHit = Mathf.Max(0, damagePerHit);
+            Block = Mathf.Max(0, block);
+            Heal = Mathf.Max(0, heal);
         }
 
         public string RelicId { get; }
@@ -31,5 +37,11 @@ namespace SlotRogue.UI.SlotPresentation
         public string ValueText { get; }
 
         public int TriggerPatternIndex { get; }
+
+        public int DamagePerHit { get; }
+
+        public int Block { get; }
+
+        public int Heal { get; }
     }
 }

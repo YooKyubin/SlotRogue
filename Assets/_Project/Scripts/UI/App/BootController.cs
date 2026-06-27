@@ -6,6 +6,7 @@ using SlotRogue.Relics.Pool;
 using SlotRogue.UI.GameFlow;
 using SlotRogue.UI.Iap;
 using SlotRogue.UI.Leaderboard;
+using TMPro;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.AddressableAssets.ResourceLocators;
@@ -17,12 +18,58 @@ namespace SlotRogue.UI.App
     [DefaultExecutionOrder(-10000)]
     public sealed class BootController : MonoBehaviour
     {
-        private BootLoadingScreen _loadingScreen;
+        private static readonly string[] DefaultLoadingMessages =
+        {
+            "우주선 시동 거는 중...",
+            "슬롯 엔진 예열 중...",
+            "별가루 연료 주입 중...",
+            "항로 계산 중...",
+            "유물 신호 스캔 중...",
+            "보급품 적재 중...",
+            "도킹 해제 준비 중...",
+            "외계 신호 수신 중..."
+        };
+
+        [Header("Loading")]
+        [SerializeField] private GameObject _loadingPanel;
+        [SerializeField] private Slider _loadingSlider;
+        [SerializeField] private Image _loadingFillImage;
+        [SerializeField] private TMP_Text _loadingText;
+        [SerializeField] private Text _legacyLoadingText;
+        [SerializeField] private float _loadingMessageIntervalSeconds = 0.8f;
+        [SerializeField]
+        private string[] _loadingMessages =
+        {
+            "우주선 시동 거는 중...",
+            "슬롯 엔진 예열 중...",
+            "별가루 연료 주입 중...",
+            "항로 계산 중...",
+            "유물 신호 스캔 중...",
+            "보급품 적재 중...",
+            "도킹 해제 준비 중...",
+            "외계 신호 수신 중..."
+        };
+
+        [Header("Resume")]
+        [SerializeField] private GameObject _resumePanel;
+        [SerializeField] private Button _resumeButton;
+        [SerializeField] private Button _declineResumeButton;
+
+        private CancellationTokenSource _loadingMessageCts;
 
         private void Awake()
         {
             IapStoreConnectionCallbacks.Register();
-            _loadingScreen = BootLoadingScreen.Show("Loading...");
+            EnsureLoadingReferences();
+            ShowLoadingPanel();
+            HideResumePanel();
+            BindResumeButtons();
+        }
+
+        private void OnDestroy()
+        {
+            StopLoadingMessageLoop();
+            UnbindResumeButtons();
         }
 
         private void Start()
@@ -37,22 +84,236 @@ namespace SlotRogue.UI.App
                 AdsRemoveState.Initialize();
                 SlotRogueLeaderboardService.InitializeAsync().Forget();
 
-                _loadingScreen?.SetMessage("Loading assets...");
-                await BootAssetPreloader.PreloadAsync();
+                StartLoadingMessageLoop();
+                SetLoadingProgress(0f);
 
-                _loadingScreen?.SetMessage("Starting...");
-                await GameSceneLoader.LoadGameStartAsync();
+                await BootAssetPreloader.PreloadAsync(
+                    new Progress<float>(progress =>
+                        SetLoadingProgress(Mathf.Lerp(0f, 0.8f, progress))));
+
+                if (RunPersistenceStore.HasSaved && _resumePanel != null)
+                {
+                    StopLoadingMessageLoop();
+                    HideLoadingPanel();
+                    ShowResumePanel();
+                    return;
+                }
+
+                SetLoadingMessage("도킹 게이트 여는 중...");
+                await GameSceneLoader.LoadGameStartAsync(
+                    new Progress<float>(progress =>
+                        SetLoadingProgress(Mathf.Lerp(0.8f, 1f, progress))));
             }
             catch (Exception exception)
             {
                 Debug.LogException(exception);
                 GameSceneLoader.LoadGameStart();
             }
+        }
 
-            if (_loadingScreen != null)
+        private void ShowResumePanel()
+        {
+            StopLoadingMessageLoop();
+            HideLoadingPanel();
+            _resumePanel.SetActive(true);
+
+            if (_resumeButton == null && _declineResumeButton == null)
             {
-                await _loadingScreen.HideAfterSceneReadyAsync();
+                Debug.LogWarning("[BootController] Resume buttons must be wired in the inspector.");
+                GameSceneLoader.LoadGameStart();
             }
+        }
+
+        private void HideResumePanel()
+        {
+            if (_resumePanel != null)
+            {
+                _resumePanel.SetActive(false);
+            }
+        }
+
+        private void BindResumeButtons()
+        {
+            if (_resumeButton != null)
+            {
+                _resumeButton.onClick.RemoveListener(OnResumeChosen);
+                _resumeButton.onClick.AddListener(OnResumeChosen);
+            }
+
+            if (_declineResumeButton != null)
+            {
+                _declineResumeButton.onClick.RemoveListener(OnDeclineResume);
+                _declineResumeButton.onClick.AddListener(OnDeclineResume);
+            }
+        }
+
+        private void UnbindResumeButtons()
+        {
+            if (_resumeButton != null)
+            {
+                _resumeButton.onClick.RemoveListener(OnResumeChosen);
+            }
+
+            if (_declineResumeButton != null)
+            {
+                _declineResumeButton.onClick.RemoveListener(OnDeclineResume);
+            }
+        }
+
+        private void ShowLoadingPanel()
+        {
+            EnsureLoadingReferences();
+
+            if (_loadingPanel != null)
+            {
+                _loadingPanel.SetActive(true);
+            }
+
+            SetLoadingProgress(0f);
+            SetRandomLoadingMessage(-1);
+        }
+
+        private void EnsureLoadingReferences()
+        {
+            if (_loadingPanel != null)
+            {
+                _loadingSlider ??= _loadingPanel.GetComponentInChildren<Slider>(true);
+                _loadingText ??= _loadingPanel.GetComponentInChildren<TMP_Text>(true);
+                _legacyLoadingText ??= _loadingPanel.GetComponentInChildren<Text>(true);
+            }
+
+            if (_loadingSlider != null &&
+                _loadingFillImage == null &&
+                _loadingSlider.fillRect != null)
+            {
+                _loadingFillImage = _loadingSlider.fillRect.GetComponent<Image>();
+            }
+        }
+
+        private void HideLoadingPanel()
+        {
+            if (_loadingPanel != null)
+            {
+                _loadingPanel.SetActive(false);
+            }
+        }
+
+        private void SetLoadingProgress(float progress)
+        {
+            float normalizedProgress = Mathf.Clamp01(progress);
+
+            if (_loadingSlider != null)
+            {
+                _loadingSlider.normalizedValue = normalizedProgress;
+            }
+
+            if (_loadingFillImage != null)
+            {
+                _loadingFillImage.fillAmount = normalizedProgress;
+            }
+        }
+
+        private void SetLoadingMessage(string message)
+        {
+            if (_loadingText != null)
+            {
+                _loadingText.text = message ?? string.Empty;
+            }
+
+            if (_legacyLoadingText != null)
+            {
+                _legacyLoadingText.text = message ?? string.Empty;
+            }
+        }
+
+        private void StartLoadingMessageLoop()
+        {
+            StopLoadingMessageLoop();
+            _loadingMessageCts = CancellationTokenSource.CreateLinkedTokenSource(
+                this.GetCancellationTokenOnDestroy());
+            CycleLoadingMessagesAsync(_loadingMessageCts.Token).Forget();
+        }
+
+        private void StopLoadingMessageLoop()
+        {
+            if (_loadingMessageCts == null)
+            {
+                return;
+            }
+
+            _loadingMessageCts.Cancel();
+            _loadingMessageCts.Dispose();
+            _loadingMessageCts = null;
+        }
+
+        private async UniTaskVoid CycleLoadingMessagesAsync(CancellationToken cancellationToken)
+        {
+            int lastMessageIndex = -1;
+            TimeSpan interval = TimeSpan.FromSeconds(
+                Mathf.Max(0.2f, _loadingMessageIntervalSeconds));
+
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                lastMessageIndex = SetRandomLoadingMessage(lastMessageIndex);
+
+                try
+                {
+                    await UniTask.Delay(
+                        interval,
+                        DelayType.UnscaledDeltaTime,
+                        PlayerLoopTiming.Update,
+                        cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+            }
+        }
+
+        private int SetRandomLoadingMessage(int lastMessageIndex)
+        {
+            string[] messages = HasLoadingMessages(_loadingMessages)
+                ? _loadingMessages
+                : DefaultLoadingMessages;
+
+            if (!HasLoadingMessages(messages))
+            {
+                SetLoadingMessage(string.Empty);
+                return -1;
+            }
+
+            int messageIndex = UnityEngine.Random.Range(0, messages.Length);
+            if (messages.Length > 1 && messageIndex == lastMessageIndex)
+            {
+                messageIndex = (messageIndex + 1) % messages.Length;
+            }
+
+            SetLoadingMessage(messages[messageIndex]);
+            return messageIndex;
+        }
+
+        private static bool HasLoadingMessages(string[] messages)
+        {
+            return messages != null && messages.Length > 0;
+        }
+
+        private void OnResumeChosen()
+        {
+            if (RunPersistenceService.TryResume())
+            {
+                GameSceneLoader.LoadRunGame();
+            }
+            else
+            {
+                GameSceneLoader.LoadGameStart();
+            }
+        }
+
+        private void OnDeclineResume()
+        {
+            RunPersistenceStore.Clear();
+            GameSceneLoader.LoadGameStart();
         }
     }
 
@@ -66,20 +327,26 @@ namespace SlotRogue.UI.App
         private static bool _hasDefaultAssetsHandle;
         private static bool _completed;
 
-        internal static async UniTask PreloadAsync()
+        internal static async UniTask PreloadAsync(IProgress<float> progress = null)
         {
             if (_completed)
             {
+                progress?.Report(1f);
                 return;
             }
 
-            await InitializeAddressablesAsync();
-            await LoadDefaultAddressablesAsync();
-            await LoadPresentationSpritesAsync();
+            progress?.Report(0f);
+            await InitializeAddressablesAsync(progress, 0f, 0.25f);
+            await LoadDefaultAddressablesAsync(progress, 0.25f, 0.75f);
+            await LoadPresentationSpritesAsync(progress, 0.75f, 1f);
             _completed = true;
+            progress?.Report(1f);
         }
 
-        private static async UniTask InitializeAddressablesAsync()
+        private static async UniTask InitializeAddressablesAsync(
+            IProgress<float> progress,
+            float startProgress,
+            float endProgress)
         {
             if (!_hasInitializeHandle)
             {
@@ -89,8 +356,11 @@ namespace SlotRogue.UI.App
 
             while (_initializeHandle.IsValid() && !_initializeHandle.IsDone)
             {
+                ReportOperationProgress(progress, _initializeHandle, startProgress, endProgress);
                 await UniTask.Yield(PlayerLoopTiming.Update);
             }
+
+            progress?.Report(endProgress);
 
             if (!_initializeHandle.IsValid() ||
                 _initializeHandle.Status == AsyncOperationStatus.Succeeded)
@@ -102,7 +372,10 @@ namespace SlotRogue.UI.App
                 $"[BootAssetPreloader] Addressables initialization failed: {FailureReason(_initializeHandle)}");
         }
 
-        private static async UniTask LoadDefaultAddressablesAsync()
+        private static async UniTask LoadDefaultAddressablesAsync(
+            IProgress<float> progress,
+            float startProgress,
+            float endProgress)
         {
             if (!_hasDefaultAssetsHandle)
             {
@@ -114,8 +387,11 @@ namespace SlotRogue.UI.App
 
             while (_defaultAssetsHandle.IsValid() && !_defaultAssetsHandle.IsDone)
             {
+                ReportOperationProgress(progress, _defaultAssetsHandle, startProgress, endProgress);
                 await UniTask.Yield(PlayerLoopTiming.Update);
             }
+
+            progress?.Report(endProgress);
 
             if (!_defaultAssetsHandle.IsValid() ||
                 _defaultAssetsHandle.Status == AsyncOperationStatus.Succeeded)
@@ -127,10 +403,15 @@ namespace SlotRogue.UI.App
                 $"[BootAssetPreloader] Default Addressables preload failed: {FailureReason(_defaultAssetsHandle)}");
         }
 
-        private static async UniTask LoadPresentationSpritesAsync()
+        private static async UniTask LoadPresentationSpritesAsync(
+            IProgress<float> progress,
+            float startProgress,
+            float endProgress)
         {
             IReadOnlyList<string> keys = BuildPresentationSpriteKeys();
+            progress?.Report(startProgress);
             await AddressableSpriteCache.PreloadAsync(keys, CancellationToken.None);
+            progress?.Report(endProgress);
         }
 
         private static IReadOnlyList<string> BuildPresentationSpriteKeys()
@@ -146,8 +427,6 @@ namespace SlotRogue.UI.App
             AddRange(keys, SlotSymbolIconKeys.HighlightSpriteKeys);
             AddRange(keys, SlotSymbolIconKeys.NormalSpriteKeys);
             AddRange(keys, SlotSymbolIconKeys.AnimationSpriteKeys);
-            AddUnique(keys, RewardModifierIconKeys.AddOne);
-            AddUnique(keys, RewardModifierIconKeys.RemoveOne);
 
             return keys;
         }
@@ -181,159 +460,22 @@ namespace SlotRogue.UI.App
                 ? handle.OperationException.Message
                 : "unknown error";
         }
-    }
 
-    internal sealed class BootLoadingScreen : MonoBehaviour
-    {
-        private const int SortingOrder = 32767;
-        private const float FadeDuration = 0.2f;
-
-        private static BootLoadingScreen _active;
-
-        private CanvasGroup _canvasGroup;
-        private Text _messageText;
-
-        internal static BootLoadingScreen Show(string message)
+        private static void ReportOperationProgress(
+            IProgress<float> progress,
+            AsyncOperationHandle handle,
+            float startProgress,
+            float endProgress)
         {
-            if (_active != null)
-            {
-                _active.SetMessage(message);
-                return _active;
-            }
-
-            var root = new GameObject("Boot Loading Screen");
-            DontDestroyOnLoad(root);
-
-            BootLoadingScreen screen = root.AddComponent<BootLoadingScreen>();
-            screen.Build(message);
-            _active = screen;
-            return screen;
-        }
-
-        internal void SetMessage(string message)
-        {
-            if (_messageText != null)
-            {
-                _messageText.text = message ?? string.Empty;
-            }
-        }
-
-        internal async UniTask HideAfterSceneReadyAsync()
-        {
-            await UniTask.Yield(PlayerLoopTiming.Update);
-            await UniTask.Yield(PlayerLoopTiming.Update);
-            await FadeOutAsync();
-
-            if (_active == this)
-            {
-                _active = null;
-            }
-
-            Destroy(gameObject);
-        }
-
-        private void Build(string message)
-        {
-            Canvas canvas = gameObject.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = SortingOrder;
-
-            var scaler = gameObject.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080f, 1920f);
-            scaler.matchWidthOrHeight = 0.5f;
-
-            gameObject.AddComponent<GraphicRaycaster>();
-
-            _canvasGroup = gameObject.AddComponent<CanvasGroup>();
-            _canvasGroup.alpha = 1f;
-            _canvasGroup.blocksRaycasts = true;
-
-            Image background = CreateImage("Background", transform);
-            background.color = Color.black;
-            Stretch(background.rectTransform);
-
-            _messageText = CreateText("Loading Text", transform);
-            _messageText.alignment = TextAnchor.MiddleCenter;
-            _messageText.color = new Color(0.88f, 0.9f, 0.94f, 1f);
-            _messageText.font = ResolveDefaultFont();
-            _messageText.fontSize = 34;
-            _messageText.raycastTarget = false;
-            _messageText.text = message ?? string.Empty;
-
-            RectTransform textRect = _messageText.rectTransform;
-            textRect.anchorMin = new Vector2(0f, 0f);
-            textRect.anchorMax = new Vector2(1f, 0f);
-            textRect.pivot = new Vector2(0.5f, 0f);
-            textRect.offsetMin = new Vector2(96f, 120f);
-            textRect.offsetMax = new Vector2(-96f, 220f);
-        }
-
-        private async UniTask FadeOutAsync()
-        {
-            if (_canvasGroup == null)
+            if (progress == null)
             {
                 return;
             }
 
-            float elapsed = 0f;
-            while (elapsed < FadeDuration)
-            {
-                elapsed += Time.unscaledDeltaTime;
-                _canvasGroup.alpha = 1f - Mathf.Clamp01(elapsed / FadeDuration);
-                await UniTask.Yield(PlayerLoopTiming.Update);
-            }
-
-            _canvasGroup.alpha = 0f;
-            _canvasGroup.blocksRaycasts = false;
-        }
-
-        private void OnDestroy()
-        {
-            if (_active == this)
-            {
-                _active = null;
-            }
-        }
-
-        private static Image CreateImage(string name, Transform parent)
-        {
-            var imageObject = new GameObject(
-                name,
-                typeof(RectTransform),
-                typeof(CanvasRenderer),
-                typeof(Image));
-            imageObject.transform.SetParent(parent, false);
-            Image image = imageObject.GetComponent<Image>();
-            image.raycastTarget = true;
-            return image;
-        }
-
-        private static Text CreateText(string name, Transform parent)
-        {
-            var textObject = new GameObject(
-                name,
-                typeof(RectTransform),
-                typeof(CanvasRenderer),
-                typeof(Text));
-            textObject.transform.SetParent(parent, false);
-            return textObject.GetComponent<Text>();
-        }
-
-        private static Font ResolveDefaultFont()
-        {
-            Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            return font != null
-                ? font
-                : Resources.GetBuiltinResource<Font>("Arial.ttf");
-        }
-
-        private static void Stretch(RectTransform rectTransform)
-        {
-            rectTransform.anchorMin = Vector2.zero;
-            rectTransform.anchorMax = Vector2.one;
-            rectTransform.offsetMin = Vector2.zero;
-            rectTransform.offsetMax = Vector2.zero;
+            progress.Report(Mathf.Lerp(
+                startProgress,
+                endProgress,
+                Mathf.Clamp01(handle.PercentComplete)));
         }
     }
 }

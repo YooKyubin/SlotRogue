@@ -11,6 +11,9 @@ namespace SlotRogue.UI.Leaderboard
         public const string Id = "Slot_Rogue_Leaderboard";
         public const int MetadataSchemaVersion = 3;
         public const int DefaultPageSize = 10;
+
+        /// <summary>랭킹 화면에 노출하는 최대 순위 수(포디움 + 리스트). UGS 조회 상한과 동일하게 100.</summary>
+        public const int DisplayLimit = 100;
     }
 
     [Serializable]

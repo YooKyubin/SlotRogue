@@ -10,12 +10,18 @@ namespace SlotRogue.UI.GameFlow
     {
         private const int DefaultPlayerMaxHp = 100;
 
+        /// <summary>저장 포맷 버전. 호환되지 않는 저장본은 복원 시 무시합니다.</summary>
+        private const int SaveVersion = 1;
+
+        /// <summary>새 런이 시작될 때 발생합니다(저장본 무효화 등에 사용).</summary>
+        public static event Action RunStarted;
+
+        /// <summary>런이 종료될 때 발생합니다(저장본 무효화 등에 사용).</summary>
+        public static event Action RunEnded;
+
         // ── 무한모드 진행 (Infinite Mode) ───────────────────────────────
         // v1 출시 스코프. 맵/노드 없이 인덱스 기반으로 전투를 반복하며,
         // 등급은 CurrentBattleNumber로부터 생성합니다.
-
-        /// <summary>일반 전투 승리 시 자동 회복량. (엘리트/보스는 유물로만 보상)</summary>
-        private const int NormalWinHeal = 4;
 
         private static readonly WaveSchedule DefaultWaveSchedule = WaveSchedule.CreateDefault();
 
@@ -72,7 +78,8 @@ namespace SlotRogue.UI.GameFlow
 
             if (CurrentTier == EncounterTier.Normal)
             {
-                PlayerCurrentHp = Math.Min(PlayerCurrentHp + NormalWinHeal, PlayerMaxHp);
+                PlayerCurrentHp = Math.Min(
+                    PlayerCurrentHp + RewardEconomy.NormalWinHeal, PlayerMaxHp);
             }
         }
 
@@ -107,58 +114,28 @@ namespace SlotRogue.UI.GameFlow
 
         // ── v23 유물 인벤토리 ────────────────────────────────────────────
         // 시작 유물 + 보상으로 획득한 유물을 누적한다. 전투마다 RelicTurnResolver가 소비한다.
-        private static readonly List<RelicDefinition> _ownedRelics = new();
+        // 보유 로직은 인스턴스 클래스 RelicInventory에 위임한다(책임 분리 + 테스트 가능).
+        private static readonly RelicInventory _inventory = new();
         private static readonly RelicContributionAccumulator _relicContributions = new();
         private static readonly SlotSymbolContributionAccumulator _slotSymbolContributions = new();
 
         /// <summary>이 런에서 보유한 v23 유물 목록(시작 유물 포함).</summary>
-        public static IReadOnlyList<RelicDefinition> OwnedRelics => _ownedRelics;
+        public static IReadOnlyList<RelicDefinition> OwnedRelics => _inventory.Owned;
 
-        public static bool HasStarterRelic
-        {
-            get
-            {
-                for (int index = 0; index < _ownedRelics.Count; index++)
-                {
-                    if (_ownedRelics[index].IsStarter)
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-        }
+        public static bool HasStarterRelic => _inventory.HasStarter;
 
         /// <summary>시작 유물은 런에 하나만 유지합니다.</summary>
         public static bool SelectStarterRelic(RelicDefinition relic)
         {
             EnsureRunStarted();
-            if (relic == null || !relic.IsStarter || !relic.Phase1)
-            {
-                return false;
-            }
-
-            for (int index = _ownedRelics.Count - 1; index >= 0; index--)
-            {
-                if (_ownedRelics[index].IsStarter)
-                {
-                    _ownedRelics.RemoveAt(index);
-                }
-            }
-
-            _ownedRelics.Insert(0, relic);
-            return true;
+            return _inventory.SelectStarter(relic);
         }
 
         /// <summary>v23 유물을 보유 목록에 추가합니다(중복 허용 — 동일 유물 누적 가능).</summary>
         public static void AddRelic(RelicDefinition relic)
         {
             EnsureRunStarted();
-            if (relic != null)
-            {
-                _ownedRelics.Add(relic);
-            }
+            _inventory.Add(relic);
         }
 
         public static void StartNewRun()
@@ -189,15 +166,17 @@ namespace SlotRogue.UI.GameFlow
             DefenseBonus = 0;
             HasRevivedThisRun = false;
             IsDefeatPending = false;
-            _ownedRelics.Clear();
+            _inventory.Clear();
             _relicContributions.Clear();
             _slotSymbolContributions.Clear();
             SlotPool.Reset();
 
             if (isTutorialRun)
             {
-                _ownedRelics.Add(TutorialBattleDefinition.TrainingBatteryRelic);
+                _inventory.Add(TutorialBattleDefinition.TrainingBatteryRelic);
             }
+
+            RunStarted?.Invoke();
         }
 
         public static void EnsureRunStarted()
@@ -246,42 +225,127 @@ namespace SlotRogue.UI.GameFlow
             IsDefeatPending = false;
             HasRun = false;
             IsTutorialRun = false;
+            RunEnded?.Invoke();
+        }
+
+        /// <summary>
+        /// 저장/복원 가능한 상태인지 여부. 패배 대기(HP 0)나 튜토리얼은 저장하지 않습니다.
+        /// </summary>
+        public static bool IsResumable =>
+            HasRun && !IsTutorialRun && !IsDefeatPending && PlayerCurrentHp > 0;
+
+        /// <summary>현재 런 상태를 직렬화용 스냅샷으로 캡처합니다.</summary>
+        public static RunSaveData CaptureSave()
+        {
+            IReadOnlyList<SlotSymbolType> symbols = SlotSymbolPool.Symbols;
+            var symbolTypes = new int[symbols.Count];
+            var symbolCounts = new int[symbols.Count];
+            for (int index = 0; index < symbols.Count; index++)
+            {
+                symbolTypes[index] = (int)symbols[index];
+                symbolCounts[index] = SlotPool.GetCount(symbols[index]);
+            }
+
+            IReadOnlyList<RelicDefinition> relics = _inventory.Owned;
+            var relicIds = new string[relics.Count];
+            for (int index = 0; index < relics.Count; index++)
+            {
+                relicIds[index] = relics[index].Id;
+            }
+
+            return new RunSaveData
+            {
+                version = SaveVersion,
+                isTutorialRun = IsTutorialRun,
+                isInfiniteMode = IsInfiniteMode,
+                playerMaxHp = PlayerMaxHp,
+                playerCurrentHp = PlayerCurrentHp,
+                battleIndex = BattleIndex,
+                currentBattleNumber = CurrentBattleNumber,
+                runSeed = RunSeed,
+                victories = Victories,
+                rewardsClaimed = RewardsClaimed,
+                damageBonus = DamageBonus,
+                defenseBonus = DefenseBonus,
+                hasRevivedThisRun = HasRevivedThisRun,
+                relicIds = relicIds,
+                symbolTypes = symbolTypes,
+                symbolCounts = symbolCounts,
+            };
+        }
+
+        /// <summary>
+        /// 저장 스냅샷에서 런을 복원합니다. 포맷 불일치/무효 데이터면 false를 반환하고 상태를 바꾸지 않습니다.
+        /// 카탈로그에서 사라진 유물 Id는 건너뜁니다(앱 업데이트 호환).
+        /// </summary>
+        public static bool RestoreFromSave(RunSaveData data)
+        {
+            if (data == null ||
+                data.version != SaveVersion ||
+                data.playerCurrentHp <= 0 ||
+                data.currentBattleNumber < 1)
+            {
+                return false;
+            }
+
+            HasRun = true;
+            IsTutorialRun = data.isTutorialRun;
+            IsInfiniteMode = data.isInfiniteMode;
+            PlayerMaxHp = Math.Max(1, data.playerMaxHp);
+            PlayerCurrentHp = Math.Min(Math.Max(1, data.playerCurrentHp), PlayerMaxHp);
+            BattleIndex = Math.Max(0, data.battleIndex);
+            CurrentBattleNumber = Math.Max(1, data.currentBattleNumber);
+            RunSeed = data.runSeed;
+            Victories = Math.Max(0, data.victories);
+            RewardsClaimed = Math.Max(0, data.rewardsClaimed);
+            DamageBonus = Math.Max(0, data.damageBonus);
+            DefenseBonus = Math.Max(0, data.defenseBonus);
+            HasRevivedThisRun = data.hasRevivedThisRun;
+            IsDefeatPending = false;
+
+            _inventory.Clear();
+            if (data.relicIds != null)
+            {
+                for (int index = 0; index < data.relicIds.Length; index++)
+                {
+                    RelicDefinition relic = RelicCatalog.GetById(data.relicIds[index]);
+                    if (relic != null)
+                    {
+                        _inventory.Add(relic);
+                    }
+                }
+            }
+
+            _relicContributions.Clear();
+            _slotSymbolContributions.Clear();
+
+            SlotPool.Reset();
+            if (data.symbolTypes != null &&
+                data.symbolCounts != null &&
+                data.symbolTypes.Length == data.symbolCounts.Length)
+            {
+                for (int index = 0; index < data.symbolTypes.Length; index++)
+                {
+                    SlotPool.SetCount(
+                        (SlotSymbolType)data.symbolTypes[index],
+                        data.symbolCounts[index]);
+                }
+            }
+
+            return true;
         }
 
         public static void ApplyReward(RunRewardType rewardType)
         {
             EnsureRunStarted();
 
-            switch (rewardType)
-            {
-                case RunRewardType.Heal:
-                    PlayerCurrentHp = Math.Min(PlayerCurrentHp + 8, PlayerMaxHp);
-                    break;
-                case RunRewardType.DamageBonus:
-                    DamageBonus += 2;
-                    break;
-                case RunRewardType.DefenseBonus:
-                    DefenseBonus += 2;
-                    break;
-                case RunRewardType.MaxHpUp:
-                    PlayerMaxHp += 5;
-                    PlayerCurrentHp = Math.Min(PlayerCurrentHp + 5, PlayerMaxHp);
-                    break;
-                case RunRewardType.BigHeal:
-                    PlayerCurrentHp = Math.Min(PlayerCurrentHp + 16, PlayerMaxHp);
-                    break;
-                case RunRewardType.GreaterDamage:
-                    DamageBonus += 4;
-                    break;
-                case RunRewardType.GreaterDefense:
-                    DefenseBonus += 4;
-                    break;
-                case RunRewardType.FullHeal:
-                    PlayerCurrentHp = PlayerMaxHp;
-                    break;
-                default:
-                    break;
-            }
+            RunVitals applied = RewardEconomy.Apply(
+                new RunVitals(PlayerMaxHp, PlayerCurrentHp, DamageBonus, DefenseBonus),
+                rewardType);
+            PlayerMaxHp = applied.MaxHp;
+            PlayerCurrentHp = applied.CurrentHp;
+            DamageBonus = applied.DamageBonus;
+            DefenseBonus = applied.DefenseBonus;
 
             RewardsClaimed++;
         }
@@ -316,7 +380,7 @@ namespace SlotRogue.UI.GameFlow
         public static IReadOnlyList<RelicContributionSnapshot>
             GetRelicContributionSummary()
         {
-            return _relicContributions.SnapshotForRelics(_ownedRelics);
+            return _relicContributions.SnapshotForRelics(_inventory.Owned);
         }
 
         public static IReadOnlyList<SlotSymbolContributionSnapshot>
@@ -325,114 +389,11 @@ namespace SlotRogue.UI.GameFlow
             return _slotSymbolContributions.SnapshotForSymbols(SlotSymbolPool.Symbols);
         }
 
-        public static string BuildRelicContributionSummary()
-        {
-            IReadOnlyList<RelicContributionSnapshot> contributions =
-                GetRelicContributionSummary();
-            if (contributions.Count == 0)
-            {
-                return "NO RELICS";
-            }
-
-            var builder = new System.Text.StringBuilder();
-            for (int index = 0; index < contributions.Count; index++)
-            {
-                RelicContributionSnapshot contribution = contributions[index];
-                if (index > 0)
-                {
-                    builder.AppendLine();
-                    builder.AppendLine();
-                }
-
-                builder.Append(contribution.RelicName);
-                builder.Append(" [");
-                builder.Append(contribution.RelicId);
-                builder.AppendLine("]");
-                builder.Append("TRIGGER ");
-                builder.Append(contribution.TriggerCount);
-                builder.Append("  DMG ");
-                builder.Append(contribution.Damage);
-                builder.Append("  BLOCK ");
-                builder.Append(contribution.Block);
-                builder.Append("  HEAL ");
-                builder.Append(contribution.Heal);
-            }
-
-            return builder.ToString();
-        }
-
-        public static string BuildSlotSymbolContributionSummary()
-        {
-            IReadOnlyList<SlotSymbolContributionSnapshot> contributions =
-                GetSlotSymbolContributionSummary();
-            if (contributions.Count == 0)
-            {
-                return "NO SYMBOLS";
-            }
-
-            var builder = new System.Text.StringBuilder();
-            for (int index = 0; index < contributions.Count; index++)
-            {
-                SlotSymbolContributionSnapshot contribution = contributions[index];
-                if (index > 0)
-                {
-                    builder.AppendLine();
-                }
-
-                builder.Append(RelicDisplay.SymbolKorean(contribution.Symbol));
-                builder.Append("  족보 ");
-                builder.Append(contribution.PatternCount);
-                builder.Append("회  기본 ");
-                builder.Append(contribution.BaseAttackPower);
-                builder.Append("  유물 ");
-                builder.Append(contribution.RelicAttackPower);
-                builder.Append("  DEF ");
-                builder.Append(contribution.DefensePower);
-                builder.Append("  합계 ");
-                builder.Append(contribution.TotalAttackPower);
-            }
-
-            return builder.ToString();
-        }
-
-        public static string BuildSummary()
-        {
-            return
-                $"HP {PlayerCurrentHp}/{PlayerMaxHp}\n" +
-                $"진입 전투: {BattleIndex}\n" +
-                $"승리: {Victories}\n" +
-                $"보상: {RewardsClaimed}\n" +
-                $"현재 전투: {CurrentBattleNumber}\n" +
-                $"전투 등급: {CurrentTier}\n" +
-                $"부활 사용: {HasRevivedThisRun}\n" +
-                $"보유 유물: {BuildRelicSummary()}\n" +
-                $"슬롯 풀: {SlotPool.BuildSummary()}";
-        }
-
-        private static string BuildRelicSummary()
-        {
-            if (_ownedRelics.Count == 0)
-            {
-                return "없음";
-            }
-
-            var builder = new System.Text.StringBuilder();
-            for (int index = 0; index < _ownedRelics.Count; index++)
-            {
-                if (index > 0)
-                {
-                    builder.Append(", ");
-                }
-
-                builder.Append(_ownedRelics[index].Name);
-            }
-
-            return builder.ToString();
-        }
-
         private static int GenerateRunSeed()
         {
-            return Environment.TickCount;
+            // TickCount는 해상도가 낮아 짧은 간격에 두 런이 같은 시드를 받을 수 있다.
+            // Guid 해시는 호출마다 충돌 없이 분산된 시드를 보장한다.
+            return Guid.NewGuid().GetHashCode();
         }
     }
 }

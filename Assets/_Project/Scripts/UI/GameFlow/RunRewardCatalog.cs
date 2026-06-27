@@ -72,7 +72,7 @@ namespace SlotRogue.UI.GameFlow
                     symbol,
                     1,
                     $"{korean} 추가",
-                    $"슬롯 풀에 {korean} 심볼 1개를 추가합니다. (현재 {count}개)\n{korean} 족보가 더 자주 뜹니다."));
+                    $"슬롯 풀에 {korean} 심볼 1개를 추가합니다. (현재 {count}개)"));
 
                 if (count > MinSymbolCountAfterRemove)
                 {
@@ -80,7 +80,7 @@ namespace SlotRogue.UI.GameFlow
                         symbol,
                         -1,
                         $"{korean} 제거",
-                        $"슬롯 풀에서 {korean} 심볼 1개를 제거합니다. (현재 {count}개)\n나머지 심볼이 상대적으로 더 자주 뜹니다."));
+                        $"슬롯 풀에서 {korean} 심볼 1개를 제거합니다. (현재 {count}개)"));
                 }
             }
 

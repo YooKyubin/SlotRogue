@@ -61,7 +61,24 @@ namespace SlotRogue.UI.GameFlow
             if (!Handles.TryGetValue(key, out AsyncOperationHandle<Sprite> handle) ||
                 !handle.IsValid())
             {
-                handle = Addressables.LoadAssetAsync<Sprite>(key);
+                // 잘못된/유실된 주소(예: dangling addressable, Sprite로 임포트되지 않은 시트)는
+                // LoadAssetAsync가 동기적으로 InvalidKeyException을 던진다. 한 키의 실패가
+                // preload 전체를 중단시키지 않도록 잡아서 실패 키로 기록하고 넘어간다.
+                try
+                {
+                    handle = Addressables.LoadAssetAsync<Sprite>(key);
+                }
+                catch (Exception ex)
+                {
+                    if (FailedKeys.Add(key))
+                    {
+                        Debug.LogWarning(
+                            $"[AddressableSpriteCache] Sprite '{key}' load threw: {ex.Message}");
+                    }
+
+                    return null;
+                }
+
                 Handles[key] = handle;
             }
 
@@ -148,7 +165,23 @@ namespace SlotRogue.UI.GameFlow
 
             if (!_handles.TryGetValue(key, out AsyncOperationHandle<Sprite> handle))
             {
-                handle = Addressables.LoadAssetAsync<Sprite>(key);
+                // 잘못된/유실된 주소는 LoadAssetAsync가 동기적으로 예외를 던진다.
+                // 호출부(아이콘 렌더)가 죽지 않도록 잡아서 실패 키로 기록하고 null을 반환한다.
+                try
+                {
+                    handle = Addressables.LoadAssetAsync<Sprite>(key);
+                }
+                catch (Exception ex)
+                {
+                    if (_failedKeys.Add(key))
+                    {
+                        Debug.LogWarning(
+                            $"[AddressableSpriteProvider] Sprite '{key}' load threw: {ex.Message}");
+                    }
+
+                    return null;
+                }
+
                 _handles.Add(key, handle);
             }
 
@@ -244,35 +277,15 @@ namespace SlotRogue.UI.GameFlow
     public sealed class RelicIconRenderer : IDisposable
     {
         private readonly AddressableSpriteProvider _spriteProvider;
-        private readonly AddressableSpriteProvider _modifierSpriteProvider;
         private readonly SlotSymbolTmpSpriteAssetProvider _descriptionSpriteAssetProvider;
         private readonly CancellationTokenSource _loadCts = new();
-        private int _startRelicRenderVersion;
         private int _rewardRenderVersion;
         private bool _disposed;
 
         public RelicIconRenderer()
         {
             _spriteProvider = new AddressableSpriteProvider(RelicIconKeys.Default);
-            _modifierSpriteProvider = new AddressableSpriteProvider(string.Empty);
             _descriptionSpriteAssetProvider = new SlotSymbolTmpSpriteAssetProvider();
-        }
-
-        public void RenderStartRelicIcons(
-            StartArtifactSelectionView view,
-            StartRelicSelectViewState state)
-        {
-            if (_disposed || view == null || state == null)
-            {
-                return;
-            }
-
-            int renderVersion = ++_startRelicRenderVersion;
-            ApplyStartRelicIconsAsync(
-                view,
-                state,
-                renderVersion,
-                _loadCts.Token).Forget();
         }
 
         public void RenderRewardIcons(
@@ -300,58 +313,11 @@ namespace SlotRogue.UI.GameFlow
             }
 
             _disposed = true;
-            _startRelicRenderVersion++;
             _rewardRenderVersion++;
             _loadCts.Cancel();
             _spriteProvider.Dispose();
-            _modifierSpriteProvider.Dispose();
             _descriptionSpriteAssetProvider.Dispose();
             _loadCts.Dispose();
-        }
-
-        private async UniTask ApplyStartRelicIconsAsync(
-            StartArtifactSelectionView view,
-            StartRelicSelectViewState state,
-            int renderVersion,
-            CancellationToken cancellationToken)
-        {
-            try
-            {
-                GameFlowOptionView[] views = view.ArtifactOptions;
-                int count = Mathf.Min(views?.Length ?? 0, state.Options.Count);
-                TMP_SpriteAsset descriptionSpriteAsset =
-                    await _descriptionSpriteAssetProvider.LoadAsync(cancellationToken);
-
-                if (renderVersion != _startRelicRenderVersion)
-                {
-                    return;
-                }
-
-                for (int index = 0; index < count; index++)
-                {
-                    if (views[index] != null)
-                    {
-                        views[index].SetDescriptionSpriteAsset(descriptionSpriteAsset);
-                    }
-
-                    Sprite icon = await _spriteProvider.LoadAsync(
-                        state.Options[index].IconKey,
-                        cancellationToken);
-
-                    if (renderVersion != _startRelicRenderVersion)
-                    {
-                        return;
-                    }
-
-                    if (views[index] != null)
-                    {
-                        views[index].SetIcon(icon);
-                    }
-                }
-            }
-            catch (OperationCanceledException)
-            {
-            }
         }
 
         private async UniTask ApplyRewardIconsAsync(
@@ -380,13 +346,14 @@ namespace SlotRogue.UI.GameFlow
                         return;
                     }
 
+                    // 수치 배지(+1/-1)는 텍스트라 RunRewardView.RenderOptions가 동기로 채운다.
+                    // 여기서는 아이콘 스프라이트만 비동기로 로드한다.
                     string iconKey = state.Options[index].IconKey;
                     if (string.IsNullOrEmpty(iconKey))
                     {
                         if (views[index] != null)
                         {
                             views[index].SetIcon(null);
-                            views[index].SetModifierIcon(null);
                             views[index].SetDescriptionSpriteAsset(descriptionSpriteAsset);
                         }
 
@@ -410,23 +377,6 @@ namespace SlotRogue.UI.GameFlow
                     if (views[index] != null)
                     {
                         views[index].SetIcon(icon);
-                    }
-
-                    string modifierIconKey = state.Options[index].ModifierIconKey;
-                    Sprite modifierIcon = string.IsNullOrEmpty(modifierIconKey)
-                        ? null
-                        : await _modifierSpriteProvider.LoadAsync(
-                            modifierIconKey,
-                            cancellationToken);
-
-                    if (renderVersion != _rewardRenderVersion)
-                    {
-                        return;
-                    }
-
-                    if (views[index] != null)
-                    {
-                        views[index].SetModifierIcon(modifierIcon);
                     }
                 }
             }

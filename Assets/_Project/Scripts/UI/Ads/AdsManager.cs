@@ -109,8 +109,10 @@ namespace SlotRogue.UI.Ads
             catch (Exception exception)
             {
                 Debug.LogError($"[AdsManager] Rewarded Display Failed: {exception.Message}");
-                CompleteRewardedSession(rewarded: false);
+                // 상태 플래그를 먼저 정리한 뒤 세션 종료를 통지한다. RewardedSessionEnded 핸들러가
+                // 동기적으로 CanShowRewarded를 호출해도 일관된 상태(showing=false)를 보게 한다.
                 _isShowing = false;
+                CompleteRewardedSession(rewarded: false);
                 NotifyRewardedAvailabilityChanged();
                 LoadRewarded();
             }
@@ -156,7 +158,7 @@ namespace SlotRogue.UI.Ads
         {
             UnsubscribeInitializationEvents();
             _isInitialized = true;
-            Debug.Log("[AdsManager] Init Success");
+            GameLog.Info("[AdsManager] Init Success");
 
             _rewardedAd = new LevelPlayRewardedAd(rewardedAdUnitId.Trim());
             _rewardedAd.OnAdLoaded += HandleRewardedLoaded;
@@ -178,7 +180,7 @@ namespace SlotRogue.UI.Ads
         private void HandleRewardedLoaded(LevelPlayAdInfo adInfo)
         {
             _isLoading = false;
-            Debug.Log("[AdsManager] Rewarded Loaded");
+            GameLog.Info("[AdsManager] Rewarded Loaded");
             NotifyRewardedAvailabilityChanged();
         }
 
@@ -192,7 +194,7 @@ namespace SlotRogue.UI.Ads
 
         private void HandleRewardedDisplayed(LevelPlayAdInfo adInfo)
         {
-            Debug.Log("[AdsManager] Rewarded Displayed");
+            GameLog.Info("[AdsManager] Rewarded Displayed");
         }
 
         private void HandleRewardedDisplayFailed(
@@ -200,8 +202,8 @@ namespace SlotRogue.UI.Ads
             LevelPlayAdError error)
         {
             Debug.LogError($"[AdsManager] Rewarded Display Failed: {error}");
-            CompleteRewardedSession(rewarded: false);
             _isShowing = false;
+            CompleteRewardedSession(rewarded: false);
             NotifyRewardedAvailabilityChanged();
             LoadRewarded();
         }
@@ -210,7 +212,7 @@ namespace SlotRogue.UI.Ads
             LevelPlayAdInfo adInfo,
             LevelPlayReward reward)
         {
-            Debug.Log("[AdsManager] Rewarded Rewarded");
+            GameLog.Info("[AdsManager] Rewarded Rewarded");
             if (_rewardGranted)
             {
                 return;
@@ -234,7 +236,7 @@ namespace SlotRogue.UI.Ads
 
         private void HandleRewardedClosed(LevelPlayAdInfo adInfo)
         {
-            Debug.Log("[AdsManager] Rewarded Closed");
+            GameLog.Info("[AdsManager] Rewarded Closed");
             _isShowing = false;
             if (_hasActiveSession && !_rewardGranted)
             {

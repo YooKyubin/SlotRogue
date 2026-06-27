@@ -4,11 +4,13 @@ using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
 using SlotRogue.Data.Combat;
 using SlotRogue.Data.GameFlow;
+using SlotRogue.Relics.Pool;
 using SlotRogue.Slot.Core;
 using SlotRogue.Slot.Data;
 using SlotRogue.Slot.ViewModels;
 using SlotRogue.UI.Combat;
 using SlotRogue.UI.Combat.Presentation;
+using SlotRogue.UI.RunGame;
 using SlotRogue.UI.SlotPresentation;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
@@ -23,7 +25,7 @@ namespace SlotRogue.UI.GameFlow
     /// Owns RunGame battle scene references, asset lifetime, and controller assembly.
     /// Battle order and rules are delegated to <see cref="BattleFlowController"/>.
     /// </summary>
-    public class BattleSceneCompositionRoot : MonoBehaviour
+    public class BattleSceneCompositionRoot : MonoBehaviour, IBattleSceneController
     {
         [SerializeField] private EncounterTable _encounterTable;
         [SerializeField] private WaveScheduleDefinition _waveScheduleDefinition;
@@ -55,6 +57,23 @@ namespace SlotRogue.UI.GameFlow
         public event Action BattleDefeat;
 
         public event Action<BattleTutorialSignal> TutorialSignalRaised;
+
+        public async UniTask PrepareBattleEntryAsync(CancellationToken cancellationToken)
+        {
+            await EnsureSlotPatternCatalogAsync(cancellationToken);
+            await EnsureSlotSymbolSpritesAsync(cancellationToken);
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
+            EnsureSceneReferences();
+            ApplySlotSymbolSprites();
+            _spinLeverView?.SetUpImmediate();
+            _slotMachineFrameView?.SetIdleImmediate();
+            _slotPresentationManager?.ShowImmediate(SlotTurnController.CreateInitialSlotDisplayResult());
+        }
 
         public void BeginBattle()
         {
@@ -185,7 +204,11 @@ namespace SlotRogue.UI.GameFlow
                 new SlotCombatRequestBuilder());
             var spinSequence = new RunBattleSpinSequence(_spinLeverView, _slotMachineFrameView);
             var slotTurnController =
-                new SlotTurnController(slotViewModel, spinSequence, _slotPresentationManager);
+                new SlotTurnController(
+                    slotViewModel,
+                    spinSequence,
+                    _slotPresentationManager,
+                    ResolveRelicIcon);
 
             var combatViewModel = new CombatViewModel();
             var commands = new CombatPresentationCommandDispatcher(
@@ -554,6 +577,19 @@ namespace SlotRogue.UI.GameFlow
             _slotPresentationManager.SetSymbolSprites(
                 _loadedSlotSymbolSprites,
                 _loadedSlotSpinSymbolSprites);
+        }
+
+        private static Sprite ResolveRelicIcon(string relicId)
+        {
+            RelicDefinition relic = RelicCatalog.GetById(relicId);
+            if (relic != null && AddressableSpriteCache.TryGet(relic.IconKey, out Sprite sprite))
+            {
+                return sprite;
+            }
+
+            return AddressableSpriteCache.TryGet(RelicIconKeys.Default, out sprite)
+                ? sprite
+                : null;
         }
 
         private void HandleBattleCompleted(BattleFlowResult result)

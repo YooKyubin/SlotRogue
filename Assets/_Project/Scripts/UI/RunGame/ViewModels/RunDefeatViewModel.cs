@@ -288,8 +288,8 @@ namespace SlotRogue.UI.RunGame.ViewModels
                 : $"BATTLE {_battleNumber}\nVICTORIES {_victories}\n" +
                   $"REWARDS {_rewardsClaimed}\nREVIVED {(_hasRevived ? "YES" : "NO")}";
             string countdownLabel = _isAwaitingAd
-                ? "광고 완료 후 부활"
-                : $"REVIVE WINDOW  {_countdownSeconds}";
+                ? string.Empty
+                : _countdownSeconds.ToString();
             string reviveLabel = _isAwaitingAd
                 ? "광고 재생 중..."
                 : _adsRemoved

@@ -12,6 +12,13 @@ namespace SlotRogue.UI.Leaderboard
 {
     public static class SlotRogueLeaderboardService
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        // ⚠️ 개발 전용: true면 UGS 대신 가짜 랭킹(최대 100명)을 반환한다.
+        // 이 플래그와 mock 경로는 에디터/개발 빌드에서만 컴파일된다.
+        // 릴리스 빌드에는 심볼 자체가 존재하지 않으므로 가짜 랭킹이 절대 출시되지 않는다.
+        public static bool UseMockEntries = true;
+#endif
+
         private static Task<LeaderboardServiceResult> _initializationTask;
         private static Task<LeaderboardServiceResult> _lastSubmissionTask;
 
@@ -87,9 +94,23 @@ namespace SlotRogue.UI.Leaderboard
             LeaderboardRunSnapshot snapshot)
         {
             LeaderboardServiceResult result = await SubmitRunAsync(snapshot);
+            if (!result.Success)
+            {
+                // 일시적 네트워크/초기화 실패는 흔하므로 한 번 재시도한다.
+                Debug.LogWarning(
+                    $"[Leaderboard] Score submission failed, retrying: {result.ErrorMessage}");
+                result = await SubmitRunAsync(snapshot);
+            }
+
             if (result.Success)
             {
                 LeaderboardBestRunStore.Save(snapshot);
+            }
+            else
+            {
+                // 저장하지 않으므로 다음 갱신된 최고기록 시 ShouldSubmit가 다시 시도한다.
+                Debug.LogWarning(
+                    $"[Leaderboard] Score submission failed after retry: {result.ErrorMessage}");
             }
 
             return result;
@@ -98,6 +119,14 @@ namespace SlotRogue.UI.Leaderboard
         internal static async UniTask<LeaderboardServiceResult<IReadOnlyList<LeaderboardEntryData>>>
             GetTopEntriesAsync(int limit = LeaderboardConstants.DefaultPageSize)
         {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (UseMockEntries)
+            {
+                return LeaderboardServiceResult<IReadOnlyList<LeaderboardEntryData>>.Succeeded(
+                    BuildMockEntries(Math.Max(1, Math.Min(100, limit))));
+            }
+#endif
+
             Task<LeaderboardServiceResult> pendingSubmission = _lastSubmissionTask;
             if (pendingSubmission != null && !pendingSubmission.IsCompleted)
             {
@@ -160,6 +189,31 @@ namespace SlotRogue.UI.Leaderboard
                     ToUserMessage(exception));
             }
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        // 테스트용 가짜 랭킹. 1~count위, wave는 위로 갈수록 높고, 5위를 '내 기록'으로 표시한다.
+        private static IReadOnlyList<LeaderboardEntryData> BuildMockEntries(int count)
+        {
+            const int currentPlayerRank = 5;
+            var entries = new List<LeaderboardEntryData>(count);
+            for (int rank = 1; rank <= count; rank++)
+            {
+                int wave = Math.Max(1, count - rank + 1);
+                entries.Add(new LeaderboardEntryData(
+                    rank,
+                    $"테스터{rank:00}",
+                    wave,
+                    wave,
+                    Array.Empty<string>(),
+                    Array.Empty<LeaderboardSymbolCount>(),
+                    string.Empty,
+                    string.Empty,
+                    rank == currentPlayerRank));
+            }
+
+            return entries;
+        }
+#endif
 
         internal static async UniTask<LeaderboardServiceResult<LeaderboardPlayerProfile>>
             SaveProfileAsync(string requestedName)

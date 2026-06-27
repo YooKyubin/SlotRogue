@@ -161,13 +161,16 @@ namespace SlotRogue.UI.GameFlow
             SlotCombatRequest request =
                 combatRequestResult?.FinalRequest ?? SlotCombatRequest.Empty;
             SlotRelicTriggerPresentationResult[] relicPresentations =
-                BuildRelicPresentations(relicResult, combatRequestResult?.BaseRequest);
+                BuildRelicPresentations(
+                    relicResult,
+                    combatRequestResult,
+                    combatRequestResult?.BaseRequest);
             var finalResult = new SlotFinalPresentationResult(
                 request.Damage,
                 request.Defense,
                 request.AttackCount,
                 request.HealAmount,
-                $"DMG {request.Damage} / DEF {request.Defense}");
+                BuildFinalSummaryText(request));
 
             return new SlotPresentationResult(
                 slotTurnResult.SpinResult,
@@ -178,9 +181,11 @@ namespace SlotRogue.UI.GameFlow
 
         private SlotRelicTriggerPresentationResult[] BuildRelicPresentations(
             RelicResolveResult relicResult,
+            RunCombatRequestResult combatRequestResult,
             SlotCombatRequest baseRequest)
         {
-            IReadOnlyList<RelicContributionDelta> contributions = relicResult?.Contributions;
+            IReadOnlyList<RelicContributionDelta> contributions =
+                CombineRelicContributions(relicResult, combatRequestResult);
             if (contributions == null || contributions.Count == 0)
             {
                 return Array.Empty<SlotRelicTriggerPresentationResult>();
@@ -211,10 +216,48 @@ namespace SlotRogue.UI.GameFlow
                         addedAttackPower,
                         contribution.Block,
                         contribution.Heal),
-                    contribution.TriggerPatternIndex);
+                    contribution.TriggerPatternIndex,
+                    contribution.DamagePerHit,
+                    contribution.Block,
+                    contribution.Heal);
             }
 
             return results;
+        }
+
+        private static IReadOnlyList<RelicContributionDelta> CombineRelicContributions(
+            RelicResolveResult relicResult,
+            RunCombatRequestResult combatRequestResult)
+        {
+            IReadOnlyList<RelicContributionDelta> direct = relicResult?.Contributions;
+            IReadOnlyList<RelicContributionDelta> derived =
+                combatRequestResult?.DerivedHealContributions;
+
+            int directCount = direct?.Count ?? 0;
+            int derivedCount = derived?.Count ?? 0;
+
+            if (directCount == 0)
+            {
+                return derivedCount == 0 ? Array.Empty<RelicContributionDelta>() : derived;
+            }
+
+            if (derivedCount == 0)
+            {
+                return direct;
+            }
+
+            var combined = new RelicContributionDelta[directCount + derivedCount];
+            for (int index = 0; index < directCount; index++)
+            {
+                combined[index] = direct[index];
+            }
+
+            for (int index = 0; index < derivedCount; index++)
+            {
+                combined[directCount + index] = derived[index];
+            }
+
+            return combined;
         }
 
         private static string ResolveRelicDescription(string relicId, string relicName)
@@ -251,7 +294,24 @@ namespace SlotRogue.UI.GameFlow
             return values.Count > 0 ? string.Join(" / ", values) : "효과 발동";
         }
 
-        private static SlotSpinResult CreateInitialSlotDisplayResult()
+        private static string BuildFinalSummaryText(SlotCombatRequest request)
+        {
+            if (request == null)
+            {
+                return "ATK 0 / DEF 0 / HEAL 0";
+            }
+
+            string summary = $"ATK {request.Damage} / DEF {request.Defense} / HEAL {request.HealAmount}";
+
+            if (request.AttackCount > 1)
+            {
+                summary += $" / HIT {request.AttackCount}";
+            }
+
+            return summary;
+        }
+
+        internal static SlotSpinResult CreateInitialSlotDisplayResult()
         {
             IReadOnlyList<SlotSymbolType> symbols = SlotSymbolPool.Symbols;
             var displaySymbols = new SlotSymbolType[SlotSpinResult.CellCount];

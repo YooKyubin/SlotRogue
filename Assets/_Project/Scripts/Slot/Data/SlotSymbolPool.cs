@@ -99,6 +99,12 @@ namespace SlotRogue.Slot.Data
             _counts[symbol] = Math.Max(0, GetCount(symbol) + amount);
         }
 
+        /// <summary>심볼 개수를 지정값으로 설정합니다(0 미만 방지). 저장된 런 복원에 사용합니다.</summary>
+        public void SetCount(SlotSymbolType symbol, int count)
+        {
+            _counts[symbol] = Math.Max(0, count);
+        }
+
         /// <summary>
         /// 개수에 비례한 가중 추첨으로 심볼 하나를 뽑습니다. <paramref name="exclude"/>는 제외합니다.
         /// 풀이 비었거나 전부 제외되면 균등 폴백합니다.
