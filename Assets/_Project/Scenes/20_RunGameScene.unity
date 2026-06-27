@@ -405,7 +405,8 @@ RectTransform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0, y: 0, z: 0}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1364811408}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -838,6 +839,61 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
+--- !u!1 &375120257
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 375120258}
+  - component: {fileID: 375120259}
+  m_Layer: 0
+  m_Name: FloatingTextRoot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &375120258
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 375120257}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 936107203}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 100, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &375120259
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 375120257}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a1b2c3d4e5f4788a9b0c1d2e3f40002, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.Combat.Presentation.FloatingCombatTextLayerView
+  _floatingTextRoot: {fileID: 375120258}
+  _floatingDamageTextPrefab: {fileID: 1000000000000000401, guid: b4c7d9e1f2a3456789abcdef01234567, type: 3}
+  _damageAnchorRegistrySource: {fileID: 7138503248114144193}
+  _playerDamageText: {fileID: 372180878}
+  _fixedTextHoldDuration: 0.5
+  _shakeMagnitude: 7
+  _shakeDuration: 0.25
 --- !u!114 &446532595 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6523312980658394657, guid: 526a6e90460c0914ab34dd62ca546fbc, type: 3}
@@ -1254,57 +1310,6 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 7906374835187093842, guid: 272f207d74c5be44fad1a534287305a0, type: 3}
   m_PrefabInstance: {fileID: 9145245149989833868}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &800000001
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 800000002}
-  - component: {fileID: 800000003}
-  m_Layer: 0
-  m_Name: FloatingCombatTextLayer
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &800000002
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 800000001}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &800000003
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 800000001}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9a1b2c3d4e5f4788a9b0c1d2e3f40002, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.Combat.Presentation.FloatingCombatTextLayerView
-  _floatingTextRoot: {fileID: 0}
-  _floatingDamageTextPrefab: {fileID: 0}
-  _damageAnchorRegistrySource: {fileID: 0}
-  _playerDamageText: {fileID: 372180878}
-  _fixedTextHoldDuration: 0.5
-  _shakeMagnitude: 7
-  _shakeDuration: 0.25
 --- !u!114 &802581893 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 7537336205063853319, guid: 68271b1500239e547bf995972e95c27a, type: 3}
@@ -1471,6 +1476,7 @@ RectTransform:
   - {fileID: 793874193}
   - {fileID: 197515424}
   - {fileID: 1170341997}
+  - {fileID: 375120258}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -2416,6 +2422,11 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!224 &1364811408 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
+  m_PrefabInstance: {fileID: 1677170380}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &1423512510 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 9091218405555936754, guid: 68271b1500239e547bf995972e95c27a, type: 3}
@@ -2946,7 +2957,7 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 0}
+    m_TransformParent: {fileID: 189381851}
     m_Modifications:
     - target: {fileID: 3965747767222212447, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
       propertyPath: _duration
@@ -2998,15 +3009,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.0052083335
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.0052083335
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.0052083335
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
       propertyPath: m_LocalPosition.x
@@ -3038,11 +3049,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 0
+      value: -379
       objectReference: {fileID: 0}
     - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -98.95737
+      value: 860
       objectReference: {fileID: 0}
     - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -3055,6 +3066,10 @@ PrefabInstance:
     - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4476483139252001278, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7098581119550912913, guid: da9bbe0ea713f4846b729ed300cb231c, type: 3}
       propertyPath: m_Name
@@ -3948,6 +3963,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: dea0bd47b8184044a8c3330c140e3978, type: 3}
+--- !u!114 &7138503248114144193 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4489420863412703230, guid: dea0bd47b8184044a8c3330c140e3978, type: 3}
+  m_PrefabInstance: {fileID: 7138503248114144190}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 835b294989f74d66afe1a0e973e23519, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.RunBattleScreenView
 --- !u!114 &7439680858036686319 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6623109055003495995, guid: dea0bd47b8184044a8c3330c140e3978, type: 3}
@@ -4390,7 +4416,6 @@ MonoBehaviour:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 800000002}
   - {fileID: 69661683}
   - {fileID: 731912605}
   - {fileID: 1006740476}
@@ -4407,4 +4432,3 @@ SceneRoots:
   - {fileID: 982044303}
   - {fileID: 1329140110}
   - {fileID: 189381851}
-  - {fileID: 1677170380}
