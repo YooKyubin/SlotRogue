@@ -56,6 +56,11 @@ namespace SlotRogue.UI.App
         [SerializeField] private Button _declineResumeButton;
 
         private CancellationTokenSource _loadingMessageCts;
+        private RectTransform _loadingFillRect;
+        private bool _hasLoadingFillRectMetrics;
+        private float _loadingFillFullWidth;
+        private float _loadingFillLeftEdge;
+        private float _loadingFillScaleX = 1f;
 
         private void Awake()
         {
@@ -188,6 +193,8 @@ namespace SlotRogue.UI.App
             {
                 _loadingFillImage = _loadingSlider.fillRect.GetComponent<Image>();
             }
+
+            CacheLoadingFillRectMetrics();
         }
 
         private void HideLoadingPanel()
@@ -211,6 +218,84 @@ namespace SlotRogue.UI.App
             {
                 _loadingFillImage.fillAmount = normalizedProgress;
             }
+
+            if (_loadingSlider == null)
+            {
+                SetLoadingFillRectProgress(normalizedProgress);
+            }
+        }
+
+        private void SetLoadingFillRectProgress(float normalizedProgress)
+        {
+            bool fillAmountDrivesVisibleMesh =
+                _loadingFillImage != null &&
+                _loadingFillImage.type == Image.Type.Filled &&
+                (_loadingFillImage.sprite != null || _loadingFillImage.overrideSprite != null);
+
+            if (_loadingFillImage == null ||
+                fillAmountDrivesVisibleMesh)
+            {
+                return;
+            }
+
+            CacheLoadingFillRectMetrics();
+            if (!_hasLoadingFillRectMetrics || _loadingFillRect == null)
+            {
+                return;
+            }
+
+            float width = _loadingFillFullWidth * normalizedProgress;
+            _loadingFillRect.SetSizeWithCurrentAnchors(
+                RectTransform.Axis.Horizontal,
+                width);
+
+            // Sprite-less UI Images ignore fillAmount, so keep the original left edge fixed.
+            Vector2 anchoredPosition = _loadingFillRect.anchoredPosition;
+            anchoredPosition.x = _loadingFillLeftEdge +
+                width * _loadingFillRect.pivot.x * _loadingFillScaleX;
+            _loadingFillRect.anchoredPosition = anchoredPosition;
+        }
+
+        private void CacheLoadingFillRectMetrics()
+        {
+            if (_loadingFillImage == null)
+            {
+                return;
+            }
+
+            RectTransform fillRect = _loadingFillImage.rectTransform;
+            if (fillRect == null)
+            {
+                return;
+            }
+
+            if (_hasLoadingFillRectMetrics && _loadingFillRect == fillRect)
+            {
+                return;
+            }
+
+            float width = Mathf.Abs(fillRect.rect.width);
+            if (width <= Mathf.Epsilon)
+            {
+                width = Mathf.Abs(fillRect.sizeDelta.x);
+            }
+
+            if (width <= Mathf.Epsilon)
+            {
+                return;
+            }
+
+            _loadingFillRect = fillRect;
+            _loadingFillFullWidth = width;
+            _loadingFillScaleX = Mathf.Abs(fillRect.localScale.x);
+            if (_loadingFillScaleX <= Mathf.Epsilon)
+            {
+                _loadingFillScaleX = 1f;
+            }
+
+            _loadingFillLeftEdge = fillRect.anchoredPosition.x -
+                width * fillRect.pivot.x * _loadingFillScaleX;
+            _hasLoadingFillRectMetrics = true;
         }
 
         private void SetLoadingMessage(string message)
@@ -410,7 +495,15 @@ namespace SlotRogue.UI.App
         {
             IReadOnlyList<string> keys = BuildPresentationSpriteKeys();
             progress?.Report(startProgress);
-            await AddressableSpriteCache.PreloadAsync(keys, CancellationToken.None);
+            IProgress<float> spriteProgress = progress == null
+                ? null
+                : new Progress<float>(value =>
+                    progress.Report(Mathf.Lerp(startProgress, endProgress, value)));
+
+            await AddressableSpriteCache.PreloadAsync(
+                keys,
+                CancellationToken.None,
+                spriteProgress);
             progress?.Report(endProgress);
         }
 
