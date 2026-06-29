@@ -15,8 +15,12 @@ namespace SlotRogue.UI.Combat.Presentation
             CombatParticipantId participantId,
             CancellationToken cancellationToken);
 
-        UniTask ShowFloatingDamageAsync(
-            FloatingDamageRequest request,
+        UniTask PlayEnemyDeathAsync(
+            CombatParticipantId participantId,
+            CancellationToken cancellationToken);
+
+        UniTask ShowFloatingCombatTextAsync(
+            FloatingCombatTextRequest request,
             CancellationToken cancellationToken);
 
         UniTask WaitHealthBarAsync(

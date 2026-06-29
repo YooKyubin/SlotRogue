@@ -190,6 +190,15 @@ namespace SlotRogue.UI.GameFlow
                 : UniTask.CompletedTask;
         }
 
+        public UniTask PlayEnemyDeathAsync(
+            CombatParticipantId participantId,
+            CancellationToken cancellationToken)
+        {
+            return _worldView != null
+                ? _worldView.PlayEnemyDeathAsync(participantId, cancellationToken)
+                : UniTask.CompletedTask;
+        }
+
         public UniTask AddEnemyStatusAsync(
             CombatParticipantId participantId,
             StatusEffectViewData status,

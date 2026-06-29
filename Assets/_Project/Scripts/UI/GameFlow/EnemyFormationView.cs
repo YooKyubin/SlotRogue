@@ -267,6 +267,21 @@ namespace SlotRogue.UI.GameFlow
             return UniTask.CompletedTask;
         }
 
+        public UniTask PlayEnemyDeathAsync(
+            CombatParticipantId participantId,
+            CancellationToken cancellationToken)
+        {
+            if (participantId.IsValid &&
+                _slotIndexByParticipantId.TryGetValue(participantId.Value, out int slotIndex) &&
+                TryGetFormationSlotView(slotIndex, out EnemyFormationSlotView formationSlotView))
+            {
+                return formationSlotView.PlayDeathAsync(cancellationToken);
+            }
+
+            _warnings.MissingCombatVisualSlot(participantId);
+            return UniTask.CompletedTask;
+        }
+
         private static void RenderFormationSlot(
             EnemyFormationSlotView formationSlotView,
             RunBattleEnemySlotState state)

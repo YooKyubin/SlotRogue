@@ -44,7 +44,8 @@ namespace SlotRogue.UI.Combat.Presentation
                 combatEvent.TargetAfter,
                 combatEvent.IsPlayerParticipant);
 
-            var request = new FloatingDamageRequest(
+            var request = new FloatingCombatTextRequest(
+                FloatingCombatTextKind.Damage,
                 combatEvent.ApplyResult.DamageDealt,
                 combatEvent.Kind == CombatEventKind.EffectApplied && context.IsCritical,
                 combatEvent.IsPlayerParticipant,
@@ -52,7 +53,7 @@ namespace SlotRogue.UI.Combat.Presentation
 
             var presentationTasks = new List<UniTask>
             {
-                Host.Commands.ShowFloatingDamageAsync(request, cancellationToken),
+                Host.Commands.ShowFloatingCombatTextAsync(request, cancellationToken),
                 Host.Commands.WaitHealthBarAsync(
                     combatEvent.TargetParticipantId,
                     combatEvent.IsPlayerParticipant,
@@ -89,6 +90,21 @@ namespace SlotRogue.UI.Combat.Presentation
             }
 
             await UniTask.WhenAll(presentationTasks);
+
+            if (ShouldPlayEnemyDeath(combatEvent))
+            {
+                await Host.Commands.PlayEnemyDeathAsync(
+                    combatEvent.TargetParticipantId,
+                    cancellationToken);
+            }
+        }
+
+        private static bool ShouldPlayEnemyDeath(CombatEvent combatEvent)
+        {
+            return !combatEvent.IsPlayerParticipant &&
+                combatEvent.TargetParticipantId.IsValid &&
+                combatEvent.TargetBefore.Hp > 0 &&
+                combatEvent.TargetAfter.Hp <= 0;
         }
     }
 }

@@ -1,7 +1,8 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.UI;
+using TMPro;
+
 #if DOTWEEN
 using DG.Tweening;
 #endif
@@ -10,12 +11,17 @@ namespace SlotRogue.UI.Combat.Presentation
 {
     public sealed class FloatingDamageTextView : MonoBehaviour
     {
-        [SerializeField] private Text _text = null!;
+        [SerializeField] private TMP_Text _text = null!;
         [SerializeField] private RectTransform _rectTransform = null!;
 
         [Header("Normal")]
         [SerializeField] private int _normalFontSize = 50;
         [SerializeField] private Color _normalColor = new Color32(255, 120, 120, 255);
+
+        [Header("Heal")]
+        [SerializeField] private int _healFontSize = 50;
+        [SerializeField] private Color _healColor = new Color32(120, 255, 160, 255);
+        [SerializeField] private string _healPrefix = "+";
 
         [Header("Critical")]
         [SerializeField] private int _criticalFontSize = 34;
@@ -34,7 +40,7 @@ namespace SlotRogue.UI.Combat.Presentation
 
         private void Reset()
         {
-            _text = GetComponent<Text>();
+            _text = GetComponent<TMP_Text>();
             _rectTransform = GetComponent<RectTransform>();
         }
 
@@ -46,21 +52,22 @@ namespace SlotRogue.UI.Combat.Presentation
         }
 
         public async UniTask Play(
-            int amount,
-            bool isCritical,
+            FloatingCombatTextRequest request,
             CombatAnchorKind anchorKind,
             CancellationToken cancellationToken)
         {
-            if (amount <= 0)
+            if (request.Amount <= 0)
             {
                 return;
             }
 
-            ApplyPresentation(amount, isCritical, anchorKind);
+            ApplyPresentation(request, anchorKind);
 
             try
             {
-                await PlayMotionAsync(isCritical, cancellationToken);
+                await PlayMotionAsync(
+                    request.Kind == FloatingCombatTextKind.Damage && request.IsCritical,
+                    cancellationToken);
             }
             finally
             {
@@ -71,12 +78,27 @@ namespace SlotRogue.UI.Combat.Presentation
             }
         }
 
-        private void ApplyPresentation(int amount, bool isCritical, CombatAnchorKind anchorKind)
+        private void ApplyPresentation(FloatingCombatTextRequest request, CombatAnchorKind anchorKind)
         {
             _ = anchorKind;
-            _text.fontSize = isCritical ? _criticalFontSize : _normalFontSize;
-            _text.color = isCritical ? _criticalColor : _normalColor;
-            _text.text = isCritical ? $"{_criticalPrefix}-{amount}" : $"-{amount}";
+            switch (request.Kind)
+            {
+                case FloatingCombatTextKind.Heal:
+                    _text.fontSize = _healFontSize;
+                    _text.color = _healColor;
+                    _text.text = $"{_healPrefix}{request.Amount}";
+                    break;
+                case FloatingCombatTextKind.Damage:
+                default:
+                    bool isCritical = request.IsCritical;
+                    _text.fontSize = isCritical ? _criticalFontSize : _normalFontSize;
+                    _text.color = isCritical ? _criticalColor : _normalColor;
+                    _text.text = isCritical
+                        ? $"{_criticalPrefix}-{request.Amount}"
+                        : $"-{request.Amount}";
+                    break;
+            }
+
             _rectTransform.localScale = Vector3.one;
         }
 

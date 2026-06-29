@@ -55,12 +55,23 @@ namespace SlotRogue.UI.Combat.Presentation
                 : UniTask.CompletedTask;
         }
 
-        public UniTask ShowFloatingDamageAsync(
-            FloatingDamageRequest request,
+        public UniTask PlayEnemyDeathAsync(
+            CombatParticipantId participantId,
+            CancellationToken cancellationToken)
+        {
+            return _enemyCombatVisualTarget != null
+                ? _enemyCombatVisualTarget.PlayEnemyDeathAsync(
+                    participantId,
+                    cancellationToken)
+                : UniTask.CompletedTask;
+        }
+
+        public UniTask ShowFloatingCombatTextAsync(
+            FloatingCombatTextRequest request,
             CancellationToken cancellationToken)
         {
             return _floatingTextLayerView != null
-                ? _floatingTextLayerView.ShowFloatingDamageAsync(request, cancellationToken)
+                ? _floatingTextLayerView.ShowFloatingCombatTextAsync(request, cancellationToken)
                 : UniTask.CompletedTask;
         }
 
