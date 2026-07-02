@@ -679,8 +679,13 @@ MonoBehaviour:
   _hudRoot: {fileID: 7007034043896490227}
   _hudText: {fileID: 0}
   _hpFill: {fileID: 2146629859500977907}
+  _hpBarFrame: {fileID: 8585725545451199678}
   _statusBackground: {fileID: 0}
   _shieldGauge: {fileID: 2563102726358517046}
+  _normalHpFillSprite: {fileID: -7900870427792562562, guid: 94626e996a6d60d449d2892fdf83c9e0, type: 3}
+  _shieldedHpFillSprite: {fileID: -2578357195275736500, guid: 8c3dbe0559d4b124088cc9f3dd7c9b01, type: 3}
+  _normalHpBarFrameSprite: {fileID: -324552712357261979, guid: 91b069894149300448acda291d7afea5, type: 3}
+  _shieldedHpBarFrameSprite: {fileID: -324552712357261979, guid: 91b069894149300448acda291d7afea5, type: 3}
   _damageAnchor: {fileID: 7453423559490118063}
   _clickCollider: {fileID: 4201644066975238051}
   _statusEffectRoot: {fileID: 728450995424023123}

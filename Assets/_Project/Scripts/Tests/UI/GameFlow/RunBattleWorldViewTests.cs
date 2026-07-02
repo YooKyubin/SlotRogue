@@ -329,6 +329,70 @@ namespace SlotRogue.UI.Tests.GameFlow
         }
 
         [Test]
+        public void EnemyShieldRender_SwapsHpFillAndFrameSprites()
+        {
+            var root = new GameObject("Enemy");
+            Sprite normalFill = CreateTestSprite("Normal Fill");
+            Sprite shieldedFill = CreateTestSprite("Shielded Fill");
+            Sprite normalFrame = CreateTestSprite("Normal Frame");
+            Sprite shieldedFrame = CreateTestSprite("Shielded Frame");
+            try
+            {
+                EnemyFormationSlotView view = root.AddComponent<EnemyFormationSlotView>();
+
+                var fillObject = new GameObject(
+                    "HP Bar Fill",
+                    typeof(RectTransform),
+                    typeof(CanvasRenderer),
+                    typeof(Image));
+                fillObject.transform.SetParent(root.transform, false);
+                Image fill = fillObject.GetComponent<Image>();
+                fill.sprite = normalFill;
+
+                var frameObject = new GameObject(
+                    "HP Bar Frame",
+                    typeof(RectTransform),
+                    typeof(CanvasRenderer),
+                    typeof(Image));
+                frameObject.transform.SetParent(root.transform, false);
+                Image frame = frameObject.GetComponent<Image>();
+                frame.sprite = normalFrame;
+
+                view.Bind(
+                    root.transform,
+                    shakeGroup: null,
+                    hudRoot: null,
+                    hudText: null,
+                    hpFill: fill,
+                    hpBarFrame: frame,
+                    statusBackground: null,
+                    shieldGauge: null,
+                    damageAnchor: null,
+                    clickCollider: null);
+                SetPrivateField(view, "_shieldedHpFillSprite", shieldedFill);
+                SetPrivateField(view, "_shieldedHpBarFrameSprite", shieldedFrame);
+
+                view.SetShield(6);
+
+                Assert.That(fill.sprite, Is.SameAs(shieldedFill));
+                Assert.That(frame.sprite, Is.SameAs(shieldedFrame));
+
+                view.SetShield(0);
+
+                Assert.That(fill.sprite, Is.SameAs(normalFill));
+                Assert.That(frame.sprite, Is.SameAs(normalFrame));
+            }
+            finally
+            {
+                DestroySpriteWithTexture(shieldedFrame);
+                DestroySpriteWithTexture(normalFrame);
+                DestroySpriteWithTexture(shieldedFill);
+                DestroySpriteWithTexture(normalFill);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void EnemySlotDeathPresentation_RemainsHiddenAcrossRenderUpdatesUntilVisualRebind()
         {
             var root = new GameObject("Enemy");
@@ -579,6 +643,34 @@ namespace SlotRogue.UI.Tests.GameFlow
             typeof(EnemyAnimatorCombatVisual)
                 .GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic)
                 .Invoke(visual, parameters: null);
+        }
+
+        private static void SetPrivateField(
+            EnemyFormationSlotView view,
+            string fieldName,
+            object value)
+        {
+            typeof(EnemyFormationSlotView)
+                .GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)
+                .SetValue(view, value);
+        }
+
+        private static Sprite CreateTestSprite(string name)
+        {
+            var texture = new Texture2D(2, 2);
+            Sprite sprite = Sprite.Create(
+                texture,
+                new Rect(0f, 0f, 2f, 2f),
+                new Vector2(0.5f, 0.5f));
+            sprite.name = name;
+            return sprite;
+        }
+
+        private static void DestroySpriteWithTexture(Sprite sprite)
+        {
+            Texture2D texture = sprite != null ? sprite.texture : null;
+            Object.DestroyImmediate(sprite);
+            Object.DestroyImmediate(texture);
         }
 
         private static readonly FieldInfo CurrentPlaybackField =

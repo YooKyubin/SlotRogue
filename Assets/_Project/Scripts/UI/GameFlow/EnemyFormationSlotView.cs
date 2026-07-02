@@ -31,8 +31,15 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private Canvas _hudRoot;
         [SerializeField] private Text _hudText;
         [SerializeField] private Image _hpFill;
+        [SerializeField] private Image _hpBarFrame;
         [SerializeField] private Image _statusBackground;
         [SerializeField] private ShieldGaugeView _shieldGauge;
+
+        [Header("Shielded HP Bar")]
+        [SerializeField] private Sprite _normalHpFillSprite;
+        [SerializeField] private Sprite _shieldedHpFillSprite;
+        [SerializeField] private Sprite _normalHpBarFrameSprite;
+        [SerializeField] private Sprite _shieldedHpBarFrameSprite;
 
         [Header("Combat Anchors")]
         [SerializeField] private RectTransform _damageAnchor;
@@ -83,6 +90,7 @@ namespace SlotRogue.UI.GameFlow
             Canvas hudRoot,
             Text hudText,
             Image hpFill,
+            Image hpBarFrame,
             Image statusBackground,
             ShieldGaugeView shieldGauge,
             RectTransform damageAnchor,
@@ -99,6 +107,7 @@ namespace SlotRogue.UI.GameFlow
             _hudRoot = hudRoot;
             _hudText = hudText;
             _hpFill = hpFill;
+            _hpBarFrame = hpBarFrame;
             _hpFillLayoutInitialized = false;
             _hpFillRendered = false;
             _statusBackground = statusBackground;
@@ -109,6 +118,41 @@ namespace SlotRogue.UI.GameFlow
             _statusEffectIconPrefab = statusEffectIconPrefab;
             _intentRoot = intentRoot;
             _intentIconPrefab = intentIconPrefab;
+            CaptureDefaultHealthBarSprites();
+        }
+
+        public void Bind(
+            Transform root,
+            Transform shakeGroup,
+            Canvas hudRoot,
+            Text hudText,
+            Image hpFill,
+            Image statusBackground,
+            ShieldGaugeView shieldGauge,
+            RectTransform damageAnchor,
+            Collider2D clickCollider,
+            RectTransform statusEffectRoot = null,
+            GameObject statusEffectIconPrefab = null,
+            Transform intentRoot = null,
+            EnemyIntentIconView intentIconPrefab = null,
+            Transform visualRoot = null)
+        {
+            Bind(
+                root,
+                shakeGroup,
+                hudRoot,
+                hudText,
+                hpFill,
+                hpBarFrame: null,
+                statusBackground,
+                shieldGauge,
+                damageAnchor,
+                clickCollider,
+                statusEffectRoot,
+                statusEffectIconPrefab,
+                intentRoot,
+                intentIconPrefab,
+                visualRoot);
         }
 
         private void OnDisable()
@@ -389,6 +433,8 @@ namespace SlotRogue.UI.GameFlow
             {
                 _shieldGauge.Render(shield);
             }
+
+            ApplyShieldedHealthBarSprites(shield > 0);
         }
 
         public void SetStatusEffects(IReadOnlyList<StatusEffectViewData> statuses)
@@ -651,6 +697,40 @@ namespace SlotRogue.UI.GameFlow
             }
 
             _combatVisualInstance = null;
+        }
+
+        private void CaptureDefaultHealthBarSprites()
+        {
+            if (_hpFill != null && _normalHpFillSprite == null)
+            {
+                _normalHpFillSprite = _hpFill.sprite;
+            }
+
+            if (_hpBarFrame != null && _normalHpBarFrameSprite == null)
+            {
+                _normalHpBarFrameSprite = _hpBarFrame.sprite;
+            }
+        }
+
+        private void ApplyShieldedHealthBarSprites(bool shielded)
+        {
+            CaptureDefaultHealthBarSprites();
+
+            if (_hpFill != null)
+            {
+                Sprite fillSprite = shielded && _shieldedHpFillSprite != null
+                    ? _shieldedHpFillSprite
+                    : _normalHpFillSprite;
+                _hpFill.sprite = fillSprite;
+            }
+
+            if (_hpBarFrame != null)
+            {
+                Sprite frameSprite = shielded && _shieldedHpBarFrameSprite != null
+                    ? _shieldedHpBarFrameSprite
+                    : _normalHpBarFrameSprite;
+                _hpBarFrame.sprite = frameSprite;
+            }
         }
 
         private void ResetDeathPresentation()
