@@ -38,7 +38,6 @@ namespace SlotRogue.UI.Tests.GameFlow
                         hudRoot: null,
                         hudText: null,
                         hpFill: null,
-                        statusBackground: null,
                         shieldGauge: null,
                         damageAnchor: damageAnchor,
                         clickCollider: null);
@@ -84,7 +83,6 @@ namespace SlotRogue.UI.Tests.GameFlow
                         hudRoot: null,
                         hudText: null,
                         hpFill: null,
-                        statusBackground: null,
                         shieldGauge: null,
                         damageAnchor: null,
                         clickCollider: null,
@@ -303,7 +301,6 @@ namespace SlotRogue.UI.Tests.GameFlow
                     hudRoot: null,
                     hudText: null,
                     hpFill: fill,
-                    statusBackground: null,
                     shieldGauge: null,
                     damageAnchor: null,
                     clickCollider: null);
@@ -365,7 +362,6 @@ namespace SlotRogue.UI.Tests.GameFlow
                     hudText: null,
                     hpFill: fill,
                     hpBarFrame: frame,
-                    statusBackground: null,
                     shieldGauge: null,
                     damageAnchor: null,
                     clickCollider: null);
@@ -422,7 +418,6 @@ namespace SlotRogue.UI.Tests.GameFlow
                     hudRoot: hudRoot,
                     hudText: hudText,
                     hpFill: null,
-                    statusBackground: null,
                     shieldGauge: null,
                     damageAnchor: null,
                     clickCollider: collider,

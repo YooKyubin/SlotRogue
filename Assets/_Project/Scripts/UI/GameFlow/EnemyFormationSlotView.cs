@@ -17,9 +17,6 @@ namespace SlotRogue.UI.GameFlow
         private const float DeathEndScale = 0.82f;
         private const float DeathDropDistance = 0.18f;
 
-        private static readonly Color EnemySlotColor = new Color(0.11f, 0.14f, 0.2f, 0.96f);
-        private static readonly Color SelectedEnemySlotColor = new Color(0.45f, 0.26f, 0.12f, 0.96f);
-
         [Header("Root")]
         [SerializeField] private Transform _root;
         [SerializeField] private Transform _shakeGroup;
@@ -32,7 +29,6 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private Text _hudText;
         [SerializeField] private Image _hpFill;
         [SerializeField] private Image _hpBarFrame;
-        [SerializeField] private Image _statusBackground;
         [SerializeField] private ShieldGaugeView _shieldGauge;
 
         [Header("Shielded HP Bar")]
@@ -91,7 +87,6 @@ namespace SlotRogue.UI.GameFlow
             Text hudText,
             Image hpFill,
             Image hpBarFrame,
-            Image statusBackground,
             ShieldGaugeView shieldGauge,
             RectTransform damageAnchor,
             Collider2D clickCollider,
@@ -110,7 +105,6 @@ namespace SlotRogue.UI.GameFlow
             _hpBarFrame = hpBarFrame;
             _hpFillLayoutInitialized = false;
             _hpFillRendered = false;
-            _statusBackground = statusBackground;
             _shieldGauge = shieldGauge;
             _damageAnchor = damageAnchor;
             _clickCollider = clickCollider;
@@ -127,7 +121,6 @@ namespace SlotRogue.UI.GameFlow
             Canvas hudRoot,
             Text hudText,
             Image hpFill,
-            Image statusBackground,
             ShieldGaugeView shieldGauge,
             RectTransform damageAnchor,
             Collider2D clickCollider,
@@ -144,7 +137,6 @@ namespace SlotRogue.UI.GameFlow
                 hudText,
                 hpFill,
                 hpBarFrame: null,
-                statusBackground,
                 shieldGauge,
                 damageAnchor,
                 clickCollider,
@@ -612,19 +604,6 @@ namespace SlotRogue.UI.GameFlow
                 {
                     icon.Set(upcomingActions[index]);
                 }
-            }
-        }
-
-        public void SetSelected(bool selected)
-        {
-            if (_deathPresented)
-            {
-                return;
-            }
-
-            if (_statusBackground != null)
-            {
-                _statusBackground.color = selected ? SelectedEnemySlotColor : EnemySlotColor;
             }
         }
 
