@@ -156,7 +156,12 @@ namespace SlotRogue.UI.GameFlow
             }
         }
 
-        public async UniTask PlayBreakAsync(CancellationToken cancellationToken)
+        public UniTask PlayBreakAsync(CancellationToken cancellationToken)
+        {
+            return PlayBreakAsync(consumedAmount: 0, cancellationToken);
+        }
+
+        public async UniTask PlayBreakAsync(int consumedAmount, CancellationToken cancellationToken)
         {
             if (!gameObject.activeSelf)
             {
@@ -170,18 +175,41 @@ namespace SlotRogue.UI.GameFlow
             }
 
             RectTransform imageTransform = shieldImage.rectTransform;
+            Vector2 targetPosition = imageTransform.anchoredPosition;
             Vector3 targetScale = imageTransform.localScale;
             Vector3 endScale = targetScale * _breakScaleMultiplier;
             Color targetColor = shieldImage.color;
             targetColor.a = 0f;
+
+            Text shieldText = _shieldText;
+            RectTransform textTransform = shieldText != null ? shieldText.rectTransform : null;
+            Color targetTextColor = shieldText != null ? shieldText.color : Color.white;
+            Vector3 targetTextScale = textTransform != null ? textTransform.localScale : Vector3.one;
+
+            if (shieldText != null && consumedAmount > 0)
+            {
+                UpdateShieldTextAfterHit(shieldText, consumedAmount);
+                shieldText.color = _hitTextColor;
+            }
+
+            if (textTransform != null && consumedAmount > 0)
+            {
+                textTransform.localScale = targetTextScale * _hitTextScaleMultiplier;
+            }
 
             _shieldTween?.Kill();
 
             Sequence sequence = CreateBreakSequence(
                 shieldImage,
                 imageTransform,
+                targetPosition,
                 endScale,
-                targetColor.a);
+                targetColor.a,
+                shieldText,
+                textTransform,
+                targetTextColor,
+                targetTextScale,
+                consumedAmount > 0);
 
             _shieldTween = sequence;
 
@@ -190,7 +218,18 @@ namespace SlotRogue.UI.GameFlow
             if (shieldImage != null && imageTransform != null)
             {
                 shieldImage.color = targetColor;
+                imageTransform.anchoredPosition = targetPosition;
                 imageTransform.localScale = targetScale;
+            }
+
+            if (shieldText != null)
+            {
+                shieldText.color = targetTextColor;
+            }
+
+            if (textTransform != null)
+            {
+                textTransform.localScale = targetTextScale;
             }
 
             gameObject.SetActive(false);
@@ -303,17 +342,48 @@ namespace SlotRogue.UI.GameFlow
         private Sequence CreateBreakSequence(
             Image shieldImage,
             RectTransform imageTransform,
+            Vector2 targetPosition,
             Vector3 endScale,
-            float targetAlpha)
+            float targetAlpha,
+            Text shieldText,
+            RectTransform textTransform,
+            Color targetTextColor,
+            Vector3 targetTextScale,
+            bool includeHitPresentation)
         {
             Tween fadeTween = CreateImageAlphaTween(shieldImage, targetAlpha, _breakDuration);
             Tween scaleTween = CreateLocalScaleTween(imageTransform, endScale, _breakDuration);
 
-            return DOTween.Sequence()
+            Sequence sequence = DOTween.Sequence()
                 .Join(fadeTween)
                 .Join(scaleTween)
                 .SetEase(Ease.OutQuad)
                 .SetLink(gameObject);
+
+            if (!includeHitPresentation)
+            {
+                return sequence;
+            }
+
+            sequence.Join(
+                CreateShakeTween(
+                    imageTransform,
+                    targetPosition,
+                    _hitShakeDistance,
+                    _hitShakeCount,
+                    _hitDuration));
+
+            if (shieldText != null)
+            {
+                sequence.Join(CreateTextColorTween(shieldText, targetTextColor, _hitDuration));
+            }
+
+            if (textTransform != null)
+            {
+                sequence.Join(CreateLocalScaleTween(textTransform, targetTextScale, _hitDuration));
+            }
+
+            return sequence;
         }
 
         private static Tween CreateImageAlphaTween(Image image, float targetAlpha, float duration)

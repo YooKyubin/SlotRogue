@@ -31,11 +31,14 @@ namespace SlotRogue.UI.Combat.Presentation
                     combatEvent.ApplyResult.ShieldConsumed,
                     combatEvent.IsPlayerParticipant,
                     combatEvent.TargetParticipantId);
-                await Host.Commands.ShowShieldHitAsync(shieldRequest, cancellationToken);
 
                 if (combatEvent.TargetBefore.Shield > 0 && combatEvent.TargetAfter.Shield == 0)
                 {
                     await Host.Commands.ShowShieldBreakAsync(shieldRequest, cancellationToken);
+                }
+                else
+                {
+                    await Host.Commands.ShowShieldHitAsync(shieldRequest, cancellationToken);
                 }
             }
 
