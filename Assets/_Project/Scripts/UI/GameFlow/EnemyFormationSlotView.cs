@@ -24,6 +24,9 @@ namespace SlotRogue.UI.GameFlow
         [Header("Visual")]
         [SerializeField] private Transform _visualRoot;
 
+        [Header("Selection")]
+        [SerializeField] private GameObject _selectionIndicator;
+
         [Header("HUD")]
         [SerializeField] private Canvas _hudRoot;
         [SerializeField] private Text _hudText;
@@ -262,6 +265,11 @@ namespace SlotRogue.UI.GameFlow
             if (Root != null)
             {
                 Root.gameObject.SetActive(active);
+            }
+
+            if (!active)
+            {
+                SetSelected(false);
             }
 
             if (active && _deathPresented)
@@ -540,6 +548,14 @@ namespace SlotRogue.UI.GameFlow
             }
         }
 
+        public void SetSelected(bool selected)
+        {
+            if (_selectionIndicator != null)
+            {
+                _selectionIndicator.SetActive(selected && !_deathPresented);
+            }
+        }
+
         public void SetInteractable(bool interactable)
         {
             if (_deathPresented)
@@ -669,6 +685,8 @@ namespace SlotRogue.UI.GameFlow
 
         private void HideDeathPresentation()
         {
+            SetSelected(false);
+
             if (_combatVisualInstance != null)
             {
                 _combatVisualInstance.SetActive(false);
