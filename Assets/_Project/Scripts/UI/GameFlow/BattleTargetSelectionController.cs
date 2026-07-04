@@ -95,6 +95,11 @@ namespace SlotRogue.UI.GameFlow
             return default;
         }
 
+        internal CombatParticipantId PeekSelectedEnemyId()
+        {
+            return _selectedEnemyId;
+        }
+
         private void HandleEnemySelected(CombatParticipantId enemyId)
         {
             if (_isBusy() || _isSpinRunning())

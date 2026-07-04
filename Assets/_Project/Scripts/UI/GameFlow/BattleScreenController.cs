@@ -40,6 +40,11 @@ namespace SlotRogue.UI.GameFlow
                 ? _targetSelectionController.ResolveSelectedEnemyId()
                 : default;
 
+        private CombatParticipantId DisplayedSelectedEnemyId =>
+            _targetSelectionController != null
+                ? _targetSelectionController.PeekSelectedEnemyId()
+                : default;
+
         internal void BeginBattle(
             BattleSystem battle,
             CombatViewModel combatViewModel,
@@ -159,7 +164,7 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
-            CombatParticipantId selectedTargetId = SelectedEnemyId;
+            CombatParticipantId selectedTargetId = DisplayedSelectedEnemyId;
 
             _viewModel.Batch(() =>
             {
@@ -177,6 +182,17 @@ namespace SlotRogue.UI.GameFlow
             });
 
             UpdateSpinButtonState();
+        }
+
+        internal void ResolveSelectedEnemyAfterPresentation()
+        {
+            if (_targetSelectionController == null)
+            {
+                return;
+            }
+
+            _targetSelectionController.ResolveSelectedEnemyId();
+            Refresh();
         }
 
         public void Dispose()

@@ -325,12 +325,28 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
+            if (ShouldResolveSelectionAfterDeathPresentation(combatEvent))
+            {
+                _screenController.ResolveSelectedEnemyAfterPresentation();
+                return;
+            }
+
             if (combatEvent.Kind == CombatEventKind.PhaseChanged &&
                 combatEvent.Phase == BattlePhase.PlayerTurn)
             {
                 _screenController.RefreshVisibleIntentsFromBattle();
                 TutorialSignalRaised?.Invoke(BattleTutorialSignal.EnemyTurnCompleted);
             }
+        }
+
+        private static bool ShouldResolveSelectionAfterDeathPresentation(CombatEvent combatEvent)
+        {
+            return (combatEvent.Kind == CombatEventKind.EffectApplied ||
+                    combatEvent.Kind == CombatEventKind.StatusTicked) &&
+                !combatEvent.IsPlayerParticipant &&
+                combatEvent.Effect.Kind == CombatEffectKind.Damage &&
+                combatEvent.TargetBefore.Hp > 0 &&
+                combatEvent.TargetAfter.Hp <= 0;
         }
 
         private void CompleteBattleIfNeeded()
