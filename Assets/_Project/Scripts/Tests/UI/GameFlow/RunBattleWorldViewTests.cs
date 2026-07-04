@@ -32,8 +32,9 @@ namespace SlotRogue.UI.Tests.GameFlow
                     RectTransform damageAnchor = damageAnchorObject.GetComponent<RectTransform>();
                     damageAnchor.SetParent(slot.transform, false);
 
-                    slotView.Bind(
-                        slot.transform,
+                    ConfigureEnemyFormationSlot(
+                        slotView,
+                        root: slot.transform,
                         shakeGroup: null,
                         hudRoot: null,
                         hudText: null,
@@ -77,8 +78,9 @@ namespace SlotRogue.UI.Tests.GameFlow
                     visualRoot.transform.SetParent(slot.transform, false);
 
                     slotViews[index] = slot.AddComponent<EnemyFormationSlotView>();
-                    slotViews[index].Bind(
-                        slot.transform,
+                    ConfigureEnemyFormationSlot(
+                        slotViews[index],
+                        root: slot.transform,
                         shakeGroup: null,
                         hudRoot: null,
                         hudText: null,
@@ -295,8 +297,9 @@ namespace SlotRogue.UI.Tests.GameFlow
                 fillRect.pivot = new Vector2(0.5f, 0.5f);
                 Image fill = fillObject.GetComponent<Image>();
 
-                view.Bind(
-                    root.transform,
+                ConfigureEnemyFormationSlot(
+                    view,
+                    root: root.transform,
                     shakeGroup: null,
                     hudRoot: null,
                     hudText: null,
@@ -355,8 +358,9 @@ namespace SlotRogue.UI.Tests.GameFlow
                 Image frame = frameObject.GetComponent<Image>();
                 frame.sprite = normalFrame;
 
-                view.Bind(
-                    root.transform,
+                ConfigureEnemyFormationSlot(
+                    view,
+                    root: root.transform,
                     shakeGroup: null,
                     hudRoot: null,
                     hudText: null,
@@ -412,7 +416,8 @@ namespace SlotRogue.UI.Tests.GameFlow
                 intentRoot.transform.SetParent(root.transform, false);
                 var collider = root.AddComponent<BoxCollider2D>();
 
-                view.Bind(
+                ConfigureEnemyFormationSlot(
+                    view,
                     root: root.transform,
                     shakeGroup: null,
                     hudRoot: hudRoot,
@@ -645,9 +650,43 @@ namespace SlotRogue.UI.Tests.GameFlow
             string fieldName,
             object value)
         {
-            typeof(EnemyFormationSlotView)
-                .GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)
-                .SetValue(view, value);
+            FieldInfo field = typeof(EnemyFormationSlotView)
+                .GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(field, Is.Not.Null, $"Missing private field {fieldName}.");
+            field.SetValue(view, value);
+        }
+
+        private static void ConfigureEnemyFormationSlot(
+            EnemyFormationSlotView view,
+            Transform root,
+            Transform shakeGroup,
+            Canvas hudRoot,
+            Text hudText,
+            Image hpFill,
+            ShieldGaugeView shieldGauge,
+            RectTransform damageAnchor,
+            Collider2D clickCollider,
+            Image hpBarFrame = null,
+            RectTransform statusEffectRoot = null,
+            GameObject statusEffectIconPrefab = null,
+            Transform intentRoot = null,
+            EnemyIntentIconView intentIconPrefab = null,
+            Transform visualRoot = null)
+        {
+            SetPrivateField(view, "_root", root);
+            SetPrivateField(view, "_shakeGroup", shakeGroup);
+            SetPrivateField(view, "_visualRoot", visualRoot);
+            SetPrivateField(view, "_hudRoot", hudRoot);
+            SetPrivateField(view, "_hudText", hudText);
+            SetPrivateField(view, "_hpFill", hpFill);
+            SetPrivateField(view, "_hpBarFrame", hpBarFrame);
+            SetPrivateField(view, "_shieldGauge", shieldGauge);
+            SetPrivateField(view, "_damageAnchor", damageAnchor);
+            SetPrivateField(view, "_clickCollider", clickCollider);
+            SetPrivateField(view, "_statusEffectRoot", statusEffectRoot);
+            SetPrivateField(view, "_statusEffectIconPrefab", statusEffectIconPrefab);
+            SetPrivateField(view, "_intentRoot", intentRoot);
+            SetPrivateField(view, "_intentIconPrefab", intentIconPrefab);
         }
 
         private static Sprite CreateTestSprite(string name)
