@@ -9,19 +9,18 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private Image _iconImage;
         [SerializeField] private TMP_Text _amountText;
 
-        [SerializeField] private Sprite _damageSprite;
-        [SerializeField] private Sprite _shieldSprite;
-        [SerializeField] private Sprite _healSprite;
-        [SerializeField] private Sprite _statusSprite;
-        [SerializeField] private Sprite _specialSprite;
+        private bool _missingIntentIconWarningLogged;
 
         public void Set(EnemyUpcomingActionViewData action)
         {
             if (_iconImage != null)
             {
-                _iconImage.sprite = action.IntentIcon != null
-                    ? action.IntentIcon
-                    : ResolveSprite(action.Kind);
+                if (action.IntentIcon == null)
+                {
+                    LogMissingIntentIconWarning(action);
+                }
+
+                _iconImage.sprite = action.IntentIcon;
                 _iconImage.enabled = _iconImage.sprite != null;
             }
 
@@ -32,22 +31,19 @@ namespace SlotRogue.UI.GameFlow
             }
         }
 
-        private Sprite ResolveSprite(EnemyUpcomingActionKind kind)
+        private void LogMissingIntentIconWarning(EnemyUpcomingActionViewData action)
         {
-            switch (kind)
+            if (_missingIntentIconWarningLogged)
             {
-                case EnemyUpcomingActionKind.Damage:
-                    return _damageSprite;
-                case EnemyUpcomingActionKind.Shield:
-                    return _shieldSprite;
-                case EnemyUpcomingActionKind.Heal:
-                    return _healSprite;
-                case EnemyUpcomingActionKind.ApplyStatus:
-                    return _statusSprite;
-                case EnemyUpcomingActionKind.Special:
-                default:
-                    return _specialSprite;
+                return;
             }
+
+            _missingIntentIconWarningLogged = true;
+            Debug.LogWarning(
+                $"[EnemyIntentIconView] Intent icon is missing for action '{action.DisplayName}' " +
+                $"({action.Kind}, amount {action.Amount}). " +
+                "Assign an intent icon on the Monster Turn Pattern action.",
+                this);
         }
     }
 }
