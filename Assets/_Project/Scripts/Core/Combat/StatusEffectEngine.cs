@@ -399,6 +399,11 @@ namespace SlotRogue.Core.Combat
                 throw new ArgumentOutOfRangeException(nameof(endedTeam));
             }
 
+            if (participant.IsDead)
+            {
+                return;
+            }
+
             StatusEffectInstance[] instances = participant.GetStatusEffectsSnapshot();
             if (participant.Team == endedTeam)
             {
