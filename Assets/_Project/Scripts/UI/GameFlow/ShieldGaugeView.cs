@@ -13,12 +13,12 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private Image _shieldImage;
 
         [Header("Gain / Expire")]
-        [SerializeField] private float _gainDuration = 1f;
-        [SerializeField] private float _gainStartYOffset = -10f;
+        [SerializeField] private float _gainDuration = 0.25f;
+        [SerializeField] private float _gainStartYOffset = -2f;
 
         [Header("Hit")]
         [SerializeField] private float _hitDuration = 0.25f;
-        [SerializeField] private float _hitShakeDistance = 8f;
+        [SerializeField] private float _hitShakeDistance = 3f;
         [SerializeField] private int _hitShakeCount = 4;
         [SerializeField] private float _hitTextScaleMultiplier = 1.25f;
         [SerializeField] private Color _hitTextColor = Color.red;

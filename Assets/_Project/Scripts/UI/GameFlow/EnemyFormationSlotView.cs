@@ -16,6 +16,8 @@ namespace SlotRogue.UI.GameFlow
         private const float DeathDuration = 0.35f;
         private const float DeathEndScale = 0.82f;
         private const float DeathDropDistance = 0.18f;
+        private const float ShieldedHpBarOffsetX = 7f;
+        private const float ShieldedHpBarMoveDuration = 0.2f;
 
         [Header("Root")]
         [SerializeField] private Transform _root;
@@ -32,6 +34,7 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private Text _hudText;
         [SerializeField] private Image _hpFill;
         [SerializeField] private Image _hpBarFrame;
+        [SerializeField] private RectTransform _hpBarRoot;
         [SerializeField] private ShieldGaugeView _shieldGauge;
 
         [Header("Shielded HP Bar")]
@@ -68,8 +71,10 @@ namespace SlotRogue.UI.GameFlow
         private bool _visualRootMissingWarningLogged;
         private bool _combatVisualMissingWarningLogged;
         private bool _deathPresented;
+        private bool _shieldedHpBarLayoutRendered;
         private Tween _deathTween;
         private Tween _hpFillTween;
+        private Tween _hpBarRootTween;
 
         public Transform Root => _root != null ? _root : transform;
 
@@ -87,11 +92,13 @@ namespace SlotRogue.UI.GameFlow
         {
             _deathTween?.Kill();
             _hpFillTween?.Kill();
+            _hpBarRootTween?.Kill();
         }
 
         private void OnDestroy()
         {
             _deathTween?.Kill();
+            _hpBarRootTween?.Kill();
             DestroyCombatVisualInstance();
         }
 
@@ -368,6 +375,7 @@ namespace SlotRogue.UI.GameFlow
             }
 
             ApplyShieldedHealthBarSprites(shield > 0);
+            ApplyShieldedHealthBarLayout(shield > 0);
         }
 
         public void SetStatusEffects(IReadOnlyList<StatusEffectViewData> statuses)
@@ -659,6 +667,32 @@ namespace SlotRogue.UI.GameFlow
                     : _normalHpBarFrameSprite;
                 _hpBarFrame.sprite = frameSprite;
             }
+        }
+
+        private void ApplyShieldedHealthBarLayout(bool shielded)
+        {
+            if (_hpBarRoot == null)
+            {
+                return;
+            }
+
+            float targetX = shielded ? ShieldedHpBarOffsetX : 0f;
+            Vector2 targetPosition = new(targetX, _hpBarRoot.anchoredPosition.y);
+            if (!_shieldedHpBarLayoutRendered)
+            {
+                _hpBarRoot.anchoredPosition = targetPosition;
+                _shieldedHpBarLayoutRendered = true;
+                return;
+            }
+
+            _hpBarRootTween?.Kill();
+            _hpBarRootTween = DOTween.To(
+                    () => _hpBarRoot.anchoredPosition,
+                    position => _hpBarRoot.anchoredPosition = position,
+                    targetPosition,
+                    ShieldedHpBarMoveDuration)
+                .SetEase(Ease.OutQuad)
+                .SetLink(gameObject);
         }
 
         private void ResetDeathPresentation()
