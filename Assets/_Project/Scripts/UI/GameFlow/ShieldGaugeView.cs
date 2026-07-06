@@ -8,6 +8,9 @@ namespace SlotRogue.UI.GameFlow
 {
     public sealed class ShieldGaugeView : MonoBehaviour
     {
+        private const float ExistingShieldGainTextPulseDuration = 0.25f;
+        private const float ExistingShieldGainTextPulseScaleMultiplier = 1.18f;
+
         [Header("References")]
         [SerializeField] private Text _shieldText;
         [SerializeField] private Image _shieldImage;
@@ -46,6 +49,7 @@ namespace SlotRogue.UI.GameFlow
             if (_shieldText != null)
             {
                 _shieldText.text = shield.ToString();
+                _shieldText.enabled = shield > 0;
             }
         }
 
@@ -63,6 +67,16 @@ namespace SlotRogue.UI.GameFlow
             }
 
             gameObject.SetActive(true);
+
+            Text shieldText = _shieldText;
+            bool newShieldGain = IsNewShieldGain(shieldText, amount);
+            if (!newShieldGain && shieldText != null)
+            {
+                await PlayExistingShieldGainAsync(shieldText, cancellationToken);
+                return;
+            }
+
+            SetShieldTextVisible(shieldText, false);
 
             RectTransform imageTransform = shieldImage.rectTransform;
             Vector2 targetPosition = imageTransform.anchoredPosition;
@@ -92,6 +106,8 @@ namespace SlotRogue.UI.GameFlow
                 shieldImage.color = targetColor;
                 imageTransform.anchoredPosition = targetPosition;
             }
+
+            SetShieldTextVisible(shieldText, true);
         }
 
         public async UniTask PlayHitAsync(int consumedAmount, CancellationToken cancellationToken)
@@ -186,6 +202,8 @@ namespace SlotRogue.UI.GameFlow
             Color targetTextColor = shieldText != null ? shieldText.color : Color.white;
             Vector3 targetTextScale = textTransform != null ? textTransform.localScale : Vector3.one;
 
+            SetShieldTextVisible(shieldText, false);
+
             if (shieldText != null && consumedAmount > 0)
             {
                 UpdateShieldTextAfterHit(shieldText, consumedAmount);
@@ -254,6 +272,8 @@ namespace SlotRogue.UI.GameFlow
             Color targetColor = shieldImage.color;
             targetColor.a = 0f;
 
+            SetShieldTextVisible(_shieldText, false);
+
             _shieldTween?.Kill();
 
             Sequence sequence = CreateExpireSequence(
@@ -289,6 +309,32 @@ namespace SlotRogue.UI.GameFlow
                 .Join(moveTween)
                 .SetEase(Ease.OutQuad)
                 .SetLink(gameObject);
+        }
+
+        private async UniTask PlayExistingShieldGainAsync(Text shieldText, CancellationToken cancellationToken)
+        {
+            RectTransform textTransform = shieldText.rectTransform;
+            Vector3 targetScale = textTransform.localScale;
+            Vector3 pulseScale = targetScale * ExistingShieldGainTextPulseScaleMultiplier;
+
+            SetShieldTextVisible(shieldText, true);
+
+            _shieldTween?.Kill();
+
+            Sequence sequence = DOTween.Sequence()
+                .Append(CreateLocalScaleTween(textTransform, pulseScale, ExistingShieldGainTextPulseDuration * 0.5f))
+                .Append(CreateLocalScaleTween(textTransform, targetScale, ExistingShieldGainTextPulseDuration * 0.5f))
+                .SetEase(Ease.OutQuad)
+                .SetLink(gameObject);
+
+            _shieldTween = sequence;
+
+            await SlotRogue.UI.Combat.Presentation.CombatPresentationTweens.AwaitTweenAsync(sequence, cancellationToken);
+
+            if (textTransform != null)
+            {
+                textTransform.localScale = targetScale;
+            }
         }
 
         private Sequence CreateExpireSequence(
@@ -460,6 +506,32 @@ namespace SlotRogue.UI.GameFlow
                 scale => target.localScale = scale,
                 targetScale,
                 duration);
+        }
+
+        private static bool IsNewShieldGain(Text shieldText, int gainedAmount)
+        {
+            if (shieldText == null || gainedAmount <= 0)
+            {
+                return false;
+            }
+
+            if (!int.TryParse(shieldText.text, out int currentShield))
+            {
+                return false;
+            }
+
+            int previousShield = currentShield - gainedAmount;
+            return previousShield <= 0;
+        }
+
+        private static void SetShieldTextVisible(Text shieldText, bool visible)
+        {
+            if (shieldText == null)
+            {
+                return;
+            }
+
+            shieldText.enabled = visible;
         }
     }
 }

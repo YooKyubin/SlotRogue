@@ -289,7 +289,8 @@ RectTransform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 4179610576291133077}
   m_Father: {fileID: 783105499347405081}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -605,7 +606,7 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 783105499347405081}
+  m_Father: {fileID: 4486773668260554019}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
@@ -908,7 +909,6 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4486773668260554019}
-  - {fileID: 4179610576291133077}
   m_Father: {fileID: 9104823617742193651}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -933,8 +933,8 @@ MonoBehaviour:
   _gainDuration: 0.5
   _gainStartYOffset: -5
   _hitDuration: 1
-  _hitShakeDistance: 6
-  _hitShakeCount: 4
+  _hitShakeDistance: 4
+  _hitShakeCount: 3
   _hitTextScaleMultiplier: 1.25
   _hitTextColor: {r: 1, g: 0, b: 0, a: 1}
   _breakDuration: 0.5
