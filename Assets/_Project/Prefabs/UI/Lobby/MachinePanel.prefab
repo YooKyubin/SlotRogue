@@ -261,7 +261,6 @@ GameObject:
   - component: {fileID: 2149957183254923183}
   - component: {fileID: 3725049465476950252}
   - component: {fileID: 2057268892868679657}
-  - component: {fileID: 6751429093643547631}
   - component: {fileID: 1095021219086159023}
   m_Layer: 0
   m_Name: Start Button
@@ -328,20 +327,6 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &6751429093643547631
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4276383647433811150}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a015, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.GameFlowImageSlot
-  _slotId: start/start-button
-  _image: {fileID: 2057268892868679657}
 --- !u!114 &1095021219086159023
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -387,7 +372,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 0}
-        m_TargetAssemblyTypeName: SlotRogue.UI.App.GameStartSceneController, SlotRogue.UI
+        m_TargetAssemblyTypeName: SlotRogue.UI.App.GameStartView, SlotRogue.UI
         m_MethodName: OnClickStartGame
         m_Mode: 1
         m_Arguments:

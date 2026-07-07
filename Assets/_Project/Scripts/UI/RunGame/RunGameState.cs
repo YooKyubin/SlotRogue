@@ -15,8 +15,7 @@ namespace SlotRogue.UI.RunGame
         Battle = 20,            // 전투 진행
 
         // ── 전투 후 ────────────────────────────────
-        // 런 진입 시 '시작 유물 선택'도 이 Reward 상태로 진입합니다(RunRewardView에 병합).
-        Reward = 30,            // 보상 선택 / 시작 유물 선택
+        Reward = 30,            // 전투 후 보상 선택
         Defeat = 40,            // 런 패배 결과
     }
 }

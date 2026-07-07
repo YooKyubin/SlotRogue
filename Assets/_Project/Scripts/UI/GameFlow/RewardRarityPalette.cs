@@ -63,7 +63,6 @@ namespace SlotRogue.UI.GameFlow
         }
 
 #if UNITY_EDITOR
-        // 인스펙터에서 색을 바꾸면 이 팔레트를 쓰는 슬롯의 미리보기를 즉시 갱신한다.
         private void OnValidate()
         {
             RewardSlotRarity[] slots =

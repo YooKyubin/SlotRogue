@@ -63,5 +63,36 @@ namespace SlotRogue.Slot.Tests
 
             Assert.That(result, Is.SameAs(overrideResult));
         }
+
+        [Test]
+        public void SwapAdjacent_ExchangesNeighborSymbols()
+        {
+            SlotSpinResult result = new SlotSpinResult(new[]
+            {
+                SlotSymbolType.Cherry,
+                SlotSymbolType.Lemon,
+                SlotSymbolType.Clover,
+                SlotSymbolType.Bell,
+                SlotSymbolType.Diamond,
+                SlotSymbolType.Seven,
+                SlotSymbolType.Cherry,
+                SlotSymbolType.Lemon,
+                SlotSymbolType.Clover,
+                SlotSymbolType.Bell,
+                SlotSymbolType.Diamond,
+                SlotSymbolType.Seven,
+                SlotSymbolType.Cherry,
+                SlotSymbolType.Lemon,
+                SlotSymbolType.Clover,
+            });
+
+            SlotSpinResult swapped = result.SwapAdjacent(0, 1);
+
+            Assert.That(swapped.Symbols[0], Is.EqualTo(SlotSymbolType.Lemon));
+            Assert.That(swapped.Symbols[1], Is.EqualTo(SlotSymbolType.Cherry));
+            Assert.That(result.Symbols[0], Is.EqualTo(SlotSymbolType.Cherry));
+            Assert.That(result.Symbols[1], Is.EqualTo(SlotSymbolType.Lemon));
+            Assert.Throws<ArgumentException>(() => result.SwapAdjacent(0, 2));
+        }
     }
 }

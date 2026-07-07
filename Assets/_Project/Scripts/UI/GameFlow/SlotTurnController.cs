@@ -42,12 +42,83 @@ namespace SlotRogue.UI.GameFlow
             await _spinSequence.PlayDownAsync(request.CancellationToken);
             _spinSequence.StartSpin();
             _slotViewModel.Spin();
-
-            return new SlotTurnResult(
+            await PlaySpinPresentationAsync(
                 _slotViewModel.CurrentSpinResult,
-                _slotViewModel.CurrentPatternMatches,
-                _slotViewModel.CurrentPatternResult,
-                _slotViewModel.CurrentCombatRequest);
+                request.CancellationToken);
+            return BuildCurrentPreviewTurnResult(
+                spinCoinReward: 0,
+                runCoinsAfterReward: GameFlowSession.RunCoins);
+        }
+
+        // Plays the animated reel spin and settles the lever/frame, leaving the spun result on
+        // screen so the player can swap symbols before the pattern resolution runs.
+        private async UniTask PlaySpinPresentationAsync(
+            SlotSpinResult spinResult,
+            CancellationToken cancellationToken)
+        {
+            if (_presentationManager == null)
+            {
+                await _spinSequence.SettleIfNeededAsync(cancellationToken);
+                return;
+            }
+
+            void HandleSlotReelStopped(int reelIndex)
+            {
+                _spinSequence.SetReelIdle(reelIndex);
+            }
+
+            _presentationManager.SlotReelStopped += HandleSlotReelStopped;
+            try
+            {
+                bool spinDone = false;
+                _presentationManager.PlaySpinOnly(spinResult, () => spinDone = true);
+                await UniTask.WaitUntil(
+                    () => spinDone,
+                    cancellationToken: cancellationToken);
+                await _spinSequence.SettleIfNeededAsync(cancellationToken);
+            }
+            finally
+            {
+                _presentationManager.SlotReelStopped -= HandleSlotReelStopped;
+            }
+        }
+
+        internal bool TrySwapCurrentSpinResult(
+            int firstIndex,
+            int secondIndex,
+            out SlotTurnResult slotTurnResult)
+        {
+            bool swapped = _slotViewModel.TrySwapAdjacentSymbols(firstIndex, secondIndex);
+            slotTurnResult = BuildCurrentPreviewTurnResult(
+                spinCoinReward: 0,
+                runCoinsAfterReward: GameFlowSession.RunCoins);
+            return swapped;
+        }
+
+        // 두 셀이 자리를 바꾸는 연출을 재생하고, 연출이 끝나면(최종 결과로 정착) 완료된다.
+        // 모델 스왑(TrySwapCurrentSpinResult) 이후에 호출해야 하며, 정착 결과는 현재 스핀 결과다.
+        internal async UniTask PlaySwapPresentationAsync(int firstIndex, int secondIndex)
+        {
+            if (_presentationManager == null)
+            {
+                return;
+            }
+
+            var completion = new UniTaskCompletionSource();
+            _presentationManager.PlaySwap(
+                firstIndex,
+                secondIndex,
+                _slotViewModel.CurrentSpinResult,
+                () => completion.TrySetResult());
+            await completion.Task;
+        }
+
+        internal SlotTurnResult ResolveCurrentSpinResult(
+            int spinCoinReward,
+            int runCoinsAfterReward)
+        {
+            _slotViewModel.ResolveCurrentSpinResult();
+            return BuildCurrentTurnResult(spinCoinReward, runCoinsAfterReward);
         }
 
         internal async UniTask PlayPresentationAsync(
@@ -65,37 +136,11 @@ namespace SlotRogue.UI.GameFlow
             SlotPresentationResult presentationResult =
                 BuildPresentationResult(slotTurnResult, relicResult, combatRequestResult);
             bool presentationDone = false;
-            bool slotSpinDone = false;
+            _presentationManager.PlayResolved(presentationResult, _ => presentationDone = true);
 
-            void HandleSlotReelStopped(int reelIndex)
-            {
-                _spinSequence.SetReelIdle(reelIndex);
-            }
-
-            void HandleSlotSpinCompleted()
-            {
-                slotSpinDone = true;
-            }
-
-            _presentationManager.SlotReelStopped += HandleSlotReelStopped;
-            _presentationManager.SlotSpinCompleted += HandleSlotSpinCompleted;
-            try
-            {
-                _presentationManager.Play(presentationResult, _ => presentationDone = true);
-
-                await UniTask.WaitUntil(
-                    () => slotSpinDone || presentationDone,
-                    cancellationToken: cancellationToken);
-                await _spinSequence.SettleIfNeededAsync(cancellationToken);
-                await UniTask.WaitUntil(
-                    () => presentationDone,
-                    cancellationToken: cancellationToken);
-            }
-            finally
-            {
-                _presentationManager.SlotReelStopped -= HandleSlotReelStopped;
-                _presentationManager.SlotSpinCompleted -= HandleSlotSpinCompleted;
-            }
+            await UniTask.WaitUntil(
+                () => presentationDone,
+                cancellationToken: cancellationToken);
         }
 
         internal async UniTask BeforeBattleEventPresentedAsync(
@@ -152,7 +197,7 @@ namespace SlotRogue.UI.GameFlow
                     match.MatchedCells.Count,
                     cellIndices,
                     $"{match.Symbol} x{match.MatchedCells.Count} / x{match.Multiplier:0.0}",
-                    $"+{match.CalculatedValue} pts",
+                    $"+{match.CalculatedValue} DMG",
                     match.Definition.IsJackpot,
                     index,
                     match.CalculatedValue);
@@ -177,6 +222,30 @@ namespace SlotRogue.UI.GameFlow
                 patternPresentations,
                 relicPresentations,
                 finalResult);
+        }
+
+        private SlotTurnResult BuildCurrentTurnResult(int spinCoinReward, int runCoinsAfterReward)
+        {
+            return new SlotTurnResult(
+                _slotViewModel.CurrentSpinResult,
+                _slotViewModel.CurrentPatternMatches,
+                _slotViewModel.CurrentPatternResult,
+                _slotViewModel.CurrentCombatRequest,
+                spinCoinReward,
+                runCoinsAfterReward,
+                _slotViewModel.IsCurrentSpinResolved);
+        }
+
+        private SlotTurnResult BuildCurrentPreviewTurnResult(int spinCoinReward, int runCoinsAfterReward)
+        {
+            return new SlotTurnResult(
+                _slotViewModel.CurrentSpinResult,
+                _slotViewModel.PreviewCurrentPatternMatches(),
+                _slotViewModel.PreviewCurrentPatternResult(),
+                SlotCombatRequest.Empty,
+                spinCoinReward,
+                runCoinsAfterReward,
+                isResolved: false);
         }
 
         private SlotRelicTriggerPresentationResult[] BuildRelicPresentations(
@@ -262,9 +331,7 @@ namespace SlotRogue.UI.GameFlow
 
         private static string ResolveRelicDescription(string relicId, string relicName)
         {
-            return TutorialBattleDefinition.TryGetRelicDescription(relicId, out string description)
-                ? description
-                : $"{relicName} 발동";
+            return $"{relicName} 발동";
         }
 
         private static string BuildRelicValueText(
@@ -387,12 +454,18 @@ namespace SlotRogue.UI.GameFlow
             SlotSpinResult spinResult,
             IReadOnlyList<SlotPatternMatch> patternMatches,
             SlotPatternResult patternResult,
-            SlotCombatRequest baseCombatRequest)
+            SlotCombatRequest baseCombatRequest,
+            int spinCoinReward = 0,
+            int runCoinsAfterReward = 0,
+            bool isResolved = true)
         {
             SpinResult = spinResult;
             PatternMatches = patternMatches;
             PatternResult = patternResult;
             BaseCombatRequest = baseCombatRequest;
+            SpinCoinReward = Math.Max(0, spinCoinReward);
+            RunCoinsAfterReward = Math.Max(0, runCoinsAfterReward);
+            IsResolved = isResolved;
         }
 
         internal SlotSpinResult SpinResult { get; }
@@ -402,5 +475,11 @@ namespace SlotRogue.UI.GameFlow
         internal SlotPatternResult PatternResult { get; }
 
         internal SlotCombatRequest BaseCombatRequest { get; }
+
+        internal int SpinCoinReward { get; }
+
+        internal int RunCoinsAfterReward { get; }
+
+        internal bool IsResolved { get; }
     }
 }

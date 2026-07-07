@@ -6,7 +6,7 @@ namespace SlotRogue.Slot.Core
 {
     public sealed class SlotMachineService
     {
-        private static readonly SlotSymbolType[] SymbolPool =
+        private static readonly SlotSymbolType[] DefaultSymbols =
         {
             SlotSymbolType.Cherry,
             SlotSymbolType.Seven,
@@ -27,7 +27,7 @@ namespace SlotRogue.Slot.Core
         }
 
         /// <summary>
-        /// 가변 심볼 풀을 사용하려면 <paramref name="pool"/>을 전달합니다.
+        /// 가변 심볼 확률 테이블을 사용하려면 <paramref name="pool"/>을 전달합니다.
         /// null이면 종래의 균등 추첨(고정 6심볼)을 사용합니다.
         /// </summary>
         public SlotMachineService(
@@ -120,7 +120,7 @@ namespace SlotRogue.Slot.Core
 
         private SlotSymbolType PickSymbol(ISet<SlotSymbolType> exclude)
         {
-            // 가변 풀이 있으면 개수 비례 가중 추첨.
+            // 가변 확률 테이블이 있으면 한 칸마다 가중치 비례 추첨.
             if (_pool != null)
             {
                 return _pool.Draw(_random, exclude);
@@ -128,12 +128,12 @@ namespace SlotRogue.Slot.Core
 
             if (exclude == null || exclude.Count == 0)
             {
-                return SymbolPool[_random.Next(SymbolPool.Length)];
+                return DefaultSymbols[_random.Next(DefaultSymbols.Length)];
             }
 
-            var allowedSymbols = new List<SlotSymbolType>(SymbolPool.Length);
+            var allowedSymbols = new List<SlotSymbolType>(DefaultSymbols.Length);
 
-            foreach (SlotSymbolType symbol in SymbolPool)
+            foreach (SlotSymbolType symbol in DefaultSymbols)
             {
                 if (!exclude.Contains(symbol))
                 {
@@ -143,7 +143,7 @@ namespace SlotRogue.Slot.Core
 
             if (allowedSymbols.Count == 0)
             {
-                return SymbolPool[_random.Next(SymbolPool.Length)];
+                return DefaultSymbols[_random.Next(DefaultSymbols.Length)];
             }
 
             return allowedSymbols[_random.Next(allowedSymbols.Count)];

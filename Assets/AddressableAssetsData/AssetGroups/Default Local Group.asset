@@ -21,6 +21,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - default
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3bb3538ab2c04b519b88c587eb5e11a1
+    m_Address: Shop Star TMP
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - default
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 28d4f719a07d2f948952c95a683f1862
     m_Address: Relic Sheet Normal
     m_ReadOnly: 0

@@ -23,30 +23,13 @@ namespace SlotRogue.UI.RunGame
     public sealed class RunGameFlowController : IRunGameFlow
     {
         private const float ReviveWindowSeconds = 5f;
-        private const string TutorialEnemyAttackPrompt =
-            "방금 몬스터 공격을 맞았습니다. 플레이어 HP가 줄어드는지 확인하세요. 방어와 회복은 이런 적 턴을 버티기 위한 선택입니다.";
-        private const string TutorialIntentPrompt =
-            "몬스터 머리 위 아이콘은 다음 행동입니다.\n왼쪽 몬스터는 공격하고, 오른쪽 몬스터는 방어합니다.\n먼저 인벤토리에서 훈련용 배터리 효과를 확인하세요.";
-        private const string TutorialInventoryOpenedPrompt =
-            "훈련용 배터리는 체리/레몬 족보에 반응합니다.\n체리 3개 이상: 추가 피해 +3\n레몬 3개 이상: 보호막 +4";
-        private const string TutorialFirstSpinPrompt =
-            "인벤토리를 닫았습니다. 이제 SPIN으로 체리와 레몬 족보가 어떻게 발동하는지 확인하세요.";
-        private const string TutorialFirstResultPrompt =
-            "체리 족보가 피해를 만들고, 훈련용 배터리가 추가 피해 +3을 더했습니다.\n레몬 족보에는 보호막 +4로 반응했습니다.";
-        private const string TutorialUpdatedEnemyTurnPrompt =
-            "몬스터는 예고한 행동을 실행합니다.\n왼쪽 몬스터는 쓰러져 행동하지 않고, 오른쪽 몬스터는 방어 후 다음 행동이 공격으로 바뀌었습니다.\n강한 체리 족보로 먼저 처치하세요.";
-        private const string TutorialUpdatedCompletedPrompt =
-            "튜토리얼 완료! 로비로 돌아갑니다.";
 
         private readonly IRunGameNavigator _navigator;
-        private readonly RunRewardViewModel _rewardVM;
-        private readonly RunHUDViewModel _hudVM;
-        private readonly RunInventoryViewModel _inventoryVM;
-        private readonly RunDefeatViewModel _defeatVM;
-        private readonly LeaderboardViewModel _leaderboardVM;
+        private readonly RunGamePresenter _presenter;
         private readonly IRunGameView _battleView;
         private readonly IBattleSceneController _battleSceneCompositionRoot;
         private readonly ITutorialOverlay _tutorialOverlayView;
+        private readonly RunBattleTutorialSequenceDefinition _tutorialSequenceDefinition;
         private readonly IDefeatPortraitView _defeatView;
         private readonly bool _hasInSceneLeaderboard;
         private readonly CancellationToken _ownerDestroyToken;
@@ -55,46 +38,27 @@ namespace SlotRogue.UI.RunGame
         private bool _reviveAdPending;
         private bool _resumeBattleOnEnter;
         private bool _battleEntryPending;
-        private bool _tutorialPatternMessageShown;
-        private bool _tutorialEnemyAttackMessageShown;
-        private bool _tutorialEnemyTurnMessageShown;
-        private bool _tutorialInventoryOpened;
-        private TutorialRunStep _tutorialRunStep;
-
-        private enum TutorialRunStep
-        {
-            None = 0,
-            InspectIntent = 1,
-            InspectInventory = 2,
-            FirstSpin = 3,
-            EnemyTurn = 4,
-            SecondSpin = 5,
-            Completed = 6,
-        }
+        private int _tutorialStepIndex;
+        private bool _preBattleTutorialCompleted;
+        private bool _tutorialBattlePrepared;
 
         public RunGameFlowController(
             IRunGameNavigator navigator,
-            RunRewardViewModel rewardVM,
-            RunHUDViewModel hudVM,
-            RunInventoryViewModel inventoryVM,
-            RunDefeatViewModel defeatVM,
-            LeaderboardViewModel leaderboardVM,
+            RunGamePresenter presenter,
             IRunGameView battleView,
             IBattleSceneController battleSceneCompositionRoot,
             ITutorialOverlay tutorialOverlayView,
+            RunBattleTutorialSequenceDefinition tutorialSequenceDefinition,
             IDefeatPortraitView defeatView,
             bool hasInSceneLeaderboard,
             CancellationToken ownerDestroyToken)
         {
             _navigator = navigator;
-            _rewardVM = rewardVM;
-            _hudVM = hudVM;
-            _inventoryVM = inventoryVM;
-            _defeatVM = defeatVM;
-            _leaderboardVM = leaderboardVM;
+            _presenter = presenter;
             _battleView = battleView;
             _battleSceneCompositionRoot = battleSceneCompositionRoot;
             _tutorialOverlayView = tutorialOverlayView;
+            _tutorialSequenceDefinition = tutorialSequenceDefinition;
             _defeatView = defeatView;
             _hasInSceneLeaderboard = hasInSceneLeaderboard;
             _ownerDestroyToken = ownerDestroyToken;
@@ -102,15 +66,7 @@ namespace SlotRogue.UI.RunGame
 
         public static RunGameState GetInitialRunState()
         {
-            // 시작 유물 선택은 보상 화면(RunRewardView)에 병합되었습니다.
-            // 비-튜토리얼 런은 Reward 상태로 진입해 '시작 유물 선택' 모드로 표시됩니다.
-            if (GameFlowSession.IsTutorialRun ||
-                GameFlowSession.HasStarterRelic)
-            {
-                return RunGameState.Battle;
-            }
-
-            return RunGameState.Reward;
+            return RunGameState.Battle;
         }
 
         public void Dispose()
@@ -122,13 +78,13 @@ namespace SlotRogue.UI.RunGame
 
         public void HandleRewardEntered()
         {
-            _rewardVM.Refresh();
+            _presenter.RefreshReward();
             RefreshRewardedAvailability();
         }
 
         public void HandleRewardSelectionRequested(int optionIndex)
         {
-            _rewardVM.ClaimReward(optionIndex);
+            _presenter.ClaimReward(optionIndex);
         }
 
         public void HandleRewardRerollRequested()
@@ -141,21 +97,21 @@ namespace SlotRogue.UI.RunGame
         private void HandleRewardRerollRewarded()
         {
             GameLog.Info("[RunGameFlowController] Applying rewarded reroll.");
-            _rewardVM.ApplyRewardedReroll();
+            _presenter.ApplyRewardedReroll();
         }
 
         public void HandleExtraRewardRequested()
         {
             RunRewardedOrSkip(
                 RewardedAdPurpose.ExtraReward,
-                _rewardVM.ApplyRewardedExtraReward);
+                _presenter.ApplyRewardedExtraReward);
         }
 
         public void HandleRewardDoubleRequested()
         {
             RunRewardedOrSkip(
                 RewardedAdPurpose.RewardDouble,
-                _rewardVM.ApplyRewardedDouble);
+                _presenter.ApplyRewardedDouble);
         }
 
         private void RunRewardedOrSkip(
@@ -183,17 +139,17 @@ namespace SlotRogue.UI.RunGame
 
         public void HandleRewardClaimed()
         {
-            // 시작 유물 선택(병합된 첫 진입)은 전투 번호를 올리지 않고 첫 전투로 진입합니다.
-            if (_rewardVM.IsStarterSelection)
+            // 레거시 시작 유물 선택 화면은 전투 번호를 올리지 않고 첫 전투로 진입합니다.
+            if (_presenter.IsStarterRewardSelection)
             {
-                _inventoryVM?.Refresh();
+                _presenter.RefreshInventory();
                 EnterBattleAfterStarterRelicAsync().Forget();
                 return;
             }
 
             GameFlowSession.AdvanceToNextBattle();
             RefreshHud();
-            _inventoryVM?.Refresh();
+            _presenter.RefreshInventory();
             StartNextBattle();
         }
 
@@ -201,43 +157,32 @@ namespace SlotRogue.UI.RunGame
 
         public void HandleInventoryOpenRequested()
         {
-            _inventoryVM.Open();
-
-            if (!GameFlowSession.IsTutorialRun)
-            {
-                return;
-            }
-
-            _tutorialInventoryOpened = true;
-            _tutorialRunStep = TutorialRunStep.InspectInventory;
-            _inventoryVM.SelectTab(RunInventoryTab.Relics);
-            _tutorialOverlayView?.ShowMessage(TutorialInventoryOpenedPrompt);
+            _presenter.OpenRelicInventory();
         }
 
         public void HandleInventoryCloseRequested()
         {
-            _inventoryVM.Close();
+            _presenter.CloseRelicInventory();
+        }
 
-            if (!GameFlowSession.IsTutorialRun ||
-                !_tutorialInventoryOpened ||
-                _tutorialRunStep != TutorialRunStep.InspectInventory)
-            {
-                return;
-            }
+        public void HandleDescriptionOpenRequested()
+        {
+            _presenter.OpenDescription();
+        }
 
-            _tutorialRunStep = TutorialRunStep.FirstSpin;
-            _battleSceneCompositionRoot?.SetTutorialSpinBlocked(false);
-            _tutorialOverlayView?.ShowMessage(TutorialFirstSpinPrompt);
+        public void HandleDescriptionCloseRequested()
+        {
+            _presenter.CloseDescription();
         }
 
         public void HandleInventorySymbolTabRequested()
         {
-            _inventoryVM.SelectTab(RunInventoryTab.SymbolPool);
+            _presenter.SelectInventoryTab(RunInventoryTab.SymbolProbability);
         }
 
-        public void HandleInventoryRelicTabRequested()
+        public void HandleInventoryPatternTabRequested()
         {
-            _inventoryVM.SelectTab(RunInventoryTab.Relics);
+            _presenter.SelectInventoryTab(RunInventoryTab.PatternDescription);
         }
 
         // ── 전투 ─────────────────────────────────────────────────────────
@@ -250,95 +195,137 @@ namespace SlotRogue.UI.RunGame
                 return;
             }
 
+            // 최초 튜토리얼 런은 전투를 시작하기 전에 설명형 나레이션을 먼저 재생한다.
+            // 나레이션을 모두 본 뒤 일반 런으로 전환하고 실제 전투를 시작한다.
+            if (TryBeginTutorialNarration())
+            {
+                return;
+            }
+
             if (_battleSceneCompositionRoot != null)
             {
                 _battleSceneCompositionRoot.BeginBattle();
             }
         }
 
+        // 시그널 기반 스포트라이트 튜토리얼은 설명형 나레이션으로 대체되었다.
+        // 전투 시그널 배선은 유지하되 여기서는 아무 것도 하지 않는다.
         public void HandleBattleTutorialSignalRaised(BattleTutorialSignal signal)
         {
-            if (!GameFlowSession.IsTutorialRun || _tutorialOverlayView == null)
+        }
+
+        // ── 설명형 나레이션 ──────────────────────────────────────────────
+
+        private bool TryBeginTutorialNarration()
+        {
+            if (!GameFlowSession.IsTutorialRun || _preBattleTutorialCompleted)
+            {
+                return false;
+            }
+
+            if (_tutorialOverlayView == null ||
+                _tutorialSequenceDefinition == null ||
+                _tutorialSequenceDefinition.StepCount == 0)
+            {
+                // 안내할 문구가 없으면 튜토리얼을 즉시 마치고 일반 전투로 진행한다.
+                FinishTutorialNarration();
+                return true;
+            }
+
+            PrepareBattleBehindTutorial();
+            _tutorialStepIndex = 0;
+            ShowCurrentTutorialStep();
+            return true;
+        }
+
+        private void ShowCurrentTutorialStep()
+        {
+            if (_tutorialSequenceDefinition == null ||
+                !_tutorialSequenceDefinition.TryGetStep(
+                    _tutorialStepIndex,
+                    out RunBattleTutorialStep step))
+            {
+                FinishTutorialNarration();
+                return;
+            }
+
+            _tutorialOverlayView.ShowStep(
+                ResolveTutorialTarget(step.TargetKey),
+                step,
+                AdvanceTutorialNarration);
+        }
+
+        private void AdvanceTutorialNarration()
+        {
+            _tutorialStepIndex++;
+            ShowCurrentTutorialStep();
+        }
+
+        private void FinishTutorialNarration()
+        {
+            _preBattleTutorialCompleted = true;
+            FirstRunTutorialState.MarkCompleted();
+            GameFlowSession.CompleteTutorialAndContinueAsNormalRun();
+            _tutorialOverlayView?.Hide();
+            RefreshHud();
+            if (_tutorialBattlePrepared)
+            {
+                _battleSceneCompositionRoot?.SetTutorialSpinBlocked(false);
+                _battleSceneCompositionRoot?.SetTutorialTargetSelectionBlocked(false);
+                _tutorialBattlePrepared = false;
+                return;
+            }
+
+            _battleSceneCompositionRoot?.BeginBattle();
+        }
+
+        // ── 전투 결과 처리 ───────────────────────────────────────────────
+
+        private void PrepareBattleBehindTutorial()
+        {
+            if (_battleSceneCompositionRoot == null || _tutorialBattlePrepared)
             {
                 return;
             }
 
-            switch (signal)
-            {
-                case BattleTutorialSignal.BattleStarted:
-                    _tutorialRunStep = TutorialRunStep.InspectIntent;
-                    _tutorialInventoryOpened = false;
-                    _battleSceneCompositionRoot?.SetTutorialSpinBlocked(true);
-                    _battleSceneCompositionRoot?.SetTutorialTargetSelectionBlocked(true);
-                    _tutorialOverlayView.ShowMessage(TutorialIntentPrompt);
-                    break;
-                case BattleTutorialSignal.SlotPresentationCompleted:
-                    if (!_tutorialPatternMessageShown)
-                    {
-                        _tutorialPatternMessageShown = true;
-                        _tutorialRunStep = TutorialRunStep.EnemyTurn;
-                        _tutorialOverlayView.ShowMessage(TutorialFirstResultPrompt);
-                    }
-                    break;
-                case BattleTutorialSignal.EnemyTurnCompleted:
-                    if (!_tutorialEnemyTurnMessageShown)
-                    {
-                        _tutorialEnemyTurnMessageShown = true;
-                        _tutorialRunStep = TutorialRunStep.SecondSpin;
-                        _battleSceneCompositionRoot?.SetTutorialTargetSelectionBlocked(false);
-                        _tutorialOverlayView.ShowMessage(TutorialUpdatedEnemyTurnPrompt);
-                    }
-                    break;
-                case BattleTutorialSignal.EnemyAttackReceived:
-                    if (!_tutorialEnemyAttackMessageShown)
-                    {
-                        _tutorialEnemyAttackMessageShown = true;
-                        _tutorialOverlayView.ShowMessage(TutorialEnemyAttackPrompt);
-                    }
-                    break;
-                default:
-                    break;
-            }
+            _battleSceneCompositionRoot.SetTutorialSpinBlocked(true);
+            _battleSceneCompositionRoot.SetTutorialTargetSelectionBlocked(true);
+            _battleSceneCompositionRoot.BeginBattle();
+            _tutorialBattlePrepared = true;
         }
 
-        // ── 전투 결과 처리 ───────────────────────────────────────────────
+        private RectTransform ResolveTutorialTarget(RunBattleTutorialTargetKey targetKey)
+        {
+            RunBattleTutorialTargets targets =
+                _battleSceneCompositionRoot?.TutorialTargets ?? RunBattleTutorialTargets.Empty;
+            return targetKey switch
+            {
+                RunBattleTutorialTargetKey.Spin => targets.SpinTarget,
+                RunBattleTutorialTargetKey.SwapDecision => targets.SwapDecisionTarget,
+                RunBattleTutorialTargetKey.Shop => targets.ShopTarget,
+                RunBattleTutorialTargetKey.Enemy => targets.EnemyTarget,
+                _ => null,
+            };
+        }
 
         public void OnBattleVictory()
         {
             if (GameFlowSession.IsTutorialRun)
             {
-                _inventoryVM?.Close();
                 CompleteFirstRunTutorial();
-                ReturnToLobbyAfterTutorialAsync().Forget();
-                return;
+                GameFlowSession.CompleteTutorialAndContinueAsNormalRun();
+                _tutorialOverlayView?.Hide();
             }
 
             // 매 wave 승리 시 보상 화면(3택)으로 이동.
-            _inventoryVM?.Close();
+            _presenter.CloseInventory();
             RefreshHud();
             _navigator.GoTo(RunGameState.Reward);
         }
 
-        private async UniTaskVoid ReturnToLobbyAfterTutorialAsync()
-        {
-            try
-            {
-                await UniTask.Delay(
-                    TimeSpan.FromSeconds(1.2f),
-                    cancellationToken: _ownerDestroyToken);
-            }
-            catch (OperationCanceledException)
-            {
-                return;
-            }
-
-            GameFlowSession.EndRun();
-            GameSceneLoader.LoadGameStart();
-        }
-
         public void OnBattleDefeat()
         {
-            _inventoryVM?.Close();
+            _presenter.CloseInventory();
             CancelDefeatCountdown();
             _reviveAdPending = false;
             _defeatView?.SetMonsterPortrait(
@@ -346,7 +333,7 @@ namespace SlotRogue.UI.RunGame
 
             if (GameFlowSession.CanRevive)
             {
-                _defeatVM.ShowReviveOffer(
+                _presenter.ShowReviveOffer(
                     GameFlowSession.CurrentBattleNumber,
                     GameFlowSession.Victories,
                     GameFlowSession.RewardsClaimed,
@@ -369,7 +356,7 @@ namespace SlotRogue.UI.RunGame
 
         public void HandleRestartRequested()
         {
-            _inventoryVM?.Close();
+            _presenter.CloseInventory();
             bool restartTutorial =
                 GameFlowSession.IsTutorialRun &&
                 !FirstRunTutorialState.IsCompleted;
@@ -399,7 +386,7 @@ namespace SlotRogue.UI.RunGame
                 return;
             }
 
-            _leaderboardVM.OpenAsync().Forget();
+            _presenter.OpenLeaderboardAsync().Forget();
         }
 
         public void HandleHomeRequested()
@@ -410,7 +397,7 @@ namespace SlotRogue.UI.RunGame
 
         public void HandleGiveUpRequested()
         {
-            _inventoryVM?.Close();
+            _presenter.CloseInventory();
             _tutorialOverlayView?.Hide();
             ShowAbandonedRunResult();
         }
@@ -439,7 +426,7 @@ namespace SlotRogue.UI.RunGame
 
             CancelDefeatCountdown();
             _reviveAdPending = true;
-            _defeatVM.SetRevivePending();
+            _presenter.SetRevivePending();
             adsManager.ShowRewarded(
                 RewardedAdPurpose.Revive,
                 HandleReviveRewarded);
@@ -458,7 +445,7 @@ namespace SlotRogue.UI.RunGame
                 return;
             }
 
-            _defeatVM.SetCanRevive(false);
+            _presenter.SetCanRevive(false);
             RefreshHud();
             _resumeBattleOnEnter = true;
             _navigator.GoTo(RunGameState.Battle);
@@ -507,7 +494,7 @@ namespace SlotRogue.UI.RunGame
 
         public void RefreshHud()
         {
-            _hudVM.Refresh();
+            _presenter.RefreshHud();
         }
 
         private async UniTaskVoid EnterBattleAfterStarterRelicAsync()
@@ -549,19 +536,17 @@ namespace SlotRogue.UI.RunGame
         {
             FirstRunTutorialState.MarkCompleted();
             ResetTutorialMessages();
-            _tutorialRunStep = TutorialRunStep.Completed;
-            _tutorialOverlayView?.ShowMessage(TutorialUpdatedCompletedPrompt);
+            if (!string.IsNullOrWhiteSpace(_tutorialSequenceDefinition?.CompletionMessage))
+            {
+                _tutorialOverlayView?.ShowMessage(_tutorialSequenceDefinition.CompletionMessage);
+            }
         }
 
         private void ResetTutorialMessages()
         {
-            _tutorialPatternMessageShown = false;
-            _tutorialEnemyAttackMessageShown = false;
-            _tutorialEnemyTurnMessageShown = false;
-            _tutorialInventoryOpened = false;
-            _tutorialRunStep = TutorialRunStep.None;
-            _battleSceneCompositionRoot?.SetTutorialSpinBlocked(false);
-            _battleSceneCompositionRoot?.SetTutorialTargetSelectionBlocked(false);
+            _tutorialStepIndex = 0;
+            _preBattleTutorialCompleted = false;
+            _tutorialBattlePrepared = false;
         }
 
         public void RefreshRewardedAvailability()
@@ -569,12 +554,10 @@ namespace SlotRogue.UI.RunGame
             AdsManager adsManager = AdsManager.Instance;
             bool adsRemoved = AdsRemoveState.IsRemoved;
 
-            _rewardVM?.SetRewardedAvailability(
+            _presenter.SetRewardedAvailability(
                 CanShowRewarded(adsManager, RewardedAdPurpose.RewardReroll),
                 CanShowRewarded(adsManager, RewardedAdPurpose.ExtraReward),
                 CanShowRewarded(adsManager, RewardedAdPurpose.RewardDouble),
-                adsRemoved);
-            _defeatVM?.SetRewardedAvailability(
                 CanShowRewarded(adsManager, RewardedAdPurpose.Revive),
                 adsRemoved);
         }
@@ -621,7 +604,7 @@ namespace SlotRogue.UI.RunGame
                     if (nextDisplayedSeconds != displayedSeconds)
                     {
                         displayedSeconds = nextDisplayedSeconds;
-                        _defeatVM.UpdateReviveCountdown(displayedSeconds);
+                        _presenter.UpdateReviveCountdown(displayedSeconds);
                     }
                 }
             }
@@ -641,7 +624,7 @@ namespace SlotRogue.UI.RunGame
             CancelDefeatCountdown();
             _reviveAdPending = false;
             _battleSceneCompositionRoot?.FinalizePendingDefeat();
-            _defeatVM.ShowResult(
+            _presenter.ShowDefeatResult(
                 GameFlowSession.CurrentBattleNumber,
                 GameFlowSession.Victories,
                 GameFlowSession.RewardsClaimed,
@@ -671,7 +654,7 @@ namespace SlotRogue.UI.RunGame
                 GameFlowSession.EndRun();
             }
 
-            _defeatVM.ShowResult(
+            _presenter.ShowDefeatResult(
                 battleNumber,
                 victories,
                 rewardsClaimed,

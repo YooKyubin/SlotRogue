@@ -14,7 +14,7 @@ namespace SlotRogue.UI.Leaderboard
 
         public bool IsComplete =>
             !string.IsNullOrWhiteSpace(Nickname) &&
-            Nickname.Length <= 50;
+            Nickname.Length <= LeaderboardConstants.MaxNicknameLength;
     }
 
     internal static class LeaderboardPlayerProfileStore

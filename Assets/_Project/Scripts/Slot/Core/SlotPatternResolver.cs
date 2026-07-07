@@ -142,14 +142,14 @@ namespace SlotRogue.Slot.Core
 
         private static SlotPatternMatch ToMatch(PatternCandidate candidate, int repeatIndex)
         {
-            // 패턴 가치(baseValue)는 심볼 종류가 아니라 패턴 크기(칸 수)를 기준으로 한다.
-            // 심볼 자체는 아무 효과/가치를 가지지 않으며, 심볼에 의미를 부여하는 것은 유물(Relic)이다.
-            // 최종 패턴 가치 = baseValue(칸 수) * Definition.Multiplier(족보 배율).
+            int cellCount = candidate.Cells?.Count ?? 0;
+            int baseValue = SlotSymbolAttackValues.DamageFor(candidate.Symbol) * cellCount;
+
             return new SlotPatternMatch(
                 candidate.Definition,
                 candidate.Symbol,
                 candidate.Cells,
-                candidate.Cells.Count,
+                baseValue,
                 repeatIndex);
         }
 

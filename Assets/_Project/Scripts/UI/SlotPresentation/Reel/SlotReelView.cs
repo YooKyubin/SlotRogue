@@ -60,6 +60,48 @@ namespace SlotRogue.UI.SlotPresentation.Reel
         }
 
         /// <summary>
+        /// Returns a stable, full-width transparent hit target covering one visible row's window.
+        /// Unlike <see cref="GetVisibleIcon"/>, whose pooled symbol items are recycled and reordered
+        /// during a spin, these targets are fixed children of the reel anchored to their row band,
+        /// so swap input bound to them stays aligned with the visible cell after every spin.
+        /// </summary>
+        public Image GetWindowHitTarget(int row)
+        {
+            int visible = VisibleRows;
+            if (row < 0 || row >= visible)
+            {
+                return null;
+            }
+
+            if (_windowHitTargets == null || _windowHitTargets.Length != visible)
+            {
+                Array.Resize(ref _windowHitTargets, visible);
+            }
+
+            if (_windowHitTargets[row] != null)
+            {
+                return _windowHitTargets[row];
+            }
+
+            var go = new GameObject($"Swap Window {row}", typeof(RectTransform), typeof(Image));
+            var rect = (RectTransform)go.transform;
+            rect.SetParent(transform, false);
+            rect.anchorMin = new Vector2(0f, 1f - (float)(row + 1) / visible);
+            rect.anchorMax = new Vector2(1f, 1f - (float)row / visible);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            rect.localScale = Vector3.one;
+            rect.SetAsLastSibling();
+
+            var image = go.GetComponent<Image>();
+            image.color = new Color(1f, 1f, 1f, 0f);
+            image.raycastTarget = false;
+
+            _windowHitTargets[row] = image;
+            return image;
+        }
+
+        /// <summary>
         /// Prepares the reel for spinning. Geometry (cell size) is derived from this reel's own
         /// RectTransform so it can be sized and positioned in the scene by hand; the content holder
         /// and pooled symbol items are reused if authored, otherwise created on demand.
@@ -515,6 +557,7 @@ namespace SlotRogue.UI.SlotPresentation.Reel
             return shouldSkip != null && shouldSkip();
         }
 
+        private Image[] _windowHitTargets;
         private float[] _slotRestY;
         private Vector2 _cellSize;
         private float _stripHeight;

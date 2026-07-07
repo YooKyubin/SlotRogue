@@ -22,9 +22,14 @@ namespace SlotRogue.UI.GameFlow
         public int rewardsClaimed;
         public int damageBonus;
         public int defenseBonus;
+        public int runCoins;
+        public int relicSlotCapacity;
         public bool hasRevivedThisRun;
         public string[] relicIds;
         public int[] symbolTypes;
+        public int[] symbolBaseDamageBonuses;
+
+        // 호환을 위해 필드명은 유지하지만 값의 의미는 심볼별 한 칸 출현 확률값이다.
         public int[] symbolCounts;
     }
 }

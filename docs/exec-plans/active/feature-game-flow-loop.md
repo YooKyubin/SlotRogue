@@ -24,7 +24,7 @@
 - [x] 전체 맵 그래프, 연결선, 현재 위치, 선택 가능 노드 표시
 - [x] 전투 씬 세로형 HUD 재배치, 몬스터 이미지 슬롯과 고정 5 x 3 슬롯 보드 표시
 - [x] 런타임 bootstrap 제거, View 프리팹 + Controller 방식으로 씬 갱신
-- [x] 전투 스핀 결과에서 기본 공격과 패턴 성공 강조 표시
+- [x] 전투 스핀 결과에서 NoMatch와 패턴 성공 강조 표시
 - [x] 슬롯 결과 연출 큐와 패턴/유물/최종 결과 뷰 추가
 - [x] 슬롯 연출 전용 `Dev_SlotPresentation` 씬 생성 메뉴 추가
 - [x] `Dev_SlotPresentation` 데모 결과를 15칸 동일 보드의 족보 누적 연출로 고정
@@ -37,12 +37,15 @@
 - [x] v20.3 시작 유물 6종·복수 유물 합산 EditMode 테스트 추가
 - [x] 슬롯 카탈로그와 전투 UI의 `Resources.Load*` fallback 제거 및 직렬화/Composition Root 주입 전환
 - [x] `SlotPatternCatalog` Addressable 엔트리와 `BattleSceneCompositionRoot` 비동기 로드 경로 연결
-- [x] 심볼 풀 시작 개수 차등(고확률 체리/클로버/종 6, 저확률 레몬/다이아/7 4) 적용 + EditMode 테스트
+- [x] 심볼별 한 칸 출현 확률 가중치 차등(고확률 체리/클로버/종, 저확률 레몬/다이아/7) 적용 + EditMode 테스트
 - [x] 보상 등급 분기: 일반전 = 심볼 추가/제거, 엘리트/보스 = 유물 선택 + EditMode 테스트
 - [x] 슬롯 심볼 native size 기준 1.25배 표시와 작은 족보 순차 확대·원복·패턴별 유물 공격력 연출 복구
 - [x] 일반전 심볼 보상 카드에 Addressable 심볼 아이콘과 +/- 배지 표시
 - [x] 슬롯머신 일반/스핀 심볼과 유물/심볼 보상 아이콘 Addressable 키 변경 반영
-- [x] 전투 `Relic Inventory Origin` 버튼에서 심볼 풀/유물 탭 인벤토리 표시
+- [x] 전투 `Relic Inventory Origin` 버튼에서 심볼 확률/유물 탭 인벤토리 표시
+- [x] `SFX_UI` 하이어라키 배치와 `SlotPresentationManager` 직접 clip 연결로 UI 클릭음과 슬롯 회전음을 연결
+- [x] `Bottom Panel > Symbol Panel > Text`에 체리/레몬/클로버/종/다이아/7 순서의 심볼 확률 표시와 초기 심볼 확률 가중치 인스펙터 설정 추가
+- [x] NoMatch 기본 공격 제거와 심볼별 기본 공격력 기반 패턴 피해 계산 적용
 - [ ] Unity Editor에서 `GameStart`부터 Play 검증
 
 ## Notes
@@ -54,7 +57,7 @@
 - 시작 유물과 보상은 `SlotCombatRequest`를 후처리한다.
 - `GameFlowImageSlot`의 `SlotId` 기준으로 배경/카드/전투/보상 이미지를 교체한다.
 - 2026-05-31: Unity 생성 `.csproj`가 아직 새 GameFlow 파일을 포함하지 않아, 별도 `Temp/GameFlowCompileCheck`와 `Temp/GameFlowTestsCompileCheck`로 새 코드/테스트 컴파일 확인. 경고/오류 0개. Unity Editor 인스턴스가 없어 MCP refresh/Test Runner/Play 검증은 실행하지 못함.
-- 2026-05-31: RunBattle에서 패턴 성공 시 `PATTERN HIT!` 문구와 매칭 셀 색상 강조를 표시. 패턴 실패 시 `BASE ATTACK`으로 기본 공격을 명시.
+- 2026-05-31: 당시 구조에서는 RunBattle에서 패턴 성공 시 `PATTERN HIT!` 문구와 매칭 셀 색상 강조를 표시하고, 패턴 실패 시 `BASE ATTACK`으로 기본 공격을 명시했다.
 - 2026-06-02: `SlotRogue.UI.SlotPresentation`에 연출용 DTO/큐/Manager/View를 추가. RunBattle은 연출 완료 콜백 뒤 기존 전투 Effect 적용을 수행한다. Unity Editor 인스턴스가 없어 프리팹 재생성 및 Play 검증은 보류.
 - 2026-06-02: DOTween 추가 후 패턴/유물/최종 결과 UI 애니메이션을 DOTween 기반으로 교체.
 - 2026-06-03: `SlotPresentationDemoController`와 `SlotRogue > Slot Presentation > Rebuild Demo Scene` 메뉴를 추가. 배치 모드 생성은 프로젝트가 열린 Unity 인스턴스 때문에 실패했으므로, 현재 Editor에서 메뉴 실행 필요.
@@ -74,8 +77,8 @@
 - 2026-06-11: ADR-0006에 따라 슬롯 카탈로그와 전투 UI Sprite의 `Resources.Load*` 경로를 제거했다. Prefab 직렬화 참조와 전투 씬 조립 경계 주입을 사용하며 AssetBundle 정책은 후속 ADR로 남긴다.
 - 2026-06-11: ADR-0007에 따라 Addressables 2.9.1 로컬 기준선을 적용했다. `SlotPatternCatalog`을 `slot/catalog/patterns`로 등록하고 현재 `BattleSceneCompositionRoot`에서 UniTask로 로드·해제한다. Editor Fast Mode와 Player 빌드 동반 생성을 설정했으며 `dotnet build SlotRogue.slnx --no-restore`는 경고·오류 0개로 통과했다.
 
-- 2026-06-12: 유물 풀 v23.2 "심볼 확률은 풀 개수로만 조작" 원칙을 적용해 `SlotSymbolPool` 시작 개수를 균등 4에서 고확률 6/저확률 4로 차등화. 5x3 보드 이항분포 기준 "3개 이상 족보" 발동 확률이 약 60% vs 32%로, 유물 수치 보정 비율(+4 vs +7 등)과 기대값 동급이 된다.
-- 2026-06-12: `RunRewardCatalog.ForTier`를 등급 분기로 변경 — 일반전은 심볼 추가(+1)/제거(-1, 최소 1개 유지) 보상, 엘리트는 Common+Uncommon 유물, 보스는 Uncommon 이상 유물. `RunRewardViewModel`/`GameFlowSession.ApplySymbolReward` 기존 경로 재사용으로 View 수정 없음. `dotnet build` 4개 asm 경고/오류 0, EditMode 테스트는 Unity Test Runner 실행 보류.
+- 2026-06-12: 유물 풀 v23.2의 심볼 확률 조작 원칙을 적용해 `SlotSymbolPool` 시작 가중치를 균등 4에서 고확률 6/저확률 4로 차등화. 5x3 보드 이항분포 기준 "3개 이상 족보" 발동 확률이 약 60% vs 32%로, 유물 수치 보정 비율(+4 vs +7 등)과 기대값 기준 동급이 된다.
+- 2026-06-12: `RunRewardCatalog.ForTier`를 등급 분기로 변경 — 일반전은 심볼 확률 가중치 증가(+1)/감소(-1, 최소 1 유지) 보상, 엘리트는 Common+Uncommon 유물, 보스는 Uncommon 이상 유물. `RunRewardViewModel`/`GameFlowSession.ApplySymbolReward` 기존 경로 재사용으로 View 수정 없음. `dotnet build` 4개 asm 경고/오류 0, EditMode 테스트는 Unity Test Runner 실행 보류.
 - 2026-06-13: 릴 심볼 표시 크기를 기존 대비 1.25배로 복구했다. 패턴 View가 숨겨진 레거시 셀이 아니라 현재 보이는 릴 심볼을 확대하고 원래 크기로 복귀하도록 연결했으며, 유물 발동 패턴 인덱스를 보존해 `패턴 → 해당 유물과 누적 공격력 증가 → 다음 패턴` 순서로 큐를 재생한다. Addressable 유물 아이콘을 전투 진입 시 캐시하고 `dotnet build SlotRogue.slnx --no-restore` 경고·오류 0개를 확인했다. Unity Play 검증은 보류.
 - 2026-06-14: 심볼 1.25배의 기준을 셀/기존 고정 크기가 아니라 각 Sprite의 `Image.SetNativeSize()` 결과로 정정했다. 정적 심볼과 세로로 긴 스핀 심볼 모두 자신의 native width/height를 유지한 채 1.25배 표시한다.
 - 2026-06-17: 일반전 심볼 보상에 `slot/icons/symbols` Addressable 심볼 시트와 `ui/icons/reward-symbol-delta` +/- 배지를 연결했다. 유물 보상에서는 배지를 숨기며, 슬롯머신 릴 심볼 Sprite 배열은 ADR-0007에 따라 프리팹 직렬화 참조를 유지한다. `dotnet build SlotRogue.slnx --no-restore` 경고·오류 0개를 확인했다. Unity Play 검증은 보류.
@@ -88,15 +91,20 @@
 - 2026-06-18: 유물 설명 카드에서 `[등급 · 역할]` 헤더와 별도 대상 줄을 제거하고 원문 설명만 표시하도록 수정했다. 선택/보상 카드에서는 원문 설명 안의 첫 심볼 이름만 TMP sprite tag로 치환한다. `dotnet build SlotRogue.slnx --no-restore` 경고·오류 0개, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0을 확인했다. Unity Play 검증은 보류.
 - 2026-06-18: 유물 설명 심볼 아이콘은 런타임 생성 TMP SpriteAsset 대신 `Symbols-Sheet-TMP` Addressable `TMP_SpriteAsset`을 로드해 사용하도록 변경했다. 설명 태그는 에셋 내부 이름 의존을 피하기 위해 `<sprite index=...>`를 사용한다. `dotnet build SlotRogue.slnx --no-restore` 경고·오류 0개, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0을 확인했다. Unity Play 검증은 보류.
 - 2026-06-18: `Symbols-Sheet-TMP`의 glyph bearing을 baseline 기준으로 보정하고, 유물 설명 심볼 치환 결과를 `아이콘 + 심볼 대표색 이름`으로 변경했다. `dotnet build SlotRogue.slnx --no-restore` 경고·오류 0개, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0을 확인했다. Unity Play 검증은 보류.
-- 2026-06-18: `40_SlotMachineArea`의 `Relic Inventory Origin`을 런타임 버튼으로 연결하고, `RunInventoryViewModel`/`RunInventoryView`로 심볼 풀 현재 개수와 보유 유물 전체를 탭으로 표시한다. `dotnet build SlotRogue.slnx --no-restore` 경고·오류 0개, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0을 확인했다. Unity Play 검증은 보류.
+- 2026-06-18: `40_SlotMachineArea`의 `Relic Inventory Origin`을 런타임 버튼으로 연결하고, `RunInventoryViewModel`/`RunInventoryView`로 심볼별 현재 확률 가중치와 보유 유물 전체를 탭으로 표시한다. `dotnet build SlotRogue.slnx --no-restore` 경고·오류 0개, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0을 확인했다. Unity Play 검증은 보류.
 - 2026-06-23: `BattleSceneCompositionRoot`의 일반 전투용 dev monster override를 제거하고, 튜토리얼은 별도 `_tutorialMonsterDefinition` 참조로 분리했다. 일반 전투는 항상 `EncounterTable` 선택 경로를 사용한다.
 
-- 2026-06-26: `staticon-Sheet`를 `Assets/_Project/Art/UI`로 이동하고 `staticon-Sheet-TMP` Addressable TMP SpriteAsset을 추가했다. 슬롯 최종 결과창은 해당 Addressable을 로드해 공격/방어/힐 아이콘을 표시하고, 스핀 시작 직후 기본 공격력에서 출발해 패턴/유물 적용마다 1씩 증가하는 라이브 값 연출로 갱신된다. `dotnet build SlotRogue.slnx --no-restore`, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0 확인. Unity Play 검증은 보류.
+- 2026-06-26: `staticon-Sheet`를 `Assets/_Project/Art/UI`로 이동하고 `staticon-Sheet-TMP` Addressable TMP SpriteAsset을 추가했다. 슬롯 최종 결과창은 해당 Addressable을 로드해 공격/방어/힐 아이콘을 표시하고, 당시 구조 기준 스핀 시작 직후 기본 공격력에서 출발해 패턴/유물 적용마다 증가하는 라이브 값 연출로 갱신된다. `dotnet build SlotRogue.slnx --no-restore`, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0 확인. Unity Play 검증은 보류.
 - 2026-06-26: 시작 유물 선택 후 Battle 화면 진입 전에 슬롯 카탈로그/심볼 Addressable과 초기 슬롯 face를 미리 준비하도록 전환했다. Battle View가 보인 뒤 `SetupImmediate()`가 슬롯 이미지를 한 번 덮어써 보이던 틱 현상을 줄이기 위한 수정이며, 중복 선택으로 Battle 진입 준비가 두 번 실행되지 않도록 막았다. `dotnet build SlotRogue.slnx --no-restore`, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0 확인. Unity Play 검증은 보류.
 - 2026-06-26: `RunInventoryView`가 탭 배경을 오래된 하드코딩 색으로 덮어쓰던 로직을 제거하고, 심볼/유물 탭을 좌우 활성/비활성 스프라이트 교체 방식으로 맞췄다. `InventoryView.prefab`에 탭 스프라이트 4장을 연결해 게임씬 진입 후에도 파란 탭 팔레트가 유지되도록 했다. `dotnet build SlotRogue.slnx --no-restore`, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0 확인. Unity Play 검증은 보류.
 - 2026-06-26: 인벤토리 셀 프리팹(`Frame.prefab`)에 Button 컴포넌트를 추가하고 루트 Frame이 클릭을 받도록 Icon/Highlight의 raycast target을 껐다. 인벤토리 아이콘 클릭 시 기존 `RunInventoryView.Select()` 경로로 선택 하이라이트와 설명창이 표시되도록 보정했다. `dotnet build SlotRogue.slnx --no-restore`, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0 확인. Unity Play 검증은 보류.
 - 2026-06-26: 현재 `20_RunGameScene` 하이어라키 기준으로 `Wave HUD`에 `RunHUDView`를 부착하고 `RunGameSceneRoot._hudView`를 연결했다. HUD는 `Wave Text`를 `WAVE n`으로 갱신하며 TMP_Text를 우선 사용하고 기존 Text는 fallback으로 유지한다. `Pause Button` 입력은 씬의 `SettingPanel`을 열며 `ConsumeButton`은 닫기, `GiveUpButton`은 런 포기 후 홈 이동으로 연결한다. `dotnet build SlotRogue.slnx --no-restore`, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0 확인. Unity Play 검증은 보류.
 - 2026-06-26: `RunHUDView`의 HP 자동 탐색이 전투 HUD의 `Player HP Text`까지 잡아 부활 직후 `50 / 100` 포맷으로 덮어쓰던 문제를 막았다. 공통 HUD는 자기 하위 `HP Text`만 자동 연결하고, 전투 HP 숫자는 `RunBattlePlayerHudView`가 계속 소유한다.
+
+- 2026-06-28: SFX 연결을 런타임 생성/Addressables 키 방식에서 Inspector 연결 방식으로 전환했다. 각 씬의 `SFX_UI` 오브젝트에 `SceneButtonSfxPlayer`와 `AudioSource`를 두면 해당 씬 Button 클릭음을 모두 재생한다. 슬롯 회전음은 `SlotPresentationManager`의 `Slot Spin Clip`에 직접 넣고, 필요하면 별도 `Slot Spin Audio Source`를 지정한다. 지정하지 않으면 기존 presentation `AudioSource`를 사용한다. `Loop Slot Spin Clip`은 기본 off라 한 번만 재생되고, 켜면 회전 동안 loop 후 정지한다.
+- 2026-06-28: RunGame HUD가 `Bottom Panel > Symbol Panel > Text`를 자동 탐색해 심볼 확률을 체리/레몬/클로버/종/다이아/7 순서로 표시한다. `RunGameSceneRoot`의 `Initial Symbol Probability Weights`에서 시작 한 칸 출현 확률 가중치를 심볼별로 지정할 수 있으며, 저장 복원 런에는 해당 초기값을 다시 덮어쓰지 않는다. `dotnet build SlotRogue.slnx --no-restore`, `dotnet test SlotRogue.UI.Tests.csproj --no-build`, `dotnet test SlotRogue.Slot.Tests.csproj --no-build` 종료 코드 0 확인. Unity Play 검증은 보류.
+- 2026-06-28: 기존 심볼 개수 중심 표현을 "심볼별 한 칸 출현 확률 가중치"로 정리했다. `SlotSymbolPool`은 저장/기존 호출 호환을 위해 유지하지만 새 API는 `GetWeight`/`SetWeight`/`AddWeight`/`TotalWeight`를 사용하고, 일반전 심볼 보상은 해당 심볼의 출현 확률 가중치 +1/-1로 표시한다.
+- 2026-06-28: NoMatch 기본 공격을 제거하고 패턴 피해를 `심볼 기본 공격력 × 매칭 칸 수 × 족보 배율`로 전환했다. 기본값은 체리 2, 레몬 2, 클로버 3, 종 4, 다이아 5, 7은 7이며, `RunGameSceneRoot`의 `Symbol Base Damage` 인스펙터 필드로 조정할 수 있다. 슬롯 연출의 라이브 ATK도 0에서 시작해 패턴 `CalculatedValue`와 유물 피해를 누적한다. `dotnet build SlotRogue.slnx --no-restore`, `dotnet test SlotRogue.Slot.Tests.csproj --no-build`, `dotnet test SlotRogue.UI.Tests.csproj --no-build` 종료 코드 0 확인.
 
 ## Completion
 

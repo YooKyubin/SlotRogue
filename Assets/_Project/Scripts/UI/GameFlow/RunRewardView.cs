@@ -13,7 +13,6 @@ namespace SlotRogue.UI.GameFlow
         private const string RewardTitle = "보상 선택";
 
         [SerializeField] private TMP_Text _titleText;
-        [SerializeField] private Text _summaryText;
         [SerializeField] private GameFlowOptionView[] _rewardOptions;
 
         [Header("Ads")]
@@ -22,6 +21,7 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private TMP_Text _rerollButtonText;
 
         private bool _isEntered;
+        private bool _bound;
         private bool _reportedMissingAdButtons;
         private bool _reportedMissingRewardOptions;
 
@@ -33,9 +33,8 @@ namespace SlotRogue.UI.GameFlow
 
         public event Action RerollRequested;
 
-        public void Bind(Text summaryText, GameFlowOptionView[] rewardOptions)
+        public void Bind(GameFlowOptionView[] rewardOptions)
         {
-            _summaryText   = summaryText;
             _rewardOptions = rewardOptions;
         }
 
@@ -48,11 +47,12 @@ namespace SlotRogue.UI.GameFlow
             IRunGameFlow presenter,
             RelicIconRenderer iconRenderer)
         {
-            if (viewModel == null || presenter == null)
+            if (viewModel == null || presenter == null || _bound)
             {
                 return;
             }
 
+            _bound = true;
             Entered += presenter.HandleRewardEntered;
             RewardSelectionRequested += presenter.HandleRewardSelectionRequested;
             RerollRequested += presenter.HandleRewardRerollRequested;
@@ -104,11 +104,6 @@ namespace SlotRogue.UI.GameFlow
             }
 
             SetPanelTitle(string.IsNullOrEmpty(state.Title) ? RewardTitle : state.Title);
-
-            if (_summaryText != null)
-            {
-                _summaryText.text = state.Summary;
-            }
 
             RenderOptions(state.Options);
             if (_rerollButton != null)
@@ -207,13 +202,15 @@ namespace SlotRogue.UI.GameFlow
                 optionView.gameObject.SetActive(index < visibleCount);
                 if (index >= visibleCount)
                 {
+                    optionView.transform.localRotation = Quaternion.identity;
                     continue;
                 }
 
                 RunRewardOptionViewState option = options[index];
+                optionView.transform.localRotation = Quaternion.identity;
                 optionView.SetText(option.Title, option.Description);
                 optionView.SetRarity(option.Rarity);
-                optionView.SetModifierLabel(option.ModifierLabel);
+
                 optionView.Button.onClick.RemoveAllListeners();
 
                 int optionIndex = option.Index;

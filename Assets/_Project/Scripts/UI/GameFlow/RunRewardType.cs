@@ -10,5 +10,6 @@ namespace SlotRogue.UI.GameFlow
         GreaterDamage = 5,
         GreaterDefense = 6,
         FullHeal = 7,
+        RunCoins = 8,
     }
 }

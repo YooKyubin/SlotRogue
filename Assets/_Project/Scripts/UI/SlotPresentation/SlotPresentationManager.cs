@@ -12,12 +12,11 @@ namespace SlotRogue.UI.SlotPresentation
 {
     public sealed class SlotPresentationManager : MonoBehaviour, IPointerClickHandler
     {
-        private const int DamagePerPatternValue = 2;
-
         [SerializeField] private SlotCellSpinView _slotCellSpinView;
         [SerializeField] private SlotMachineSpinDirector _spinPresenter;
         [SerializeField] private PatternPresentationDirector _patternView;
         [SerializeField] private RelicPresentationDirector _relicView;
+        [SerializeField] private RectTransform _inventoryButtonAnchor;
         [SerializeField] private FinalResultDirector _finalResultView;
         [SerializeField] private Graphic _tapSkipGraphic;
         [SerializeField] private AudioSource _audioSource;
@@ -25,6 +24,11 @@ namespace SlotRogue.UI.SlotPresentation
         [SerializeField] private AudioClip[] _patternScaleClips;
         [SerializeField] private AudioClip _relicClip;
         [SerializeField] private AudioClip _finalClip;
+        [SerializeField] private AudioSource _slotSpinAudioSource;
+        [SerializeField] private AudioClip _slotSpinClip;
+        [SerializeField] private bool _loopSlotSpinClip;
+        [SerializeField] private AudioClip _slotReelStopClip;
+        [SerializeField] private AudioClip _slotSpinCompleteClip;
         [SerializeField] private bool _skipCurrentOnTap = true;
 
         public event Action<SlotPresentationResult> Completed;
@@ -43,7 +47,11 @@ namespace SlotRogue.UI.SlotPresentation
             AudioClip relicClip = null,
             AudioClip finalClip = null,
             Graphic tapSkipGraphic = null,
-            SlotCellSpinView slotCellSpinView = null)
+            SlotCellSpinView slotCellSpinView = null,
+            AudioSource slotSpinAudioSource = null,
+            AudioClip slotSpinClip = null,
+            AudioClip slotReelStopClip = null,
+            AudioClip slotSpinCompleteClip = null)
         {
             _patternView = patternView;
             _relicView = relicView;
@@ -54,10 +62,73 @@ namespace SlotRogue.UI.SlotPresentation
             _finalClip = finalClip != null ? finalClip : _finalClip;
             _tapSkipGraphic = tapSkipGraphic != null ? tapSkipGraphic : _tapSkipGraphic;
             _slotCellSpinView = slotCellSpinView != null ? slotCellSpinView : _slotCellSpinView;
+            _slotSpinAudioSource = slotSpinAudioSource != null ? slotSpinAudioSource : _slotSpinAudioSource;
+            _slotSpinClip = slotSpinClip != null ? slotSpinClip : _slotSpinClip;
+            _slotReelStopClip = slotReelStopClip != null ? slotReelStopClip : _slotReelStopClip;
+            _slotSpinCompleteClip = slotSpinCompleteClip != null
+                ? slotSpinCompleteClip
+                : _slotSpinCompleteClip;
             SetTapSkipEnabled(false);
         }
 
         public void Play(SlotPresentationResult result, Action<SlotPresentationResult> onCompleted)
+        {
+            PlayInternal(result, onCompleted, playSpin: true);
+        }
+
+        public void PlayResolved(SlotPresentationResult result, Action<SlotPresentationResult> onCompleted)
+        {
+            PlayInternal(result, onCompleted, playSpin: false);
+        }
+
+        // Plays only the reel spin animation (reels spinning and stopping one by one) and leaves
+        // the final symbols on screen, without running the pattern/relic/final resolution.
+        // Used so the player can spin, see the result, swap symbols, and only then resolve.
+        public void PlaySpinOnly(SlotSpinResult spinResult, Action onCompleted)
+        {
+            if (!isActiveAndEnabled || spinResult == null)
+            {
+                onCompleted?.Invoke();
+                return;
+            }
+
+            EnsureViews();
+            CancelSwapAnimation();
+
+            if (_playRoutine != null)
+            {
+                StopCoroutine(_playRoutine);
+            }
+
+            _playRoutine = StartCoroutine(PlaySpinOnlyRoutine(spinResult, onCompleted));
+        }
+
+        private IEnumerator PlaySpinOnlyRoutine(SlotSpinResult spinResult, Action onCompleted)
+        {
+            _skipRequested = false;
+            _skipAllRequested = false;
+            HideAllViews(includeSlotDisplay: true);
+            SetTapSkipEnabled(true);
+
+            IEnumerator spinRoutine = ResolveSpinRoutine(spinResult);
+            if (spinRoutine != null)
+            {
+                yield return spinRoutine;
+            }
+
+            SlotSpinCompleted?.Invoke();
+
+            _playRoutine = null;
+            _skipRequested = false;
+            _skipAllRequested = false;
+            SetTapSkipEnabled(false);
+            onCompleted?.Invoke();
+        }
+
+        private void PlayInternal(
+            SlotPresentationResult result,
+            Action<SlotPresentationResult> onCompleted,
+            bool playSpin)
         {
             if (!isActiveAndEnabled)
             {
@@ -67,13 +138,14 @@ namespace SlotRogue.UI.SlotPresentation
             }
 
             EnsureViews();
+            CancelSwapAnimation();
 
             if (_playRoutine != null)
             {
                 StopCoroutine(_playRoutine);
             }
 
-            _playRoutine = StartCoroutine(PlayRoutine(result, onCompleted));
+            _playRoutine = StartCoroutine(PlayRoutine(result, onCompleted, playSpin));
         }
 
         public void ShowImmediate(SlotSpinResult result)
@@ -84,6 +156,7 @@ namespace SlotRogue.UI.SlotPresentation
             }
 
             EnsureViews();
+            CancelSwapAnimation();
 
             if (_playRoutine != null)
             {
@@ -95,6 +168,11 @@ namespace SlotRogue.UI.SlotPresentation
             _skipAllRequested = false;
             SetTapSkipEnabled(false);
 
+            SettleBoardImmediate(result);
+        }
+
+        private void SettleBoardImmediate(SlotSpinResult result)
+        {
             SlotMachineSpinDirector presenter = EnsureSpinPresenter();
             if (presenter != null)
             {
@@ -103,6 +181,182 @@ namespace SlotRogue.UI.SlotPresentation
             }
 
             _slotCellSpinView?.StopImmediate(result);
+        }
+
+        // Slides the two swapped cell icons across each other before settling on the swapped board.
+        // Uses floating "ghost" copies parented to the icon canvas so the animation renders above the
+        // reel masks (real reel icons would clip when a horizontal swap crosses column windows).
+        public void PlaySwap(int indexA, int indexB, SlotSpinResult settledResult, Action onCompleted = null)
+        {
+            if (settledResult == null)
+            {
+                onCompleted?.Invoke();
+                return;
+            }
+
+            EnsureViews();
+
+            if (!isActiveAndEnabled ||
+                indexA == indexB ||
+                !SlotSpinResult.IsValidIndex(indexA) ||
+                !SlotSpinResult.IsValidIndex(indexB) ||
+                !TryGetSwapIcons(out Image[] icons) ||
+                icons[indexA] == null ||
+                icons[indexB] == null)
+            {
+                ShowImmediate(settledResult);
+                onCompleted?.Invoke();
+                return;
+            }
+
+            CancelSwapAnimation();
+            _swapOnCompleted = onCompleted;
+            _swapRoutine = StartCoroutine(
+                PlaySwapRoutine(icons[indexA], icons[indexB], settledResult));
+        }
+
+        private bool TryGetSwapIcons(out Image[] icons)
+        {
+            icons = null;
+
+            SlotMachineSpinDirector presenter = EnsureSpinPresenter();
+            if (presenter != null && presenter.TryGetVisibleCellIcons(out icons))
+            {
+                return icons != null;
+            }
+
+            return _slotCellSpinView != null &&
+                _slotCellSpinView.TryGetReelBindings(out icons, out _, out _) &&
+                icons != null;
+        }
+
+        private IEnumerator PlaySwapRoutine(
+            Image iconA,
+            Image iconB,
+            SlotSpinResult settledResult)
+        {
+            RectTransform ghostA = CreateSwapGhost(iconA);
+            RectTransform ghostB = CreateSwapGhost(iconB);
+
+            HideSwapIcon(iconA);
+            HideSwapIcon(iconB);
+
+            Vector3 startA = ghostA.position;
+            Vector3 startB = ghostB.position;
+            Vector3 scaleA = ghostA.localScale;
+            Vector3 scaleB = ghostB.localScale;
+
+            float elapsed = 0f;
+            while (elapsed < SwapAnimationDuration)
+            {
+                elapsed += Time.deltaTime;
+                float progress = Mathf.Clamp01(elapsed / SwapAnimationDuration);
+                float eased = Mathf.SmoothStep(0f, 1f, progress);
+                float pop = 1f + SwapAnimationPop * Mathf.Sin(progress * Mathf.PI);
+
+                ghostA.position = Vector3.Lerp(startA, startB, eased);
+                ghostB.position = Vector3.Lerp(startB, startA, eased);
+                ghostA.localScale = scaleA * pop;
+                ghostB.localScale = scaleB * pop;
+                yield return null;
+            }
+
+            RestoreSwapIcons();
+            DestroySwapGhosts();
+            _swapRoutine = null;
+            SettleBoardImmediate(settledResult);
+
+            Action onCompleted = _swapOnCompleted;
+            _swapOnCompleted = null;
+            onCompleted?.Invoke();
+        }
+
+        private RectTransform CreateSwapGhost(Image source)
+        {
+            var ghostObject = new GameObject("SwapGhost", typeof(RectTransform), typeof(Image));
+            var ghostRect = (RectTransform)ghostObject.transform;
+            RectTransform sourceRect = source.rectTransform;
+
+            // Copy the source layout, then reparent to the shared canvas keeping the world transform so
+            // the ghost overlays the reel at the exact size/position of the icon it replaces.
+            ghostRect.SetParent(sourceRect.parent, worldPositionStays: false);
+            ghostRect.pivot = sourceRect.pivot;
+            ghostRect.anchorMin = sourceRect.anchorMin;
+            ghostRect.anchorMax = sourceRect.anchorMax;
+            ghostRect.sizeDelta = sourceRect.sizeDelta;
+            ghostRect.anchoredPosition = sourceRect.anchoredPosition;
+            ghostRect.localRotation = sourceRect.localRotation;
+            ghostRect.localScale = sourceRect.localScale;
+
+            var ghostImage = ghostObject.GetComponent<Image>();
+            ghostImage.sprite = source.sprite;
+            ghostImage.color = source.color;
+            ghostImage.material = source.material;
+            ghostImage.preserveAspect = source.preserveAspect;
+            ghostImage.raycastTarget = false;
+
+            Transform canvasRoot = source.canvas != null ? source.canvas.transform : sourceRect.parent;
+            ghostRect.SetParent(canvasRoot, worldPositionStays: true);
+            ghostRect.SetAsLastSibling();
+
+            _swapGhosts.Add(ghostObject);
+            return ghostRect;
+        }
+
+        private void HideSwapIcon(Image icon)
+        {
+            if (icon == null)
+            {
+                return;
+            }
+
+            // Image.enabled만 끄면 자식으로 붙은 족보 하이라이트 오버레이가 남아 고스트 뒤로 비친다.
+            // GameObject를 통째로 비활성화해 심볼과 하이라이트를 함께 숨긴다(비활성 GO는 재활성도 무효).
+            icon.gameObject.SetActive(false);
+            _swapHiddenIcons.Add(icon);
+        }
+
+        private void RestoreSwapIcons()
+        {
+            for (int index = 0; index < _swapHiddenIcons.Count; index++)
+            {
+                if (_swapHiddenIcons[index] != null)
+                {
+                    _swapHiddenIcons[index].gameObject.SetActive(true);
+                }
+            }
+
+            _swapHiddenIcons.Clear();
+        }
+
+        private void DestroySwapGhosts()
+        {
+            for (int index = 0; index < _swapGhosts.Count; index++)
+            {
+                if (_swapGhosts[index] != null)
+                {
+                    Destroy(_swapGhosts[index]);
+                }
+            }
+
+            _swapGhosts.Clear();
+        }
+
+        private void CancelSwapAnimation()
+        {
+            if (_swapRoutine != null)
+            {
+                StopCoroutine(_swapRoutine);
+                _swapRoutine = null;
+            }
+
+            RestoreSwapIcons();
+            DestroySwapGhosts();
+
+            // 진행 중 취소돼도 대기 중인 정산 흐름이 멈추지 않도록 완료 콜백을 반드시 호출한다.
+            Action onCompleted = _swapOnCompleted;
+            _swapOnCompleted = null;
+            onCompleted?.Invoke();
         }
 
         public void SetSymbolSprites(Sprite[] symbolSprites, Sprite[] spinSymbolSprites)
@@ -148,6 +402,8 @@ namespace SlotRogue.UI.SlotPresentation
 
         private void OnDisable()
         {
+            CancelSwapAnimation();
+
             if (_playRoutine != null)
             {
                 StopCoroutine(_playRoutine);
@@ -157,26 +413,33 @@ namespace SlotRogue.UI.SlotPresentation
             _skipRequested = false;
             _skipAllRequested = false;
             SetTapSkipEnabled(false);
-            HideAllViews();
+            StopSlotSpinSfx();
+            HideAllViews(includeSlotDisplay: true);
             UnsubscribeSpinPresenterEvents();
         }
 
-        private IEnumerator PlayRoutine(SlotPresentationResult result, Action<SlotPresentationResult> onCompleted)
+        private IEnumerator PlayRoutine(
+            SlotPresentationResult result,
+            Action<SlotPresentationResult> onCompleted,
+            bool playSpin)
         {
             _skipRequested = false;
             _skipAllRequested = false;
             _nextPatternClipIndex = 0;
-            HideAllViews();
+            HideAllViews(includeSlotDisplay: playSpin);
             SetTapSkipEnabled(true);
 
             SlotLiveResultState liveResultState = SlotLiveResultState.Create(result?.FinalResult);
             Coroutine liveResultIntro = StartLiveResult(liveResultState);
 
-            IEnumerator spinRoutine = ResolveSpinRoutine(result?.SpinResult);
-            if (spinRoutine != null)
+            if (playSpin)
             {
-                yield return spinRoutine;
-                _skipRequested = false;
+                IEnumerator spinRoutine = ResolveSpinRoutine(result?.SpinResult);
+                if (spinRoutine != null)
+                {
+                    yield return spinRoutine;
+                    _skipRequested = false;
+                }
             }
 
             if (liveResultIntro != null)
@@ -364,11 +627,10 @@ namespace SlotRogue.UI.SlotPresentation
             }
 
             PlayRelicSfx();
-            RectTransform impactAnchor = _finalResultView != null ? _finalResultView.ImpactAnchor : null;
             return StartCoroutine(
-                _relicView.PlayIconFlyToResult(
+                _relicView.PlayBurstAtAnchor(
                     visualRelics,
-                    impactAnchor,
+                    _inventoryButtonAnchor,
                     relic =>
                     {
                         liveResultState?.ApplyRelic(relic);
@@ -515,26 +777,41 @@ namespace SlotRogue.UI.SlotPresentation
             SlotMachineSpinDirector presenter = EnsureSpinPresenter();
             if (presenter != null)
             {
-                return presenter.Play(spinResult, IsSkipRequested);
+                return PlaySpinRoutine(presenter.Play(spinResult, IsSkipRequested));
             }
 
             if (_slotCellSpinView != null)
             {
-                return _slotCellSpinView.Play(spinResult, IsSkipRequested);
+                return PlaySpinRoutine(_slotCellSpinView.Play(spinResult, IsSkipRequested));
             }
 
             return null;
         }
 
-        // Rebind presentation views from the scene when inspector references were lost.
-        // Missing views warn once; that presentation layer is skipped if the component is absent.
+        private IEnumerator PlaySpinRoutine(IEnumerator spinRoutine)
+        {
+            if (spinRoutine == null)
+            {
+                yield break;
+            }
+
+            StartSlotSpinSfx();
+            try
+            {
+                yield return spinRoutine;
+            }
+            finally
+            {
+                StopSlotSpinSfx();
+                if (!IsSkipRequested())
+                {
+                    PlaySlotSpinCompleteSfx();
+                }
+            }
+        }
+
         private void EnsureViews()
         {
-            _slotCellSpinView ??= SceneComponentResolver.FindInSceneRoot<SlotCellSpinView>(transform);
-            _patternView ??= SceneComponentResolver.FindInSceneRoot<PatternPresentationDirector>(transform);
-            _relicView ??= SceneComponentResolver.FindInSceneRoot<RelicPresentationDirector>(transform);
-            _finalResultView ??= SceneComponentResolver.FindInSceneRoot<FinalResultDirector>(transform);
-
             if (_viewsResolved)
             {
                 return;
@@ -543,14 +820,15 @@ namespace SlotRogue.UI.SlotPresentation
             _viewsResolved = true;
 
             var missing = new System.Text.StringBuilder();
+            if (_slotCellSpinView == null) missing.Append("SlotCellSpinView(slot spin), ");
             if (_patternView == null) missing.Append("PatternPresentationDirector(pattern), ");
             if (_relicView == null) missing.Append("RelicPresentationDirector(relic), ");
             if (_finalResultView == null) missing.Append("FinalResultDirector(final), ");
             if (missing.Length > 0)
             {
-                Debug.LogWarning(
-                    $"[SlotPresentationManager] Missing presentation views: {missing.ToString().TrimEnd(',', ' ')}. " +
-                    "The corresponding presentation layer will be skipped.");
+                Debug.LogError(
+                    $"[SlotPresentationManager] Presentation UI references must be wired in the inspector. Missing: {missing.ToString().TrimEnd(',', ' ')}.",
+                    this);
             }
         }
 
@@ -563,16 +841,9 @@ namespace SlotRogue.UI.SlotPresentation
                 return _spinPresenter;
             }
 
-            // Prefer a presenter authored in the prefab/scene, then one already on the spin view,
-            // otherwise add one at runtime (which builds its reel overlay over the cells).
             if (_spinPresenter == null)
             {
-                _spinPresenter = _slotCellSpinView.GetComponent<SlotMachineSpinDirector>();
-            }
-
-            if (_spinPresenter == null)
-            {
-                _spinPresenter = _slotCellSpinView.gameObject.AddComponent<SlotMachineSpinDirector>();
+                return null;
             }
 
             // Cell icons and sprite tables are runtime data, so (re)initialize every time.
@@ -610,6 +881,11 @@ namespace SlotRogue.UI.SlotPresentation
 
         private void HandleReelStopped(int column)
         {
+            if (!IsSkipRequested())
+            {
+                PlaySlotReelStopSfx();
+            }
+
             SlotReelStopped?.Invoke(column);
         }
 
@@ -637,15 +913,20 @@ namespace SlotRogue.UI.SlotPresentation
             }
         }
 
-        private void HideAllViews()
+        private void HideAllViews(bool includeSlotDisplay)
         {
-            if (_spinPresenter != null)
+            StopSlotSpinSfx();
+
+            if (includeSlotDisplay)
             {
-                _spinPresenter.StopImmediate();
-            }
-            else if (_slotCellSpinView != null)
-            {
-                _slotCellSpinView.StopImmediate();
+                if (_spinPresenter != null)
+                {
+                    _spinPresenter.StopImmediate();
+                }
+                else if (_slotCellSpinView != null)
+                {
+                    _slotCellSpinView.StopImmediate();
+                }
             }
 
             if (_patternView != null)
@@ -670,6 +951,69 @@ namespace SlotRogue.UI.SlotPresentation
             {
                 _audioSource.PlayOneShot(clip);
             }
+        }
+
+        private void StartSlotSpinSfx()
+        {
+            AudioSource audioSource = ResolveSlotSpinAudioSource();
+            if (audioSource == null)
+            {
+                return;
+            }
+
+            AudioClip clip = _slotSpinClip != null ? _slotSpinClip : audioSource.clip;
+            if (clip == null)
+            {
+                return;
+            }
+
+            if (!_loopSlotSpinClip)
+            {
+                audioSource.PlayOneShot(clip);
+                return;
+            }
+
+            audioSource.clip = clip;
+            audioSource.loop = true;
+            audioSource.playOnAwake = false;
+            audioSource.spatialBlend = 0f;
+
+            if (!audioSource.isPlaying)
+            {
+                _activeSlotSpinAudioSource = audioSource;
+                audioSource.Play();
+            }
+        }
+
+        private void StopSlotSpinSfx()
+        {
+            if (_activeSlotSpinAudioSource != null && _activeSlotSpinAudioSource.isPlaying)
+            {
+                _activeSlotSpinAudioSource.Stop();
+                _activeSlotSpinAudioSource.loop = false;
+            }
+
+            _activeSlotSpinAudioSource = null;
+        }
+
+        private void PlaySlotReelStopSfx()
+        {
+            PlayClip(_slotReelStopClip);
+        }
+
+        private void PlaySlotSpinCompleteSfx()
+        {
+            PlayClip(_slotSpinCompleteClip);
+        }
+
+        private AudioSource ResolveSlotSpinAudioSource()
+        {
+            if (_slotSpinAudioSource != null)
+            {
+                return _slotSpinAudioSource;
+            }
+
+            return _audioSource;
         }
 
         private AudioClip SelectNextPatternClip()
@@ -709,7 +1053,7 @@ namespace SlotRogue.UI.SlotPresentation
                 _targetDamage = Mathf.Max(0, targetDamage);
                 _targetDefense = Mathf.Max(0, targetDefense);
                 _targetHeal = Mathf.Max(0, targetHeal);
-                Damage = ResolveInitialDamage(_targetDamage);
+                Damage = 0;
             }
 
             internal int Damage { get; private set; }
@@ -724,7 +1068,7 @@ namespace SlotRogue.UI.SlotPresentation
             {
                 return new SlotLiveResultState(
                     finalResult?.AttackCount ?? 1,
-                    finalResult?.Damage ?? SlotCombatRequest.BaseAttackDamage,
+                    finalResult?.Damage ?? 0,
                     finalResult?.Defense ?? 0,
                     finalResult?.HealAmount ?? 0);
             }
@@ -738,7 +1082,7 @@ namespace SlotRogue.UI.SlotPresentation
 
                 Damage = AddClamped(
                     Damage,
-                    Mathf.Max(0, pattern.BonusValue) * DamagePerPatternValue,
+                    Mathf.Max(0, pattern.BonusValue),
                     _targetDamage);
             }
 
@@ -776,16 +1120,6 @@ namespace SlotRogue.UI.SlotPresentation
                 return summary;
             }
 
-            private static int ResolveInitialDamage(int targetDamage)
-            {
-                if (targetDamage <= 0)
-                {
-                    return 0;
-                }
-
-                return Mathf.Min(SlotCombatRequest.BaseAttackDamage, targetDamage);
-            }
-
             private static int AddClamped(int current, int delta, int target)
             {
                 int next = current + Mathf.Max(0, delta);
@@ -797,10 +1131,18 @@ namespace SlotRogue.UI.SlotPresentation
             private readonly int _targetHeal;
         }
 
+        private const float SwapAnimationDuration = 0.2f;
+        private const float SwapAnimationPop = 0.12f;
+
         private Coroutine _playRoutine;
+        private Coroutine _swapRoutine;
+        private Action _swapOnCompleted;
+        private readonly List<GameObject> _swapGhosts = new();
+        private readonly List<Image> _swapHiddenIcons = new();
         private bool _skipRequested;
         private bool _skipAllRequested;
         private int _nextPatternClipIndex;
+        private AudioSource _activeSlotSpinAudioSource;
         private SlotMachineSpinDirector _subscribedSpinPresenter;
         private bool _viewsResolved;
     }

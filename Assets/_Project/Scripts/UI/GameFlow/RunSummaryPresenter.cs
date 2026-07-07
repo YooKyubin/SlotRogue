@@ -16,11 +16,12 @@ namespace SlotRogue.UI.GameFlow
                 $"진입 전투: {GameFlowSession.BattleIndex}\n" +
                 $"승리: {GameFlowSession.Victories}\n" +
                 $"보상: {GameFlowSession.RewardsClaimed}\n" +
+                $"COIN: {GameFlowSession.RunCoins}\n" +
                 $"현재 전투: {GameFlowSession.CurrentBattleNumber}\n" +
                 $"전투 등급: {GameFlowSession.CurrentTier}\n" +
                 $"부활 사용: {GameFlowSession.HasRevivedThisRun}\n" +
                 $"보유 유물: {BuildRelicSummary()}\n" +
-                $"슬롯 풀: {GameFlowSession.SlotPool.BuildSummary()}";
+                $"심볼 한 칸 확률: {GameFlowSession.SlotPool.BuildSummary()}";
         }
 
         private static string BuildRelicSummary()
@@ -28,10 +29,14 @@ namespace SlotRogue.UI.GameFlow
             var relics = GameFlowSession.OwnedRelics;
             if (relics.Count == 0)
             {
-                return "없음";
+                return $"0/{GameFlowSession.RelicSlotCapacity}";
             }
 
             var builder = new StringBuilder();
+            builder.Append(relics.Count);
+            builder.Append('/');
+            builder.Append(GameFlowSession.RelicSlotCapacity);
+            builder.Append(" - ");
             for (int index = 0; index < relics.Count; index++)
             {
                 if (index > 0)

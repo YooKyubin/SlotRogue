@@ -192,8 +192,6 @@ namespace SlotRogue.UI.RunGame.ViewModels
                     index,
                     reward.DisplayName,
                     reward.Description,
-                    reward.IconKey,
-                    reward.ModifierLabel,
                     reward.Rarity);
             }
 
@@ -376,15 +374,11 @@ namespace SlotRogue.UI.RunGame.ViewModels
             int index,
             string title,
             string description,
-            string iconKey,
-            string modifierLabel,
             SlotRogue.UI.GameFlow.RewardRarity rarity = SlotRogue.UI.GameFlow.RewardRarity.Common)
         {
             Index = index;
             Title = title ?? string.Empty;
             Description = description ?? string.Empty;
-            IconKey = iconKey ?? string.Empty;
-            ModifierLabel = modifierLabel ?? string.Empty;
             Rarity = rarity;
         }
 
@@ -393,10 +387,6 @@ namespace SlotRogue.UI.RunGame.ViewModels
         public string Title { get; }
 
         public string Description { get; }
-
-        public string IconKey { get; }
-
-        public string ModifierLabel { get; }
 
         public SlotRogue.UI.GameFlow.RewardRarity Rarity { get; }
     }

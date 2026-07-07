@@ -130,6 +130,52 @@ namespace SlotRogue.Slot.Core
             return null;
         }
 
+        public List<SlotPatternDefinition> GetDefinitionsForDisplay()
+        {
+            var definitions = new List<SlotPatternDefinition>();
+
+            if (_entries == null)
+            {
+                return definitions;
+            }
+
+            for (int index = 0; index < _entries.Count; index++)
+            {
+                SlotPatternCatalogEntry entry = _entries[index];
+                if (entry == null || !entry.CanEvaluate)
+                {
+                    continue;
+                }
+
+                definitions.Add(entry.CreateDefinition(entry.BuildCells()));
+            }
+
+            definitions.Sort((left, right) =>
+            {
+                if (left == null && right == null)
+                {
+                    return 0;
+                }
+
+                if (left == null)
+                {
+                    return 1;
+                }
+
+                if (right == null)
+                {
+                    return -1;
+                }
+
+                int orderCompare = left.OrderIndex.CompareTo(right.OrderIndex);
+                return orderCompare != 0
+                    ? orderCompare
+                    : string.Compare(left.PatternId, right.PatternId, StringComparison.Ordinal);
+            });
+
+            return definitions;
+        }
+
         public void ResetToDefaults()
         {
             _entries = CreateDefaultEntries();

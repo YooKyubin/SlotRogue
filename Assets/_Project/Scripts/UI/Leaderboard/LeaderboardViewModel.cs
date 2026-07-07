@@ -41,7 +41,7 @@ namespace SlotRogue.UI.Leaderboard
         {
             _isVisible = true;
             _isProfileRequired = true;
-            _statusMessage = "A nickname is required before playing.";
+            _statusMessage = "닉네임을 작성해주세요";
             Publish();
         }
 
@@ -84,7 +84,7 @@ namespace SlotRogue.UI.Leaderboard
             }
 
             _isBusy = true;
-            _statusMessage = "Loading leaderboard...";
+            _statusMessage = "랭킹 불러오는 중...";
             Publish();
 
             LeaderboardServiceResult<IReadOnlyList<LeaderboardEntryData>> result =
@@ -101,7 +101,7 @@ namespace SlotRogue.UI.Leaderboard
                     _playerName = profile.Nickname;
                 }
                 _statusMessage = _entries.Count == 0
-                    ? "No scores yet."
+                    ? "아직 기록이 없습니다"
                     : string.Empty;
             }
             else
@@ -121,7 +121,7 @@ namespace SlotRogue.UI.Leaderboard
 
             _isBusy = true;
             bool wasProfileRequired = _isProfileRequired;
-            _statusMessage = "Saving profile...";
+            _statusMessage = "저장 중...";
             Publish();
 
             LeaderboardServiceResult<LeaderboardPlayerProfile> result =
@@ -137,7 +137,7 @@ namespace SlotRogue.UI.Leaderboard
 
             _playerName = result.Value.Nickname;
             _isProfileRequired = false;
-            _statusMessage = "Profile saved.";
+            _statusMessage = "저장 완료";
 
             if (wasProfileRequired)
             {

@@ -14,6 +14,9 @@ namespace SlotRogue.UI.Leaderboard
 
         /// <summary>랭킹 화면에 노출하는 최대 순위 수(포디움 + 리스트). UGS 조회 상한과 동일하게 100.</summary>
         public const int DisplayLimit = 100;
+
+        /// <summary>닉네임 최대 길이(한글 기준 글자 수).</summary>
+        public const int MaxNicknameLength = 6;
     }
 
     [Serializable]
@@ -192,7 +195,7 @@ namespace SlotRogue.UI.Leaderboard
                 SlotSymbolType symbol = symbols[index];
                 counts.Add(new LeaderboardSymbolCount(
                     symbol.ToString(),
-                    slotPool.GetCount(symbol)));
+                    slotPool.GetWeight(symbol)));
             }
 
             return counts;
