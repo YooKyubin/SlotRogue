@@ -34,7 +34,7 @@ MonoBehaviour:
     - rid: 5421931881862791243
       type: {class: ShieldEffectDefinition, ns: SlotRogue.Data.Combat, asm: SlotRogue.Data}
       data:
-        _amount: 2
+        _amount: 10
         _target:
           _targetMode: 0
           _targetParticipantId: 0
