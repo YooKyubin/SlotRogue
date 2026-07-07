@@ -8,17 +8,20 @@ namespace SlotRogue.UI.GameFlow
 {
     public sealed class ShieldGaugeView : MonoBehaviour
     {
+        private const float ExistingShieldGainTextPulseDuration = 0.25f;
+        private const float ExistingShieldGainTextPulseScaleMultiplier = 1.18f;
+
         [Header("References")]
         [SerializeField] private Text _shieldText;
         [SerializeField] private Image _shieldImage;
 
         [Header("Gain / Expire")]
-        [SerializeField] private float _gainDuration = 1f;
-        [SerializeField] private float _gainStartYOffset = -10f;
+        [SerializeField] private float _gainDuration = 0.25f;
+        [SerializeField] private float _gainStartYOffset = -2f;
 
         [Header("Hit")]
         [SerializeField] private float _hitDuration = 0.25f;
-        [SerializeField] private float _hitShakeDistance = 8f;
+        [SerializeField] private float _hitShakeDistance = 3f;
         [SerializeField] private int _hitShakeCount = 4;
         [SerializeField] private float _hitTextScaleMultiplier = 1.25f;
         [SerializeField] private Color _hitTextColor = Color.red;
@@ -46,6 +49,7 @@ namespace SlotRogue.UI.GameFlow
             if (_shieldText != null)
             {
                 _shieldText.text = shield.ToString();
+                _shieldText.enabled = shield > 0;
             }
         }
 
@@ -63,6 +67,16 @@ namespace SlotRogue.UI.GameFlow
             }
 
             gameObject.SetActive(true);
+
+            Text shieldText = _shieldText;
+            bool newShieldGain = IsNewShieldGain(shieldText, amount);
+            if (!newShieldGain && shieldText != null)
+            {
+                await PlayExistingShieldGainAsync(shieldText, cancellationToken);
+                return;
+            }
+
+            SetShieldTextVisible(shieldText, false);
 
             RectTransform imageTransform = shieldImage.rectTransform;
             Vector2 targetPosition = imageTransform.anchoredPosition;
@@ -92,6 +106,8 @@ namespace SlotRogue.UI.GameFlow
                 shieldImage.color = targetColor;
                 imageTransform.anchoredPosition = targetPosition;
             }
+
+            SetShieldTextVisible(shieldText, true);
         }
 
         public async UniTask PlayHitAsync(int consumedAmount, CancellationToken cancellationToken)
@@ -156,7 +172,12 @@ namespace SlotRogue.UI.GameFlow
             }
         }
 
-        public async UniTask PlayBreakAsync(CancellationToken cancellationToken)
+        public UniTask PlayBreakAsync(CancellationToken cancellationToken)
+        {
+            return PlayBreakAsync(consumedAmount: 0, cancellationToken);
+        }
+
+        public async UniTask PlayBreakAsync(int consumedAmount, CancellationToken cancellationToken)
         {
             if (!gameObject.activeSelf)
             {
@@ -170,18 +191,43 @@ namespace SlotRogue.UI.GameFlow
             }
 
             RectTransform imageTransform = shieldImage.rectTransform;
+            Vector2 targetPosition = imageTransform.anchoredPosition;
             Vector3 targetScale = imageTransform.localScale;
             Vector3 endScale = targetScale * _breakScaleMultiplier;
             Color targetColor = shieldImage.color;
             targetColor.a = 0f;
+
+            Text shieldText = _shieldText;
+            RectTransform textTransform = shieldText != null ? shieldText.rectTransform : null;
+            Color targetTextColor = shieldText != null ? shieldText.color : Color.white;
+            Vector3 targetTextScale = textTransform != null ? textTransform.localScale : Vector3.one;
+
+            SetShieldTextVisible(shieldText, false);
+
+            if (shieldText != null && consumedAmount > 0)
+            {
+                UpdateShieldTextAfterHit(shieldText, consumedAmount);
+                shieldText.color = _hitTextColor;
+            }
+
+            if (textTransform != null && consumedAmount > 0)
+            {
+                textTransform.localScale = targetTextScale * _hitTextScaleMultiplier;
+            }
 
             _shieldTween?.Kill();
 
             Sequence sequence = CreateBreakSequence(
                 shieldImage,
                 imageTransform,
+                targetPosition,
                 endScale,
-                targetColor.a);
+                targetColor.a,
+                shieldText,
+                textTransform,
+                targetTextColor,
+                targetTextScale,
+                consumedAmount > 0);
 
             _shieldTween = sequence;
 
@@ -190,7 +236,18 @@ namespace SlotRogue.UI.GameFlow
             if (shieldImage != null && imageTransform != null)
             {
                 shieldImage.color = targetColor;
+                imageTransform.anchoredPosition = targetPosition;
                 imageTransform.localScale = targetScale;
+            }
+
+            if (shieldText != null)
+            {
+                shieldText.color = targetTextColor;
+            }
+
+            if (textTransform != null)
+            {
+                textTransform.localScale = targetTextScale;
             }
 
             gameObject.SetActive(false);
@@ -214,6 +271,8 @@ namespace SlotRogue.UI.GameFlow
             Vector2 endPosition = targetPosition + new Vector2(0f, _gainStartYOffset);
             Color targetColor = shieldImage.color;
             targetColor.a = 0f;
+
+            SetShieldTextVisible(_shieldText, false);
 
             _shieldTween?.Kill();
 
@@ -250,6 +309,32 @@ namespace SlotRogue.UI.GameFlow
                 .Join(moveTween)
                 .SetEase(Ease.OutQuad)
                 .SetLink(gameObject);
+        }
+
+        private async UniTask PlayExistingShieldGainAsync(Text shieldText, CancellationToken cancellationToken)
+        {
+            RectTransform textTransform = shieldText.rectTransform;
+            Vector3 targetScale = textTransform.localScale;
+            Vector3 pulseScale = targetScale * ExistingShieldGainTextPulseScaleMultiplier;
+
+            SetShieldTextVisible(shieldText, true);
+
+            _shieldTween?.Kill();
+
+            Sequence sequence = DOTween.Sequence()
+                .Append(CreateLocalScaleTween(textTransform, pulseScale, ExistingShieldGainTextPulseDuration * 0.5f))
+                .Append(CreateLocalScaleTween(textTransform, targetScale, ExistingShieldGainTextPulseDuration * 0.5f))
+                .SetEase(Ease.OutQuad)
+                .SetLink(gameObject);
+
+            _shieldTween = sequence;
+
+            await SlotRogue.UI.Combat.Presentation.CombatPresentationTweens.AwaitTweenAsync(sequence, cancellationToken);
+
+            if (textTransform != null)
+            {
+                textTransform.localScale = targetScale;
+            }
         }
 
         private Sequence CreateExpireSequence(
@@ -303,17 +388,48 @@ namespace SlotRogue.UI.GameFlow
         private Sequence CreateBreakSequence(
             Image shieldImage,
             RectTransform imageTransform,
+            Vector2 targetPosition,
             Vector3 endScale,
-            float targetAlpha)
+            float targetAlpha,
+            Text shieldText,
+            RectTransform textTransform,
+            Color targetTextColor,
+            Vector3 targetTextScale,
+            bool includeHitPresentation)
         {
             Tween fadeTween = CreateImageAlphaTween(shieldImage, targetAlpha, _breakDuration);
             Tween scaleTween = CreateLocalScaleTween(imageTransform, endScale, _breakDuration);
 
-            return DOTween.Sequence()
+            Sequence sequence = DOTween.Sequence()
                 .Join(fadeTween)
                 .Join(scaleTween)
                 .SetEase(Ease.OutQuad)
                 .SetLink(gameObject);
+
+            if (!includeHitPresentation)
+            {
+                return sequence;
+            }
+
+            sequence.Join(
+                CreateShakeTween(
+                    imageTransform,
+                    targetPosition,
+                    _hitShakeDistance,
+                    _hitShakeCount,
+                    _hitDuration));
+
+            if (shieldText != null)
+            {
+                sequence.Join(CreateTextColorTween(shieldText, targetTextColor, _hitDuration));
+            }
+
+            if (textTransform != null)
+            {
+                sequence.Join(CreateLocalScaleTween(textTransform, targetTextScale, _hitDuration));
+            }
+
+            return sequence;
         }
 
         private static Tween CreateImageAlphaTween(Image image, float targetAlpha, float duration)
@@ -390,6 +506,32 @@ namespace SlotRogue.UI.GameFlow
                 scale => target.localScale = scale,
                 targetScale,
                 duration);
+        }
+
+        private static bool IsNewShieldGain(Text shieldText, int gainedAmount)
+        {
+            if (shieldText == null || gainedAmount <= 0)
+            {
+                return false;
+            }
+
+            if (!int.TryParse(shieldText.text, out int currentShield))
+            {
+                return false;
+            }
+
+            int previousShield = currentShield - gainedAmount;
+            return previousShield <= 0;
+        }
+
+        private static void SetShieldTextVisible(Text shieldText, bool visible)
+        {
+            if (shieldText == null)
+            {
+                return;
+            }
+
+            shieldText.enabled = visible;
         }
     }
 }

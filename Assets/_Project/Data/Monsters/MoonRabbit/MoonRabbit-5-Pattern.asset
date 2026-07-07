@@ -34,14 +34,14 @@ MonoBehaviour:
       type: {class: StatusEffectDefinition, ns: SlotRogue.Data.Combat, asm: SlotRogue.Data}
       data:
         _statusKind: 6
-        _amount: 10
+        _amount: 1
         _target:
           _targetMode: 0
           _targetParticipantId: 0
     - rid: 5421932126527029364
       type: {class: DamageEffectDefinition, ns: SlotRogue.Data.Combat, asm: SlotRogue.Data}
       data:
-        _amount: 20
+        _amount: 15
         _target:
           _targetMode: 1
           _targetParticipantId: 0

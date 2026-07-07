@@ -374,7 +374,7 @@ namespace SlotRogue.UI.GameFlow
         {
             ShieldGaugeView shieldGauge = ResolveShieldGauge(request);
             return shieldGauge != null
-                ? shieldGauge.PlayBreakAsync(cancellationToken)
+                ? shieldGauge.PlayBreakAsync(request.Amount, cancellationToken)
                 : UniTask.CompletedTask;
         }
 

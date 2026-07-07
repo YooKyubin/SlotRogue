@@ -16,9 +16,8 @@ namespace SlotRogue.UI.GameFlow
         private const float DeathDuration = 0.35f;
         private const float DeathEndScale = 0.82f;
         private const float DeathDropDistance = 0.18f;
-
-        private static readonly Color EnemySlotColor = new Color(0.11f, 0.14f, 0.2f, 0.96f);
-        private static readonly Color SelectedEnemySlotColor = new Color(0.45f, 0.26f, 0.12f, 0.96f);
+        private const float ShieldedHpBarOffsetX = 7f;
+        private const float ShieldedHpBarMoveDuration = 0.2f;
 
         [Header("Root")]
         [SerializeField] private Transform _root;
@@ -27,12 +26,22 @@ namespace SlotRogue.UI.GameFlow
         [Header("Visual")]
         [SerializeField] private Transform _visualRoot;
 
+        [Header("Selection")]
+        [SerializeField] private GameObject _selectionIndicator;
+
         [Header("HUD")]
         [SerializeField] private Canvas _hudRoot;
         [SerializeField] private Text _hudText;
         [SerializeField] private Image _hpFill;
-        [SerializeField] private Image _statusBackground;
+        [SerializeField] private Image _hpBarFrame;
+        [SerializeField] private RectTransform _hpBarRoot;
         [SerializeField] private ShieldGaugeView _shieldGauge;
+
+        [Header("Shielded HP Bar")]
+        [SerializeField] private Sprite _normalHpFillSprite;
+        [SerializeField] private Sprite _shieldedHpFillSprite;
+        [SerializeField] private Sprite _normalHpBarFrameSprite;
+        [SerializeField] private Sprite _shieldedHpBarFrameSprite;
 
         [Header("Combat Anchors")]
         [SerializeField] private RectTransform _damageAnchor;
@@ -62,8 +71,10 @@ namespace SlotRogue.UI.GameFlow
         private bool _visualRootMissingWarningLogged;
         private bool _combatVisualMissingWarningLogged;
         private bool _deathPresented;
+        private bool _shieldedHpBarLayoutRendered;
         private Tween _deathTween;
         private Tween _hpFillTween;
+        private Tween _hpBarRootTween;
 
         public Transform Root => _root != null ? _root : transform;
 
@@ -77,49 +88,17 @@ namespace SlotRogue.UI.GameFlow
 
         public Sprite PortraitSprite => _portraitSprite;
 
-        public void Bind(
-            Transform root,
-            Transform shakeGroup,
-            Canvas hudRoot,
-            Text hudText,
-            Image hpFill,
-            Image statusBackground,
-            ShieldGaugeView shieldGauge,
-            RectTransform damageAnchor,
-            Collider2D clickCollider,
-            RectTransform statusEffectRoot = null,
-            GameObject statusEffectIconPrefab = null,
-            Transform intentRoot = null,
-            EnemyIntentIconView intentIconPrefab = null,
-            Transform visualRoot = null)
-        {
-            _root = root;
-            _shakeGroup = shakeGroup;
-            _visualRoot = visualRoot;
-            _hudRoot = hudRoot;
-            _hudText = hudText;
-            _hpFill = hpFill;
-            _hpFillLayoutInitialized = false;
-            _hpFillRendered = false;
-            _statusBackground = statusBackground;
-            _shieldGauge = shieldGauge;
-            _damageAnchor = damageAnchor;
-            _clickCollider = clickCollider;
-            _statusEffectRoot = statusEffectRoot;
-            _statusEffectIconPrefab = statusEffectIconPrefab;
-            _intentRoot = intentRoot;
-            _intentIconPrefab = intentIconPrefab;
-        }
-
         private void OnDisable()
         {
             _deathTween?.Kill();
             _hpFillTween?.Kill();
+            _hpBarRootTween?.Kill();
         }
 
         private void OnDestroy()
         {
             _deathTween?.Kill();
+            _hpBarRootTween?.Kill();
             DestroyCombatVisualInstance();
         }
 
@@ -295,6 +274,11 @@ namespace SlotRogue.UI.GameFlow
                 Root.gameObject.SetActive(active);
             }
 
+            if (!active)
+            {
+                SetSelected(false);
+            }
+
             if (active && _deathPresented)
             {
                 HideDeathPresentation();
@@ -389,6 +373,9 @@ namespace SlotRogue.UI.GameFlow
             {
                 _shieldGauge.Render(shield);
             }
+
+            ApplyShieldedHealthBarSprites(shield > 0);
+            ApplyShieldedHealthBarLayout(shield > 0);
         }
 
         public void SetStatusEffects(IReadOnlyList<StatusEffectViewData> statuses)
@@ -571,14 +558,9 @@ namespace SlotRogue.UI.GameFlow
 
         public void SetSelected(bool selected)
         {
-            if (_deathPresented)
+            if (_selectionIndicator != null)
             {
-                return;
-            }
-
-            if (_statusBackground != null)
-            {
-                _statusBackground.color = selected ? SelectedEnemySlotColor : EnemySlotColor;
+                _selectionIndicator.SetActive(selected && !_deathPresented);
             }
         }
 
@@ -642,6 +624,66 @@ namespace SlotRogue.UI.GameFlow
             _combatVisualInstance = null;
         }
 
+        private void CaptureDefaultHealthBarSprites()
+        {
+            if (_hpFill != null && _normalHpFillSprite == null)
+            {
+                _normalHpFillSprite = _hpFill.sprite;
+            }
+
+            if (_hpBarFrame != null && _normalHpBarFrameSprite == null)
+            {
+                _normalHpBarFrameSprite = _hpBarFrame.sprite;
+            }
+        }
+
+        private void ApplyShieldedHealthBarSprites(bool shielded)
+        {
+            CaptureDefaultHealthBarSprites();
+
+            if (_hpFill != null)
+            {
+                Sprite fillSprite = shielded && _shieldedHpFillSprite != null
+                    ? _shieldedHpFillSprite
+                    : _normalHpFillSprite;
+                _hpFill.sprite = fillSprite;
+            }
+
+            if (_hpBarFrame != null)
+            {
+                Sprite frameSprite = shielded && _shieldedHpBarFrameSprite != null
+                    ? _shieldedHpBarFrameSprite
+                    : _normalHpBarFrameSprite;
+                _hpBarFrame.sprite = frameSprite;
+            }
+        }
+
+        private void ApplyShieldedHealthBarLayout(bool shielded)
+        {
+            if (_hpBarRoot == null)
+            {
+                return;
+            }
+
+            float targetX = shielded ? ShieldedHpBarOffsetX : 0f;
+            Vector2 targetPosition = new(targetX, _hpBarRoot.anchoredPosition.y);
+            if (!_shieldedHpBarLayoutRendered)
+            {
+                _hpBarRoot.anchoredPosition = targetPosition;
+                _shieldedHpBarLayoutRendered = true;
+                return;
+            }
+
+            _hpBarRootTween?.Kill();
+            _hpBarRootTween = DOTween.To(
+                    () => _hpBarRoot.anchoredPosition,
+                    position => _hpBarRoot.anchoredPosition = position,
+                    targetPosition,
+                    ShieldedHpBarMoveDuration)
+                .SetEase(Ease.OutQuad)
+                .SetLink(gameObject);
+        }
+
         private void ResetDeathPresentation()
         {
             _deathPresented = false;
@@ -666,6 +708,8 @@ namespace SlotRogue.UI.GameFlow
 
         private void HideDeathPresentation()
         {
+            SetSelected(false);
+
             if (_combatVisualInstance != null)
             {
                 _combatVisualInstance.SetActive(false);

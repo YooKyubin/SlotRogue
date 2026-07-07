@@ -224,6 +224,104 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
             }
         }
 
+        [Test]
+        public async Task PresentAsync_ShieldDamageWithoutBreakWaitsForShieldHit()
+        {
+            var hostObject = new GameObject("Presentation Host");
+            try
+            {
+                var commands = new DamageRecordingCommands();
+                var presenter = new DamagePresenter(new CombatPresentationHost(hostObject, commands));
+                var targetParticipantId = new CombatParticipantId(101);
+                var combatEvent = new CombatEvent(
+                    CombatEventKind.EffectApplied,
+                    effect: new CombatEffect(
+                        CombatEffectKind.Damage,
+                        amount: 3,
+                        CombatEffectTarget.Enemy),
+                    applyResult: new EffectApplyResult(
+                        damageDealt: 0,
+                        shieldConsumed: 3,
+                        shieldGained: 0,
+                        healApplied: 0),
+                    isPlayerParticipant: false,
+                    targetParticipantId: targetParticipantId,
+                    targetBefore: new CombatParticipantSnapshot(hp: 10, shield: 5),
+                    targetAfter: new CombatParticipantSnapshot(hp: 10, shield: 2));
+
+                Task presentTask = presenter.PresentAsync(
+                        combatEvent,
+                        new CombatViewModel(),
+                        new PresentationContext(isCritical: false, patternName: string.Empty),
+                        CancellationToken.None)
+                    .AsTask();
+
+                await Task.Yield();
+
+                Assert.That(commands.ShieldHitCallCount, Is.EqualTo(1));
+                Assert.That(commands.ShieldBreakCallCount, Is.EqualTo(0));
+                Assert.That(presentTask.IsCompleted, Is.False);
+
+                commands.CompleteShieldHit();
+                commands.CompleteFloatingDamage();
+                commands.CompleteHealthBar();
+                await presentTask;
+            }
+            finally
+            {
+                Object.DestroyImmediate(hostObject);
+            }
+        }
+
+        [Test]
+        public async Task PresentAsync_ShieldBreakingDamageWaitsForShieldBreakWithoutSeparateHit()
+        {
+            var hostObject = new GameObject("Presentation Host");
+            try
+            {
+                var commands = new DamageRecordingCommands();
+                var presenter = new DamagePresenter(new CombatPresentationHost(hostObject, commands));
+                var targetParticipantId = new CombatParticipantId(101);
+                var combatEvent = new CombatEvent(
+                    CombatEventKind.EffectApplied,
+                    effect: new CombatEffect(
+                        CombatEffectKind.Damage,
+                        amount: 3,
+                        CombatEffectTarget.Enemy),
+                    applyResult: new EffectApplyResult(
+                        damageDealt: 0,
+                        shieldConsumed: 3,
+                        shieldGained: 0,
+                        healApplied: 0),
+                    isPlayerParticipant: false,
+                    targetParticipantId: targetParticipantId,
+                    targetBefore: new CombatParticipantSnapshot(hp: 10, shield: 3),
+                    targetAfter: new CombatParticipantSnapshot(hp: 10, shield: 0));
+
+                Task presentTask = presenter.PresentAsync(
+                        combatEvent,
+                        new CombatViewModel(),
+                        new PresentationContext(isCritical: false, patternName: string.Empty),
+                        CancellationToken.None)
+                    .AsTask();
+
+                await Task.Yield();
+
+                Assert.That(commands.ShieldHitCallCount, Is.EqualTo(0));
+                Assert.That(commands.ShieldBreakCallCount, Is.EqualTo(1));
+                Assert.That(presentTask.IsCompleted, Is.False);
+
+                commands.CompleteShieldBreak();
+                commands.CompleteFloatingDamage();
+                commands.CompleteHealthBar();
+                await presentTask;
+            }
+            finally
+            {
+                Object.DestroyImmediate(hostObject);
+            }
+        }
+
         private sealed class DamageStatusRecordingCommands : ICombatStatusPresentationCommands
         {
             private readonly UniTaskCompletionSource _activationCompletion = new();
@@ -299,10 +397,16 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
         {
             private readonly UniTaskCompletionSource _floatingDamageCompletion = new();
             private readonly UniTaskCompletionSource _healthBarCompletion = new();
+            private readonly UniTaskCompletionSource _shieldHitCompletion = new();
+            private readonly UniTaskCompletionSource _shieldBreakCompletion = new();
 
             public int FloatingDamageCallCount { get; private set; }
 
             public int HealthBarCallCount { get; private set; }
+
+            public int ShieldHitCallCount { get; private set; }
+
+            public int ShieldBreakCallCount { get; private set; }
 
             public CombatParticipantId LastHealthBarParticipantId { get; private set; }
 
@@ -320,6 +424,16 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
             public void CompleteHealthBar()
             {
                 _healthBarCompletion.TrySetResult();
+            }
+
+            public void CompleteShieldHit()
+            {
+                _shieldHitCompletion.TrySetResult();
+            }
+
+            public void CompleteShieldBreak()
+            {
+                _shieldBreakCompletion.TrySetResult();
             }
 
             public UniTask PlayEnemyActionUntilEffectPointAsync(
@@ -376,14 +490,16 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 ShieldPresentationRequest request,
                 CancellationToken cancellationToken)
             {
-                return UniTask.CompletedTask;
+                ShieldHitCallCount++;
+                return WaitAsync(_shieldHitCompletion, cancellationToken);
             }
 
             public UniTask ShowShieldBreakAsync(
                 ShieldPresentationRequest request,
                 CancellationToken cancellationToken)
             {
-                return UniTask.CompletedTask;
+                ShieldBreakCallCount++;
+                return WaitAsync(_shieldBreakCompletion, cancellationToken);
             }
 
             public UniTask ShowShieldExpireAsync(

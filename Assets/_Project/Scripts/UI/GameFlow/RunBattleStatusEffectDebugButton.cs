@@ -10,8 +10,8 @@ namespace SlotRogue.UI.GameFlow
     {
         private static readonly DebugStatusButtonDefinition[] EnemyStatusButtons =
         {
-            new(StatusEffectKind.Burn, amount: 3, "DEV 화상 3"),
-            new(StatusEffectKind.Infection, amount: 3, "DEV 감염 3"),
+            new(StatusEffectKind.Burn, amount: 10, "DEV 화상 3"),
+            new(StatusEffectKind.Infection, amount: 10, "DEV 감염 3"),
             new(StatusEffectKind.Vulnerable, amount: 2, "DEV 취약 2"),
             new(StatusEffectKind.Weaken, amount: 2, "DEV 약화 2"),
         };

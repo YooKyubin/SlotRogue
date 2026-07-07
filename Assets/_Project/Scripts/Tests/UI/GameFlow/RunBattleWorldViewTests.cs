@@ -32,13 +32,13 @@ namespace SlotRogue.UI.Tests.GameFlow
                     RectTransform damageAnchor = damageAnchorObject.GetComponent<RectTransform>();
                     damageAnchor.SetParent(slot.transform, false);
 
-                    slotView.Bind(
-                        slot.transform,
+                    ConfigureEnemyFormationSlot(
+                        slotView,
+                        root: slot.transform,
                         shakeGroup: null,
                         hudRoot: null,
                         hudText: null,
                         hpFill: null,
-                        statusBackground: null,
                         shieldGauge: null,
                         damageAnchor: damageAnchor,
                         clickCollider: null);
@@ -78,13 +78,13 @@ namespace SlotRogue.UI.Tests.GameFlow
                     visualRoot.transform.SetParent(slot.transform, false);
 
                     slotViews[index] = slot.AddComponent<EnemyFormationSlotView>();
-                    slotViews[index].Bind(
-                        slot.transform,
+                    ConfigureEnemyFormationSlot(
+                        slotViews[index],
+                        root: slot.transform,
                         shakeGroup: null,
                         hudRoot: null,
                         hudText: null,
                         hpFill: null,
-                        statusBackground: null,
                         shieldGauge: null,
                         damageAnchor: null,
                         clickCollider: null,
@@ -291,13 +291,13 @@ namespace SlotRogue.UI.Tests.GameFlow
                 fillRect.pivot = new Vector2(0.5f, 0.5f);
                 Image fill = fillObject.GetComponent<Image>();
 
-                view.Bind(
-                    root.transform,
+                ConfigureEnemyFormationSlot(
+                    view,
+                    root: root.transform,
                     shakeGroup: null,
                     hudRoot: null,
                     hudText: null,
                     hpFill: fill,
-                    statusBackground: null,
                     shieldGauge: null,
                     damageAnchor: null,
                     clickCollider: null);
@@ -318,6 +318,70 @@ namespace SlotRogue.UI.Tests.GameFlow
             }
             finally
             {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void EnemyShieldRender_SwapsHpFillAndFrameSprites()
+        {
+            var root = new GameObject("Enemy");
+            Sprite normalFill = CreateTestSprite("Normal Fill");
+            Sprite shieldedFill = CreateTestSprite("Shielded Fill");
+            Sprite normalFrame = CreateTestSprite("Normal Frame");
+            Sprite shieldedFrame = CreateTestSprite("Shielded Frame");
+            try
+            {
+                EnemyFormationSlotView view = root.AddComponent<EnemyFormationSlotView>();
+
+                var fillObject = new GameObject(
+                    "HP Bar Fill",
+                    typeof(RectTransform),
+                    typeof(CanvasRenderer),
+                    typeof(Image));
+                fillObject.transform.SetParent(root.transform, false);
+                Image fill = fillObject.GetComponent<Image>();
+                fill.sprite = normalFill;
+
+                var frameObject = new GameObject(
+                    "HP Bar Frame",
+                    typeof(RectTransform),
+                    typeof(CanvasRenderer),
+                    typeof(Image));
+                frameObject.transform.SetParent(root.transform, false);
+                Image frame = frameObject.GetComponent<Image>();
+                frame.sprite = normalFrame;
+
+                ConfigureEnemyFormationSlot(
+                    view,
+                    root: root.transform,
+                    shakeGroup: null,
+                    hudRoot: null,
+                    hudText: null,
+                    hpFill: fill,
+                    hpBarFrame: frame,
+                    shieldGauge: null,
+                    damageAnchor: null,
+                    clickCollider: null);
+                SetPrivateField(view, "_shieldedHpFillSprite", shieldedFill);
+                SetPrivateField(view, "_shieldedHpBarFrameSprite", shieldedFrame);
+
+                view.SetShield(6);
+
+                Assert.That(fill.sprite, Is.SameAs(shieldedFill));
+                Assert.That(frame.sprite, Is.SameAs(shieldedFrame));
+
+                view.SetShield(0);
+
+                Assert.That(fill.sprite, Is.SameAs(normalFill));
+                Assert.That(frame.sprite, Is.SameAs(normalFrame));
+            }
+            finally
+            {
+                DestroySpriteWithTexture(shieldedFrame);
+                DestroySpriteWithTexture(normalFrame);
+                DestroySpriteWithTexture(shieldedFill);
+                DestroySpriteWithTexture(normalFill);
                 Object.DestroyImmediate(root);
             }
         }
@@ -346,13 +410,13 @@ namespace SlotRogue.UI.Tests.GameFlow
                 intentRoot.transform.SetParent(root.transform, false);
                 var collider = root.AddComponent<BoxCollider2D>();
 
-                view.Bind(
+                ConfigureEnemyFormationSlot(
+                    view,
                     root: root.transform,
                     shakeGroup: null,
                     hudRoot: hudRoot,
                     hudText: hudText,
                     hpFill: null,
-                    statusBackground: null,
                     shieldGauge: null,
                     damageAnchor: null,
                     clickCollider: collider,
@@ -545,6 +609,68 @@ namespace SlotRogue.UI.Tests.GameFlow
             typeof(EnemyAnimatorCombatVisual)
                 .GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic)
                 .Invoke(visual, parameters: null);
+        }
+
+        private static void SetPrivateField(
+            EnemyFormationSlotView view,
+            string fieldName,
+            object value)
+        {
+            FieldInfo field = typeof(EnemyFormationSlotView)
+                .GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(field, Is.Not.Null, $"Missing private field {fieldName}.");
+            field.SetValue(view, value);
+        }
+
+        private static void ConfigureEnemyFormationSlot(
+            EnemyFormationSlotView view,
+            Transform root,
+            Transform shakeGroup,
+            Canvas hudRoot,
+            Text hudText,
+            Image hpFill,
+            ShieldGaugeView shieldGauge,
+            RectTransform damageAnchor,
+            Collider2D clickCollider,
+            Image hpBarFrame = null,
+            RectTransform statusEffectRoot = null,
+            GameObject statusEffectIconPrefab = null,
+            Transform intentRoot = null,
+            EnemyIntentIconView intentIconPrefab = null,
+            Transform visualRoot = null)
+        {
+            SetPrivateField(view, "_root", root);
+            SetPrivateField(view, "_shakeGroup", shakeGroup);
+            SetPrivateField(view, "_visualRoot", visualRoot);
+            SetPrivateField(view, "_hudRoot", hudRoot);
+            SetPrivateField(view, "_hudText", hudText);
+            SetPrivateField(view, "_hpFill", hpFill);
+            SetPrivateField(view, "_hpBarFrame", hpBarFrame);
+            SetPrivateField(view, "_shieldGauge", shieldGauge);
+            SetPrivateField(view, "_damageAnchor", damageAnchor);
+            SetPrivateField(view, "_clickCollider", clickCollider);
+            SetPrivateField(view, "_statusEffectRoot", statusEffectRoot);
+            SetPrivateField(view, "_statusEffectIconPrefab", statusEffectIconPrefab);
+            SetPrivateField(view, "_intentRoot", intentRoot);
+            SetPrivateField(view, "_intentIconPrefab", intentIconPrefab);
+        }
+
+        private static Sprite CreateTestSprite(string name)
+        {
+            var texture = new Texture2D(2, 2);
+            Sprite sprite = Sprite.Create(
+                texture,
+                new Rect(0f, 0f, 2f, 2f),
+                new Vector2(0.5f, 0.5f));
+            sprite.name = name;
+            return sprite;
+        }
+
+        private static void DestroySpriteWithTexture(Sprite sprite)
+        {
+            Texture2D texture = sprite != null ? sprite.texture : null;
+            Object.DestroyImmediate(sprite);
+            Object.DestroyImmediate(texture);
         }
 
         private static readonly FieldInfo CurrentPlaybackField =

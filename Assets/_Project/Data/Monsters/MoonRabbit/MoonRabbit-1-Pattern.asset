@@ -15,17 +15,17 @@ MonoBehaviour:
   turns:
   - actions:
     - _actionName: Common
-      _intentIcon: {fileID: 4880119492350309246, guid: dbe4681e3ea4cbd4b9fb6011982807e0, type: 3}
+      _intentIcon: {fileID: -604812497723070175, guid: 93c338089471a6c4e94a99fd84fc12f3, type: 3}
       _effect:
         rid: 5421931881862791243
   - actions:
     - _actionName: Common
-      _intentIcon: {fileID: -6820943923468213308, guid: 9528a7ad3160f354f8e8d9750266adea, type: 3}
+      _intentIcon: {fileID: -6544292231458662415, guid: 93c338089471a6c4e94a99fd84fc12f3, type: 3}
       _effect:
         rid: 5421931881862791245
   - actions:
     - _actionName: Common
-      _intentIcon: {fileID: 8707594959427059097, guid: f054b3ee2c7a79c42b2c7179b173387e, type: 3}
+      _intentIcon: {fileID: 1699813192286580615, guid: 93c338089471a6c4e94a99fd84fc12f3, type: 3}
       _effect:
         rid: 5421931881862791246
   references:
@@ -34,14 +34,14 @@ MonoBehaviour:
     - rid: 5421931881862791243
       type: {class: ShieldEffectDefinition, ns: SlotRogue.Data.Combat, asm: SlotRogue.Data}
       data:
-        _amount: 2
+        _amount: 10
         _target:
           _targetMode: 0
           _targetParticipantId: 0
     - rid: 5421931881862791245
       type: {class: DamageEffectDefinition, ns: SlotRogue.Data.Combat, asm: SlotRogue.Data}
       data:
-        _amount: 500
+        _amount: 10
         _target:
           _targetMode: 1
           _targetParticipantId: 0

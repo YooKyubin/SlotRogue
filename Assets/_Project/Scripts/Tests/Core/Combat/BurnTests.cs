@@ -183,6 +183,45 @@ namespace SlotRogue.Core.Tests.Combat
             Assert.That(battleEndedIndex, Is.GreaterThan(expiredIndex));
         }
 
+        [Test]
+        public void ApplyPlayerTurn_EnemyKilledByBurnApply_DoesNotTickBurnAtEnemyTeamTurnEnd()
+        {
+            CombatParticipant player = Participant(1, CombatTeam.Player, maxHp: 20);
+            CombatParticipant firstEnemy = Participant(100, CombatTeam.Enemy, maxHp: 3);
+            CombatParticipant secondEnemy = Participant(101, CombatTeam.Enemy, maxHp: 10);
+            var battle = new BattleSystem();
+            battle.StartBattle(
+                player,
+                new[]
+                {
+                    Combatant(firstEnemy, damage: 0),
+                    Combatant(secondEnemy, damage: 0),
+                });
+
+            BattleApplyResult result = battle.ApplyPlayerTurn(
+                new[]
+                {
+                    CombatEffect.ApplyStatus(
+                        new StatusEffectSpec(
+                            StatusEffectKind.Burn,
+                            duration: 0,
+                            magnitude: 3,
+                            StatusStackMode.Refresh),
+                        CombatEffectTarget.SelectedEnemy(firstEnemy.Id)),
+                },
+                selectedTargetId: firstEnemy.Id);
+
+            Assert.That(result.EndReason, Is.EqualTo(BattleEndReason.None));
+            Assert.That(firstEnemy.IsDead, Is.True);
+            Assert.That(secondEnemy.IsDead, Is.False);
+            Assert.That(battle.CurrentPhase, Is.EqualTo(BattlePhase.PlayerTurn));
+            Assert.That(battle.Events.Any(combatEvent =>
+                combatEvent.Kind == CombatEventKind.StatusTicked &&
+                combatEvent.Phase == BattlePhase.EnemyTurn &&
+                combatEvent.TargetParticipantId.Value == firstEnemy.Id.Value &&
+                combatEvent.StatusEffectKind == StatusEffectKind.Burn), Is.False);
+        }
+
         private void ApplyBurn(
             CombatParticipant participant,
             int magnitude,
