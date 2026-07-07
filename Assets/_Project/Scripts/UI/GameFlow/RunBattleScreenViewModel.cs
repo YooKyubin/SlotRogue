@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using R3;
 using SlotRogue.Core.Combat;
+using SlotRogue.Slot.Data;
 using SlotRogue.UI.Combat.Presentation;
 
 namespace SlotRogue.UI.GameFlow
@@ -12,10 +14,13 @@ namespace SlotRogue.UI.GameFlow
 
         private readonly string[] _slotCells;
         private readonly RunBattleEnemySlotState[] _enemySlots;
+        private readonly ReactiveProperty<RunBattleScreenState> _state;
 
         private string _slotResultText = string.Empty;
         private string _attackResultText = string.Empty;
         private string _playerHudText = string.Empty;
+        private RunBattleRelicShopState _relicShop = RunBattleRelicShopState.Empty;
+        private RunBattleSwapState _swapState = RunBattleSwapState.Disabled;
         private int _playerHp;
         private int _playerMaxHp = 1;
         private int _playerShield;
@@ -23,6 +28,7 @@ namespace SlotRogue.UI.GameFlow
         private RunBattleActionMode _actionMode = RunBattleActionMode.Spin;
         private bool _spinInteractable = true;
         private RunBattleSlotOutcomeState _slotOutcome = RunBattleSlotOutcomeState.None;
+        private int _runCoins;
         private int _batchDepth;
         private bool _hasPendingPublish;
 
@@ -40,12 +46,12 @@ namespace SlotRogue.UI.GameFlow
                 _enemySlots[index] = RunBattleEnemySlotState.Hidden(index);
             }
 
-            State = CreateState();
+            _state = new ReactiveProperty<RunBattleScreenState>(CreateState());
         }
 
-        public event Action<RunBattleScreenState> Changed;
-
-        public RunBattleScreenState State { get; private set; }
+        // 화면 상태는 R3 ReactiveProperty로 노출한다(ADR-0019/0020). 구독 즉시 현재 값을
+        // 1회 흘려보내므로 별도 Changed 이벤트 + 초기 Render 호출이 필요 없다.
+        public ReadOnlyReactiveProperty<RunBattleScreenState> State => _state;
 
         public void Batch(Action update)
         {
@@ -82,6 +88,12 @@ namespace SlotRogue.UI.GameFlow
             RequestPublish();
         }
 
+        public void SetRelicShop(RunBattleRelicShopState relicShop)
+        {
+            _relicShop = relicShop ?? RunBattleRelicShopState.Empty;
+            RequestPublish();
+        }
+
         public void SetBattleText(
             string slotResultText,
             string attackResultText)
@@ -110,13 +122,29 @@ namespace SlotRogue.UI.GameFlow
             bool hasPattern,
             int row,
             int startColumn,
-            int matchLength)
+            int matchLength,
+            IReadOnlyList<int> highlightedCellIndices = null,
+            IReadOnlyList<SlotSymbolType?> highlightedCellSymbols = null)
         {
             _slotOutcome = new RunBattleSlotOutcomeState(
                 hasPattern,
                 row,
                 startColumn,
-                matchLength);
+                matchLength,
+                highlightedCellIndices,
+                highlightedCellSymbols);
+            RequestPublish();
+        }
+
+        public void SetSwapState(
+            bool interactable,
+            int swapsRemaining,
+            int selectedCellIndex)
+        {
+            _swapState = new RunBattleSwapState(
+                interactable,
+                swapsRemaining,
+                selectedCellIndex);
             RequestPublish();
         }
 
@@ -175,6 +203,12 @@ namespace SlotRogue.UI.GameFlow
             RequestPublish();
         }
 
+        public void SetRunCoins(int coins)
+        {
+            _runCoins = Math.Max(0, coins);
+            RequestPublish();
+        }
+
         private void RequestPublish()
         {
             if (_batchDepth > 0)
@@ -189,8 +223,7 @@ namespace SlotRogue.UI.GameFlow
         private void Publish()
         {
             _hasPendingPublish = false;
-            State = CreateState();
-            Changed?.Invoke(State);
+            _state.Value = CreateState();
         }
 
         private RunBattleScreenState CreateState()
@@ -207,7 +240,10 @@ namespace SlotRogue.UI.GameFlow
                 _playerShieldMax,
                 _actionMode,
                 _spinInteractable,
-                _slotOutcome);
+                _slotOutcome,
+                _swapState,
+                _relicShop,
+                _runCoins);
         }
     }
 
@@ -228,10 +264,14 @@ namespace SlotRogue.UI.GameFlow
             int playerShieldMax,
             RunBattleActionMode actionMode,
             bool spinInteractable,
-            RunBattleSlotOutcomeState slotOutcome)
+            RunBattleSlotOutcomeState slotOutcome,
+            RunBattleSwapState swapState,
+            RunBattleRelicShopState relicShop,
+            int runCoins)
         {
             _slotCells = Clone(slotCells);
             _enemySlots = Clone(enemySlots);
+            RunCoins = Math.Max(0, runCoins);
             SlotResultText = slotResultText ?? string.Empty;
             AttackResultText = attackResultText ?? string.Empty;
             PlayerHudText = playerHudText ?? string.Empty;
@@ -242,6 +282,8 @@ namespace SlotRogue.UI.GameFlow
             ActionMode = actionMode;
             SpinInteractable = spinInteractable;
             SlotOutcome = slotOutcome;
+            Swap = swapState;
+            RelicShop = relicShop ?? RunBattleRelicShopState.Empty;
         }
 
         public string[] SlotCells => Clone(_slotCells);
@@ -267,6 +309,12 @@ namespace SlotRogue.UI.GameFlow
         public bool SpinInteractable { get; }
 
         public RunBattleSlotOutcomeState SlotOutcome { get; }
+
+        public RunBattleSwapState Swap { get; }
+
+        public RunBattleRelicShopState RelicShop { get; }
+
+        public int RunCoins { get; }
 
         private static string[] Clone(string[] source)
         {
@@ -396,16 +444,27 @@ namespace SlotRogue.UI.GameFlow
         public static readonly RunBattleSlotOutcomeState None =
             new(false, row: -1, startColumn: -1, matchLength: 0);
 
+        private readonly int[] _highlightedCellIndices;
+
         public RunBattleSlotOutcomeState(
             bool hasPattern,
             int row,
             int startColumn,
-            int matchLength)
+            int matchLength,
+            IReadOnlyList<int> highlightedCellIndices = null,
+            IReadOnlyList<SlotSymbolType?> highlightedCellSymbols = null)
         {
-            HasPattern = hasPattern;
             Row = row;
             StartColumn = startColumn;
             MatchLength = matchLength;
+            _highlightedCellIndices = CopyHighlightedCellIndices(
+                highlightedCellIndices,
+                hasPattern,
+                row,
+                startColumn,
+                matchLength);
+            HighlightedCellSymbols = CopyHighlightedCellSymbols(highlightedCellSymbols);
+            HasPattern = hasPattern || _highlightedCellIndices.Length > 0;
         }
 
         public bool HasPattern { get; }
@@ -415,5 +474,209 @@ namespace SlotRogue.UI.GameFlow
         public int StartColumn { get; }
 
         public int MatchLength { get; }
+
+        public int[] HighlightedCellIndices => Clone(_highlightedCellIndices);
+
+        public SlotSymbolType?[] HighlightedCellSymbols { get; }
+
+        private static int[] CopyHighlightedCellIndices(
+            IReadOnlyList<int> source,
+            bool hasPattern,
+            int row,
+            int startColumn,
+            int matchLength)
+        {
+            if (source != null && source.Count > 0)
+            {
+                var result = new List<int>(source.Count);
+                for (int index = 0; index < source.Count; index++)
+                {
+                    int cellIndex = source[index];
+                    if (SlotSpinResult.IsValidIndex(cellIndex) && !result.Contains(cellIndex))
+                    {
+                        result.Add(cellIndex);
+                    }
+                }
+
+                return result.ToArray();
+            }
+
+            if (!hasPattern ||
+                row < 0 ||
+                row >= SlotSpinResult.Rows ||
+                matchLength <= 0)
+            {
+                return Array.Empty<int>();
+            }
+
+            int firstColumn = Math.Max(0, Math.Min(SlotSpinResult.Columns - 1, startColumn));
+            int endColumn = Math.Min(SlotSpinResult.Columns, firstColumn + matchLength);
+            var cells = new List<int>(Math.Max(0, endColumn - firstColumn));
+
+            for (int column = firstColumn; column < endColumn; column++)
+            {
+                cells.Add(SlotSpinResult.ToIndex(column, row));
+            }
+
+            return cells.ToArray();
+        }
+
+        private static int[] Clone(int[] source)
+        {
+            if (source == null || source.Length == 0)
+            {
+                return Array.Empty<int>();
+            }
+
+            var copy = new int[source.Length];
+            Array.Copy(source, copy, source.Length);
+            return copy;
+        }
+
+        private static SlotSymbolType?[] CopyHighlightedCellSymbols(
+            IReadOnlyList<SlotSymbolType?> source)
+        {
+            var result = new SlotSymbolType?[SlotSpinResult.CellCount];
+            if (source == null)
+            {
+                return result;
+            }
+
+            int count = Math.Min(source.Count, result.Length);
+            for (int index = 0; index < count; index++)
+            {
+                result[index] = source[index];
+            }
+
+            return result;
+        }
+    }
+
+    public readonly struct RunBattleSwapState
+    {
+        public static readonly RunBattleSwapState Disabled =
+            new(interactable: false, swapsRemaining: 0, selectedCellIndex: -1);
+
+        public RunBattleSwapState(
+            bool interactable,
+            int swapsRemaining,
+            int selectedCellIndex)
+        {
+            Interactable = interactable;
+            SwapsRemaining = Math.Max(0, swapsRemaining);
+            SelectedCellIndex = SlotSpinResult.IsValidIndex(selectedCellIndex) ? selectedCellIndex : -1;
+        }
+
+        public bool Interactable { get; }
+
+        public int SwapsRemaining { get; }
+
+        public int SelectedCellIndex { get; }
+
+        public bool HasSelection => SelectedCellIndex >= 0;
+
+        public bool CanSelectCells => Interactable && SwapsRemaining > 0;
+
+        public bool IsSelected(int cellIndex) => cellIndex == SelectedCellIndex;
+    }
+
+    public sealed class RunBattleRelicShopState
+    {
+        public static readonly RunBattleRelicShopState Empty =
+            new(false, Array.Empty<RunBattleRelicShopOfferState>(), 0, 0, false, false, false);
+
+        private readonly RunBattleRelicShopOfferState[] _offers;
+
+        public RunBattleRelicShopState(
+            bool visible,
+            IReadOnlyList<RunBattleRelicShopOfferState> offers,
+            int runCoins,
+            int rerollCost,
+            bool canReroll,
+            bool canUseShop,
+            bool canOpenShop)
+        {
+            Visible = visible;
+            _offers = Copy(offers);
+            RunCoins = Math.Max(0, runCoins);
+            RerollCost = Math.Max(0, rerollCost);
+            CanReroll = canReroll;
+            CanUseShop = canUseShop;
+            CanOpenShop = canOpenShop;
+        }
+
+        public bool Visible { get; }
+
+        public IReadOnlyList<RunBattleRelicShopOfferState> Offers => _offers;
+
+        public int RunCoins { get; }
+
+        public int RerollCost { get; }
+
+        public bool CanReroll { get; }
+
+        public bool CanUseShop { get; }
+
+        public bool CanOpenShop { get; }
+
+        private static RunBattleRelicShopOfferState[] Copy(
+            IReadOnlyList<RunBattleRelicShopOfferState> source)
+        {
+            if (source == null || source.Count == 0)
+            {
+                return Array.Empty<RunBattleRelicShopOfferState>();
+            }
+
+            var copy = new RunBattleRelicShopOfferState[source.Count];
+            for (int index = 0; index < source.Count; index++)
+            {
+                copy[index] = source[index];
+            }
+
+            return copy;
+        }
+    }
+
+    public readonly struct RunBattleRelicShopOfferState
+    {
+        public RunBattleRelicShopOfferState(
+            string relicId,
+            string name,
+            string grade,
+            RewardRarity rarity,
+            string description,
+            string iconKey,
+            int cost,
+            bool purchased,
+            bool canPurchase)
+        {
+            RelicId = relicId ?? string.Empty;
+            Name = name ?? string.Empty;
+            Grade = grade ?? string.Empty;
+            Rarity = rarity;
+            Description = description ?? string.Empty;
+            IconKey = iconKey ?? string.Empty;
+            Cost = Math.Max(0, cost);
+            Purchased = purchased;
+            CanPurchase = canPurchase;
+        }
+
+        public string RelicId { get; }
+
+        public string Name { get; }
+
+        public string Grade { get; }
+
+        public RewardRarity Rarity { get; }
+
+        public string Description { get; }
+
+        public string IconKey { get; }
+
+        public int Cost { get; }
+
+        public bool Purchased { get; }
+
+        public bool CanPurchase { get; }
     }
 }

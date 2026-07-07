@@ -9,8 +9,6 @@ namespace SlotRogue.Editor.GameFlow
     [CustomEditor(typeof(RunBattleScreenView))]
     internal sealed class RunBattleScreenViewEditor : UnityEditor.Editor
     {
-        private bool _showAdvancedReferences;
-
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
@@ -22,31 +20,30 @@ namespace SlotRogue.Editor.GameFlow
             DrawBindingSummary();
 
             EditorGUILayout.Space(6f);
+            EditorGUILayout.LabelField("Required References", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_playerHudView"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_slotBoardView"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_actionView"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_shopView"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_shopButton"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_currencyView"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_presentationOverlayView"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_worldView"));
+
+            EditorGUILayout.Space(6f);
+            EditorGUILayout.LabelField("Shop Shutter", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_slotScreenShutters"), includeChildren: true);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_shopFlipDuration"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_shopShutterFoldedVisibleHeight"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_shopShutterRevealDelay"));
+
+            EditorGUILayout.Space(6f);
             using (new EditorGUILayout.HorizontalScope())
             {
-                if (GUILayout.Button("Refresh Auto References"))
-                {
-                    RefreshReferences();
-                }
-
                 if (GUILayout.Button("Select Root"))
                 {
                     Selection.activeObject = ((RunBattleScreenView)target).gameObject;
                 }
-            }
-
-            _showAdvancedReferences = EditorGUILayout.Foldout(
-                _showAdvancedReferences,
-                "Advanced Serialized References",
-                toggleOnLabelClick: true);
-
-            if (_showAdvancedReferences)
-            {
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("_playerHudView"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("_slotBoardView"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("_actionView"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("_presentationOverlayView"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("_worldView"));
             }
 
             serializedObject.ApplyModifiedProperties();
@@ -54,56 +51,22 @@ namespace SlotRogue.Editor.GameFlow
 
         private void DrawBindingSummary()
         {
-            var view = (RunBattleScreenView)target;
-            Transform root = view.transform.root;
-
-            DrawObjectStatus(
-                "Player HUD view",
-                serializedObject.FindProperty("_playerHudView"),
-                view.GetComponentInChildren<RunBattlePlayerHudView>(true) != null);
-            DrawObjectStatus(
-                "Slot board view",
-                serializedObject.FindProperty("_slotBoardView"),
-                view.GetComponentInChildren<RunBattleSlotBoardView>(true) != null);
-            DrawObjectStatus(
-                "Action view",
-                serializedObject.FindProperty("_actionView"),
-                view.GetComponentInChildren<RunBattleActionView>(true) != null);
-            DrawObjectStatus(
-                "Presentation overlay",
-                serializedObject.FindProperty("_presentationOverlayView"),
-                view.GetComponentInChildren<RunBattlePresentationOverlayView>(true) != null);
-            DrawObjectStatus(
-                "World view",
-                serializedObject.FindProperty("_worldView"),
-                root != null && root.GetComponentInChildren<RunBattleWorldView>(true) != null);
-
-            int formationSlotCount = root != null
-                ? root.GetComponentsInChildren<EnemyFormationSlotView>(true).Length
-                : 0;
-            DrawStatus(
-                "Formation slots",
-                formationSlotCount >= 3 ? $"{formationSlotCount}/3" : $"{formationSlotCount}/3 missing",
-                formationSlotCount >= 3);
-        }
-
-        private void RefreshReferences()
-        {
-            var view = (RunBattleScreenView)target;
-            Undo.RecordObject(view, "Refresh RunBattleScreenView References");
-            view.EnsureReferences();
-            EditorUtility.SetDirty(view);
-            serializedObject.Update();
+            DrawObjectStatus("Player HUD view", serializedObject.FindProperty("_playerHudView"));
+            DrawObjectStatus("Slot board view", serializedObject.FindProperty("_slotBoardView"));
+            DrawObjectStatus("Action view", serializedObject.FindProperty("_actionView"));
+            DrawObjectStatus("Shop view", serializedObject.FindProperty("_shopView"));
+            DrawObjectStatus("Shop button", serializedObject.FindProperty("_shopButton"));
+            DrawObjectStatus("Currency view", serializedObject.FindProperty("_currencyView"));
+            DrawObjectStatus("Presentation overlay", serializedObject.FindProperty("_presentationOverlayView"));
+            DrawObjectStatus("World view", serializedObject.FindProperty("_worldView"));
         }
 
         private static void DrawObjectStatus(
             string label,
-            SerializedProperty property,
-            bool canAutoResolve)
+            SerializedProperty property)
         {
             bool serialized = property != null && property.objectReferenceValue != null;
-            bool ready = serialized || canAutoResolve;
-            DrawStatus(label, serialized ? "Ready" : ready ? "Auto" : "Missing", ready);
+            DrawStatus(label, serialized ? "Ready" : "Missing", serialized);
         }
 
         private static void DrawStatus(string label, string value, bool ready)
@@ -120,8 +83,8 @@ namespace SlotRogue.Editor.GameFlow
         }
     }
 
-    [CustomEditor(typeof(BattleSceneCompositionRoot), true)]
-    internal sealed class BattleSceneCompositionRootEditor : UnityEditor.Editor
+    [CustomEditor(typeof(BattleSceneHost), true)]
+    internal sealed class BattleSceneHostEditor : UnityEditor.Editor
     {
         private bool _showAdvancedReferences;
 
@@ -130,12 +93,13 @@ namespace SlotRogue.Editor.GameFlow
             serializedObject.Update();
 
             EditorGUILayout.HelpBox(
-                "BattleSceneCompositionRoot owns scene references and assembles the battle flow. Turn order lives in the pure C# BattleFlowController.",
+                "BattleSceneHost owns scene references and assembles the battle flow. Turn order lives in the pure C# BattleFlowController.",
                 MessageType.Info);
 
             EditorGUILayout.LabelField("Presentation Views", EditorStyles.boldLabel);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_floatingTextLayerView"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_turnBannerView"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_shopDescriptionView"));
 
             EditorGUILayout.Space(6f);
             EditorGUILayout.LabelField("Encounter Selection", EditorStyles.boldLabel);
@@ -145,14 +109,6 @@ namespace SlotRogue.Editor.GameFlow
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_waveScheduleDefinition"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_encounterTable"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_encounterBalanceSettings"));
-
-            EditorGUILayout.Space(6f);
-            EditorGUILayout.LabelField("Tutorial Battle", EditorStyles.boldLabel);
-            EditorGUILayout.HelpBox(
-                "Assign the MonsterDefinition used as the visual/data source for tutorial enemies. " +
-                "Tutorial HP and action plans are still fixed in code.",
-                MessageType.Info);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_tutorialMonsterDefinition"));
 
             EditorGUILayout.Space(6f);
             DrawBindingSummary();
@@ -174,7 +130,7 @@ namespace SlotRogue.Editor.GameFlow
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_waveScheduleDefinition"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_encounterTable"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_encounterBalanceSettings"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("_tutorialMonsterDefinition"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("_shopDescriptionView"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_floatingTextLayerView"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_turnBannerView"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_spinLeverView"));
@@ -187,7 +143,7 @@ namespace SlotRogue.Editor.GameFlow
 
         private void DrawBindingSummary()
         {
-            var compositionRoot = (BattleSceneCompositionRoot)target;
+            var compositionRoot = (BattleSceneHost)target;
             Transform root = compositionRoot.transform.root;
             DrawObjectStatus(
                 "Screen view",
@@ -201,6 +157,10 @@ namespace SlotRogue.Editor.GameFlow
                 "Turn banner view",
                 serializedObject.FindProperty("_turnBannerView"),
                 root != null && root.GetComponentInChildren<TurnBannerView>(true) != null);
+            DrawObjectStatus(
+                "Shop description",
+                serializedObject.FindProperty("_shopDescriptionView"),
+                false);
             DrawObjectStatus(
                 "Spin lever",
                 serializedObject.FindProperty("_spinLeverView"),
@@ -217,10 +177,10 @@ namespace SlotRogue.Editor.GameFlow
 
         private void RefreshReferences()
         {
-            var compositionRoot = (BattleSceneCompositionRoot)target;
+            var compositionRoot = (BattleSceneHost)target;
             Transform root = compositionRoot.transform.root;
 
-            Undo.RecordObject(compositionRoot, "Refresh BattleSceneCompositionRoot References");
+            Undo.RecordObject(compositionRoot, "Refresh BattleSceneHost References");
 
             SerializedProperty view = serializedObject.FindProperty("_view");
             SerializedProperty floatingTextLayer = serializedObject.FindProperty("_floatingTextLayerView");

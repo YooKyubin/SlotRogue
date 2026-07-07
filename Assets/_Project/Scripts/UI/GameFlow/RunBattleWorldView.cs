@@ -12,7 +12,7 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private Transform _battleShakeRoot;
         [SerializeField] private EnemyFormationView _enemyFormationView;
 
-        private bool _missingFormationSlotWarningLogged;
+        private bool _missingReferenceErrorLogged;
 
         public Transform BattleShakeRoot => _battleShakeRoot;
 
@@ -20,40 +20,24 @@ namespace SlotRogue.UI.GameFlow
 
         public bool EnsureReferences()
         {
-            _battleShakeRoot ??= ResolveBattleShakeRoot();
-            _enemyFormationView ??= GetComponentInChildren<EnemyFormationView>(true);
-            _enemyFormationView ??= CreateEnemyFormationView();
-
-            if (_enemyFormationView == null)
+            bool complete = _battleShakeRoot != null &&
+                _enemyFormationView != null &&
+                _enemyFormationView.SlotCount > 0;
+            if (!complete && !_missingReferenceErrorLogged)
             {
-                return false;
-            }
-
-            if (_enemyFormationView.SlotCount == 0)
-            {
-                BindFormationChildren(_enemyFormationView);
-            }
-
-            bool hasFormationSlots = _enemyFormationView.SlotCount > 0;
-            if (!hasFormationSlots && !_missingFormationSlotWarningLogged)
-            {
-                _missingFormationSlotWarningLogged = true;
+                _missingReferenceErrorLogged = true;
                 Debug.LogError(
-                    "[RunBattleWorldView] EnemyFormationSlotView children are missing. " +
-                    "Configure formation slot children explicitly under the battle world view.");
+                    "[RunBattleWorldView] Battle world references must be wired in the inspector. " +
+                    $"Missing: {BuildMissingReferenceSummary()}");
             }
 
-            return hasFormationSlots;
+            return complete;
         }
 
         public void Bind(Transform battleShakeRoot, EnemyFormationView enemyFormationView)
         {
             _battleShakeRoot = battleShakeRoot;
             _enemyFormationView = enemyFormationView;
-            if (_enemyFormationView != null && _enemyFormationView.SlotCount == 0)
-            {
-                BindFormationChildren(_enemyFormationView);
-            }
         }
 
         public void Render(RunBattleScreenState state)
@@ -223,93 +207,20 @@ namespace SlotRogue.UI.GameFlow
             return _enemyFormationView.RemoveStatusAsync(participantId, kind, cancellationToken);
         }
 
-        private Transform ResolveBattleShakeRoot()
+        private string BuildMissingReferenceSummary()
         {
-            Transform shakeRoot = SceneComponentResolver.FindDeepChild(transform, "BattleShakeRoot");
-            return shakeRoot != null ? shakeRoot : transform;
-        }
-
-        private EnemyFormationView CreateEnemyFormationView()
-        {
-            Transform formationRoot =
-                SceneComponentResolver.FindDeepChild(transform, "EnemyFormationView") ??
-                SceneComponentResolver.FindDeepChild(transform, "FormationSlotsRoot");
-            if (formationRoot == null)
+            var missing = new System.Collections.Generic.List<string>();
+            if (_battleShakeRoot == null) missing.Add("Battle Shake Root");
+            if (_enemyFormationView == null)
             {
-                return null;
+                missing.Add("Enemy Formation View");
+            }
+            else if (_enemyFormationView.SlotCount == 0)
+            {
+                missing.Add("Enemy Formation View / Formation Slot Views");
             }
 
-            return formationRoot.gameObject.AddComponent<EnemyFormationView>();
-        }
-
-        private void BindFormationChildren(EnemyFormationView formationView)
-        {
-            EnemyFormationSlotView[] formationSlotViews = ResolveFormationSlotViews();
-            if (formationSlotViews.Length > 0)
-            {
-                formationView.Bind(formationSlotViews);
-            }
-        }
-
-        private EnemyFormationSlotView[] ResolveFormationSlotViews()
-        {
-            EnemyFormationSlotView[] views = GetComponentsInChildren<EnemyFormationSlotView>(true);
-            SortByHierarchyName(views);
-            return views;
-        }
-
-        private static void SortByHierarchyName<T>(T[] views)
-            where T : Component
-        {
-            if (views == null || views.Length <= 1)
-            {
-                return;
-            }
-
-            Array.Sort(
-                views,
-                (left, right) => CompareHierarchyNames(left != null ? left.name : null, right != null ? right.name : null));
-        }
-
-        private static int CompareHierarchyNames(string left, string right)
-        {
-            int leftIndex = ExtractTrailingNumber(left);
-            int rightIndex = ExtractTrailingNumber(right);
-            if (leftIndex != rightIndex)
-            {
-                return leftIndex.CompareTo(rightIndex);
-            }
-
-            return string.Compare(left, right, StringComparison.Ordinal);
-        }
-
-        private static int ExtractTrailingNumber(string value)
-        {
-            if (string.IsNullOrEmpty(value))
-            {
-                return int.MaxValue;
-            }
-
-            int end = value.Length - 1;
-            while (end >= 0 && !char.IsDigit(value[end]))
-            {
-                end--;
-            }
-
-            if (end < 0)
-            {
-                return int.MaxValue;
-            }
-
-            int start = end;
-            while (start > 0 && char.IsDigit(value[start - 1]))
-            {
-                start--;
-            }
-
-            return int.TryParse(value.Substring(start, end - start + 1), out int number)
-                ? number
-                : int.MaxValue;
+            return missing.Count > 0 ? string.Join(", ", missing) : "None";
         }
     }
 }

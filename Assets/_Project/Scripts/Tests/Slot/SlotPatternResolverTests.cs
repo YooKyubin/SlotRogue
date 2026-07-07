@@ -8,6 +8,18 @@ namespace SlotRogue.Slot.Tests
 {
     public sealed class SlotPatternResolverTests
     {
+        [SetUp]
+        public void SetUp()
+        {
+            SlotSymbolAttackValues.ResetToDefaults();
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            SlotSymbolAttackValues.ResetToDefaults();
+        }
+
         [Test]
         public void ResolveAll_RandomSpin_DoesNotThrow()
         {
@@ -35,6 +47,25 @@ namespace SlotRogue.Slot.Tests
             Assert.That(matches.Count, Is.EqualTo(1));
             Assert.That(matches[0].Definition.Rank, Is.EqualTo(SlotPatternRank.HorizontalSm));
             Assert.That(matches[0].Symbol, Is.EqualTo(SlotSymbolType.Cherry));
+            Assert.That(matches[0].BaseValue, Is.EqualTo(6));
+            Assert.That(matches[0].CalculatedValue, Is.EqualTo(6));
+        }
+
+        [Test]
+        public void ResolveAll_HorizontalSm_UsesSymbolBaseDamage()
+        {
+            var spin = MakeSpin(new[]
+            {
+                C, G, E, K, H,
+                H, H, H, C, G,
+                S, C, K, G, E
+            });
+            IReadOnlyList<SlotPatternMatch> matches = Resolve(spin);
+
+            Assert.That(matches.Count, Is.EqualTo(1));
+            Assert.That(matches[0].Symbol, Is.EqualTo(SlotSymbolType.Seven));
+            Assert.That(matches[0].BaseValue, Is.EqualTo(21));
+            Assert.That(matches[0].CalculatedValue, Is.EqualTo(21));
         }
 
         [Test]

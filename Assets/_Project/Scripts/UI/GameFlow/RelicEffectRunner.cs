@@ -43,18 +43,6 @@ namespace SlotRogue.UI.GameFlow
                         continue;
                     }
 
-                    if (relic.Id == TutorialBattleDefinition.TrainingBatteryRelicId)
-                    {
-                        ApplyTrainingBattery(
-                            relic,
-                            patternMatches,
-                            ref additionalDamage,
-                            ref additionalBlock,
-                            activated,
-                            contributions);
-                        continue;
-                    }
-
                     if (!IsTriggered(relic, patternMatches, context))
                     {
                         continue;
@@ -138,74 +126,6 @@ namespace SlotRogue.UI.GameFlow
         }
 
         // ── 조건 판정 ────────────────────────────────────────────────────
-
-        private static void ApplyTrainingBattery(
-            RelicDefinition relic,
-            IReadOnlyList<SlotPatternMatch> patternMatches,
-            ref int additionalDamage,
-            ref int additionalBlock,
-            List<string> activated,
-            List<RelicContributionDelta> contributions)
-        {
-            int cherryPatternIndex = FindSymbolPatternIndex(
-                patternMatches,
-                SlotSymbolType.Cherry,
-                TutorialBattleDefinition.TrainingBatteryRequiredCount);
-            if (cherryPatternIndex >= 0)
-            {
-                additionalDamage += TutorialBattleDefinition.TrainingBatteryDamage;
-                AddActivatedName(activated, relic.Name);
-                contributions.Add(new RelicContributionDelta(
-                    relic.Id,
-                    relic.Name,
-                    damagePerHit: TutorialBattleDefinition.TrainingBatteryDamage,
-                    block: 0,
-                    heal: 0,
-                    triggerPatternIndex: cherryPatternIndex));
-            }
-
-            int lemonPatternIndex = FindSymbolPatternIndex(
-                patternMatches,
-                SlotSymbolType.Lemon,
-                TutorialBattleDefinition.TrainingBatteryRequiredCount);
-            if (lemonPatternIndex >= 0)
-            {
-                additionalBlock += TutorialBattleDefinition.TrainingBatteryBlock;
-                AddActivatedName(activated, relic.Name);
-                contributions.Add(new RelicContributionDelta(
-                    relic.Id,
-                    relic.Name,
-                    damagePerHit: 0,
-                    block: TutorialBattleDefinition.TrainingBatteryBlock,
-                    heal: 0,
-                    triggerPatternIndex: lemonPatternIndex));
-            }
-        }
-
-        private static int FindSymbolPatternIndex(
-            IReadOnlyList<SlotPatternMatch> matches,
-            SlotSymbolType symbol,
-            int requiredCount)
-        {
-            if (matches == null)
-            {
-                return -1;
-            }
-
-            int minLength = requiredCount < 1 ? 1 : requiredCount;
-            for (int index = 0; index < matches.Count; index++)
-            {
-                SlotPatternMatch match = matches[index];
-                if (match?.MatchedCells != null &&
-                    match.Symbol == symbol &&
-                    match.MatchedCells.Count >= minLength)
-                {
-                    return index;
-                }
-            }
-
-            return -1;
-        }
 
         private static void AddActivatedName(List<string> activated, string name)
         {

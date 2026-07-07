@@ -225,7 +225,6 @@ GameObject:
   - component: {fileID: 95868050614934887}
   - component: {fileID: 2834688905067068118}
   - component: {fileID: 8541587460114114137}
-  - component: {fileID: 4286027256941662055}
   - component: {fileID: 5445938377083867548}
   m_Layer: 0
   m_Name: Wave HUD
@@ -292,20 +291,6 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &4286027256941662055
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4994948370614858111}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a015, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.GameFlowImageSlot
-  _slotId: battle/currency-panel
-  _image: {fileID: 8541587460114114137}
 --- !u!114 &5445938377083867548
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -318,9 +303,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 996096773029fd540be12865056c2aee, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.RunGame.RunHUDView
-  _hpTmpText: {fileID: 0}
-  _battleIndexTmpText: {fileID: 0}
-  _hpText: {fileID: 0}
+  _battleIndexTmpText: {fileID: 6296484049863623594}
   _battleIndexText: {fileID: 0}
   _pauseButton: {fileID: 3877399468711851918}
 --- !u!1 &7823728557267760249
@@ -334,7 +317,6 @@ GameObject:
   - component: {fileID: 1795546957321504085}
   - component: {fileID: 4609326210078528447}
   - component: {fileID: 939047673282990651}
-  - component: {fileID: 3614754859009188021}
   - component: {fileID: 3877399468711851918}
   m_Layer: 0
   m_Name: Pause Button
@@ -400,20 +382,6 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &3614754859009188021
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7823728557267760249}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a015, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.GameFlowImageSlot
-  _slotId: battle/pause-button
-  _image: {fileID: 939047673282990651}
 --- !u!114 &3877399468711851918
 MonoBehaviour:
   m_ObjectHideFlags: 0

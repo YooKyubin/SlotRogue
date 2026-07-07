@@ -486,7 +486,6 @@ namespace SlotRogue.UI.GameFlow
                 root.localScale = Vector3.one;
             }
 
-            root.SetAsFirstSibling();
         }
 
         private void ConfigureReelFrameImage(int reelIndex, Image image)
@@ -626,7 +625,6 @@ namespace SlotRogue.UI.GameFlow
                 rectTransform.sizeDelta = ResolveAnimationImageSize(ResolveParentSize(rectTransform));
                 rectTransform.pivot = new Vector2(0.5f, 0.5f);
                 rectTransform.localScale = Vector3.one;
-                rectTransform.SetAsFirstSibling();
             }
         }
 

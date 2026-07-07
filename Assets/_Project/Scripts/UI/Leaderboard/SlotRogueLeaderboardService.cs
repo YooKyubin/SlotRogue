@@ -222,13 +222,13 @@ namespace SlotRogue.UI.Leaderboard
             if (string.IsNullOrWhiteSpace(profile.Nickname))
             {
                 return LeaderboardServiceResult<LeaderboardPlayerProfile>.Failed(
-                    "Enter a nickname.");
+                    "닉네임을 입력해주세요.");
             }
 
-            if (profile.Nickname.Length > 50)
+            if (profile.Nickname.Length > LeaderboardConstants.MaxNicknameLength)
             {
                 return LeaderboardServiceResult<LeaderboardPlayerProfile>.Failed(
-                    "Nickname must be 50 characters or fewer.");
+                    $"닉네임은 {LeaderboardConstants.MaxNicknameLength}자 이하로 입력해주세요.");
             }
 
             LeaderboardServiceResult initialization = await InitializeAsync();

@@ -1,6 +1,8 @@
+using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
+using SlotRogue.UI.App;
 using SlotRogue.UI.GameFlow;
 using SlotRogue.UI.Leaderboard;
 using SlotRogue.UI.RunGame;
@@ -26,6 +28,7 @@ namespace SlotRogue.UI.Tests.RunGame
         private RunInventoryViewModel _inventoryVM;
         private RunDefeatViewModel _defeatVM;
         private LeaderboardViewModel _leaderboardVM;
+        private RunBattleTutorialSequenceDefinition _tutorialSequenceDefinition;
 
         [SetUp]
         public void SetUp()
@@ -42,23 +45,60 @@ namespace SlotRogue.UI.Tests.RunGame
             _inventoryVM = new RunInventoryViewModel();
             _defeatVM = new RunDefeatViewModel();
             _leaderboardVM = new LeaderboardViewModel();
+            _tutorialSequenceDefinition = CreateTutorialSequenceDefinition();
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            if (_tutorialSequenceDefinition != null)
+            {
+                UnityEngine.Object.DestroyImmediate(_tutorialSequenceDefinition);
+                _tutorialSequenceDefinition = null;
+            }
         }
 
         private RunGameFlowController CreateController(bool hasInSceneLeaderboard = true)
         {
-            return new RunGameFlowController(
-                _navigator,
+            var presenter = new RunGamePresenter(
                 _rewardVM,
                 _hudVM,
                 _inventoryVM,
                 _defeatVM,
-                _leaderboardVM,
+                _leaderboardVM);
+            return new RunGameFlowController(
+                _navigator,
+                presenter,
                 _battleView,
                 _battleScene,
                 _overlay,
+                _tutorialSequenceDefinition,
                 _defeatPortrait,
                 hasInSceneLeaderboard,
                 CancellationToken.None);
+        }
+
+        private static RunBattleTutorialSequenceDefinition CreateTutorialSequenceDefinition()
+        {
+            var definition = ScriptableObject.CreateInstance<RunBattleTutorialSequenceDefinition>();
+            definition.ConfigureForRuntime(
+                new[]
+                {
+                    new RunBattleTutorialStep(
+                        RunBattleTutorialTargetKey.Spin,
+                        "Start: defeat within 5 turns. Press SPIN."),
+                    new RunBattleTutorialStep(
+                        RunBattleTutorialTargetKey.SwapDecision,
+                        "Decision: attack power uses slot result. SWAP skips star fragments."),
+                    new RunBattleTutorialStep(
+                        RunBattleTutorialTargetKey.Shop,
+                        "Result: slot converts into damage. Buy relics in the relic shop."),
+                    new RunBattleTutorialStep(
+                        RunBattleTutorialTargetKey.Spin,
+                        "Enemy turn: shop refreshes when the monster dies."),
+                },
+                "Tutorial complete.");
+            return definition;
         }
 
         [Test]
@@ -72,22 +112,129 @@ namespace SlotRogue.UI.Tests.RunGame
         }
 
         [Test]
-        public void HandleRewardClaimed_StarterSelection_EntersBattleWithoutAdvancing()
+        public void GetInitialRunState_NewRun_StartsBattleWithoutStarterSelection()
         {
-            // 시작 유물 선택은 보상 화면(RunRewardView)에 병합되었다.
-            // 새 런(시작 유물 미선택)에서 Refresh하면 ViewModel이 시작 유물 모드가 된다.
-            RunGameFlowController flow = CreateController();
-            _navigator.GoTo(RunGameState.Reward);
+            Assert.That(GameFlowSession.HasStarterRelic, Is.False);
+            Assert.That(
+                RunGameFlowController.GetInitialRunState(),
+                Is.EqualTo(RunGameState.Battle));
+
             _rewardVM.Refresh();
-            Assume.That(_rewardVM.IsStarterSelection, Is.True);
-            int before = GameFlowSession.CurrentBattleNumber;
+            Assert.That(_rewardVM.IsStarterSelection, Is.False);
+        }
 
-            flow.HandleRewardClaimed();
+        [Test]
+        public void StartTutorialRun_DoesNotGrantStarterRelic()
+        {
+            GameFlowSession.StartTutorialRun();
 
-            Assert.That(GameFlowSession.CurrentBattleNumber, Is.EqualTo(before));
-            Assert.That(_overlay.HideCount, Is.EqualTo(1));
-            Assert.That(_battleScene.PrepareBattleEntryCount, Is.EqualTo(1));
-            Assert.That(_navigator.CurrentState, Is.EqualTo(RunGameState.Battle));
+            Assert.That(GameFlowSession.OwnedRelics.Count, Is.EqualTo(0));
+            Assert.That(
+                RunGameFlowController.GetInitialRunState(),
+                Is.EqualTo(RunGameState.Battle));
+        }
+
+        [Test]
+        public void HandleBattleEntered_TutorialRun_PlaysNarrationThenBeginsNormalBattle()
+        {
+            FirstRunTutorialState.ResetForDebug();
+            GameFlowSession.StartTutorialRun();
+            _tutorialSequenceDefinition.ConfigureForRuntime(
+                new[]
+                {
+                    new RunBattleTutorialStep(
+                        RunBattleTutorialTargetKey.Enemy,
+                        "line 1",
+                        false,
+                        RunTutorialMessagePlacement.Top),
+                    new RunBattleTutorialStep(
+                        RunBattleTutorialTargetKey.Spin,
+                        "line 2",
+                        true,
+                        RunTutorialMessagePlacement.Bottom),
+                },
+                string.Empty);
+            RunGameFlowController flow = CreateController();
+
+            try
+            {
+                // 전투 진입: 첫 안내만 표시되고 실제 전투는 아직 시작하지 않는다.
+                flow.HandleBattleEntered();
+                Assert.That(_overlay.LastMessage, Is.EqualTo("line 1"));
+                Assert.That(_overlay.LastStep.TargetKey, Is.EqualTo(RunBattleTutorialTargetKey.Enemy));
+                Assert.That(_overlay.LastStep.MessagePlacement, Is.EqualTo(RunTutorialMessagePlacement.Top));
+                Assert.That(_battleScene.BeginBattleCount, Is.EqualTo(1));
+                Assert.That(_battleScene.TutorialSpinBlocked, Is.True);
+                Assert.That(_battleScene.TutorialTargetSelectionBlocked, Is.True);
+                Assert.That(GameFlowSession.IsTutorialRun, Is.True);
+
+                // 화면을 탭하면 다음 안내로 진행한다.
+                _overlay.InvokeAdvance();
+                Assert.That(_overlay.LastMessage, Is.EqualTo("line 2"));
+                Assert.That(_overlay.LastStep.TargetKey, Is.EqualTo(RunBattleTutorialTargetKey.Spin));
+                Assert.That(_overlay.LastStep.ShowHand, Is.True);
+                Assert.That(_battleScene.BeginBattleCount, Is.EqualTo(1));
+
+                // 마지막 안내에서 탭하면 튜토리얼을 완료하고 일반 전투를 시작한다.
+                _overlay.InvokeAdvance();
+                Assert.That(GameFlowSession.IsTutorialRun, Is.False);
+                Assert.That(FirstRunTutorialState.IsCompleted, Is.True);
+                Assert.That(_battleScene.BeginBattleCount, Is.EqualTo(1));
+                Assert.That(_battleScene.TutorialSpinBlocked, Is.False);
+                Assert.That(_battleScene.TutorialTargetSelectionBlocked, Is.False);
+                Assert.That(_overlay.HideCount, Is.EqualTo(1));
+            }
+            finally
+            {
+                FirstRunTutorialState.ResetForDebug();
+            }
+        }
+
+        [Test]
+        public void HandleBattleEntered_TutorialRunWithoutNarration_BeginsBattleImmediately()
+        {
+            FirstRunTutorialState.ResetForDebug();
+            GameFlowSession.StartTutorialRun();
+            _tutorialSequenceDefinition.ConfigureForRuntime(
+                Array.Empty<RunBattleTutorialStep>(),
+                string.Empty);
+            RunGameFlowController flow = CreateController();
+
+            try
+            {
+                flow.HandleBattleEntered();
+
+                Assert.That(GameFlowSession.IsTutorialRun, Is.False);
+                Assert.That(FirstRunTutorialState.IsCompleted, Is.True);
+                Assert.That(_battleScene.BeginBattleCount, Is.EqualTo(1));
+            }
+            finally
+            {
+                FirstRunTutorialState.ResetForDebug();
+            }
+        }
+
+        [Test]
+        public void OnBattleVictory_TutorialRun_MarksCompletedAndContinuesAsNormalRun()
+        {
+            FirstRunTutorialState.ResetForDebug();
+            GameFlowSession.StartTutorialRun();
+            RunGameFlowController flow = CreateController();
+            _navigator.GoTo(RunGameState.Battle);
+
+            try
+            {
+                flow.OnBattleVictory();
+
+                Assert.That(FirstRunTutorialState.IsCompleted, Is.True);
+                Assert.That(GameFlowSession.IsTutorialRun, Is.False);
+                Assert.That(_navigator.CurrentState, Is.EqualTo(RunGameState.Reward));
+                Assert.That(_overlay.HideCount, Is.EqualTo(1));
+            }
+            finally
+            {
+                FirstRunTutorialState.ResetForDebug();
+            }
         }
 
         [Test]
@@ -136,6 +283,8 @@ namespace SlotRogue.UI.Tests.RunGame
             flow.HandleInventoryOpenRequested();
 
             Assert.That(_inventoryVM.State.CurrentValue.IsOpen, Is.True);
+            Assert.That(_inventoryVM.State.CurrentValue.IsRelicInventoryOpen, Is.True);
+            Assert.That(_inventoryVM.State.CurrentValue.IsDescriptionOpen, Is.False);
         }
 
         [Test]
@@ -184,7 +333,13 @@ namespace SlotRogue.UI.Tests.RunGame
 
             public int PrepareBattleEntryCount { get; private set; }
 
+            public bool TutorialSpinBlocked { get; private set; }
+
+            public bool TutorialTargetSelectionBlocked { get; private set; }
+
             public bool ReviveResult { get; set; }
+
+            public RunBattleTutorialTargets TutorialTargets => RunBattleTutorialTargets.Empty;
 
             public UniTask PrepareBattleEntryAsync(CancellationToken cancellationToken)
             {
@@ -194,9 +349,15 @@ namespace SlotRogue.UI.Tests.RunGame
 
             public void BeginBattle() => BeginBattleCount++;
 
-            public void SetTutorialSpinBlocked(bool blocked) { }
+            public void SetTutorialSpinBlocked(bool blocked)
+            {
+                TutorialSpinBlocked = blocked;
+            }
 
-            public void SetTutorialTargetSelectionBlocked(bool blocked) { }
+            public void SetTutorialTargetSelectionBlocked(bool blocked)
+            {
+                TutorialTargetSelectionBlocked = blocked;
+            }
 
             public Sprite GetDefeatingMonsterPortrait() => null;
 
@@ -207,13 +368,55 @@ namespace SlotRogue.UI.Tests.RunGame
 
         private sealed class FakeTutorialOverlay : ITutorialOverlay
         {
+            private Action _pendingAdvance;
+
             public int HideCount { get; private set; }
 
+            public int SpotlightCount { get; private set; }
+
+            public int NarrationCount { get; private set; }
+
+            public int StepCount { get; private set; }
+
             public string LastMessage { get; private set; }
+
+            public RunBattleTutorialStep LastStep { get; private set; }
 
             public void Hide() => HideCount++;
 
             public void ShowMessage(string message) => LastMessage = message;
+
+            public void ShowSpotlight(RectTransform target, string message, bool showHand)
+            {
+                SpotlightCount++;
+                LastMessage = message;
+            }
+
+            public void ShowStep(
+                RectTransform target,
+                RunBattleTutorialStep step,
+                Action onAdvance)
+            {
+                StepCount++;
+                LastStep = step;
+                LastMessage = step?.Message;
+                _pendingAdvance = onAdvance;
+            }
+
+            public void ShowNarration(string message, Action onAdvance)
+            {
+                NarrationCount++;
+                LastMessage = message;
+                _pendingAdvance = onAdvance;
+            }
+
+            /// <summary>사용자가 화면을 탭한 것처럼 다음 문구로 진행시킨다.</summary>
+            public void InvokeAdvance()
+            {
+                Action advance = _pendingAdvance;
+                _pendingAdvance = null;
+                advance?.Invoke();
+            }
         }
 
         private sealed class FakeDefeatPortrait : IDefeatPortraitView

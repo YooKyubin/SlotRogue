@@ -11,12 +11,12 @@ namespace SlotRogue.UI.GameFlow
     /// </summary>
     public interface IRunRewardService
     {
-        /// <summary>현재(직전) 전투가 유물 보상을 주는가 (엘리트/보스).</summary>
+        /// <summary>현재 전투 후 보상 화면에서 추가 보상 광고 슬롯을 허용하는지 여부.</summary>
         bool CurrentBattleGrantsArtifact { get; }
 
         /// <summary>
-        /// 지금이 런 시작 직후의 '시작 유물 선택' 단계인지 여부.
-        /// 시작 유물이 아직 정해지지 않았다면 true (전투 후 보상 단계가 아님).
+        /// 지금 보상 화면이 레거시 '시작 유물 선택' 단계인지 여부.
+        /// 릴 잠금 프로토타입에서는 시작 유물을 지급하지 않으므로 기본 구현은 false입니다.
         /// </summary>
         bool IsStarterSelection { get; }
 
@@ -26,7 +26,7 @@ namespace SlotRogue.UI.GameFlow
         /// <summary>등급 풀에서 중복 없이 최대 count개를 추첨합니다.</summary>
         IReadOnlyList<RunRewardDefinition> RollOptions(int count);
 
-        /// <summary>시작 유물 풀에서 중복 없이 최대 count개를 추첨합니다.</summary>
+        /// <summary>레거시 시작 유물 풀에서 중복 없이 최대 count개를 추첨합니다.</summary>
         IReadOnlyList<RunRewardDefinition> RollStarterOptions(int count);
 
         /// <summary>이미 제시된 보상을 제외하고 하나를 추첨합니다. 없으면 null.</summary>
@@ -35,7 +35,7 @@ namespace SlotRogue.UI.GameFlow
         /// <summary>선택한 보상을 런 상태에 적용합니다.</summary>
         void Apply(RunRewardDefinition reward);
 
-        /// <summary>선택한 시작 유물을 런 상태에 적용합니다.</summary>
+        /// <summary>레거시 시작 유물을 런 상태에 적용합니다.</summary>
         void ApplyStarter(RunRewardDefinition reward);
     }
 
@@ -50,12 +50,12 @@ namespace SlotRogue.UI.GameFlow
         }
 
         private static IReadOnlyList<RunRewardDefinition> SourcePool =>
-            RunRewardCatalog.ForTier(GameFlowSession.CurrentTier);
+            BuildAvailableSourcePool();
 
         public bool CurrentBattleGrantsArtifact =>
-            GameFlowSession.CurrentBattleGrantsArtifact;
+            false;
 
-        public bool IsStarterSelection => !GameFlowSession.HasStarterRelic;
+        public bool IsStarterSelection => false;
 
         public string BuildSummary() => RunSummaryPresenter.BuildRunSummary();
 
@@ -80,7 +80,7 @@ namespace SlotRogue.UI.GameFlow
             int count)
         {
             var pool = new List<RunRewardDefinition>(source);
-            int take = Math.Min(count, pool.Count);
+            int take = Math.Min(Math.Max(0, count), pool.Count);
             var rolled = new List<RunRewardDefinition>(take);
 
             for (int i = 0; i < take; i++)
@@ -91,6 +91,61 @@ namespace SlotRogue.UI.GameFlow
             }
 
             return rolled;
+        }
+
+        private static IReadOnlyList<RunRewardDefinition> BuildAvailableSourcePool()
+        {
+            IReadOnlyList<RunRewardDefinition> source =
+                RunRewardCatalog.ForTier(GameFlowSession.CurrentTier);
+            var pool = new List<RunRewardDefinition>(source.Count);
+            for (int index = 0; index < source.Count; index++)
+            {
+                RunRewardDefinition reward = source[index];
+                if (IsRewardAvailable(reward))
+                {
+                    pool.Add(reward);
+                }
+            }
+
+            return pool;
+        }
+
+        private static bool IsRewardAvailable(RunRewardDefinition reward)
+        {
+            if (reward == null)
+            {
+                return false;
+            }
+
+            if (reward.Kind != RunRewardKind.Proposal)
+            {
+                return false;
+            }
+
+            if (reward.ProposalEffect == RunProposalEffectKind.None)
+            {
+                return false;
+            }
+
+            return reward.ProposalEffect != RunProposalEffectKind.RelicSlotCapacity ||
+                GameFlowSession.RelicSlotCapacity < GameFlowSession.MaxRelicSlotCapacity;
+        }
+
+        private IReadOnlyList<RunRewardDefinition> RollFromExcluding(
+            IReadOnlyList<RunRewardDefinition> source,
+            int count,
+            IReadOnlyList<RunRewardDefinition> exclude)
+        {
+            var pool = new List<RunRewardDefinition>();
+            foreach (RunRewardDefinition def in source)
+            {
+                if (exclude == null || !exclude.Contains(def))
+                {
+                    pool.Add(def);
+                }
+            }
+
+            return RollFrom(pool, count);
         }
 
         public RunRewardDefinition PickOneExcluding(
@@ -110,6 +165,11 @@ namespace SlotRogue.UI.GameFlow
 
         public void Apply(RunRewardDefinition reward)
         {
+            if (reward == null)
+            {
+                return;
+            }
+
             switch (reward.Kind)
             {
                 case RunRewardKind.Relic:
@@ -119,8 +179,39 @@ namespace SlotRogue.UI.GameFlow
                 case RunRewardKind.Symbol:
                     GameFlowSession.ApplySymbolReward(reward.Symbol, reward.Amount);
                     break;
+                case RunRewardKind.Proposal:
+                    ApplyProposal(reward);
+                    break;
                 default:
                     GameFlowSession.ApplyReward(reward.Type);
+                    break;
+            }
+        }
+
+        private static void ApplyProposal(RunRewardDefinition reward)
+        {
+            switch (reward.ProposalEffect)
+            {
+                case RunProposalEffectKind.SymbolWeight:
+                    GameFlowSession.ApplySymbolWeightReward(reward.Symbols, reward.Amount);
+                    break;
+                case RunProposalEffectKind.SymbolBaseDamage:
+                    GameFlowSession.ApplySymbolBaseDamageReward(reward.Symbols, reward.Amount);
+                    break;
+                case RunProposalEffectKind.RunCoins:
+                    GameFlowSession.AddRunCoins(reward.Amount);
+                    GameFlowSession.MarkRewardClaimed();
+                    break;
+                case RunProposalEffectKind.RelicSlotCapacity:
+                    GameFlowSession.TryIncreaseRelicSlotCapacity(reward.Amount);
+                    GameFlowSession.MarkRewardClaimed();
+                    break;
+                case RunProposalEffectKind.EngineEffect:
+                    GameFlowSession.AddProposalSpec(RelicSpecCatalog.GetProposalById(reward.ProposalId));
+                    GameFlowSession.MarkRewardClaimed();
+                    break;
+                default:
+                    GameFlowSession.MarkRewardClaimed();
                     break;
             }
         }

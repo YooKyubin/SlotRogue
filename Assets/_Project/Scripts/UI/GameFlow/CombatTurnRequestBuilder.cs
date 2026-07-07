@@ -24,19 +24,22 @@ namespace SlotRogue.UI.GameFlow
             int finalDamage = normalizedRequest.Damage + relicDamage +
                 (normalizedRequest.Damage + relicDamage > 0 ? runDamageBonus : 0);
             int finalDefense = normalizedRequest.Defense + relicBlock + runDefenseBonus;
+            int finalAttackCount = ResolveAttackCount(
+                normalizedRequest.AttackCount,
+                finalDamage);
 
             // 흡혈/방어전환은 최종 피해·방어가 확정된 지금에야 회복량을 계산할 수 있다.
             var derivedHealContributions = new List<RelicContributionDelta>();
             int derivedHeal = ResolveDerivedHeals(
                 relicResult?.DerivedHeals,
-                finalDamage * Math.Max(1, normalizedRequest.AttackCount),
+                finalDamage * finalAttackCount,
                 finalDefense,
                 derivedHealContributions);
 
             SlotCombatRequest finalRequest = new(
                 finalDamage,
                 finalDefense,
-                normalizedRequest.AttackCount,
+                finalAttackCount,
                 normalizedRequest.HealAmount + relicHeal + derivedHeal,
                 normalizedRequest.IsCritical,
                 normalizedRequest.PatternName);
@@ -107,24 +110,13 @@ namespace SlotRogue.UI.GameFlow
 
         private static SlotCombatRequest NormalizeBlankTurn(SlotCombatRequest request)
         {
-            if (request == null || HasNoEffects(request))
-            {
-                return new SlotCombatRequest(
-                    SlotCombatRequest.BaseAttackDamage,
-                    0,
-                    SlotCombatRequest.BaseAttackCount,
-                    0,
-                    false,
-                    SlotCombatRequest.BaseAttackName);
-            }
-
-            return request;
+            return request ?? SlotCombatRequest.Empty;
         }
 
-        private static bool HasNoEffects(SlotCombatRequest request) =>
-            request.Damage <= 0 &&
-            request.Defense <= 0 &&
-            request.HealAmount <= 0;
+        private static int ResolveAttackCount(int requestedAttackCount, int finalDamage)
+        {
+            return finalDamage > 0 ? Math.Max(1, requestedAttackCount) : 0;
+        }
 
         internal static IReadOnlyList<TargetedStatusEffectSpec> BuildStatusEffectSpecs(
             IReadOnlyList<StatusEffectRequest> requests)

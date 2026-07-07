@@ -137,7 +137,7 @@ namespace SlotRogue.UI.Tests.Leaderboard
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
 
             Assert.That(prefab, Is.Not.Null);
-            Assert.That(prefab.GetComponent<LeaderboardLoginView>(), Is.Not.Null);
+            Assert.That(prefab.GetComponent<PlayerNicknameSetupView>(), Is.Not.Null);
             Assert.That(
                 FindDescendant(prefab.transform, "Nickname Input")
                     ?.GetComponent<InputField>(),

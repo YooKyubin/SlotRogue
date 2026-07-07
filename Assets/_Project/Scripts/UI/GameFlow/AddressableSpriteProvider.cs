@@ -350,37 +350,9 @@ namespace SlotRogue.UI.GameFlow
                         return;
                     }
 
-                    // 수치 배지(+1/-1)는 텍스트라 RunRewardView.RenderOptions가 동기로 채운다.
-                    // 여기서는 아이콘 스프라이트만 비동기로 로드한다.
-                    string iconKey = state.Options[index].IconKey;
-                    if (string.IsNullOrEmpty(iconKey))
-                    {
-                        if (views[index] != null)
-                        {
-                            views[index].SetIcon(null);
-                            views[index].SetDescriptionSpriteAsset(descriptionSpriteAsset);
-                        }
-
-                        continue;
-                    }
-
                     if (views[index] != null)
                     {
                         views[index].SetDescriptionSpriteAsset(descriptionSpriteAsset);
-                    }
-
-                    Sprite icon = await _spriteProvider.LoadAsync(
-                        iconKey,
-                        cancellationToken);
-
-                    if (renderVersion != _rewardRenderVersion)
-                    {
-                        return;
-                    }
-
-                    if (views[index] != null)
-                    {
-                        views[index].SetIcon(icon);
                     }
                 }
             }

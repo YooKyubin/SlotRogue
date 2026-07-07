@@ -20,7 +20,7 @@ namespace SlotRogue.UI.GameFlow
 
         [FormerlySerializedAs("_compositionRoot")]
         [FormerlySerializedAs("_battleFlowController")]
-        [SerializeField] private BattleSceneCompositionRoot _battleSceneCompositionRoot;
+        [SerializeField] private BattleSceneHost _battleSceneCompositionRoot;
         [SerializeField] private Button _button;
         [SerializeField] private Text _label;
 
@@ -54,10 +54,10 @@ namespace SlotRogue.UI.GameFlow
 
         public void ApplyRelicStatusTurn()
         {
-            BattleSceneCompositionRoot battleSceneCompositionRoot = ResolveBattleSceneCompositionRoot();
+            BattleSceneHost battleSceneCompositionRoot = ResolveBattleSceneHost();
             if (battleSceneCompositionRoot == null)
             {
-                Debug.LogError("[RunBattleStatusEffectDebugButton] BattleSceneCompositionRoot is missing.");
+                Debug.LogError("[RunBattleStatusEffectDebugButton] BattleSceneHost is missing.");
                 return;
             }
 
@@ -69,7 +69,7 @@ namespace SlotRogue.UI.GameFlow
 
         private void Reset()
         {
-            _battleSceneCompositionRoot = GetComponentInParent<BattleSceneCompositionRoot>();
+            _battleSceneCompositionRoot = GetComponentInParent<BattleSceneHost>();
         }
 
         private void OnValidate()
@@ -78,14 +78,14 @@ namespace SlotRogue.UI.GameFlow
             UpdateLabel();
         }
 
-        private BattleSceneCompositionRoot ResolveBattleSceneCompositionRoot()
+        private BattleSceneHost ResolveBattleSceneHost()
         {
             if (_battleSceneCompositionRoot != null)
             {
                 return _battleSceneCompositionRoot;
             }
 
-            _battleSceneCompositionRoot = GetComponentInParent<BattleSceneCompositionRoot>();
+            _battleSceneCompositionRoot = GetComponentInParent<BattleSceneHost>();
             return _battleSceneCompositionRoot;
         }
 

@@ -18,6 +18,9 @@ namespace SlotRogue.UI.App
     [DefaultExecutionOrder(-10000)]
     public sealed class BootController : MonoBehaviour
     {
+        private const float ResumePromptReadyDelaySeconds = 0.15f;
+        private const float ResumePromptFillDurationSeconds = 0.35f;
+
         private static readonly string[] DefaultLoadingMessages =
         {
             "우주선 시동 거는 중...",
@@ -35,7 +38,6 @@ namespace SlotRogue.UI.App
         [SerializeField] private Slider _loadingSlider;
         [SerializeField] private Image _loadingFillImage;
         [SerializeField] private TMP_Text _loadingText;
-        [SerializeField] private Text _legacyLoadingText;
         [SerializeField] private float _loadingMessageIntervalSeconds = 0.8f;
         [SerializeField]
         private string[] _loadingMessages =
@@ -56,11 +58,13 @@ namespace SlotRogue.UI.App
         [SerializeField] private Button _declineResumeButton;
 
         private CancellationTokenSource _loadingMessageCts;
+        private float _lastLoadingProgress;
         private RectTransform _loadingFillRect;
         private bool _hasLoadingFillRectMetrics;
         private float _loadingFillFullWidth;
         private float _loadingFillLeftEdge;
         private float _loadingFillScaleX = 1f;
+        private bool _loadingReferenceErrorLogged;
 
         private void Awake()
         {
@@ -98,8 +102,7 @@ namespace SlotRogue.UI.App
 
                 if (RunPersistenceStore.HasSaved && _resumePanel != null)
                 {
-                    StopLoadingMessageLoop();
-                    HideLoadingPanel();
+                    await CompleteLoadingBeforeResumePromptAsync();
                     ShowResumePanel();
                     return;
                 }
@@ -114,6 +117,39 @@ namespace SlotRogue.UI.App
                 Debug.LogException(exception);
                 GameSceneLoader.LoadGameStart();
             }
+        }
+
+        private async UniTask CompleteLoadingBeforeResumePromptAsync()
+        {
+            // 프리로드는 바를 80%까지만 채우므로, 이어하기 패널을 띄우기 전에 100%까지
+            // 눈에 보이게 부드럽게 채운 뒤 잠깐 대기한다(즉시 점프하면 패널이 80%에서 뜬 것처럼 보임).
+            await AnimateLoadingProgressToFullAsync();
+            await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate);
+            await UniTask.Delay(
+                TimeSpan.FromSeconds(ResumePromptReadyDelaySeconds),
+                DelayType.UnscaledDeltaTime,
+                PlayerLoopTiming.Update);
+        }
+
+        private async UniTask AnimateLoadingProgressToFullAsync()
+        {
+            float startProgress = _lastLoadingProgress;
+            if (ResumePromptFillDurationSeconds <= 0f || startProgress >= 1f)
+            {
+                SetLoadingProgress(1f);
+                return;
+            }
+
+            float elapsed = 0f;
+            while (elapsed < ResumePromptFillDurationSeconds)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / ResumePromptFillDurationSeconds);
+                SetLoadingProgress(Mathf.Lerp(startProgress, 1f, t));
+                await UniTask.Yield(PlayerLoopTiming.Update);
+            }
+
+            SetLoadingProgress(1f);
         }
 
         private void ShowResumePanel()
@@ -180,11 +216,15 @@ namespace SlotRogue.UI.App
 
         private void EnsureLoadingReferences()
         {
-            if (_loadingPanel != null)
+            if (!_loadingReferenceErrorLogged &&
+                (_loadingPanel == null ||
+                 (_loadingSlider == null && _loadingFillImage == null) ||
+                 _loadingText == null))
             {
-                _loadingSlider ??= _loadingPanel.GetComponentInChildren<Slider>(true);
-                _loadingText ??= _loadingPanel.GetComponentInChildren<TMP_Text>(true);
-                _legacyLoadingText ??= _loadingPanel.GetComponentInChildren<Text>(true);
+                _loadingReferenceErrorLogged = true;
+                Debug.LogError(
+                    "[BootController] Loading UI references must be wired in the inspector. " +
+                    $"Missing: {BuildLoadingMissingReferenceSummary()}");
             }
 
             if (_loadingSlider != null &&
@@ -195,6 +235,20 @@ namespace SlotRogue.UI.App
             }
 
             CacheLoadingFillRectMetrics();
+        }
+
+        private string BuildLoadingMissingReferenceSummary()
+        {
+            var missing = new List<string>();
+            if (_loadingPanel == null) missing.Add("Loading Panel");
+            if (_loadingSlider == null && _loadingFillImage == null)
+            {
+                missing.Add("Loading Slider or Fill Image");
+            }
+
+            if (_loadingText == null) missing.Add("Loading Text");
+
+            return missing.Count > 0 ? string.Join(", ", missing) : "None";
         }
 
         private void HideLoadingPanel()
@@ -208,6 +262,7 @@ namespace SlotRogue.UI.App
         private void SetLoadingProgress(float progress)
         {
             float normalizedProgress = Mathf.Clamp01(progress);
+            _lastLoadingProgress = normalizedProgress;
 
             if (_loadingSlider != null)
             {
@@ -303,11 +358,6 @@ namespace SlotRogue.UI.App
             if (_loadingText != null)
             {
                 _loadingText.text = message ?? string.Empty;
-            }
-
-            if (_legacyLoadingText != null)
-            {
-                _legacyLoadingText.text = message ?? string.Empty;
             }
         }
 

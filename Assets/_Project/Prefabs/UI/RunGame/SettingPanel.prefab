@@ -32,9 +32,9 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 5892359033211851970}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0.5}
-  m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: 9, y: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 18, y: 18}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1182316709422579410
@@ -558,9 +558,9 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 848758055110370966}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0.5}
-  m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: 9, y: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 18, y: 18}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &4180998191497565836
@@ -770,9 +770,9 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 2882087238917310634}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0.5}
-  m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: 9, y: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 18, y: 18}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &762558469340862465
@@ -1030,9 +1030,10 @@ MonoBehaviour:
   _knob: {fileID: 8552599173409088083}
   _onSprite: {fileID: -6066120881518270544, guid: 45a86f506f29af542852065ed7fc0f6e, type: 3}
   _offSprite: {fileID: -4403208332294461611, guid: 7aba88f484f2498498d98850dcbcebbf, type: 3}
-  _knobOnX: 23
-  _knobOffX: -23
+  _knobOnX: 9
+  _knobOffX: -9
   _slideDuration: 0.12
+  _toggle: {fileID: 4652215243041792916}
 --- !u!1 &5267970883513110766
 GameObject:
   m_ObjectHideFlags: 0
@@ -1640,9 +1641,10 @@ MonoBehaviour:
   _knob: {fileID: 1877615646993828146}
   _onSprite: {fileID: -6066120881518270544, guid: 45a86f506f29af542852065ed7fc0f6e, type: 3}
   _offSprite: {fileID: -4403208332294461611, guid: 7aba88f484f2498498d98850dcbcebbf, type: 3}
-  _knobOnX: 23
-  _knobOffX: -23
+  _knobOnX: 9
+  _knobOffX: -9
   _slideDuration: 0.12
+  _toggle: {fileID: 5799955011327642557}
 --- !u!1 &7361943167044987267
 GameObject:
   m_ObjectHideFlags: 0
@@ -2369,6 +2371,7 @@ MonoBehaviour:
   _knob: {fileID: 3478906392122712386}
   _onSprite: {fileID: -6066120881518270544, guid: 45a86f506f29af542852065ed7fc0f6e, type: 3}
   _offSprite: {fileID: -4403208332294461611, guid: 7aba88f484f2498498d98850dcbcebbf, type: 3}
-  _knobOnX: 23
-  _knobOffX: -23
+  _knobOnX: 9
+  _knobOffX: -9
   _slideDuration: 0.12
+  _toggle: {fileID: 7130387246553315032}

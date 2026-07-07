@@ -1,5 +1,6 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -7,8 +8,8 @@ namespace SlotRogue.UI.Combat.Presentation
 {
     public sealed class TurnBannerView : MonoBehaviour
     {
-        [SerializeField] private RectTransform _bannerRoot;
-        [SerializeField] private Font _defaultFont;
+        [SerializeField] private TMP_Text _bannerTmpText;
+        [SerializeField] private Text _bannerText;
         [SerializeField] private GameObject _linkTarget;
 
         public async UniTask ShowTurnBannerAsync(
@@ -21,27 +22,14 @@ namespace SlotRogue.UI.Combat.Presentation
                 return;
             }
 
-            if (_bannerRoot == null)
+            if (_bannerTmpText == null && _bannerText == null)
             {
                 await CombatPresentationTweens.DelayAsync(duration, ResolveLinkTarget(), cancellationToken);
                 return;
             }
 
-            GameObject bannerObject = new("Turn Banner", typeof(RectTransform));
-            RectTransform rectTransform = bannerObject.GetComponent<RectTransform>();
-            rectTransform.SetParent(_bannerRoot, false);
-            rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-            rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-            rectTransform.pivot = new Vector2(0.5f, 0.5f);
-            rectTransform.anchoredPosition = new Vector2(0f, 180f);
-            rectTransform.sizeDelta = new Vector2(700f, 80f);
-
-            Text text = bannerObject.AddComponent<Text>();
-            text.font = ResolveFont();
-            text.fontSize = 40;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.color = new Color32(255, 230, 140, 255);
-            text.text = message;
+            SetBannerText(message);
+            SetBannerVisible(true);
 
             try
             {
@@ -49,27 +37,40 @@ namespace SlotRogue.UI.Combat.Presentation
             }
             finally
             {
-                if (bannerObject != null)
-                {
-                    Destroy(bannerObject);
-                }
+                SetBannerVisible(false);
+                SetBannerText(string.Empty);
+            }
+        }
+
+        private void SetBannerText(string message)
+        {
+            if (_bannerTmpText != null)
+            {
+                _bannerTmpText.text = message;
+            }
+
+            if (_bannerText != null)
+            {
+                _bannerText.text = message;
+            }
+        }
+
+        private void SetBannerVisible(bool visible)
+        {
+            if (_bannerTmpText != null)
+            {
+                _bannerTmpText.gameObject.SetActive(visible);
+            }
+
+            if (_bannerText != null)
+            {
+                _bannerText.gameObject.SetActive(visible);
             }
         }
 
         private GameObject ResolveLinkTarget()
         {
             return _linkTarget != null ? _linkTarget : gameObject;
-        }
-
-        private Font ResolveFont()
-        {
-            if (_defaultFont != null)
-            {
-                return _defaultFont;
-            }
-
-            Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            return font != null ? font : Resources.GetBuiltinResource<Font>("Arial.ttf");
         }
     }
 }

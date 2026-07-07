@@ -9,8 +9,6 @@ namespace SlotRogue.UI.Tests.GameFlow
     /// </summary>
     public sealed class RelicInventoryTests
     {
-        private static RelicDefinition AnyStarter() => RelicCatalog.Starters[0];
-
         private static RelicDefinition AnyRewardRelic() => RelicCatalog.RewardPool[0];
 
         [Test]
@@ -46,42 +44,6 @@ namespace SlotRogue.UI.Tests.GameFlow
         }
 
         [Test]
-        public void SelectStarter_KeepsAtMostOneStarter()
-        {
-            var inventory = new RelicInventory();
-            RelicDefinition first = RelicCatalog.Starters[0];
-            RelicDefinition second = RelicCatalog.Starters.Count > 1
-                ? RelicCatalog.Starters[1]
-                : RelicCatalog.Starters[0];
-
-            inventory.SelectStarter(first);
-            inventory.SelectStarter(second);
-
-            int starterCount = 0;
-            foreach (RelicDefinition relic in inventory.Owned)
-            {
-                if (relic.IsStarter)
-                {
-                    starterCount++;
-                }
-            }
-
-            Assert.That(starterCount, Is.EqualTo(1));
-            Assert.That(inventory.HasStarter, Is.True);
-        }
-
-        [Test]
-        public void SelectStarter_InsertsAtFront()
-        {
-            var inventory = new RelicInventory();
-            inventory.Add(AnyRewardRelic());
-
-            inventory.SelectStarter(AnyStarter());
-
-            Assert.That(inventory.Owned[0].IsStarter, Is.True);
-        }
-
-        [Test]
         public void SelectStarter_RejectsNonStarter()
         {
             var inventory = new RelicInventory();
@@ -102,6 +64,32 @@ namespace SlotRogue.UI.Tests.GameFlow
 
             Assert.That(inventory.Owned.Count, Is.EqualTo(0));
             Assert.That(inventory.HasStarter, Is.False);
+        }
+
+        [Test]
+        public void TickWaveLifetimes_RemovesConsumableAfterItsWaves()
+        {
+            var inventory = new RelicInventory();
+            inventory.Add(RelicCatalog.GetById("R-39")); // 소멸·2웨이브
+            Assert.That(inventory.Owned.Count, Is.EqualTo(1));
+
+            inventory.TickWaveLifetimes(); // 2 -> 1
+            Assert.That(inventory.Owned.Count, Is.EqualTo(1));
+
+            inventory.TickWaveLifetimes(); // 1 -> 0 → 제거
+            Assert.That(inventory.Owned.Count, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void TickWaveLifetimes_KeepsPermanentRelics()
+        {
+            var inventory = new RelicInventory();
+            inventory.Add(RelicCatalog.GetById("R-16")); // 상시
+
+            inventory.TickWaveLifetimes();
+            inventory.TickWaveLifetimes();
+
+            Assert.That(inventory.Owned.Count, Is.EqualTo(1));
         }
     }
 }

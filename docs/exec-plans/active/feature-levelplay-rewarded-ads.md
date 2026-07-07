@@ -27,6 +27,7 @@ LevelPlay Rewarded 광고를 BootScene 영속 Manager로 초기화하고, 게임
 - [x] AdsManager root 전환과 RunGame DefeatView 씬 참조 경고 제거
 - [x] RunGame 씬의 리롤 버튼 null override 제거 및 광고 상태 문구/회귀 테스트 추가
 - [x] 부활 시 현재 몬스터 상태를 보존하고 플레이어만 최대 HP의 절반으로 복구
+- [x] 실광고 키 사용을 명시 플래그로 잠그고 Development Build에서는 debug/test ID만 허용
 - [ ] Unity Test Runner와 Android 실기기 로그 검증
 
 ## Notes
@@ -41,6 +42,7 @@ LevelPlay Rewarded 광고를 BootScene 영속 Manager로 초기화하고, 게임
 - 2026-06-13: `AdsManager`가 `00_Common` 자식이어도 `Awake()`에서 root로 분리한 뒤 `DontDestroyOnLoad`를 적용한다. `RunGame`의 빈 `DefeatView` host에는 `RunDefeatView`를 직렬화해 SceneRoot가 fallback 경고 없이 기존 host를 사용한다.
 - 2026-06-14: 부활 시 기존 `BattleSystem`을 재개해 몬스터 상태와 다음 행동을 보존한다. `dotnet build SlotRogue.slnx`는 경고 0개, 오류 0개로 통과했다.
 - 2026-06-19: 심볼별 결과 통계를 기본 공격력과 유물 공격력 분리 표시까지 확장한 뒤 `dotnet build SlotRogue.slnx --no-restore`는 경고 0개, 오류 0개로 통과했다. `dotnet test SlotRogue.slnx --no-build`는 종료 코드 0이지만 Unity Test Runner 테스트 개수 출력은 없어 수동 검증은 남아 있다.
+- 2026-07-07: 테스트 APK에서 실광고가 노출되는 것을 막기 위해 `AdsManager`가 실제 광고 키 사용을 `Production Ads Enabled` 플래그 뒤로 잠그도록 변경했다. `Debug.isDebugBuild`에서는 기본적으로 debug/test App Key와 Rewarded Ad Unit ID만 사용하며, 테스트 ID가 비어 있으면 SDK 초기화를 중단한다. Development Build에서 실제 키를 쓰려면 `Production Ads Enabled`와 `Allow Live Ads In Debug Builds`를 둘 다 의도적으로 켜야 한다. `00_TitleScene`의 실제 키 직렬화 값은 비웠다.
 
 ## Completion
 

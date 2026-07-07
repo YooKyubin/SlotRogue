@@ -222,7 +222,6 @@ GameObject:
   m_Component:
   - component: {fileID: 2073391525040762079}
   - component: {fileID: 7302257798178080560}
-  - component: {fileID: 7747439916137422069}
   m_Layer: 0
   m_Name: TempPanel
   m_TagString: Untagged
@@ -261,102 +260,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1929140552880644572}
   m_CullTransparentMesh: 1
---- !u!114 &7747439916137422069
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1929140552880644572}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a015, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.GameFlowImageSlot
-  _slotId: Game Start Root/frame
-  _image: {fileID: 0}
---- !u!1 &2104985251043821630
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1142094228254927741}
-  - component: {fileID: 7599765472993270214}
-  m_Layer: 0
-  m_Name: 10_LeaderboardArea
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!224 &1142094228254927741
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2104985251043821630}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.25, y: 0.25, z: 0.25}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 2618637839863606424}
-  m_Father: {fileID: 7517720187156222013}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
-  m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &7599765472993270214
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2104985251043821630}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 04bababe782c4eb3803f6ec277f8a45d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.Leaderboard.LeaderboardView
-  _panel: {fileID: 0}
-  _openButton: {fileID: 3944288424309259483}
-  _closeButton: {fileID: 0}
-  _rowsContainer: {fileID: 0}
-  _rowPrefab: {fileID: 0}
-  _goldRow:
-    Root: {fileID: 0}
-    RankText: {fileID: 0}
-    DesignationText: {fileID: 0}
-    NameText: {fileID: 0}
-    WaveText: {fileID: 0}
-    ProfileImage: {fileID: 0}
-  _silverRow:
-    Root: {fileID: 0}
-    RankText: {fileID: 0}
-    DesignationText: {fileID: 0}
-    NameText: {fileID: 0}
-    WaveText: {fileID: 0}
-    ProfileImage: {fileID: 0}
-  _bronzeRow:
-    Root: {fileID: 0}
-    RankText: {fileID: 0}
-    DesignationText: {fileID: 0}
-    NameText: {fileID: 0}
-    WaveText: {fileID: 0}
-    ProfileImage: {fileID: 0}
-  _myRankRow:
-    Root: {fileID: 0}
-    RankText: {fileID: 0}
-    DesignationText: {fileID: 0}
-    NameText: {fileID: 0}
-    WaveText: {fileID: 0}
-    ProfileImage: {fileID: 0}
 --- !u!1 &2755011568326574978
 GameObject:
   m_ObjectHideFlags: 0
@@ -387,7 +290,7 @@ RectTransform:
   m_LocalScale: {x: 4, y: 4, z: 4}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 1142094228254927741}
+  - {fileID: 2618637839863606424}
   m_Father: {fileID: 2073391525040762079}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0.5}
@@ -776,11 +679,11 @@ RectTransform:
   m_GameObject: {fileID: 8202721342775412125}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 4, y: 4, z: 4}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 8781858461007184889}
-  m_Father: {fileID: 1142094228254927741}
+  m_Father: {fileID: 7517720187156222013}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}

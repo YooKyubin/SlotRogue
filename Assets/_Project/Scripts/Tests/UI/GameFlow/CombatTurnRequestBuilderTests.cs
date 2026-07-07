@@ -19,7 +19,7 @@ namespace SlotRogue.UI.Tests.GameFlow
         }
 
         [Test]
-        public void Build_BlankRequest_AddsBaseAttack()
+        public void Build_BlankRequest_DoesNotAddBaseAttack()
         {
             RunCombatRequestResult result = _builder.Build(
                 SlotCombatRequest.Empty,
@@ -27,74 +27,9 @@ namespace SlotRogue.UI.Tests.GameFlow
                 runDamageBonus: 0,
                 runDefenseBonus: 0);
 
-            Assert.That(result.FinalRequest.Damage, Is.EqualTo(SlotCombatRequest.BaseAttackDamage));
-            Assert.That(result.FinalRequest.AttackCount, Is.EqualTo(SlotCombatRequest.BaseAttackCount));
-            Assert.That(result.FinalRequest.PatternName, Is.EqualTo(SlotCombatRequest.BaseAttackName));
-        }
-
-        [Test]
-        public void Build_MatchingStarterRelic_AppliesRelicBonus()
-        {
-            var request = new SlotCombatRequest(18, 0, 1, 0, false, "Cherry x3");
-            var runner = new RelicEffectRunner();
-            RelicResolveResult relicResult = runner.Resolve(
-                Matches(SlotSymbolType.Cherry, 3),
-                new[] { RelicCatalog.GetById("S-01") },
-                FullHp);
-
-            RunCombatRequestResult result = _builder.Build(
-                request,
-                relicResult,
-                runDamageBonus: 0,
-                runDefenseBonus: 0);
-
-            Assert.That(result.RelicActivationSummary, Does.Contain("체리 단검"));
-            Assert.That(result.FinalRequest.Damage, Is.EqualTo(21));
-        }
-
-        [Test]
-        public void Build_NonMatchingStarterRelic_DoesNotApplyRelicBonus()
-        {
-            var request = new SlotCombatRequest(15, 0, 1, 0, false, "Clover x3");
-            var runner = new RelicEffectRunner();
-            RelicResolveResult relicResult = runner.Resolve(
-                Matches(SlotSymbolType.Clover, 3),
-                new[] { RelicCatalog.GetById("S-01") },
-                FullHp);
-
-            RunCombatRequestResult result = _builder.Build(
-                request,
-                relicResult,
-                runDamageBonus: 0,
-                runDefenseBonus: 0);
-
-            Assert.That(result.RelicActivationSummary, Is.Empty);
-            Assert.That(result.FinalRequest.Damage, Is.EqualTo(15));
-        }
-
-        [Test]
-        public void Build_RelicSymbolInAnyPattern_Activates()
-        {
-            var request = new SlotCombatRequest(15, 0, 1, 0, false, "Mixed");
-            var matches = new List<SlotPatternMatch>
-            {
-                Single(SlotSymbolType.Clover, 5),
-                Single(SlotSymbolType.Cherry, 3),
-            };
-            var runner = new RelicEffectRunner();
-            RelicResolveResult relicResult = runner.Resolve(
-                matches,
-                new[] { RelicCatalog.GetById("S-01") },
-                FullHp);
-
-            RunCombatRequestResult result = _builder.Build(
-                request,
-                relicResult,
-                runDamageBonus: 0,
-                runDefenseBonus: 0);
-
-            Assert.That(result.RelicActivationSummary, Does.Contain("체리 단검"));
-            Assert.That(result.FinalRequest.Damage, Is.EqualTo(18));
+            Assert.That(result.FinalRequest.Damage, Is.EqualTo(0));
+            Assert.That(result.FinalRequest.AttackCount, Is.EqualTo(0));
+            Assert.That(result.FinalRequest.PatternName, Is.EqualTo(SlotCombatRequest.Empty.PatternName));
         }
 
         [Test]

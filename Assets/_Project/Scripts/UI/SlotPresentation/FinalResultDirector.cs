@@ -18,15 +18,8 @@ namespace SlotRogue.UI.SlotPresentation
 
         [SerializeField] private RectTransform _panel;
         [SerializeField] private Image _panelImage;
-        [SerializeField] private Text _titleText;
-        [SerializeField] private Text _summaryText;
-        [SerializeField] private TMP_Text _titleTmpText;
-        [SerializeField] private TMP_Text _summaryTmpText;
+        [SerializeField] private TMP_Text _resultTmpText;
         [SerializeField] private string _statSpriteAssetAddress = StatSpriteAssetAddress;
-        [SerializeField] private Color _panelColor = new Color(0.1f, 0.15f, 0.2f, 0.98f);
-        [SerializeField] private Color _damageImpactColor = new Color(1f, 0.48f, 0.2f, 1f);
-        [SerializeField] private Color _defenseImpactColor = new Color(0.36f, 0.72f, 1f, 1f);
-        [SerializeField] private Color _healImpactColor = new Color(0.42f, 1f, 0.56f, 1f);
 
         [Header("Pop Presentation")]
         [Tooltip("Slides from the authored rest position by this many anchored Y pixels.")]
@@ -49,19 +42,14 @@ namespace SlotRogue.UI.SlotPresentation
             }
         }
 
-        public void Bind(
-            RectTransform panel,
-            Image panelImage,
-            Text titleText,
-            Text summaryText)
+        private void Awake()
         {
-            _panel = panel;
-            _panelImage = panelImage;
-            _titleText = titleText;
-            _summaryText = summaryText;
-            _titleTmpText = null;
-            _summaryTmpText = null;
-            _hasRestAnchoredY = false;
+            EnsurePanel();
+            CaptureRestPosition();
+            ResolveOptionalReferences();
+            BeginStatSpriteAssetLoad();
+            ApplyDisplayValues(0, 0, 0, 0);
+            StartCoroutine(ApplyStatSpriteAssetWhenReady());
         }
 
         public IEnumerator Play(SlotFinalPresentationResult result, Func<bool> shouldSkip)
@@ -87,13 +75,7 @@ namespace SlotRogue.UI.SlotPresentation
             CaptureRestPosition();
             ResolveOptionalReferences();
             yield return EnsureStatSpriteAsset(shouldSkip);
-            ApplyResultText(result);
             CaptureDisplayedResult(result);
-
-            if (_panelImage != null)
-            {
-                _panelImage.color = _panelColor;
-            }
 
             gameObject.SetActive(true);
 
@@ -135,7 +117,6 @@ namespace SlotRogue.UI.SlotPresentation
 
             if (!_hasDisplayedResult || _valueCountDuration <= 0f)
             {
-                ApplyResultText(result);
                 CaptureDisplayedResult(result);
             }
             else
@@ -145,7 +126,7 @@ namespace SlotRogue.UI.SlotPresentation
 
             if (pulse)
             {
-                PlayPulseTween(ResolveImpactColor(impactRelic), impactRelic != null);
+                PlayPulseTween(ImpactColorFor(impactRelic), IsStrongImpact(impactRelic));
             }
         }
 
@@ -186,11 +167,6 @@ namespace SlotRogue.UI.SlotPresentation
             {
                 _panel.anchoredPosition = new Vector2(_panel.anchoredPosition.x, _restAnchoredY);
                 _panel.localScale = Vector3.one;
-            }
-
-            if (_panelImage != null)
-            {
-                _panelImage.color = _panelColor;
             }
 
             _hasDisplayedResult = false;
@@ -235,57 +211,12 @@ namespace SlotRogue.UI.SlotPresentation
 
             _panelImage ??= _panel.GetComponent<Image>();
 
-            if (_titleText == null || _summaryText == null)
-            {
-                ResolveTextReferences(_panel.GetComponentsInChildren<Text>(true));
-            }
-
-            if (_titleTmpText == null || _summaryTmpText == null)
+            if (_resultTmpText == null)
             {
                 ResolveTmpTextReferences(_panel.GetComponentsInChildren<TMP_Text>(true));
             }
 
             ApplyStatSpriteAsset();
-        }
-
-        private void ResolveTextReferences(Text[] texts)
-        {
-            if (texts == null || texts.Length == 0)
-            {
-                return;
-            }
-
-            for (int index = 0; index < texts.Length; index++)
-            {
-                Text text = texts[index];
-                if (text == null)
-                {
-                    continue;
-                }
-
-                string objectName = text.gameObject.name;
-                if (_titleText == null && ContainsIgnoreCase(objectName, "title"))
-                {
-                    _titleText = text;
-                }
-                else if (_summaryText == null &&
-                    (ContainsIgnoreCase(objectName, "summary") ||
-                     ContainsIgnoreCase(objectName, "result") ||
-                     ContainsIgnoreCase(objectName, "value")))
-                {
-                    _summaryText = text;
-                }
-            }
-
-            if (_summaryText == null)
-            {
-                _summaryText = texts[texts.Length - 1];
-            }
-
-            if (_titleText == null && texts.Length > 1)
-            {
-                _titleText = texts[0] != _summaryText ? texts[0] : null;
-            }
         }
 
         private void ResolveTmpTextReferences(TMP_Text[] texts)
@@ -304,48 +235,30 @@ namespace SlotRogue.UI.SlotPresentation
                 }
 
                 string objectName = text.gameObject.name;
-                if (_titleTmpText == null && ContainsIgnoreCase(objectName, "title"))
-                {
-                    _titleTmpText = text;
-                }
-                else if (_summaryTmpText == null &&
+   
+                if (_resultTmpText == null &&
                     (ContainsIgnoreCase(objectName, "summary") ||
                      ContainsIgnoreCase(objectName, "result") ||
                      ContainsIgnoreCase(objectName, "value")))
                 {
-                    _summaryTmpText = text;
+                    _resultTmpText = text;
                 }
             }
 
-            if (_summaryTmpText == null)
+            if (_resultTmpText == null)
             {
-                _summaryTmpText = texts[texts.Length - 1];
+                _resultTmpText = texts[texts.Length - 1];
             }
-
-            if (_titleTmpText == null && texts.Length > 1)
-            {
-                _titleTmpText = texts[0] != _summaryTmpText ? texts[0] : null;
-            }
-        }
-
-        private void ApplyResultText(SlotFinalPresentationResult result)
-        {
-            SetText(_titleText, _titleTmpText, "FINAL RESULT");
-            SetSummaryValues(
-                result.Damage,
-                result.Defense,
-                result.AttackCount,
-                result.HealAmount);
         }
 
         private void ApplyStatSpriteAsset()
         {
-            if (_summaryTmpText == null || _statSpriteAsset == null)
+            if (_resultTmpText == null || _statSpriteAsset == null)
             {
                 return;
             }
 
-            _summaryTmpText.spriteAsset = _statSpriteAsset;
+            _resultTmpText.spriteAsset = _statSpriteAsset;
         }
 
         private void PlayValueTween(SlotFinalPresentationResult result)
@@ -372,7 +285,6 @@ namespace SlotRogue.UI.SlotPresentation
 
             if (steps <= 0)
             {
-                ApplyResultText(result);
                 CaptureDisplayedResult(result);
                 return;
             }
@@ -395,7 +307,6 @@ namespace SlotRogue.UI.SlotPresentation
 
             _valueTween = sequence.OnComplete(() =>
             {
-                ApplyResultText(result);
                 CaptureDisplayedResult(result);
             });
         }
@@ -412,7 +323,6 @@ namespace SlotRogue.UI.SlotPresentation
             _displayHeal = Mathf.Max(0, healAmount);
             _hasDisplayedResult = true;
 
-            SetText(_titleText, _titleTmpText, "FINAL RESULT");
             SetSummaryValues(
                 _displayDamage,
                 _displayDefense,
@@ -427,6 +337,12 @@ namespace SlotRogue.UI.SlotPresentation
             _displayAttackCount = Mathf.Max(1, result.AttackCount);
             _displayHeal = Mathf.Max(0, result.HealAmount);
             _hasDisplayedResult = true;
+
+            SetSummaryValues(
+                _displayDamage,
+                _displayDefense,
+                _displayAttackCount,
+                _displayHeal);
         }
 
         private void SetSummaryValues(
@@ -435,15 +351,11 @@ namespace SlotRogue.UI.SlotPresentation
             int attackCount,
             int healAmount)
         {
-            string plainText = BuildPlainSummaryText(damage, defense, attackCount, healAmount);
-            if (_summaryText != null)
+            if (_resultTmpText != null)
             {
-                _summaryText.text = plainText;
-            }
-
-            if (_summaryTmpText != null)
-            {
-                _summaryTmpText.text = BuildRichSummaryText(damage, defense, attackCount, healAmount);
+                _resultTmpText.text = !_statSpriteAssetLoadFailed
+                    ? BuildRichSummaryText(damage, defense, attackCount, healAmount)
+                    : BuildPlainSummaryText(damage, defense, attackCount, healAmount);
             }
         }
 
@@ -475,48 +387,95 @@ namespace SlotRogue.UI.SlotPresentation
             if (_flashTween != null && _flashTween.IsActive())
             {
                 _flashTween.Kill();
+                RestorePanelBaseColor();
             }
 
-            Color flashColor = Color.Lerp(_panelColor, impactColor, strongImpact ? 0.55f : 0.28f);
-            _panelImage.color = flashColor;
-            _flashTween = DOTween.To(
-                    () => _panelImage.color,
-                    value => _panelImage.color = value,
-                    _panelColor,
-                    Mathf.Max(0.01f, _impactFlashDuration))
-                .SetEase(Ease.OutCubic)
+            CapturePanelBaseColor();
+            Color flashColor = impactColor;
+            flashColor.a = _panelBaseColor.a;
+
+            float duration = Mathf.Max(0.01f, _impactFlashDuration);
+            _flashTween = DOTween.Sequence()
                 .SetTarget(_panelImage)
+                .SetUpdate(true)
+                .Append(TweenPanelImageColor(flashColor, duration * 0.35f).SetEase(Ease.OutCubic))
+                .Append(TweenPanelImageColor(_panelBaseColor, duration * 0.65f).SetEase(Ease.InCubic))
+                .OnComplete(RestorePanelBaseColor);
+        }
+
+        private Tween TweenPanelImageColor(Color targetColor, float duration)
+        {
+            Image image = _panelImage;
+            return DOTween.To(
+                    () => image != null ? image.color : targetColor,
+                    value =>
+                    {
+                        if (image != null)
+                        {
+                            image.color = value;
+                        }
+                    },
+                    targetColor,
+                    duration)
+                .SetTarget(image)
                 .SetUpdate(true);
         }
 
-        private Color ResolveImpactColor(SlotRelicTriggerPresentationResult impactRelic)
+        private void CapturePanelBaseColor()
+        {
+            if (_panelImage == null)
+            {
+                return;
+            }
+
+            _panelBaseColor = _panelImage.color;
+            _hasPanelBaseColor = true;
+        }
+
+        private void RestorePanelBaseColor()
+        {
+            if (_panelImage != null && _hasPanelBaseColor)
+            {
+                _panelImage.color = _panelBaseColor;
+            }
+        }
+
+        private static Color ImpactColorFor(SlotRelicTriggerPresentationResult impactRelic)
         {
             if (impactRelic == null)
             {
-                return _panelColor;
-            }
-
-            if (impactRelic.Heal > 0)
-            {
-                return _healImpactColor;
-            }
-
-            if (impactRelic.Block > 0)
-            {
-                return _defenseImpactColor;
+                return Color.white;
             }
 
             if (impactRelic.DamagePerHit > 0)
             {
-                return _damageImpactColor;
+                return new Color(1f, 0.45f, 0.25f, 1f);
             }
 
-            return _panelColor;
+            if (impactRelic.Block > 0)
+            {
+                return new Color(0.45f, 0.7f, 1f, 1f);
+            }
+
+            if (impactRelic.Heal > 0)
+            {
+                return new Color(0.45f, 1f, 0.6f, 1f);
+            }
+
+            return Color.white;
+        }
+
+        private static bool IsStrongImpact(SlotRelicTriggerPresentationResult impactRelic)
+        {
+            return impactRelic != null &&
+                (impactRelic.DamagePerHit > 0 ||
+                 impactRelic.Block > 0 ||
+                 impactRelic.Heal > 0);
         }
 
         private IEnumerator EnsureStatSpriteAsset(Func<bool> shouldSkip)
         {
-            if (_summaryTmpText == null || _statSpriteAsset != null || _statSpriteAssetLoadFailed)
+            if (_resultTmpText == null || _statSpriteAsset != null || _statSpriteAssetLoadFailed)
             {
                 ApplyStatSpriteAsset();
                 yield break;
@@ -534,9 +493,30 @@ namespace SlotRogue.UI.SlotPresentation
             ApplyStatSpriteAsset();
         }
 
+        private IEnumerator ApplyStatSpriteAssetWhenReady()
+        {
+            if (_resultTmpText == null || _statSpriteAsset != null || _statSpriteAssetLoadFailed)
+            {
+                ApplyStatSpriteAsset();
+                RefreshDisplayedSummary();
+                yield break;
+            }
+
+            BeginStatSpriteAssetLoad();
+            while (_statSpriteAssetHandle.IsValid() &&
+                !_statSpriteAssetHandle.IsDone)
+            {
+                yield return null;
+            }
+
+            CaptureLoadedStatSpriteAsset();
+            ApplyStatSpriteAsset();
+            RefreshDisplayedSummary();
+        }
+
         private void BeginStatSpriteAssetLoad()
         {
-            if (_summaryTmpText == null || _statSpriteAsset != null || _statSpriteAssetLoadFailed)
+            if (_resultTmpText == null || _statSpriteAsset != null || _statSpriteAssetLoadFailed)
             {
                 return;
             }
@@ -576,6 +556,15 @@ namespace SlotRogue.UI.SlotPresentation
             string reason = _statSpriteAssetHandle.OperationException?.Message ?? "unknown error";
             Debug.LogWarning(
                 $"[FinalResultDirector] TMP sprite asset '{_statSpriteAssetAddress}' load failed: {reason}");
+        }
+
+        private void RefreshDisplayedSummary()
+        {
+            SetSummaryValues(
+                _displayDamage,
+                _displayDefense,
+                _displayAttackCount,
+                _displayHeal);
         }
 
         private void ReleaseStatSpriteAsset()
@@ -737,6 +726,7 @@ namespace SlotRogue.UI.SlotPresentation
             if (_flashTween != null && _flashTween.IsActive())
             {
                 _flashTween.Kill();
+                RestorePanelBaseColor();
             }
 
             _flashTween = null;
@@ -781,9 +771,11 @@ namespace SlotRogue.UI.SlotPresentation
         private int _displayDefense;
         private int _displayAttackCount = 1;
         private int _displayHeal;
+        private Color _panelBaseColor;
         private float _restAnchoredY;
         private bool _hasRestAnchoredY;
         private bool _hasDisplayedResult;
+        private bool _hasPanelBaseColor;
         private bool _statSpriteAssetLoadFailed;
     }
 }
