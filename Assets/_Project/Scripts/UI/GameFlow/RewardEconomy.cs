@@ -53,6 +53,7 @@ namespace SlotRogue.UI.GameFlow
         public const int DefenseBonusStep = 2;
         public const int GreaterDefenseStep = 4;
         public const int MaxHpUpAmount = 5;
+        public const int RunCoinRewardAmount = 3;
 
         public static RunVitals Apply(RunVitals vitals, RunRewardType rewardType)
         {
@@ -66,6 +67,7 @@ namespace SlotRogue.UI.GameFlow
                 RunRewardType.GreaterDamage => vitals.WithDamageBonus(GreaterDamageStep),
                 RunRewardType.GreaterDefense => vitals.WithDefenseBonus(GreaterDefenseStep),
                 RunRewardType.FullHeal => vitals.WithFullHeal(),
+                RunRewardType.RunCoins => vitals,
                 _ => vitals,
             };
         }

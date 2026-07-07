@@ -29,7 +29,12 @@ namespace SlotRogue.Relics.Pool
             bool phase1,
             string description,
             string intent,
-            string qaRisk)
+            string qaRisk,
+            string category = "",
+            string life = "",
+            string shopSlot = "",
+            int price = 0,
+            int maxCopies = 1)
         {
             Id = id;
             Grade = grade;
@@ -51,6 +56,11 @@ namespace SlotRogue.Relics.Pool
             Description = description;
             Intent = intent;
             QaRisk = qaRisk;
+            Category = category;
+            Life = life;
+            ShopSlot = shopSlot;
+            Price = price;
+            MaxCopies = maxCopies;
 
             Symbols = BuildSymbols(triggerSymbol, triggerTag);
             Tags = BuildTags(triggerSymbol, triggerTag);
@@ -97,6 +107,17 @@ namespace SlotRogue.Relics.Pool
         public string Description { get; }
         public string Intent { get; }
         public string QaRisk { get; }
+        public string Category { get; }
+        public string Life { get; }
+        public string ShopSlot { get; }
+        public int Price { get; }
+        public int MaxCopies { get; }
+
+        public bool IsInstant =>
+            string.Equals(Life, "instant", System.StringComparison.OrdinalIgnoreCase);
+
+        public bool OccupiesSlot =>
+            !string.Equals(ShopSlot, "noslot", System.StringComparison.OrdinalIgnoreCase);
 
         /// <summary>표시용 대상 심볼 목록(트리거에서 파생).</summary>
         public IReadOnlyList<SlotSymbolType> Symbols { get; }

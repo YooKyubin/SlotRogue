@@ -77,6 +77,44 @@ namespace SlotRogue.UI.SlotPresentation.Reel
             return true;
         }
 
+        /// <summary>
+        /// Returns stable per-window hit targets (5 columns x visible rows) for swap input. Unlike
+        /// <see cref="TryGetVisibleCellIcons"/>, these do not move when the reel recycles its symbol
+        /// items, so swap input stays aligned with the visible cells after a spin.
+        /// </summary>
+        public bool TryGetWindowHitTargets(out Image[] targets)
+        {
+            targets = null;
+
+            if (!HasAuthoredReels())
+            {
+                return false;
+            }
+
+            var result = new Image[SlotSpinResult.CellCount];
+            for (int column = 0; column < Columns; column++)
+            {
+                if (_reels[column] == null)
+                {
+                    return false;
+                }
+
+                for (int row = 0; row < VisibleRows; row++)
+                {
+                    Image target = _reels[column].GetWindowHitTarget(row);
+                    if (target == null)
+                    {
+                        return false;
+                    }
+
+                    result[SlotSpinResult.ToIndex(column, row)] = target;
+                }
+            }
+
+            targets = result;
+            return true;
+        }
+
         public IEnumerator Play(SlotSpinResult result, Func<bool> shouldSkip)
         {
             if (result == null || !EnsureReels())
@@ -220,11 +258,6 @@ namespace SlotRogue.UI.SlotPresentation.Reel
         {
             if (!HasAuthoredReels())
             {
-                TryAutoDiscoverReels();
-            }
-
-            if (!HasAuthoredReels())
-            {
                 return;
             }
 
@@ -282,17 +315,11 @@ namespace SlotRogue.UI.SlotPresentation.Reel
                 return true;
             }
 
-            // Reels placed in the scene are used as-is; discover them even if the inspector links
-            // were never wired, so no manual setup (or runtime UI creation) is required.
-            if (!HasAuthoredReels())
-            {
-                TryAutoDiscoverReels();
-            }
-
             if (!IsReady)
             {
                 Debug.LogError(
-                    "[SlotMachineSpinDirector] Slot reel overlay and Reel 0-4 must be placed in the hierarchy.");
+                    "[SlotMachineSpinDirector] Slot reel overlay, Reel 0-4, and symbol sprites must be wired in the inspector.",
+                    this);
                 return false;
             }
 
@@ -318,61 +345,6 @@ namespace SlotRogue.UI.SlotPresentation.Reel
             }
 
             return false;
-        }
-
-        // Finds reels placed in the scene (e.g. under "Slot Reel Overlay") and orders them left -> right
-        // so column mapping is correct, even if the presenter's inspector references were not wired.
-        // Orders by the trailing index in the name ("Reel 0".."Reel 4"); falls back to horizontal
-        // position when names don't carry an index (reels may overlap before they are auto-sized).
-        private void TryAutoDiscoverReels()
-        {
-            SlotReelView[] found = transform.root.GetComponentsInChildren<SlotReelView>(true);
-            if (found == null || found.Length < Columns)
-            {
-                return;
-            }
-
-            System.Array.Sort(found, CompareReelOrder);
-
-            _reels = new SlotReelView[Columns];
-            for (int column = 0; column < Columns; column++)
-            {
-                _reels[column] = found[column];
-            }
-
-            if (_overlay == null && _reels[0] != null)
-            {
-                _overlay = _reels[0].transform.parent as RectTransform;
-            }
-        }
-
-        private static int CompareReelOrder(SlotReelView left, SlotReelView right)
-        {
-            int leftIndex = ParseTrailingIndex(left.name);
-            int rightIndex = ParseTrailingIndex(right.name);
-            if (leftIndex >= 0 && rightIndex >= 0 && leftIndex != rightIndex)
-            {
-                return leftIndex.CompareTo(rightIndex);
-            }
-
-            return left.transform.position.x.CompareTo(right.transform.position.x);
-        }
-
-        private static int ParseTrailingIndex(string name)
-        {
-            if (string.IsNullOrEmpty(name))
-            {
-                return -1;
-            }
-
-            int end = name.Length;
-            int start = end;
-            while (start > 0 && char.IsDigit(name[start - 1]))
-            {
-                start--;
-            }
-
-            return start < end && int.TryParse(name.Substring(start, end - start), out int index) ? index : -1;
         }
 
         // When reels have no usable size (e.g. placed with a zero RectTransform), arrange the five
@@ -468,10 +440,6 @@ namespace SlotRogue.UI.SlotPresentation.Reel
             if (_overlay != null)
             {
                 _overlay.gameObject.SetActive(true);
-                if (!_authored)
-                {
-                    _overlay.SetAsLastSibling();
-                }
             }
 
             if (_reels != null)

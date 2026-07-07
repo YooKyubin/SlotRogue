@@ -1,7 +1,7 @@
 # 슬롯 코어 (Slot Core)
 
 **Status**: draft  
-**Last updated**: 2026-05-28
+**Last updated**: 2026-07-01
 
 ## Purpose
 
@@ -19,7 +19,9 @@ _(ADR 없음 — MVP 초안. 슬롯 RNG / 페이아웃 모델이 확정되면 AD
 | S4 | **전투 직접 호출 금지** | Slot은 Battle/Core 전투 타입을 참조하지 않는다. `SlotCombatRequest` DTO만 준비하고, 실제 전투 연동은 전투 design-doc 확정 후 별도 plan에서 진행한다. |
 | S5 | **MVP 패턴은 간단한 가로 매칭** | 각 row에서 같은 심볼이 3개 이상 연속되면 패턴으로 판정한다. 여러 패턴 중 가장 높은 점수 패턴 하나를 대표 결과로 쓴다. |
 | S6 | **테스트 가능한 RNG** | `System.Random`을 주입 가능하게 두어 EditMode 테스트에서 seed를 고정한다. 런타임 기본 생성자는 비결정론적 seed를 사용한다. |
-| S7 | **NoMatch도 기본 공격으로 처리** | 초반 전투 템포를 위해 족보가 없어도 `Base Attack` 피해 4, 공격 횟수 1을 생성한다. |
+| S7 | **NoMatch는 공격 없음** | 족보가 없으면 피해와 공격 횟수를 만들지 않는다. |
+| S8 | **심볼별 기본 공격력** | 족보 피해는 `심볼 기본 공격력 × 매칭 칸 수 × 족보 배율`로 계산한다. 기본값은 체리 2, 레몬 2, 클로버 3, 종 4, 다이아 5, 7은 7이다. |
+| S9 | **스핀 결과와 전투 요청 확정 분리** | `Spin()`과 스왑은 보드만 갱신하고, `ResolveCurrentSpinResult()` 호출 시점에 패턴/피해/`SlotCombatRequest`를 확정한다. RunGame 스왑 대기 중에는 preview만 표시한다. |
 
 ## Flow
 
@@ -33,6 +35,8 @@ sequenceDiagram
   participant Builder as SlotCombatRequestBuilder
   View->>VM: Spin()
   VM->>Service: GenerateSpin()
+  VM-->>View: StateChanged (unresolved board)
+  View->>VM: ResolveCurrentSpinResult()
   VM->>Resolver: Resolve(spinResult)
   VM->>Calculator: Calculate(patternResult)
   VM->>Builder: Build(...)
@@ -48,7 +52,11 @@ sequenceDiagram
 | `SlotCalculationResult` | 데미지, 방어, 공격 횟수, 회복량, 크리티컬 여부 |
 | `SlotCombatRequest` | 추후 전투 연동용 Slot 측 요청 DTO (MVP UI 표시·로그) |
 
-`SlotPatternResult.NoMatch`는 패턴 실패 상태를 유지하되, `SlotResultCalculator`는 기본 공격 수치를 반환한다. `SlotCombatRequestBuilder`는 이 경우 요청 이름을 `Base Attack`으로 변환한다.
+`SlotPatternResult.NoMatch`는 패턴 실패 상태를 유지하고, `SlotResultCalculator`는 피해 0 / 공격 횟수 0을 반환한다. `SlotPatternResolver`는 매칭된 심볼의 기본 공격력을 읽어 `SlotPatternMatch.CalculatedValue`를 만든다. 예를 들어 체리 3칸 족보는 `2 × 3 × 1.0 = 6` 피해가 된다.
+
+`SlotMachineModel.Spin()`과 `TrySwapAdjacentSymbols()` 직후에는 `CurrentSpinResult`만 최신 보드를 보관하고, `CurrentPatternMatches`, `CurrentCalculationResult`, `CurrentCombatRequest`는 빈 상태를 유지한다. `ResolveCurrentSpinResult()`를 호출하면 현재 보드 기준으로 한 번 패턴을 판정하고 계산 결과를 채운다. RunGame 전투 화면은 스왑 대기 중 `PreviewCurrentPatternMatches()`로 매칭 셀 cue만 표시하고, `ATTACK` 입력 뒤 resolve 결과를 유물/전투 요청에 사용한다.
+
+런 중 슬롯 심볼 확률은 `SlotSymbolPool`이 보관하는 심볼별 한 칸 출현 확률 가중치다. 각 슬롯 칸은 `해당 심볼 가중치 / 전체 가중치`로 독립 추첨하며, RunGame Inspector의 `Initial Symbol Probability Weights` 값으로 시작 가중치를 지정한다. 6개 값을 합계 100으로 맞추면 HUD의 초기 표시가 그대로 퍼센트가 되고, 합계가 100이 아니어도 런타임은 자동으로 정규화한다.
 
 전투 시스템은 재설계 중이다. `AttackCount`, `HealAmount`, `IsCritical`, `PatternName`은 `SlotCombatRequest`에 보존하고, Battle 계약은 새 design-doc에서 정의한다.
 
@@ -56,7 +64,7 @@ sequenceDiagram
 
 - `SlotMachineView`: Spin 버튼 입력 전달, cell/result UI 갱신, ViewModel 이벤트 구독.
 - `SlotCellView`: 단일 슬롯 셀 표시.
-- `SlotResultView`: 결과 텍스트 표시와 개발용 Console 로그 출력. 패턴 성공은 `PATTERN HIT`, 실패는 `NO PATTERN - Base Attack`으로 구분한다.
+- `SlotResultView`: 결과 텍스트 표시와 개발용 Console 로그 출력. 패턴 성공은 `PATTERN HIT`, 실패는 `NO PATTERN`으로 구분한다.
 - `SlotMachineViewModel`: `Spin`, `CanSpin`, 현재 결과 상태, 변경 이벤트.
 
 View는 슬롯 계산, 데미지 계산, Battle 호출을 하지 않는다.

@@ -35,7 +35,7 @@ namespace SlotRogue.UI.GameFlow
 
         internal void UpdateSlotResult(
             RunCombatRequestResult lastRequestResult,
-            SlotPatternResult patternResult)
+            SlotTurnResult slotTurnResult)
         {
             if (lastRequestResult == null)
             {
@@ -49,6 +49,7 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
+            SlotPatternResult patternResult = slotTurnResult?.PatternResult;
             SlotCombatRequest request = lastRequestResult.FinalRequest;
             bool hasPattern = patternResult != null && patternResult.HasMatch;
             var builder = new StringBuilder();
@@ -59,11 +60,16 @@ namespace SlotRogue.UI.GameFlow
             }
             else
             {
-                builder.AppendLine(SlotCombatRequest.BaseAttackName.ToUpperInvariant());
-                builder.AppendLine("No pattern matched");
+                builder.AppendLine("NO PATTERN");
+                builder.AppendLine("No attack generated");
             }
 
             builder.AppendLine(FormatRequest(request));
+
+            if (slotTurnResult != null)
+            {
+                builder.AppendLine(FormatSpinEconomy(slotTurnResult));
+            }
 
             if (!string.IsNullOrEmpty(lastRequestResult.RelicActivationSummary))
             {
@@ -84,14 +90,16 @@ namespace SlotRogue.UI.GameFlow
                     hasPattern,
                     patternResult != null ? patternResult.Row : -1,
                     patternResult != null ? patternResult.StartColumn : -1,
-                    patternResult != null ? patternResult.MatchLength : 0);
+                    patternResult != null ? patternResult.MatchLength : 0,
+                    CollectHighlightedCellIndices(slotTurnResult?.PatternMatches),
+                    CollectHighlightedCellSymbols(slotTurnResult?.PatternMatches));
             });
         }
 
         internal void UpdatePlayerHud(CombatParticipant player, CombatViewModel combatViewModel)
         {
             _vm.SetPlayerHud(
-                $"{combatViewModel.PlayerHp}/{player.MaxHp}",
+                $"{combatViewModel.PlayerHp}/{player.MaxHp}\nCOIN {GameFlowSession.RunCoins}",
                 combatViewModel.PlayerHp,
                 player.MaxHp,
                 combatViewModel.PlayerShield,
@@ -173,6 +181,13 @@ namespace SlotRogue.UI.GameFlow
             return $"DMG {request.Damage} / DEF {request.Defense}\nHIT {request.AttackCount} / HEAL {request.HealAmount}";
         }
 
+        internal static string FormatSpinEconomy(SlotTurnResult slotTurnResult)
+        {
+            int coinReward = slotTurnResult != null ? slotTurnResult.SpinCoinReward : 0;
+            int totalCoins = slotTurnResult != null ? slotTurnResult.RunCoinsAfterReward : GameFlowSession.RunCoins;
+            return $"COIN +{coinReward} / TOTAL {totalCoins}";
+        }
+
         internal static string FormatSlotSymbol(SlotSymbolType symbol)
         {
             switch (symbol)
@@ -185,6 +200,70 @@ namespace SlotRogue.UI.GameFlow
                 case SlotSymbolType.Lemon: return "LEMON";
                 default: return symbol.ToString().ToUpperInvariant();
             }
+        }
+
+        internal static int[] CollectHighlightedCellIndices(IReadOnlyList<SlotPatternMatch> matches)
+        {
+            if (matches == null || matches.Count == 0)
+            {
+                return System.Array.Empty<int>();
+            }
+
+            var result = new List<int>();
+            for (int index = 0; index < matches.Count; index++)
+            {
+                SlotPatternMatch match = matches[index];
+                IReadOnlyList<SlotCell> cells = match?.MatchedCells;
+                if (cells == null)
+                {
+                    continue;
+                }
+
+                for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++)
+                {
+                    SlotCell cell = cells[cellIndex];
+                    int flattenedIndex = SlotSpinResult.ToIndex(cell.Col, cell.Row);
+                    if (SlotSpinResult.IsValidIndex(flattenedIndex) &&
+                        !result.Contains(flattenedIndex))
+                    {
+                        result.Add(flattenedIndex);
+                    }
+                }
+            }
+
+            return result.ToArray();
+        }
+
+        internal static SlotSymbolType?[] CollectHighlightedCellSymbols(
+            IReadOnlyList<SlotPatternMatch> matches)
+        {
+            var result = new SlotSymbolType?[SlotSpinResult.CellCount];
+            if (matches == null || matches.Count == 0)
+            {
+                return result;
+            }
+
+            for (int index = 0; index < matches.Count; index++)
+            {
+                SlotPatternMatch match = matches[index];
+                IReadOnlyList<SlotCell> cells = match?.MatchedCells;
+                if (cells == null)
+                {
+                    continue;
+                }
+
+                for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++)
+                {
+                    SlotCell cell = cells[cellIndex];
+                    int flattenedIndex = SlotSpinResult.ToIndex(cell.Col, cell.Row);
+                    if (SlotSpinResult.IsValidIndex(flattenedIndex))
+                    {
+                        result[flattenedIndex] = match.Symbol;
+                    }
+                }
+            }
+
+            return result;
         }
     }
 }

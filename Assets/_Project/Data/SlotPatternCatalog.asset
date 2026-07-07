@@ -351,8 +351,8 @@ MonoBehaviour:
     _includeInSpinEvaluation: 1
     _includeInForcedPatternPool: 1
     _matchKind: 0
-    _patternId: eye
-    _displayName: "\uB208"
+    _patternId: alien
+    _displayName: "\uC678\uACC4\uC778"
     _orderIndex: 9
     _multiplier: 8
     _rank: 9
@@ -375,10 +375,10 @@ MonoBehaviour:
       _row: 1
     - _col: 1
       _row: 2
-    - _col: 2
-      _row: 2
     - _col: 3
       _row: 2
+    - _col: 2
+      _row: 1
   - _enabled: 1
     _includeInSpinEvaluation: 1
     _includeInForcedPatternPool: 0

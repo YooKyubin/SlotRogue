@@ -15,6 +15,10 @@ namespace SlotRogue.UI.Ads
 
         [SerializeField] private string appKey;
         [SerializeField] private string rewardedAdUnitId;
+        [SerializeField] private bool productionAdsEnabled;
+        [SerializeField] private bool allowLiveAdsInDebugBuilds;
+        [SerializeField] private string debugAppKey;
+        [SerializeField] private string debugRewardedAdUnitId;
 
         private LevelPlayRewardedAd _rewardedAd;
         private Action _pendingReward;
@@ -127,13 +131,19 @@ namespace SlotRogue.UI.Ads
                 "to Android before testing in the Editor.");
             NotifyRewardedAvailabilityChanged();
 #else
-            if (string.IsNullOrWhiteSpace(appKey))
+            if (!TryResolveRuntimeIds(out string runtimeAppKey, out string runtimeRewardedAdUnitId))
+            {
+                NotifyRewardedAvailabilityChanged();
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(runtimeAppKey))
             {
                 Debug.LogError("[AdsManager] Init Failed: App Key is not configured.");
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(rewardedAdUnitId))
+            if (string.IsNullOrWhiteSpace(runtimeRewardedAdUnitId))
             {
                 Debug.LogError("[AdsManager] Init Failed: Rewarded Ad Unit ID is not configured.");
                 return;
@@ -143,7 +153,7 @@ namespace SlotRogue.UI.Ads
             LevelPlay.OnInitFailed += HandleInitFailed;
             try
             {
-                LevelPlay.Init(appKey.Trim());
+                LevelPlay.Init(runtimeAppKey);
             }
             catch (Exception exception)
             {
@@ -160,7 +170,7 @@ namespace SlotRogue.UI.Ads
             _isInitialized = true;
             GameLog.Info("[AdsManager] Init Success");
 
-            _rewardedAd = new LevelPlayRewardedAd(rewardedAdUnitId.Trim());
+            _rewardedAd = new LevelPlayRewardedAd(GetRuntimeRewardedAdUnitId());
             _rewardedAd.OnAdLoaded += HandleRewardedLoaded;
             _rewardedAd.OnAdLoadFailed += HandleRewardedLoadFailed;
             _rewardedAd.OnAdDisplayed += HandleRewardedDisplayed;
@@ -385,5 +395,50 @@ namespace SlotRogue.UI.Ads
                 _ => string.Empty,
             };
         }
+
+        private bool TryResolveRuntimeIds(
+            out string runtimeAppKey,
+            out string runtimeRewardedAdUnitId)
+        {
+            bool useDebugIds = Debug.isDebugBuild && !allowLiveAdsInDebugBuilds;
+            runtimeAppKey = NormalizeId(useDebugIds ? debugAppKey : appKey);
+            runtimeRewardedAdUnitId =
+                NormalizeId(useDebugIds ? debugRewardedAdUnitId : rewardedAdUnitId);
+
+            if (!useDebugIds)
+            {
+                if (productionAdsEnabled)
+                {
+                    return true;
+                }
+
+                Debug.LogError(
+                    "[AdsManager] Init Blocked: production LevelPlay identifiers are configured " +
+                    "but Production Ads Enabled is off.");
+                return false;
+            }
+
+            if (!string.IsNullOrEmpty(runtimeAppKey) &&
+                !string.IsNullOrEmpty(runtimeRewardedAdUnitId))
+            {
+                GameLog.Info("[AdsManager] Using debug LevelPlay identifiers.");
+                return true;
+            }
+
+            Debug.LogError(
+                "[AdsManager] Init Blocked: this is a debug/development build, but debug " +
+                "LevelPlay identifiers are not configured. Set debug test IDs or enable " +
+                "Allow Live Ads In Debug Builds intentionally.");
+            return false;
+        }
+
+        private string GetRuntimeRewardedAdUnitId()
+        {
+            bool useDebugIds = Debug.isDebugBuild && !allowLiveAdsInDebugBuilds;
+            return NormalizeId(useDebugIds ? debugRewardedAdUnitId : rewardedAdUnitId);
+        }
+
+        private static string NormalizeId(string value) =>
+            string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
     }
 }

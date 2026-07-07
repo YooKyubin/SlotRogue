@@ -1107,6 +1107,7 @@ GameObject:
   - component: {fileID: 6708683128210194451}
   - component: {fileID: 8048824149185158867}
   - component: {fileID: 4786593021267428408}
+  - component: {fileID: 3193894910451149196}
   m_Layer: 0
   m_Name: SilverRankPanel
   m_TagString: Untagged
@@ -1175,6 +1176,23 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &3193894910451149196
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2285542228369616608}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4db4a1b8db642f4ad5a3f7c15d090e1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.Leaderboard.LeaderboardRankRowView
+  _rankText: {fileID: 5528805193525273625}
+  _designationText: {fileID: 2956619176458094481}
+  _nameText: {fileID: 6882741417679688556}
+  _waveText: {fileID: 964988199288268161}
+  _profileImage: {fileID: 0}
 --- !u!1 &2474892688078409205
 GameObject:
   m_ObjectHideFlags: 0
@@ -1478,8 +1496,7 @@ RectTransform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 4094979349907445777}
+  m_Children: []
   m_Father: {fileID: 5003202317866930741}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -1692,38 +1709,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.Leaderboard.LeaderboardView
   _panel: {fileID: 3140749897990302355}
-  _openButton: {fileID: 0}
   _closeButton: {fileID: 4527149295461900656}
   _rowsContainer: {fileID: 2475811606458769706}
-  _rowPrefab: {fileID: 1228929191465012817, guid: 11bbeeb90933e2943a5bdb93931e3832, type: 3}
-  _goldRow:
-    Root: {fileID: 3336625968806341326}
-    RankText: {fileID: 4731433589748298125}
-    DesignationText: {fileID: 7685033029167147776}
-    NameText: {fileID: 6197441414619623936}
-    WaveText: {fileID: 5292100422936051619}
-    ProfileImage: {fileID: 0}
-  _silverRow:
-    Root: {fileID: 2285542228369616608}
-    RankText: {fileID: 5528805193525273625}
-    DesignationText: {fileID: 2956619176458094481}
-    NameText: {fileID: 6882741417679688556}
-    WaveText: {fileID: 964988199288268161}
-    ProfileImage: {fileID: 0}
-  _bronzeRow:
-    Root: {fileID: 6237515627325186443}
-    RankText: {fileID: 4265229872267855488}
-    DesignationText: {fileID: 9132013361083990345}
-    NameText: {fileID: 7136817382280135600}
-    WaveText: {fileID: 556216437123464236}
-    ProfileImage: {fileID: 0}
-  _myRankRow:
-    Root: {fileID: 6523761734201617122}
-    RankText: {fileID: 5596175690057288208}
-    DesignationText: {fileID: 3144878152574138894}
-    NameText: {fileID: 6231300188286870033}
-    WaveText: {fileID: 7912351027397575253}
-    ProfileImage: {fileID: 6773236109942051136}
+  _rowPrefab: {fileID: 859422652076711618, guid: 11bbeeb90933e2943a5bdb93931e3832, type: 3}
+  _goldRow: {fileID: 3607707820835673627}
+  _silverRow: {fileID: 3193894910451149196}
+  _bronzeRow: {fileID: 3554941181781065092}
+  _myRankRow: {fileID: 4243677944522318866}
 --- !u!1 &3336625968806341326
 GameObject:
   m_ObjectHideFlags: 0
@@ -1735,6 +1727,7 @@ GameObject:
   - component: {fileID: 6691546830004582676}
   - component: {fileID: 2764557843128270185}
   - component: {fileID: 4428705438390200898}
+  - component: {fileID: 3607707820835673627}
   m_Layer: 0
   m_Name: GoldRankPanel
   m_TagString: Untagged
@@ -1803,6 +1796,23 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &3607707820835673627
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3336625968806341326}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4db4a1b8db642f4ad5a3f7c15d090e1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.Leaderboard.LeaderboardRankRowView
+  _rankText: {fileID: 4731433589748298125}
+  _designationText: {fileID: 7685033029167147776}
+  _nameText: {fileID: 6197441414619623936}
+  _waveText: {fileID: 5292100422936051619}
+  _profileImage: {fileID: 0}
 --- !u!1 &3776234833329020471
 GameObject:
   m_ObjectHideFlags: 0
@@ -2725,6 +2735,7 @@ GameObject:
   - component: {fileID: 905956058298752298}
   - component: {fileID: 8908006452046927978}
   - component: {fileID: 9186848222418306240}
+  - component: {fileID: 3554941181781065092}
   m_Layer: 0
   m_Name: BronzeRankPanel
   m_TagString: Untagged
@@ -2793,6 +2804,23 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &3554941181781065092
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6237515627325186443}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4db4a1b8db642f4ad5a3f7c15d090e1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.Leaderboard.LeaderboardRankRowView
+  _rankText: {fileID: 4265229872267855488}
+  _designationText: {fileID: 9132013361083990345}
+  _nameText: {fileID: 7136817382280135600}
+  _waveText: {fileID: 556216437123464236}
+  _profileImage: {fileID: 0}
 --- !u!1 &6270364223514817730
 GameObject:
   m_ObjectHideFlags: 0
@@ -3031,6 +3059,7 @@ GameObject:
   - component: {fileID: 896463613221872916}
   - component: {fileID: 488937416529461116}
   - component: {fileID: 7988933291061076938}
+  - component: {fileID: 4243677944522318866}
   m_Layer: 0
   m_Name: MyRankPanel
   m_TagString: Untagged
@@ -3100,6 +3129,23 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &4243677944522318866
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6523761734201617122}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4db4a1b8db642f4ad5a3f7c15d090e1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.Leaderboard.LeaderboardRankRowView
+  _rankText: {fileID: 5596175690057288208}
+  _designationText: {fileID: 3144878152574138894}
+  _nameText: {fileID: 6231300188286870033}
+  _waveText: {fileID: 7912351027397575253}
+  _profileImage: {fileID: 6773236109942051136}
 --- !u!1 &6639779457647690189
 GameObject:
   m_ObjectHideFlags: 0
@@ -3667,105 +3713,3 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!1001 &1316654787301288874
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 2475811606458769706}
-    m_Modifications:
-    - target: {fileID: 1228929191465012817, guid: 11bbeeb90933e2943a5bdb93931e3832, type: 3}
-      propertyPath: m_Name
-      value: RankingPanel
-      objectReference: {fileID: 0}
-    - target: {fileID: 3067506085576455099, guid: 11bbeeb90933e2943a5bdb93931e3832, type: 3}
-      propertyPath: m_Pivot.x
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 3067506085576455099, guid: 11bbeeb90933e2943a5bdb93931e3832, type: 3}
-      propertyPath: m_Pivot.y
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 3067506085576455099, guid: 11bbeeb90933e2943a5bdb93931e3832, type: 3}
-      propertyPath: m_AnchorMax.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3067506085576455099, guid: 11bbeeb90933e2943a5bdb93931e3832, type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 3067506085576455099, guid: 11bbeeb90933e2943a5bdb93931e3832, type: 3}
-      propertyPath: m_AnchorMin.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3067506085576455099, guid: 11bbeeb90933e2943a5bdb93931e3832, type: 3}
-      propertyPath: m_AnchorMin.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 3067506085576455099, guid: 11bbeeb90933e2943a5bdb93931e3832, type: 3}
-      propertyPath: m_SizeDelta.x
-      value: 216
-      objectReference: {fileID: 0}
-    - target: {fileID: 3067506085576455099, guid: 11bbeeb90933e2943a5bdb93931e3832, type: 3}
-      propertyPath: m_SizeDelta.y
-      value: 40
-      objectReference: {fileID: 0}
-    - target: {fileID: 3067506085576455099, guid: 11bbeeb90933e2943a5bdb93931e3832, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3067506085576455099, guid: 11bbeeb90933e2943a5bdb93931e3832, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3067506085576455099, guid: 11bbeeb90933e2943a5bdb93931e3832, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3067506085576455099, guid: 11bbeeb90933e2943a5bdb93931e3832, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 3067506085576455099, guid: 11bbeeb90933e2943a5bdb93931e3832, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3067506085576455099, guid: 11bbeeb90933e2943a5bdb93931e3832, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3067506085576455099, guid: 11bbeeb90933e2943a5bdb93931e3832, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3067506085576455099, guid: 11bbeeb90933e2943a5bdb93931e3832, type: 3}
-      propertyPath: m_AnchoredPosition.x
-      value: 118
-      objectReference: {fileID: 0}
-    - target: {fileID: 3067506085576455099, guid: 11bbeeb90933e2943a5bdb93931e3832, type: 3}
-      propertyPath: m_AnchoredPosition.y
-      value: -25
-      objectReference: {fileID: 0}
-    - target: {fileID: 3067506085576455099, guid: 11bbeeb90933e2943a5bdb93931e3832, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3067506085576455099, guid: 11bbeeb90933e2943a5bdb93931e3832, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3067506085576455099, guid: 11bbeeb90933e2943a5bdb93931e3832, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 11bbeeb90933e2943a5bdb93931e3832, type: 3}
---- !u!224 &4094979349907445777 stripped
-RectTransform:
-  m_CorrespondingSourceObject: {fileID: 3067506085576455099, guid: 11bbeeb90933e2943a5bdb93931e3832, type: 3}
-  m_PrefabInstance: {fileID: 1316654787301288874}
-  m_PrefabAsset: {fileID: 0}

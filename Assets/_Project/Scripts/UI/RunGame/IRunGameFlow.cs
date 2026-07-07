@@ -24,9 +24,13 @@ namespace SlotRogue.UI.RunGame
 
         void HandleInventoryCloseRequested();
 
+        void HandleDescriptionOpenRequested();
+
+        void HandleDescriptionCloseRequested();
+
         void HandleInventorySymbolTabRequested();
 
-        void HandleInventoryRelicTabRequested();
+        void HandleInventoryPatternTabRequested();
 
         void HandleBattleEntered();
     }

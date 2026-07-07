@@ -5,57 +5,67 @@ namespace SlotRogue.Slot.Tests
 {
     public sealed class SlotSymbolPoolTests
     {
-        [TestCase(SlotSymbolType.Cherry)]
-        [TestCase(SlotSymbolType.Clover)]
-        [TestCase(SlotSymbolType.Bell)]
-        public void Reset_HighProbabilitySymbols_StartAtHighCount(SlotSymbolType symbol)
+        [TestCase(SlotSymbolType.Cherry, SlotSymbolPool.DefaultCherryProbabilityPercent)]
+        [TestCase(SlotSymbolType.Lemon, SlotSymbolPool.DefaultLemonProbabilityPercent)]
+        [TestCase(SlotSymbolType.Clover, SlotSymbolPool.DefaultCloverProbabilityPercent)]
+        [TestCase(SlotSymbolType.Bell, SlotSymbolPool.DefaultBellProbabilityPercent)]
+        [TestCase(SlotSymbolType.Diamond, SlotSymbolPool.DefaultDiamondProbabilityPercent)]
+        [TestCase(SlotSymbolType.Seven, SlotSymbolPool.DefaultSevenProbabilityPercent)]
+        public void Reset_Symbols_StartAtDefaultWeight(
+            SlotSymbolType symbol,
+            int expectedWeight)
         {
             var pool = new SlotSymbolPool();
 
-            Assert.That(SlotSymbolPool.IsHighProbability(symbol), Is.True);
-            Assert.That(
-                pool.GetCount(symbol),
-                Is.EqualTo(SlotSymbolPool.DefaultHighProbabilityCount));
-        }
-
-        [TestCase(SlotSymbolType.Lemon)]
-        [TestCase(SlotSymbolType.Diamond)]
-        [TestCase(SlotSymbolType.Seven)]
-        public void Reset_LowProbabilitySymbols_StartAtLowCount(SlotSymbolType symbol)
-        {
-            var pool = new SlotSymbolPool();
-
-            Assert.That(SlotSymbolPool.IsHighProbability(symbol), Is.False);
-            Assert.That(
-                pool.GetCount(symbol),
-                Is.EqualTo(SlotSymbolPool.DefaultLowProbabilityCount));
+            // 클로버핏식 가중치(총합≠100)라 가중치 = 퍼센트가 아니다. 가중치 값만 검증한다.
+            Assert.That(pool.GetWeight(symbol), Is.EqualTo(expectedWeight));
         }
 
         [Test]
-        public void Reset_RestoresDefaultCountsAfterChanges()
+        public void Reset_RestoresDefaultWeightsAfterChanges()
         {
             var pool = new SlotSymbolPool();
-            pool.Add(SlotSymbolType.Cherry, 5);
-            pool.Add(SlotSymbolType.Seven, -2);
+            pool.AddWeight(SlotSymbolType.Cherry, 5);
+            pool.AddWeight(SlotSymbolType.Seven, -2);
 
             pool.Reset();
 
             Assert.That(
-                pool.GetCount(SlotSymbolType.Cherry),
-                Is.EqualTo(SlotSymbolPool.DefaultHighProbabilityCount));
+                pool.GetWeight(SlotSymbolType.Cherry),
+                Is.EqualTo(SlotSymbolPool.DefaultWeightFor(SlotSymbolType.Cherry)));
             Assert.That(
-                pool.GetCount(SlotSymbolType.Seven),
-                Is.EqualTo(SlotSymbolPool.DefaultLowProbabilityCount));
+                pool.GetWeight(SlotSymbolType.Seven),
+                Is.EqualTo(SlotSymbolPool.DefaultWeightFor(SlotSymbolType.Seven)));
         }
 
         [Test]
-        public void ResetUniform_SetsSameCountForAllSymbols()
+        public void DefaultDamage_IsInverseOfDefaultProbabilityCurve()
+        {
+            Assert.That(
+                SlotSymbolAttackValues.DefaultCherryDamage,
+                Is.EqualTo(SlotSymbolAttackValues.DefaultLemonDamage));
+            Assert.That(
+                SlotSymbolAttackValues.DefaultCherryDamage,
+                Is.LessThan(SlotSymbolAttackValues.DefaultCloverDamage));
+            Assert.That(
+                SlotSymbolAttackValues.DefaultLemonDamage,
+                Is.LessThan(SlotSymbolAttackValues.DefaultBellDamage));
+            Assert.That(
+                SlotSymbolAttackValues.DefaultCloverDamage,
+                Is.LessThan(SlotSymbolAttackValues.DefaultDiamondDamage));
+            Assert.That(
+                SlotSymbolAttackValues.DefaultDiamondDamage,
+                Is.LessThan(SlotSymbolAttackValues.DefaultSevenDamage));
+        }
+
+        [Test]
+        public void ResetUniform_SetsSameWeightForAllSymbols()
         {
             var pool = new SlotSymbolPool(4);
 
             foreach (SlotSymbolType symbol in SlotSymbolPool.Symbols)
             {
-                Assert.That(pool.GetCount(symbol), Is.EqualTo(4));
+                Assert.That(pool.GetWeight(symbol), Is.EqualTo(4));
             }
         }
 
@@ -64,9 +74,20 @@ namespace SlotRogue.Slot.Tests
         {
             var pool = new SlotSymbolPool();
 
-            pool.Add(SlotSymbolType.Lemon, -100);
+            pool.AddWeight(SlotSymbolType.Lemon, -100);
 
-            Assert.That(pool.GetCount(SlotSymbolType.Lemon), Is.EqualTo(0));
+            Assert.That(pool.GetWeight(SlotSymbolType.Lemon), Is.EqualTo(0));
+        }
+
+        [Test]
+        public void ProbabilityOf_UsesSymbolWeightOverTotalWeight()
+        {
+            var pool = new SlotSymbolPool(0);
+            pool.SetWeight(SlotSymbolType.Cherry, 3);
+            pool.SetWeight(SlotSymbolType.Seven, 1);
+
+            Assert.That(pool.ProbabilityOf(SlotSymbolType.Cherry), Is.EqualTo(0.75d));
+            Assert.That(pool.ProbabilityOf(SlotSymbolType.Seven), Is.EqualTo(0.25d));
         }
     }
 }

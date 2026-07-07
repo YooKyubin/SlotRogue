@@ -21,6 +21,14 @@ namespace SlotRogue.Slot.Core
             return asset != null ? asset.PickForcedPattern(random, luck) : null;
         }
 
+        public static IReadOnlyList<SlotPatternDefinition> GetDefinitionsForDisplay()
+        {
+            SlotPatternCatalogAsset asset = GetCatalogOrLogError();
+            return asset != null
+                ? asset.GetDefinitionsForDisplay()
+                : new List<SlotPatternDefinition>();
+        }
+
         public static void SetRuntimeCatalogOverride(SlotPatternCatalogAsset catalog)
         {
             _runtimeCatalogOverride = catalog;

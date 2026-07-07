@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
 using R3;
-using SlotRogue.Relics.Pool;
 using SlotRogue.Slot.Data;
 using SlotRogue.UI.GameFlow;
 
@@ -12,10 +13,15 @@ namespace SlotRogue.UI.RunGame.ViewModels
     /// HP·Gold·Round·Pause 버튼 등 어느 View에서도 항상 보이는 정보입니다.
     /// 순수 C# 클래스입니다.
     /// </summary>
-    public sealed class RunHUDViewModel
+    public sealed class RunHUDViewModel : IDisposable
     {
         private readonly ReactiveProperty<RunHUDViewState> _state =
             new(RunHUDViewState.Empty);
+
+        public RunHUDViewModel()
+        {
+            GameFlowSession.RunCoinsChanged += HandleRunCoinsChanged;
+        }
 
         public event Action PauseRequested;
 
@@ -24,273 +30,94 @@ namespace SlotRogue.UI.RunGame.ViewModels
         public void Refresh()
         {
             _state.Value = new RunHUDViewState(
-                GameFlowSession.PlayerCurrentHp,
-                GameFlowSession.PlayerMaxHp,
                 GameFlowSession.CurrentBattleNumber,
-                GameFlowSession.Victories);
+                GameFlowSession.RunCoins,
+                GameFlowSession.Victories,
+                BuildSymbolProbabilityText(GameFlowSession.SlotPool));
         }
 
         public void RequestPause()
         {
             PauseRequested?.Invoke();
         }
+
+        public void Dispose()
+        {
+            GameFlowSession.RunCoinsChanged -= HandleRunCoinsChanged;
+        }
+
+        private void HandleRunCoinsChanged(int _)
+        {
+            Refresh();
+        }
+
+        private static string BuildSymbolProbabilityText(SlotSymbolPool pool)
+        {
+            int total = pool != null ? pool.TotalWeight : 0;
+            IReadOnlyList<SlotSymbolType> symbols =
+                SlotSymbolPool.ProbabilityDisplayOrder;
+            var builder = new StringBuilder();
+
+            for (int index = 0; index < symbols.Count; index++)
+            {
+                if (index == 3)
+                {
+                    builder.AppendLine();
+                }
+                else if (index > 0)
+                {
+                    builder.Append("  ");
+                }
+
+                SlotSymbolType symbol = symbols[index];
+                double percent = total > 0
+                    ? pool.GetWeight(symbol) * 100d / total
+                    : 0d;
+                builder
+                    .Append(SymbolProbabilityLabel(symbol))
+                    .Append(' ')
+                    .Append(percent.ToString("0.#", CultureInfo.InvariantCulture))
+                    .Append('%');
+            }
+
+            return builder.ToString();
+        }
+
+        private static string SymbolProbabilityLabel(SlotSymbolType symbol) =>
+            symbol switch
+            {
+                SlotSymbolType.Cherry => "체리",
+                SlotSymbolType.Lemon => "레몬",
+                SlotSymbolType.Clover => "클로버",
+                SlotSymbolType.Bell => "종",
+                SlotSymbolType.Diamond => "다이아",
+                SlotSymbolType.Seven => "7",
+                _ => symbol.ToString(),
+            };
     }
 
     public readonly struct RunHUDViewState
     {
-        public static readonly RunHUDViewState Empty = new(0, 1, 0, 0);
+        public static readonly RunHUDViewState Empty = new(0, 0, 0, string.Empty);
 
-        public RunHUDViewState(int currentHp, int maxHp, int battleIndex, int victories)
+        public RunHUDViewState(
+            int battleIndex,
+            int coins,
+            int victories,
+            string symbolProbabilityText)
         {
-            CurrentHp = currentHp;
-            MaxHp = maxHp;
             BattleIndex = battleIndex;
+            Coins = Math.Max(0, coins);
             Victories = victories;
+            SymbolProbabilityText = symbolProbabilityText ?? string.Empty;
         }
-
-        public int CurrentHp { get; }
-
-        public int MaxHp { get; }
 
         public int BattleIndex { get; }
 
+        public int Coins { get; }
+
         public int Victories { get; }
-    }
 
-    public sealed class RunInventoryViewModel
-    {
-        private RunInventoryTab _activeTab = RunInventoryTab.SymbolPool;
-        private bool _isOpen;
-
-        private readonly ReactiveProperty<RunInventoryViewState> _state =
-            new(RunInventoryViewState.Empty);
-
-        public ReadOnlyReactiveProperty<RunInventoryViewState> State => _state;
-
-        public void Open()
-        {
-            _isOpen = true;
-            Publish();
-        }
-
-        public void Close()
-        {
-            if (!_isOpen)
-            {
-                return;
-            }
-
-            _isOpen = false;
-            Publish();
-        }
-
-        public void SelectTab(RunInventoryTab tab)
-        {
-            if (_activeTab == tab && _isOpen)
-            {
-                return;
-            }
-
-            _activeTab = tab;
-            Publish();
-        }
-
-        public void Refresh()
-        {
-            Publish();
-        }
-
-        private void Publish()
-        {
-            GameFlowSession.EnsureRunStarted();
-
-            _state.Value = new RunInventoryViewState(
-                _isOpen,
-                _activeTab,
-                BuildSummary(),
-                BuildSymbolItems(GameFlowSession.SlotPool),
-                BuildRelicItems(GameFlowSession.OwnedRelics));
-        }
-
-        private static string BuildSummary()
-        {
-            return
-                $"심볼 {GameFlowSession.SlotPool.Total}개 · " +
-                $"유물 {GameFlowSession.OwnedRelics.Count}개";
-        }
-
-        private static RunInventorySymbolViewState[] BuildSymbolItems(
-            SlotSymbolPool pool)
-        {
-            IReadOnlyList<SlotSymbolType> symbols = SlotSymbolPool.Symbols;
-            var items = new RunInventorySymbolViewState[symbols.Count];
-            for (int index = 0; index < symbols.Count; index++)
-            {
-                SlotSymbolType symbol = symbols[index];
-                items[index] = new RunInventorySymbolViewState(
-                    symbol,
-                    RelicDisplay.SymbolKorean(symbol),
-                    pool.GetCount(symbol),
-                    SlotSymbolPool.IsHighProbability(symbol));
-            }
-
-            return items;
-        }
-
-        private static RunInventoryRelicViewState[] BuildRelicItems(
-            IReadOnlyList<RelicDefinition> relics)
-        {
-            if (relics == null || relics.Count == 0)
-            {
-                return Array.Empty<RunInventoryRelicViewState>();
-            }
-
-            var items = new RunInventoryRelicViewState[relics.Count];
-            for (int index = 0; index < relics.Count; index++)
-            {
-                RelicDefinition relic = relics[index];
-                items[index] = new RunInventoryRelicViewState(
-                    relic.Id,
-                    relic.Name,
-                    RelicDisplay.GradeKorean(relic.Grade),
-                    RelicDisplay.RoleKorean(relic.Role),
-                    RelicDisplay.BuildDescription(relic),
-                    relic.IconKey);
-            }
-
-            return items;
-        }
-    }
-
-    public enum RunInventoryTab
-    {
-        SymbolPool = 0,
-        Relics = 1,
-    }
-
-    public sealed class RunInventoryViewState
-    {
-        public static readonly RunInventoryViewState Empty =
-            new(
-                false,
-                RunInventoryTab.SymbolPool,
-                string.Empty,
-                Array.Empty<RunInventorySymbolViewState>(),
-                Array.Empty<RunInventoryRelicViewState>());
-
-        private readonly RunInventorySymbolViewState[] _symbols;
-        private readonly RunInventoryRelicViewState[] _relics;
-
-        public RunInventoryViewState(
-            bool isOpen,
-            RunInventoryTab activeTab,
-            string summary,
-            IReadOnlyList<RunInventorySymbolViewState> symbols,
-            IReadOnlyList<RunInventoryRelicViewState> relics)
-        {
-            IsOpen = isOpen;
-            ActiveTab = activeTab;
-            Summary = summary ?? string.Empty;
-            _symbols = Copy(symbols);
-            _relics = Copy(relics);
-        }
-
-        public bool IsOpen { get; }
-
-        public RunInventoryTab ActiveTab { get; }
-
-        public string Summary { get; }
-
-        public IReadOnlyList<RunInventorySymbolViewState> Symbols => _symbols;
-
-        public IReadOnlyList<RunInventoryRelicViewState> Relics => _relics;
-
-        private static RunInventorySymbolViewState[] Copy(
-            IReadOnlyList<RunInventorySymbolViewState> source)
-        {
-            if (source == null || source.Count == 0)
-            {
-                return Array.Empty<RunInventorySymbolViewState>();
-            }
-
-            var copy = new RunInventorySymbolViewState[source.Count];
-            for (int index = 0; index < source.Count; index++)
-            {
-                copy[index] = source[index];
-            }
-
-            return copy;
-        }
-
-        private static RunInventoryRelicViewState[] Copy(
-            IReadOnlyList<RunInventoryRelicViewState> source)
-        {
-            if (source == null || source.Count == 0)
-            {
-                return Array.Empty<RunInventoryRelicViewState>();
-            }
-
-            var copy = new RunInventoryRelicViewState[source.Count];
-            for (int index = 0; index < source.Count; index++)
-            {
-                copy[index] = source[index];
-            }
-
-            return copy;
-        }
-    }
-
-    public readonly struct RunInventorySymbolViewState
-    {
-        public RunInventorySymbolViewState(
-            SlotSymbolType symbol,
-            string displayName,
-            int count,
-            bool isHighProbability)
-        {
-            Symbol = symbol;
-            DisplayName = displayName ?? string.Empty;
-            Count = Math.Max(0, count);
-            IsHighProbability = isHighProbability;
-        }
-
-        public SlotSymbolType Symbol { get; }
-
-        public string DisplayName { get; }
-
-        public int Count { get; }
-
-        public bool IsHighProbability { get; }
-    }
-
-    public readonly struct RunInventoryRelicViewState
-    {
-        public RunInventoryRelicViewState(
-            string id,
-            string name,
-            string grade,
-            string role,
-            string description,
-            string iconKey)
-        {
-            Id = id ?? string.Empty;
-            Name = name ?? string.Empty;
-            Grade = grade ?? string.Empty;
-            Role = role ?? string.Empty;
-            Description = description ?? string.Empty;
-            IconKey = iconKey ?? string.Empty;
-        }
-
-        public string Id { get; }
-
-        public string Name { get; }
-
-        public string Grade { get; }
-
-        public string Role { get; }
-
-        public string Description { get; }
-
-        public string IconKey { get; }
+        public string SymbolProbabilityText { get; }
     }
 }

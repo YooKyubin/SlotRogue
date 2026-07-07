@@ -11,14 +11,6 @@ namespace SlotRogue.UI.GameFlow
 {
     public sealed class RunBattlePlayerHudView : MonoBehaviour
     {
-        private const string PlayerHpFillSlotId = "battle/player-hp-fill";
-        private const string PlayerShieldFillSlotId = "battle/player-shield-fill";
-        private const string PlayerHpGaugeName = "Player HP Gauge";
-        private const string PlayerShieldGaugeName = "Player Shield Gauge";
-        private const string PlayerHpFillName = "Player HP Gauge Fill";
-        private const string PlayerShieldFillName = "Player Shield Gauge Fill";
-        private const string PlayerHpTextName = "Player HP Text";
-        private const string PlayerShieldTextName = "Player Shield Text";
         private const float FillTweenDuration = 0.35f;
 
         [SerializeField] private Text _hudText;
@@ -28,12 +20,15 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private Image _shieldFill;
         [SerializeField] private RectTransform _hpGaugeRoot;
         [SerializeField] private RectTransform _shieldGaugeRoot;
+        [SerializeField] private TMP_Text _starText;
+        [SerializeField] private TMP_SpriteAsset _currencySpriteAsset;
 
         private Vector2 _hpGaugeDefaultPosition;
         private float _hpSingleRowYOffset;
         private bool _layoutCached;
         private bool _hpFillRendered;
         private bool _shieldFillRendered;
+        private bool _missingReferenceErrorLogged;
 #if DOTWEEN
         private Tween _hpFillTween;
         private Tween _shieldFillTween;
@@ -62,6 +57,14 @@ namespace SlotRogue.UI.GameFlow
         public void Render(RunBattleScreenState state)
         {
             EnsureReferences();
+            bool shopVisible = state.RelicShop?.Visible == true;
+            if (shopVisible)
+            {
+                ApplyShopCurrencyVisibility(state.RelicShop.RunCoins);
+                return;
+            }
+
+            SetStarTextVisible(false);
             ApplyShieldVisibility(state.PlayerShield > 0);
             SetText(_hudText, state.PlayerHudText);
             SetText(_hpText, state.PlayerHp.ToString());
@@ -88,70 +91,45 @@ namespace SlotRogue.UI.GameFlow
 
         private void EnsureReferences()
         {
-            _hpFill ??= FindImageSlot(PlayerHpFillSlotId, PlayerHpFillName);
-            _hpFill ??= FindImageByName(PlayerHpFillName);
-            _shieldFill ??= FindImageSlot(PlayerShieldFillSlotId, PlayerShieldFillName);
-            _shieldFill ??= FindImageByName(PlayerShieldFillName);
-            _hpGaugeRoot ??= FindRectTransform(PlayerHpGaugeName);
-            _hpGaugeRoot ??= _hpFill != null ? _hpFill.rectTransform.parent as RectTransform : null;
-            _shieldGaugeRoot ??= FindRectTransform(PlayerShieldGaugeName);
-            _shieldGaugeRoot ??= _shieldFill != null ? _shieldFill.rectTransform.parent as RectTransform : null;
-            _hpText ??= FindTmpText(PlayerHpTextName);
-            _shieldText ??= FindTmpText(PlayerShieldTextName);
-        }
-
-        private Image FindImageSlot(string slotId, string preferredObjectName)
-        {
-            Transform searchRoot = transform.root != null ? transform.root : transform;
-            GameFlowImageSlot[] slots = searchRoot.GetComponentsInChildren<GameFlowImageSlot>(true);
-            Image fallback = null;
-            for (int index = 0; index < slots.Length; index++)
+            if (_missingReferenceErrorLogged ||
+                (_hpText != null &&
+                 _shieldText != null &&
+                 _hpFill != null &&
+                 _shieldFill != null &&
+                 _hpGaugeRoot != null &&
+                 _shieldGaugeRoot != null &&
+                 _starText != null))
             {
-                if (slots[index].SlotId == slotId)
-                {
-                    Image image = slots[index].Image != null
-                        ? slots[index].Image
-                        : slots[index].GetComponent<Image>();
-
-                    if (image != null && image.name == preferredObjectName)
-                    {
-                        return image;
-                    }
-
-                    fallback ??= image;
-                }
+                return;
             }
 
-            return fallback;
+            _missingReferenceErrorLogged = true;
+            Debug.LogError(
+                "[RunBattlePlayerHudView] Player HUD references must be wired in the inspector. " +
+                $"Missing: {BuildMissingReferenceSummary()}");
         }
 
-        private Image FindImageByName(string objectName)
+        private string BuildMissingReferenceSummary()
         {
-            Transform found = FindChild(objectName);
-            return found != null ? found.GetComponent<Image>() : null;
-        }
-
-        private TMP_Text FindTmpText(string objectName)
-        {
-            Transform found = FindChild(objectName);
-            return found != null ? found.GetComponent<TMP_Text>() : null;
-        }
-
-        private RectTransform FindRectTransform(string objectName)
-        {
-            Transform found = FindChild(objectName);
-            return found as RectTransform;
-        }
-
-        private Transform FindChild(string objectName)
-        {
-            Transform searchRoot = transform.root != null ? transform.root : transform;
-            return SceneComponentResolver.FindDeepChild(searchRoot, objectName);
+            var missing = new System.Collections.Generic.List<string>();
+            if (_hpText == null) missing.Add("HP Text");
+            if (_shieldText == null) missing.Add("Shield Text");
+            if (_hpFill == null) missing.Add("HP Fill");
+            if (_shieldFill == null) missing.Add("Shield Fill");
+            if (_hpGaugeRoot == null) missing.Add("HP Gauge Root");
+            if (_shieldGaugeRoot == null) missing.Add("Shield Gauge Root");
+            if (_starText == null) missing.Add("Star Text");
+            return missing.Count > 0 ? string.Join(", ", missing) : "None";
         }
 
         private void ApplyShieldVisibility(bool hasShield)
         {
             CacheLayoutIfNeeded();
+
+            if (_hpGaugeRoot != null)
+            {
+                _hpGaugeRoot.gameObject.SetActive(true);
+            }
 
             if (_shieldGaugeRoot != null)
             {
@@ -162,6 +140,34 @@ namespace SlotRogue.UI.GameFlow
             {
                 Vector2 offset = hasShield ? Vector2.zero : new Vector2(0f, _hpSingleRowYOffset);
                 _hpGaugeRoot.anchoredPosition = _hpGaugeDefaultPosition + offset;
+            }
+        }
+
+        private void ApplyShopCurrencyVisibility(int runCoins)
+        {
+            if (_hpGaugeRoot != null)
+            {
+                _hpGaugeRoot.gameObject.SetActive(false);
+            }
+
+            if (_shieldGaugeRoot != null)
+            {
+                _shieldGaugeRoot.gameObject.SetActive(false);
+            }
+
+            SetStarTextVisible(true);
+            if (_starText != null)
+            {
+                RunCurrencyText.ApplySpriteAsset(_starText, _currencySpriteAsset);
+                _starText.text = RunCurrencyText.FormatAmount(runCoins, _currencySpriteAsset);
+            }
+        }
+
+        private void SetStarTextVisible(bool visible)
+        {
+            if (_starText != null)
+            {
+                _starText.gameObject.SetActive(visible);
             }
         }
 

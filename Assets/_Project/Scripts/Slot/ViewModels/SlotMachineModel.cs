@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-
 using SlotRogue.Slot.Core;
 using SlotRogue.Slot.Data;
 
@@ -55,6 +54,8 @@ namespace SlotRogue.Slot.ViewModels
 
         public SlotCombatRequest CurrentCombatRequest { get; private set; }
 
+        public bool IsCurrentSpinResolved { get; private set; }
+
         public void Spin()
         {
             if (!CanSpin)
@@ -63,17 +64,74 @@ namespace SlotRogue.Slot.ViewModels
             }
 
             CanSpin = false;
+            SlotSpinResult spinResult = _slotMachineService.Spin();
+            CanSpin = true;
+            SetCurrentSpinResult(spinResult);
+        }
 
-            CurrentSpinResult = _slotMachineService.Spin();
+        public bool TrySwapAdjacentSymbols(int firstIndex, int secondIndex)
+        {
+            if (CurrentSpinResult == null ||
+                !SlotSpinResult.AreAdjacent(firstIndex, secondIndex))
+            {
+                return false;
+            }
 
-            // SO 족보 기준 판정은 한 번만. 같은 matches를 계산/대표패턴/전투요청이 공유한다.
+            SetCurrentSpinResult(CurrentSpinResult.SwapAdjacent(firstIndex, secondIndex));
+            return true;
+        }
+
+        public IReadOnlyList<SlotPatternMatch> PreviewCurrentPatternMatches()
+        {
+            return CurrentSpinResult != null
+                ? _patternResolver.ResolveAll(CurrentSpinResult)
+                : Array.Empty<SlotPatternMatch>();
+        }
+
+        public SlotPatternResult PreviewCurrentPatternResult()
+        {
+            return BuildRepresentativePatternResult(PreviewCurrentPatternMatches());
+        }
+
+        public void ResolveCurrentSpinResult()
+        {
+            if (CurrentSpinResult == null || IsCurrentSpinResolved)
+            {
+                return;
+            }
+
             CurrentPatternMatches = _patternResolver.ResolveAll(CurrentSpinResult);
             CurrentPatternResult = BuildRepresentativePatternResult(CurrentPatternMatches);
             CurrentCalculationResult = _resultCalculator.Calculate(CurrentPatternMatches);
             CurrentCombatRequest = _combatRequestBuilder.Build(CurrentPatternResult, CurrentCalculationResult);
+            IsCurrentSpinResolved = true;
+            PublishState();
+        }
 
-            CanSpin = true;
-            StateChanged?.Invoke(new SlotMachineState(CanSpin, CurrentSpinResult, CurrentPatternResult, CurrentCalculationResult, CurrentCombatRequest));
+        private void SetCurrentSpinResult(SlotSpinResult spinResult)
+        {
+            CurrentSpinResult = spinResult ?? throw new ArgumentNullException(nameof(spinResult));
+            ClearResolvedResult();
+            PublishState();
+        }
+
+        private void ClearResolvedResult()
+        {
+            CurrentPatternMatches = Array.Empty<SlotPatternMatch>();
+            CurrentPatternResult = SlotPatternResult.NoMatch;
+            CurrentCalculationResult = SlotCalculationResult.Empty;
+            CurrentCombatRequest = SlotCombatRequest.Empty;
+            IsCurrentSpinResolved = false;
+        }
+
+        private void PublishState()
+        {
+            StateChanged?.Invoke(new SlotMachineState(
+                CanSpin,
+                CurrentSpinResult,
+                CurrentPatternResult,
+                CurrentCalculationResult,
+                CurrentCombatRequest));
         }
 
         // 유물 적용/텍스트 표시를 위한 대표 패턴을 matches에서 파생한다(Resolve() 미사용).

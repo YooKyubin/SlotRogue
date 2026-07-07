@@ -13,7 +13,7 @@ namespace SlotRogue.Slot.Core
 
             string patternName = patternResult.HasMatch
                 ? patternResult.PatternName
-                : SlotCombatRequest.BaseAttackName;
+                : SlotCombatRequest.Empty.PatternName;
 
             return new SlotCombatRequest(
                 calculationResult.Damage,

@@ -26,21 +26,21 @@ namespace SlotRogue.UI.Common
         [Tooltip("0이면 즉시 이동, >0이면 해당 시간(초, unscaled) 동안 보간한다.")]
         [SerializeField] private float _slideDuration = 0.12f;
 
-        private Toggle _toggle;
+        [SerializeField] private Toggle _toggle;
         private Coroutine _slide;
 
         private void Awake()
         {
-            _toggle = GetComponent<Toggle>();
-            if (_background == null && _toggle != null)
-            {
-                _background = _toggle.targetGraphic as Image;
-            }
+            ValidateRequiredReferences();
         }
 
         private void OnEnable()
         {
-            _toggle ??= GetComponent<Toggle>();
+            if (!ValidateRequiredReferences())
+            {
+                return;
+            }
+
             _toggle.onValueChanged.AddListener(OnValueChanged);
             // 켜진 채 패널이 다시 열려도 현재 상태에 맞춰 즉시 정렬한다.
             Apply(_toggle.isOn, instant: true);
@@ -63,6 +63,50 @@ namespace SlotRogue.UI.Common
         private void OnValueChanged(bool isOn)
         {
             Apply(isOn, instant: false);
+        }
+
+        private bool ValidateRequiredReferences()
+        {
+            bool hasReferences =
+                _toggle != null &&
+                _background != null &&
+                _knob != null;
+            if (!hasReferences)
+            {
+                Debug.LogError(
+                    "[UISwitchToggle] UI references must be wired in the inspector. " +
+                    $"Missing: {BuildMissingReferenceSummary()}",
+                    this);
+            }
+
+            return hasReferences;
+        }
+
+        private string BuildMissingReferenceSummary()
+        {
+            var builder = new System.Text.StringBuilder();
+            AppendMissing(builder, _toggle != null, "Toggle");
+            AppendMissing(builder, _background != null, "Background");
+            AppendMissing(builder, _knob != null, "Knob");
+            return builder.Length > 0 ? builder.ToString() : "none";
+        }
+
+        private static void AppendMissing(
+            System.Text.StringBuilder builder,
+            bool hasReference,
+            string label)
+        {
+            if (hasReference)
+            {
+                return;
+            }
+
+            if (builder.Length > 0)
+            {
+                builder.Append(", ");
+            }
+
+            builder.Append(label);
         }
 
         /// <summary>현재 상태를 비주얼에 반영한다. instant면 보간 없이 즉시 정렬한다.</summary>

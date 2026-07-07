@@ -1,61 +1,128 @@
 using System;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace SlotRogue.UI.App
 {
     /// <summary>
+    /// 로비 행성 부유 애니메이션 프리셋(위치·속도·투명도).
+    /// GameStartSceneRoot가 배열로 노출해 인스펙터에서 조절할 수 있도록 한다.
+    /// </summary>
+    [Serializable]
+    public sealed class LobbyPlanetPreset
+    {
+        [Tooltip("행성 시작 위치(레이어 중심 기준, px)")]
+        public Vector2 startPosition;
+
+        [Tooltip("가로 드리프트 속도(px/s). 음수=왼쪽, 절댓값 클수록 빠름")]
+        public float driftSpeed;
+
+        [Tooltip("좌우 흔들림 진폭(px)")]
+        public float bobX;
+
+        [Tooltip("상하 흔들림 진폭(px)")]
+        public float bobY;
+
+        [Tooltip("흔들림 속도(빈도). 클수록 빨리 출렁인다")]
+        public float bobFrequency;
+
+        [Tooltip("흔들림/회전 위상 오프셋(행성마다 다르게 주면 자연스러움)")]
+        public float phase;
+
+        [Tooltip("자전 속도(도/s). 클수록 빨리 회전, 음수=반대 방향")]
+        public float rotationSpeed;
+
+        [Range(0f, 1f)]
+        [Tooltip("행성 투명도")]
+        public float alpha = 1f;
+    }
+
+    /// <summary>
     /// 로비 우주 배경의 행성 부유(드리프트/보브/회전) 애니메이션을 담당하는 순수 헬퍼입니다.
     /// 하이어라키에 미리 배치된 "Animated Planet Layer / Floating Planet NN"을 바인딩만 하고
     /// (런타임 생성 금지 — UI는 에디터 저작), 소유자(GameStartSceneRoot)가 매 프레임 Tick합니다.
+    /// 프리셋은 인스펙터에서 주입하며, 비어 있으면 <see cref="CreateDefaultPresets"/>를 사용합니다.
     /// </summary>
     public sealed class LobbySpaceBackground
     {
-        private const string PlanetLayerName = "Animated Planet Layer";
-        private const string PlanetNamePrefix = "Floating Planet ";
         private const float PlanetScale = 4f;
-
-        private static readonly Preset[] Presets =
-        {
-            new(new Vector2(-300f, 58f), -10.0f, 16f, 10f, 0.34f, 0.2f, 2.0f, 0.72f),
-            new(new Vector2(-86f, -46f), -7.5f, 12f, 8f, 0.48f, 1.5f, -6.0f, 0.82f),
-            new(new Vector2(148f, 38f), -5.5f, 14f, 9f, 0.40f, 2.7f, 4.0f, 0.72f),
-            new(new Vector2(340f, -22f), -4.0f, 18f, 11f, 0.30f, 4.0f, -1.5f, 0.65f),
-        };
 
         private RectTransform _planetLayer;
         private Instance[] _instances = Array.Empty<Instance>();
         private float _elapsed;
 
-        /// <summary>씬에 배치된 행성 레이어를 찾아 프리셋대로 구성합니다.</summary>
-        public void Bind(Scene scene)
+        /// <summary>인스펙터 미설정 시 사용할 기본 프리셋 4종.</summary>
+        public static LobbyPlanetPreset[] CreateDefaultPresets()
         {
-            _planetLayer = FindSceneChild(scene, PlanetLayerName) as RectTransform;
+            return new[]
+            {
+                new LobbyPlanetPreset
+                {
+                    startPosition = new Vector2(-300f, 58f), driftSpeed = -10.0f,
+                    bobX = 16f, bobY = 10f, bobFrequency = 0.34f, phase = 0.2f,
+                    rotationSpeed = 2.0f, alpha = 0.72f,
+                },
+                new LobbyPlanetPreset
+                {
+                    startPosition = new Vector2(-86f, -46f), driftSpeed = -7.5f,
+                    bobX = 12f, bobY = 8f, bobFrequency = 0.48f, phase = 1.5f,
+                    rotationSpeed = -6.0f, alpha = 0.82f,
+                },
+                new LobbyPlanetPreset
+                {
+                    startPosition = new Vector2(148f, 38f), driftSpeed = -5.5f,
+                    bobX = 14f, bobY = 9f, bobFrequency = 0.40f, phase = 2.7f,
+                    rotationSpeed = 4.0f, alpha = 0.72f,
+                },
+                new LobbyPlanetPreset
+                {
+                    startPosition = new Vector2(340f, -22f), driftSpeed = -4.0f,
+                    bobX = 18f, bobY = 11f, bobFrequency = 0.30f, phase = 4.0f,
+                    rotationSpeed = -1.5f, alpha = 0.65f,
+                },
+            };
+        }
+
+        /// <summary>씬에 배치된 행성 레이어를 프리셋대로 구성합니다. presets가 비면 기본값을 씁니다.</summary>
+        public void Bind(
+            RectTransform planetLayer,
+            RectTransform[] planets,
+            LobbyPlanetPreset[] presets = null)
+        {
+            _planetLayer = planetLayer;
             if (_planetLayer == null)
             {
-                Debug.LogWarning(
-                    "[LobbySpaceBackground] Animated Planet Layer must be placed in the lobby scene hierarchy.");
+                Debug.LogError(
+                    "[LobbySpaceBackground] Animated Planet Layer must be wired in the inspector.");
                 _instances = Array.Empty<Instance>();
                 return;
             }
 
-            var instances = new Instance[Presets.Length];
+            LobbyPlanetPreset[] effectivePresets =
+                presets != null && presets.Length > 0 ? presets : CreateDefaultPresets();
+
+            var instances = new Instance[effectivePresets.Length];
             int count = 0;
-            for (int index = 0; index < Presets.Length; index++)
+            for (int index = 0; index < effectivePresets.Length; index++)
             {
-                string objectName = $"{PlanetNamePrefix}{index + 1:00}";
-                RectTransform planet = _planetLayer.Find(objectName) as RectTransform;
+                LobbyPlanetPreset preset = effectivePresets[index];
+                RectTransform planet = planets != null && index < planets.Length
+                    ? planets[index]
+                    : null;
                 if (planet == null)
                 {
-                    Debug.LogWarning(
-                        $"[LobbySpaceBackground] {objectName} must be placed under {PlanetLayerName}.");
+                    Debug.LogError(
+                        $"[LobbySpaceBackground] Floating Planet {index + 1:00} must be wired in the inspector.");
                     continue;
                 }
 
-                Preset preset = Presets[index];
+                if (preset == null)
+                {
+                    continue;
+                }
+
                 ConfigurePlanet(planet, preset);
-                instances[count] = new Instance(planet, preset, preset.Phase * 13f);
+                instances[count] = new Instance(planet, preset, preset.phase * 13f);
                 count++;
             }
 
@@ -79,30 +146,30 @@ namespace SlotRogue.UI.App
             for (int index = 0; index < _instances.Length; index++)
             {
                 Instance planet = _instances[index];
-                if (planet.Rect == null)
+                if (planet.Rect == null || planet.Preset == null)
                 {
                     continue;
                 }
 
-                Preset preset = planet.Preset;
+                LobbyPlanetPreset preset = planet.Preset;
                 float wrappedX = Wrap(
-                    preset.StartPosition.x + (preset.DriftSpeed * _elapsed),
+                    preset.startPosition.x + (preset.driftSpeed * _elapsed),
                     -wrapWidth * 0.5f,
                     wrapWidth * 0.5f);
                 float bobX = Mathf.Sin(
-                    (_elapsed * preset.BobFrequency * 0.73f) + preset.Phase) *
-                    preset.BobX;
+                    (_elapsed * preset.bobFrequency * 0.73f) + preset.phase) *
+                    preset.bobX;
                 float bobY = Mathf.Sin(
-                    (_elapsed * preset.BobFrequency) + preset.Phase) *
-                    preset.BobY;
+                    (_elapsed * preset.bobFrequency) + preset.phase) *
+                    preset.bobY;
 
                 planet.Rect.anchoredPosition =
-                    new Vector2(wrappedX + bobX, preset.StartPosition.y + bobY);
+                    new Vector2(wrappedX + bobX, preset.startPosition.y + bobY);
                 planet.Rect.localRotation =
                     Quaternion.Euler(
                         0f,
                         0f,
-                        planet.InitialRotation + (preset.RotationSpeed * _elapsed));
+                        planet.InitialRotation + (preset.rotationSpeed * _elapsed));
             }
         }
 
@@ -117,12 +184,12 @@ namespace SlotRogue.UI.App
             return rect.size.sqrMagnitude > 0f ? rect.size : new Vector2(820f, 260f);
         }
 
-        private static void ConfigurePlanet(RectTransform planet, Preset preset)
+        private static void ConfigurePlanet(RectTransform planet, LobbyPlanetPreset preset)
         {
             planet.anchorMin = new Vector2(0.5f, 0.5f);
             planet.anchorMax = new Vector2(0.5f, 0.5f);
             planet.pivot = new Vector2(0.5f, 0.5f);
-            planet.anchoredPosition = preset.StartPosition;
+            planet.anchoredPosition = preset.startPosition;
             planet.localScale = new Vector3(PlanetScale, PlanetScale, PlanetScale);
 
             Image image = planet.GetComponent<Image>();
@@ -133,50 +200,11 @@ namespace SlotRogue.UI.App
 
             image.raycastTarget = false;
             image.preserveAspect = true;
-            image.color = new Color(image.color.r, image.color.g, image.color.b, preset.Alpha);
+            image.color = new Color(image.color.r, image.color.g, image.color.b, preset.alpha);
             if (image.sprite != null)
             {
                 planet.sizeDelta = image.sprite.rect.size;
             }
-        }
-
-        private static Transform FindSceneChild(Scene scene, string objectName)
-        {
-            GameObject[] roots = scene.GetRootGameObjects();
-            for (int index = 0; index < roots.Length; index++)
-            {
-                Transform found = FindDeepChild(roots[index].transform, objectName);
-                if (found != null)
-                {
-                    return found;
-                }
-            }
-
-            return null;
-        }
-
-        private static Transform FindDeepChild(Transform parent, string objectName)
-        {
-            if (parent == null)
-            {
-                return null;
-            }
-
-            if (parent.name == objectName)
-            {
-                return parent;
-            }
-
-            for (int index = 0; index < parent.childCount; index++)
-            {
-                Transform found = FindDeepChild(parent.GetChild(index), objectName);
-                if (found != null)
-                {
-                    return found;
-                }
-            }
-
-            return null;
         }
 
         private static float Wrap(float value, float min, float max)
@@ -190,48 +218,9 @@ namespace SlotRogue.UI.App
             return min + Mathf.Repeat(value - min, length);
         }
 
-        private readonly struct Preset
-        {
-            internal Preset(
-                Vector2 startPosition,
-                float driftSpeed,
-                float bobX,
-                float bobY,
-                float bobFrequency,
-                float phase,
-                float rotationSpeed,
-                float alpha)
-            {
-                StartPosition = startPosition;
-                DriftSpeed = driftSpeed;
-                BobX = bobX;
-                BobY = bobY;
-                BobFrequency = bobFrequency;
-                Phase = phase;
-                RotationSpeed = rotationSpeed;
-                Alpha = alpha;
-            }
-
-            internal Vector2 StartPosition { get; }
-
-            internal float DriftSpeed { get; }
-
-            internal float BobX { get; }
-
-            internal float BobY { get; }
-
-            internal float BobFrequency { get; }
-
-            internal float Phase { get; }
-
-            internal float RotationSpeed { get; }
-
-            internal float Alpha { get; }
-        }
-
         private readonly struct Instance
         {
-            internal Instance(RectTransform rect, Preset preset, float initialRotation)
+            internal Instance(RectTransform rect, LobbyPlanetPreset preset, float initialRotation)
             {
                 Rect = rect;
                 Preset = preset;
@@ -240,7 +229,7 @@ namespace SlotRogue.UI.App
 
             internal RectTransform Rect { get; }
 
-            internal Preset Preset { get; }
+            internal LobbyPlanetPreset Preset { get; }
 
             internal float InitialRotation { get; }
         }

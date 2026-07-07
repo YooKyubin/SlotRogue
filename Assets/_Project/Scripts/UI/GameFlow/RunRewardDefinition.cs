@@ -1,18 +1,34 @@
 using System;
+using System.Collections.Generic;
 using SlotRogue.Relics.Pool;
 using SlotRogue.Slot.Data;
 
 namespace SlotRogue.UI.GameFlow
 {
+    public enum RunProposalEffectKind
+    {
+        None = 0,
+        SymbolWeight = 1,
+        SymbolBaseDamage = 2,
+        RunCoins = 3,
+        RelicSlotCapacity = 4,
+
+        /// <summary>전투 엔진(RelicSpecRunner) 효과 — 제안 id로 스펙을 찾아 영구 누적(족보 피해·재발동 등).</summary>
+        EngineEffect = 5,
+    }
+
     public enum RunRewardKind
     {
         Stat = 0,    // 영구 스탯/효과 (RunRewardType)
-        Symbol = 1,  // 슬롯 풀에 심볼 추가
+        Symbol = 1,  // 심볼별 한 칸 출현 확률값 변경
         Relic = 2,   // v23 유물 획득
+        Proposal = 3,
     }
 
     public sealed class RunRewardDefinition : IEquatable<RunRewardDefinition>
     {
+        private readonly SlotSymbolType[] _symbols;
+
         /// <summary>v23 유물 보상.</summary>
         public RunRewardDefinition(RelicDefinition relic)
         {
@@ -20,11 +36,10 @@ namespace SlotRogue.UI.GameFlow
             Relic = relic;
             DisplayName = relic != null ? relic.Name : "유물";
             Description = RelicDisplay.BuildSelectionDescription(relic);
-            IconKey = relic != null ? relic.IconKey : string.Empty;
-            ModifierLabel = string.Empty;
             Rarity = relic != null
                 ? RewardRarityMap.FromGrade(relic.Grade)
                 : RewardRarity.Common;
+            _symbols = Array.Empty<SlotSymbolType>();
         }
 
         /// <summary>스탯/효과 보상.</summary>
@@ -34,12 +49,11 @@ namespace SlotRogue.UI.GameFlow
             Type = type;
             DisplayName = displayName;
             Description = description;
-            IconKey = string.Empty;
-            ModifierLabel = string.Empty;
             Rarity = RewardRarity.Common;
+            _symbols = Array.Empty<SlotSymbolType>();
         }
 
-        /// <summary>슬롯 풀 심볼 추가/제거 보상.</summary>
+        /// <summary>심볼별 한 칸 출현 확률값 증가/감소 보상.</summary>
         public RunRewardDefinition(SlotSymbolType symbol, int amount, string displayName, string description)
         {
             Kind = RunRewardKind.Symbol;
@@ -47,19 +61,29 @@ namespace SlotRogue.UI.GameFlow
             Amount = amount;
             DisplayName = displayName;
             Description = description;
-            IconKey = SlotSymbolIconKeys.For(symbol);
-            ModifierLabel = FormatAmountLabel(amount);
             Rarity = RewardRarity.Common;
+            _symbols = new[] { symbol };
         }
 
-        private static string FormatAmountLabel(int amount)
+        public RunRewardDefinition(
+            string proposalId,
+            string category,
+            RewardRarity rarity,
+            RunProposalEffectKind proposalEffect,
+            IReadOnlyList<SlotSymbolType> symbols,
+            int amount,
+            string displayName,
+            string description)
         {
-            if (amount > 0)
-            {
-                return $"+{amount}";
-            }
-
-            return amount < 0 ? amount.ToString() : string.Empty;
+            Kind = RunRewardKind.Proposal;
+            ProposalId = proposalId ?? string.Empty;
+            Category = category ?? string.Empty;
+            ProposalEffect = proposalEffect;
+            Amount = amount;
+            DisplayName = displayName ?? string.Empty;
+            Description = description ?? string.Empty;
+            Rarity = rarity;
+            _symbols = CopySymbols(symbols);
         }
 
         public RunRewardKind Kind { get; }
@@ -72,14 +96,17 @@ namespace SlotRogue.UI.GameFlow
 
         public int Amount { get; }
 
+        public string ProposalId { get; }
+
+        public string Category { get; }
+
+        public RunProposalEffectKind ProposalEffect { get; }
+
+        public IReadOnlyList<SlotSymbolType> Symbols => _symbols;
+
         public string DisplayName { get; }
 
         public string Description { get; }
-
-        public string IconKey { get; }
-
-        /// <summary>수치 배지에 표시할 텍스트(+1/-1 등). 없으면 빈 문자열.</summary>
-        public string ModifierLabel { get; }
 
         /// <summary>표시용 등급(테두리/배경 색 결정).</summary>
         public RewardRarity Rarity { get; }
@@ -103,6 +130,10 @@ namespace SlotRogue.UI.GameFlow
                     other.Relic?.Id,
                     StringComparison.Ordinal),
                 RunRewardKind.Symbol => Symbol == other.Symbol && Amount == other.Amount,
+                RunRewardKind.Proposal => string.Equals(
+                    ProposalId,
+                    other.ProposalId,
+                    StringComparison.Ordinal),
                 _ => Type == other.Type,
             };
         }
@@ -124,10 +155,30 @@ namespace SlotRogue.UI.GameFlow
                         StringComparer.Ordinal.GetHashCode(Relic?.Id ?? string.Empty),
                     RunRewardKind.Symbol =>
                         ((hashCode * 397) ^ (int)Symbol) * 397 ^ Amount,
+                    RunRewardKind.Proposal =>
+                        (hashCode * 397) ^
+                        StringComparer.Ordinal.GetHashCode(ProposalId ?? string.Empty),
                     _ => (hashCode * 397) ^ (int)Type,
                 };
             }
         }
+
+        private static SlotSymbolType[] CopySymbols(IReadOnlyList<SlotSymbolType> symbols)
+        {
+            if (symbols == null || symbols.Count == 0)
+            {
+                return Array.Empty<SlotSymbolType>();
+            }
+
+            var copy = new SlotSymbolType[symbols.Count];
+            for (int index = 0; index < symbols.Count; index++)
+            {
+                copy[index] = symbols[index];
+            }
+
+            return copy;
+        }
+
     }
 
     public static class SlotSymbolIconKeys

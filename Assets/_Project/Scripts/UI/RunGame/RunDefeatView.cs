@@ -15,15 +15,8 @@ using DG.Tweening;
 
 namespace SlotRogue.UI.RunGame
 {
-    /// <summary>
-    /// 패배 화면(부활 제안 / 결과) View입니다. TMP 전용.
-    /// 상태 구독·입력 event 연결은 Bind가 소유합니다(ADR-0020).
-    /// RANKING 버튼과 SCORE 텍스트는 선택 요소입니다(없어도 동작).
-    /// </summary>
     public sealed partial class RunDefeatView : ViewComponentBase, IRunGameView, IDefeatPortraitView
     {
-        private const int SymbolStatRowCount = 6;
-
         [Header("Revive Offer")]
         [SerializeField] private GameObject _reviveOfferRoot;
         [Tooltip("WAVE 숫자 텍스트 (코드가 채움). '돌파 실패' 문구는 프리팹 고정.")]
@@ -38,9 +31,6 @@ namespace SlotRogue.UI.RunGame
         [Tooltip("WAVE 숫자 텍스트 (코드가 채움). '돌파 …' 문구는 프리팹 고정.")]
         [SerializeField] private TMP_Text _resultWaveText;
         [Tooltip("선택: 점수 시스템이 생기면 채운다(현재 placeholder).")]
-        [SerializeField] private TMP_Text _scoreText;
-        [SerializeField] private TMP_Text _summaryText;
-        [SerializeField] private TMP_Text _contributionText;
         [SerializeField] private Button _attackTabButton;
         [SerializeField] private TMP_Text _attackTabText;
         [SerializeField] private Button _defenseTabButton;
@@ -69,8 +59,8 @@ namespace SlotRogue.UI.RunGame
         private RunDefeatViewState _lastState = RunDefeatViewState.Empty;
         private ResultStatTab _activeStatTab = ResultStatTab.Attack;
         private bool _resultVisible;
-        private readonly SymbolStatRow[] _symbolStatRows =
-            new SymbolStatRow[SymbolStatRowCount];
+        [SerializeField] private RunDefeatSymbolStatRowView[] _symbolStatRows =
+            Array.Empty<RunDefeatSymbolStatRowView>();
         private AddressableSpriteProvider _symbolIconProvider;
         private CancellationTokenSource _symbolIconCts;
         private int _symbolIconVersion;
@@ -153,8 +143,6 @@ namespace SlotRogue.UI.RunGame
             SetText(_reviveWaveText, waveLabel);
             SetText(_resultWaveText, waveLabel);
             SetText(_countdownText, state.CountdownLabel);
-            SetText(_summaryText, state.Summary);
-            SetText(_contributionText, state.ContributionSummary);
             SetText(_newRunButtonText, state.RestartLabel);
             SetText(_rankingButtonText, state.RankingLabel);
             SetText(_homeButtonText, state.HomeLabel);
@@ -186,7 +174,6 @@ namespace SlotRogue.UI.RunGame
 
         public bool EnsureRuntimeLayout()
         {
-            ResolveSymbolStatRows();
             if (!HasRequiredReferences())
             {
                 Debug.LogError(
@@ -207,7 +194,6 @@ namespace SlotRogue.UI.RunGame
                 _reviveButton != null &&
                 _reviveButtonText != null &&
                 _resultRoot != null &&
-                (_summaryText != null || HasSymbolStatRows()) &&
                 _newRunButton != null &&
                 _newRunButtonText != null &&
                 _homeButton != null &&
@@ -222,10 +208,6 @@ namespace SlotRogue.UI.RunGame
             AppendMissing(builder, _reviveButton != null, "Revive Button");
             AppendMissing(builder, _reviveButtonText != null, "Revive Button Text");
             AppendMissing(builder, _resultRoot != null, "Run Result Root");
-            AppendMissing(
-                builder,
-                _summaryText != null || HasSymbolStatRows(),
-                "Defeat Summary or Result Symbol Stat Rows");
             AppendMissing(builder, _newRunButton != null, "New Run Button");
             AppendMissing(builder, _newRunButtonText != null, "New Run Button Text");
             AppendMissing(builder, _homeButton != null, "Home Button");
@@ -300,20 +282,6 @@ namespace SlotRogue.UI.RunGame
             RenderSymbolStats(_lastState, animate: false);
         }
 
-        private void ResolveSymbolStatRows()
-        {
-            for (int index = 0; index < SymbolStatRowCount; index++)
-            {
-                if (_symbolStatRows[index]?.IsValid == true)
-                {
-                    continue;
-                }
-
-                Transform row = FindDeepChild(transform, $"Result Symbol Stat Row {index}");
-                _symbolStatRows[index] = SymbolStatRow.Resolve(row);
-            }
-        }
-
         private bool HasSymbolStatRows()
         {
             for (int index = 0; index < _symbolStatRows.Length; index++)
@@ -333,7 +301,6 @@ namespace SlotRogue.UI.RunGame
             // 직렬화 필드는 미할당 시 C# null이 아니라 Unity "가짜 null"이라 `?.`이 통과해 버린다.
             // Component 오버로드(SetActive)가 Unity 오버로드 `!= null`로 안전하게 가른다(AGENTS §6).
             SetActive(_symbolStatsRoot, state.IsResultVisible && hasRows);
-            SetActive(_contributionText, state.IsResultVisible && !hasRows);
 
             if (!hasRows)
             {
@@ -351,7 +318,7 @@ namespace SlotRogue.UI.RunGame
             int maxValue = CalculateMaxStatValue(state);
             for (int index = 0; index < _symbolStatRows.Length; index++)
             {
-                SymbolStatRow row = _symbolStatRows[index];
+                RunDefeatSymbolStatRowView row = _symbolStatRows[index];
                 if (row?.IsValid != true)
                 {
                     continue;
@@ -409,7 +376,7 @@ namespace SlotRogue.UI.RunGame
         }
 
         private void ApplyAddressableSymbolIcon(
-            SymbolStatRow row,
+            RunDefeatSymbolStatRowView row,
             SlotSymbolType symbol,
             int version)
         {
@@ -439,7 +406,7 @@ namespace SlotRogue.UI.RunGame
         }
 
         private async UniTaskVoid LoadSymbolIconAsync(
-            SymbolStatRow row,
+            RunDefeatSymbolStatRowView row,
             string key,
             AddressableSpriteProvider provider,
             int version,

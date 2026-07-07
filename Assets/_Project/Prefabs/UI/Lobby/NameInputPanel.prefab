@@ -18,7 +18,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &6538059054756037165
 RectTransform:
   m_ObjectHideFlags: 0
@@ -99,7 +99,7 @@ MonoBehaviour:
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
-  m_fontStyle: 2
+  m_fontStyle: 0
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 512
   m_textAlignment: 65535
@@ -699,10 +699,10 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fbcabdd93b834a98a4cb20708cf52ed1, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.Leaderboard.LeaderboardLoginView
-  _nicknameInput: {fileID: 0}
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.Leaderboard.PlayerNicknameSetupView
+  _nicknameInput: {fileID: 7571778611098323107}
   _confirmButton: {fileID: 200814688357037437}
-  _statusText: {fileID: 0}
+  _statusText: {fileID: 4643641921780577281}
 --- !u!1 &4561195263946243474
 GameObject:
   m_ObjectHideFlags: 0
@@ -964,7 +964,7 @@ GameObject:
   - component: {fileID: 1632447733664291011}
   - component: {fileID: 4643641921780577281}
   m_Layer: 0
-  m_Name: Input Text
+  m_Name: Status Text
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1237,7 +1237,6 @@ GameObject:
   - component: {fileID: 1061353865700176949}
   - component: {fileID: 5816129843382088299}
   - component: {fileID: 6470162492634783697}
-  - component: {fileID: 6667745501908857828}
   m_Layer: 0
   m_Name: LogInPanel
   m_TagString: Untagged
@@ -1305,17 +1304,3 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &6667745501908857828
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8566576038467080442}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a40f1d8e25c84f57aeb2938750d1a015, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.GameFlowImageSlot
-  _slotId: Starter Artifact Root/frame
-  _image: {fileID: 6470162492634783697}

@@ -125,7 +125,7 @@ namespace SlotRogue.UI.Tests.GameFlow
                     shield: 0,
                     selected: false,
                     interactable: true);
-                worldView.Render(viewModel.State);
+                worldView.Render(viewModel.State.CurrentValue);
                 worldView.PlayEnemyCombatVisualActionUntilEffectPointAsync(
                         new CombatParticipantId(101),
                         "Defend",
@@ -179,16 +179,14 @@ namespace SlotRogue.UI.Tests.GameFlow
                     "Player HP Gauge Fill",
                     typeof(RectTransform),
                     typeof(CanvasRenderer),
-                    typeof(Image),
-                    typeof(GameFlowImageSlot));
+                    typeof(Image));
                 fillObject.transform.SetParent(gauge.transform, false);
                 Image fill = fillObject.GetComponent<Image>();
-                fillObject.GetComponent<GameFlowImageSlot>().Bind("battle/player-hp-fill", fill);
 
                 var viewModel = new RunBattleScreenViewModel(slotCellCount: 0, enemySlotCount: 0);
                 viewModel.SetPlayerHud("15/30", hp: 15, maxHp: 30, shield: 0, shieldMax: 30);
 
-                view.Render(viewModel.State);
+                view.Render(viewModel.State.CurrentValue);
 
                 Assert.That(fill.type, Is.EqualTo(Image.Type.Filled));
                 Assert.That(fill.fillMethod, Is.EqualTo(Image.FillMethod.Vertical));
@@ -212,19 +210,17 @@ namespace SlotRogue.UI.Tests.GameFlow
                     root.transform,
                     "Player HP Gauge",
                     "Player HP Gauge Fill",
-                    "battle/player-hp-fill",
                     childYOffset: -6f);
                 (RectTransform shieldGauge, _) = CreatePlayerHudGauge(
                     root.transform,
                     "Player Shield Gauge",
                     "Player Shield Gauge Fill",
-                    "battle/player-shield-fill",
                     childYOffset: 6f);
 
                 var viewModel = new RunBattleScreenViewModel(slotCellCount: 0, enemySlotCount: 0);
                 viewModel.SetPlayerHud("12/30", hp: 12, maxHp: 30, shield: 0, shieldMax: 30);
 
-                view.Render(viewModel.State);
+                view.Render(viewModel.State.CurrentValue);
 
                 Assert.That(shieldGauge.gameObject.activeSelf, Is.False);
                 Assert.That(hpGauge.anchoredPosition.y, Is.EqualTo(6f).Within(0.001f));
@@ -246,21 +242,19 @@ namespace SlotRogue.UI.Tests.GameFlow
                     root.transform,
                     "Player HP Gauge",
                     "Player HP Gauge Fill",
-                    "battle/player-hp-fill",
                     childYOffset: -6f);
                 (RectTransform shieldGauge, Image shieldFill) = CreatePlayerHudGauge(
                     root.transform,
                     "Player Shield Gauge",
                     "Player Shield Gauge Fill",
-                    "battle/player-shield-fill",
                     childYOffset: 6f);
 
                 var viewModel = new RunBattleScreenViewModel(slotCellCount: 0, enemySlotCount: 0);
                 viewModel.SetPlayerHud("12/30", hp: 12, maxHp: 30, shield: 0, shieldMax: 30);
-                view.Render(viewModel.State);
+                view.Render(viewModel.State.CurrentValue);
 
                 viewModel.SetPlayerHud("12/30", hp: 12, maxHp: 30, shield: 8, shieldMax: 20);
-                view.Render(viewModel.State);
+                view.Render(viewModel.State.CurrentValue);
 
                 Assert.That(shieldGauge.gameObject.activeSelf, Is.True);
                 Assert.That(hpGauge.anchoredPosition.y, Is.EqualTo(0f).Within(0.001f));
@@ -460,34 +454,6 @@ namespace SlotRogue.UI.Tests.GameFlow
             finally
             {
                 Object.DestroyImmediate(combatVisualPrefab);
-                Object.DestroyImmediate(root);
-            }
-        }
-
-        [Test]
-        public void ActionViewRender_ResolvesAttackPowerText()
-        {
-            var root = new GameObject("UI_HUDCanvas");
-            try
-            {
-                RunBattleActionView view = root.AddComponent<RunBattleActionView>();
-                var textObject = new GameObject(
-                    "Attack Power Text",
-                    typeof(RectTransform),
-                    typeof(CanvasRenderer),
-                    typeof(Text));
-                textObject.transform.SetParent(root.transform, false);
-                Text attackPowerText = textObject.GetComponent<Text>();
-
-                var viewModel = new RunBattleScreenViewModel(slotCellCount: 0, enemySlotCount: 0);
-                viewModel.SetBattleText("slot", "ATK 18");
-
-                view.Render(viewModel.State);
-
-                Assert.That(attackPowerText.text, Is.EqualTo("ATK 18"));
-            }
-            finally
-            {
                 Object.DestroyImmediate(root);
             }
         }
@@ -716,7 +682,6 @@ namespace SlotRogue.UI.Tests.GameFlow
             Transform parent,
             string gaugeName,
             string fillName,
-            string slotId,
             float childYOffset)
         {
             var gauge = new GameObject(gaugeName, typeof(RectTransform));
@@ -734,13 +699,11 @@ namespace SlotRogue.UI.Tests.GameFlow
                 fillName,
                 typeof(RectTransform),
                 typeof(CanvasRenderer),
-                typeof(Image),
-                typeof(GameFlowImageSlot));
+                typeof(Image));
             RectTransform fillRect = fillObject.GetComponent<RectTransform>();
             fillRect.SetParent(gauge.transform, false);
             fillRect.anchoredPosition = new Vector2(0f, childYOffset);
             Image fill = fillObject.GetComponent<Image>();
-            fillObject.GetComponent<GameFlowImageSlot>().Bind(slotId, fill);
 
             return (gaugeRect, fill);
         }

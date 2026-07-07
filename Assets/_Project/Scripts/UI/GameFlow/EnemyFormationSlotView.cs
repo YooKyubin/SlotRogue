@@ -604,17 +604,6 @@ namespace SlotRogue.UI.GameFlow
             _clickHandler.Invoke();
         }
 
-        //private void AutoBindStatusEffectRootIfNeeded()
-        //{
-        //    if (_statusEffectRoot != null)
-        //    {
-        //        return;
-        //    }
-
-        //    Transform rootTransform = FindDeepChild(Root, "Status Effect Root");
-        //    _statusEffectRoot = rootTransform as RectTransform;
-        //}
-
         private void DestroyCombatVisualInstance()
         {
             _combatVisual = null;
@@ -905,28 +894,5 @@ namespace SlotRogue.UI.GameFlow
                 this);
         }
 
-        private static Transform FindDeepChild(Transform parent, string childName)
-        {
-            if (parent == null)
-            {
-                return null;
-            }
-
-            if (parent.name == childName)
-            {
-                return parent;
-            }
-
-            for (int index = 0; index < parent.childCount; index++)
-            {
-                Transform found = FindDeepChild(parent.GetChild(index), childName);
-                if (found != null)
-                {
-                    return found;
-                }
-            }
-
-            return null;
-        }
     }
 }

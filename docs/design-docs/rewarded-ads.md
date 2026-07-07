@@ -17,11 +17,16 @@ LevelPlay Rewarded 광고를 게임오버 부활과 보상 리롤, 추가 보상
 | A4 | [ADR-0014](../adr/0014-defeat-revive-window-and-relic-contribution.md) | 첫 패배는 5초 부활 유예 화면을 거친 뒤 결과를 확정한다. |
 | A5 | [ADR-0015](../adr/0015-remove-ads-rewarded-skip-iap.md) | `remove_ads` 구매자는 동일한 횟수 제한과 보상을 유지한 채 광고 시청만 건너뛴다. |
 | A6 | [ADR-0018](../adr/0018-defeat-result-symbol-pattern-stats.md) | 최종 패배 결과에는 심볼별 족보 등장 횟수, 기본 공격력, 유물 공격력을 표시한다. |
+| A7 | 실광고 명시 허용 | 실제 광고 키는 `Production Ads Enabled`를 켠 경우에만 사용한다. `Debug.isDebugBuild`에서는 기본적으로 debug/test App Key와 Rewarded Ad Unit ID만 사용한다. 테스트 ID가 비어 있으면 광고 SDK를 초기화하지 않는다. 실제 광고 키 사용은 `Production Ads Enabled`와 `Allow Live Ads In Debug Builds`를 모두 의도적으로 켠 경우에만 허용한다. |
 
 ## Runtime flow
 
 ```text
 BootScene / AdsManager.Awake
+→ Debug/Development Build이면 debug/test ID 선택
+  ├─ debug/test ID 없음 → 초기화 중단
+  └─ debug/test ID 있음 → 아래 초기화 진행
+→ 실제 광고 키 경로이면 Production Ads Enabled 확인
 → LevelPlay.OnInitSuccess / OnInitFailed 구독
 → LevelPlay.Init(appKey)
 → Init Success

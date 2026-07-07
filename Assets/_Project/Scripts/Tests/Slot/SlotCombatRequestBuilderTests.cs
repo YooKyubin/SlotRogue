@@ -39,21 +39,17 @@ namespace SlotRogue.Slot.Tests
         }
 
         [Test]
-        public void Build_NoMatchUsesBaseAttackName()
+        public void Build_NoMatchKeepsEmptyRequest()
         {
-            var calculationResult = new SlotCalculationResult(
-                SlotCombatRequest.BaseAttackDamage,
-                0,
-                SlotCombatRequest.BaseAttackCount,
-                0,
-                false);
             var builder = new SlotCombatRequestBuilder();
 
-            SlotCombatRequest request = builder.Build(SlotPatternResult.NoMatch, calculationResult);
+            SlotCombatRequest request = builder.Build(
+                SlotPatternResult.NoMatch,
+                SlotCalculationResult.Empty);
 
-            Assert.That(request.PatternName, Is.EqualTo(SlotCombatRequest.BaseAttackName));
-            Assert.That(request.Damage, Is.EqualTo(SlotCombatRequest.BaseAttackDamage));
-            Assert.That(request.AttackCount, Is.EqualTo(SlotCombatRequest.BaseAttackCount));
+            Assert.That(request.PatternName, Is.EqualTo(SlotCombatRequest.Empty.PatternName));
+            Assert.That(request.Damage, Is.EqualTo(0));
+            Assert.That(request.AttackCount, Is.EqualTo(0));
         }
     }
 }
