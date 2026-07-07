@@ -2613,17 +2613,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
---- !u!114 &802581893 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7537336205063853319, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-  m_PrefabInstance: {fileID: 1479776058}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a223fef2fa9543f4da06311bddbf9361, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.EnemyFormationSlotView
 --- !u!1 &824446456
 GameObject:
   m_ObjectHideFlags: 0
@@ -3060,17 +3049,6 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 2827221949226053277, guid: 526a6e90460c0914ab34dd62ca546fbc, type: 3}
   m_PrefabInstance: {fileID: 8625794618545602776}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1198556803 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 3086557931404568890, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-  m_PrefabInstance: {fileID: 1479776058}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a223fef2fa9543f4da06311bddbf9361, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.EnemyFormationSlotView
 --- !u!1 &1329140109
 GameObject:
   m_ObjectHideFlags: 0
@@ -3118,17 +3096,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
---- !u!114 &1423512510 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 9091218405555936754, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-  m_PrefabInstance: {fileID: 1479776058}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a223fef2fa9543f4da06311bddbf9361, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.EnemyFormationSlotView
 --- !u!114 &1453312105 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 190076057455353652, guid: dea0bd47b8184044a8c3330c140e3978, type: 3}
@@ -3152,25 +3119,25 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 158716959536565926, guid: 68271b1500239e547bf995972e95c27a, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 158716959536565926, guid: 68271b1500239e547bf995972e95c27a, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 158716959536565926, guid: 68271b1500239e547bf995972e95c27a, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 158716959536565926, guid: 68271b1500239e547bf995972e95c27a, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 176534576907504286, guid: 68271b1500239e547bf995972e95c27a, type: 3}
       propertyPath: m_Layer
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 646592308384325758, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_Layer
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 794632825434143915, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: _shieldImage
-      value: 
-      objectReference: {fileID: 2132299104}
-    - target: {fileID: 794632825434143915, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: _gainDuration
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 794632825434143915, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: _gainStartYOffset
-      value: -10
       objectReference: {fileID: 0}
     - target: {fileID: 839243408642433856, guid: 68271b1500239e547bf995972e95c27a, type: 3}
       propertyPath: m_Layer
@@ -3180,19 +3147,11 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 958703456316212729, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_Layer
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 1065557577984795180, guid: 68271b1500239e547bf995972e95c27a, type: 3}
       propertyPath: m_Layer
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1068001260040592035, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_Layer
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1491288149577735692, guid: 68271b1500239e547bf995972e95c27a, type: 3}
       propertyPath: m_Layer
       value: 0
       objectReference: {fileID: 0}
@@ -3208,15 +3167,7 @@ PrefabInstance:
       propertyPath: m_SizeDelta.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 1674800478861643662, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -1.8
-      objectReference: {fileID: 0}
     - target: {fileID: 1763756668004362969, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_Layer
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2017188316994653452, guid: 68271b1500239e547bf995972e95c27a, type: 3}
       propertyPath: m_Layer
       value: 0
       objectReference: {fileID: 0}
@@ -3229,10 +3180,6 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2114249797748823398, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_Layer
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2182743781946517643, guid: 68271b1500239e547bf995972e95c27a, type: 3}
       propertyPath: m_Layer
       value: 0
       objectReference: {fileID: 0}
@@ -3264,30 +3211,6 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 2931105508346470603, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_Layer
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3180137053548903826, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3180137053548903826, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_AnchorMin.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3180137053548903826, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_AnchoredPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3180137053548903826, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_AnchoredPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3199654244897219307, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_Layer
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 3750216716818130159, guid: 68271b1500239e547bf995972e95c27a, type: 3}
       propertyPath: m_Layer
       value: 0
@@ -3308,10 +3231,6 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 3804263405749111233, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_Layer
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 3867953487471258299, guid: 68271b1500239e547bf995972e95c27a, type: 3}
       propertyPath: m_Layer
       value: 0
@@ -3320,20 +3239,20 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 4239282760298621470, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_Layer
+    - target: {fileID: 4647635058147783323, guid: 68271b1500239e547bf995972e95c27a, type: 3}
+      propertyPath: m_AnchorMax.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 4272481789409838616, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_Layer
+    - target: {fileID: 4647635058147783323, guid: 68271b1500239e547bf995972e95c27a, type: 3}
+      propertyPath: m_AnchorMin.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 4476262808418035774, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_Layer
+    - target: {fileID: 4647635058147783323, guid: 68271b1500239e547bf995972e95c27a, type: 3}
+      propertyPath: m_AnchoredPosition.x
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 4633579797090118340, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_Layer
+    - target: {fileID: 4647635058147783323, guid: 68271b1500239e547bf995972e95c27a, type: 3}
+      propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4693885104936027217, guid: 68271b1500239e547bf995972e95c27a, type: 3}
@@ -3372,16 +3291,24 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 6157055541202842547, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 1.8
-      objectReference: {fileID: 0}
     - target: {fileID: 6236636308837138006, guid: 68271b1500239e547bf995972e95c27a, type: 3}
       propertyPath: m_Layer
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 6268528985330262577, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_Layer
+    - target: {fileID: 6254434279417117294, guid: 68271b1500239e547bf995972e95c27a, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6254434279417117294, guid: 68271b1500239e547bf995972e95c27a, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6254434279417117294, guid: 68271b1500239e547bf995972e95c27a, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6254434279417117294, guid: 68271b1500239e547bf995972e95c27a, type: 3}
+      propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6311660749170642084, guid: 68271b1500239e547bf995972e95c27a, type: 3}
@@ -3392,19 +3319,11 @@ PrefabInstance:
       propertyPath: m_SizeDelta.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 6463273889807331633, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_Layer
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 6498020888243121771, guid: 68271b1500239e547bf995972e95c27a, type: 3}
       propertyPath: m_Layer
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6500462369690179300, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_Layer
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6631267509478642870, guid: 68271b1500239e547bf995972e95c27a, type: 3}
       propertyPath: m_Layer
       value: 0
       objectReference: {fileID: 0}
@@ -3424,31 +3343,7 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 6932345515054906633, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_Layer
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 7012788349397769843, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_Layer
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7957379508487307695, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7957379508487307695, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_AnchorMin.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7957379508487307695, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_AnchoredPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7957379508487307695, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_AnchoredPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8049394198081073872, guid: 68271b1500239e547bf995972e95c27a, type: 3}
       propertyPath: m_Layer
       value: 0
       objectReference: {fileID: 0}
@@ -3476,43 +3371,7 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 8540832759369479676, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_Layer
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 8638445568130553478, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_Layer
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8689874118927210019, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_Layer
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8709340593701636442, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8709340593701636442, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_AnchorMin.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8709340593701636442, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_AnchoredPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8709340593701636442, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_AnchoredPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8720852070629145125, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_Layer
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8958422733037868035, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      propertyPath: m_Layer
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 9041563704430186484, guid: 68271b1500239e547bf995972e95c27a, type: 3}
       propertyPath: m_Layer
       value: 0
       objectReference: {fileID: 0}
@@ -3563,9 +3422,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 6881164931861365819, guid: 68271b1500239e547bf995972e95c27a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1479776064}
-    - targetCorrespondingSourceObject: {fileID: 9041563704430186484, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1731683266}
   m_SourcePrefab: {fileID: 100100000, guid: 68271b1500239e547bf995972e95c27a, type: 3}
 --- !u!4 &1479776062 stripped
 Transform:
@@ -3837,27 +3693,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5756a27e235d8042aa357d51e9f44ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.RunGame.RunGameNavigator
---- !u!1 &1731683264 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 9041563704430186484, guid: 68271b1500239e547bf995972e95c27a, type: 3}
+--- !u!114 &1731683266 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1089530171686255716, guid: 68271b1500239e547bf995972e95c27a, type: 3}
   m_PrefabInstance: {fileID: 1479776058}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1731683266
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1731683264}
+  m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 104ffb99edf048ebad0d333a575b2077, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.EnemyFormationView
-  _formationSlotViews:
-  - {fileID: 1198556803}
-  - {fileID: 1423512510}
-  - {fileID: 802581893}
 --- !u!1 &1948717001
 GameObject:
   m_ObjectHideFlags: 0
@@ -4285,17 +4131,6 @@ MonoBehaviour:
   _spinLeverView: {fileID: 1815151158906745214}
   _slotMachineFrameView: {fileID: 5017134917716540048}
   _slotPresentationManager: {fileID: 2133317923}
---- !u!114 &2132299104 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 4944794592139840934, guid: 68271b1500239e547bf995972e95c27a, type: 3}
-  m_PrefabInstance: {fileID: 1479776058}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
 --- !u!1 &2133317921
 GameObject:
   m_ObjectHideFlags: 0

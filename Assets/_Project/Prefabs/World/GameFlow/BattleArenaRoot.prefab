@@ -41,7 +41,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3393953990056447118}
-  - component: {fileID: 9023447134514962268}
+  - component: {fileID: 1089530171686255716}
   m_Layer: 0
   m_Name: FormationSlotsRoot
   m_TagString: Untagged
@@ -67,7 +67,7 @@ Transform:
   - {fileID: 6157055541202842547}
   m_Father: {fileID: 9173632327931785636}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &9023447134514962268
+--- !u!114 &1089530171686255716
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
