@@ -56,6 +56,7 @@
 - [x] 보유 유물 기본 5칸/최대 7칸 용량 제한과 상점 구매 차단 적용
 - [x] 기존 v23 유물 카탈로그를 v33 유물 44종으로 교체
 - [x] 기존 보상 제안을 v33 제안 42종으로 교체
+- [x] 슬롯 회전 중 짧은 반복 haptic pulse와 릴 정지 tick 연결
 - [x] `dotnet build SlotRogue.UI.csproj`, `dotnet build SlotRogue.UI.Tests.csproj` 컴파일 검증
 - [x] EditMode 테스트 갱신
 - [ ] Unity Editor에서 RunGame 전투 UI 수동 플레이테스트
@@ -71,4 +72,5 @@
 - 전투 피해 적용, 적 턴, Replay 이벤트 타임라인은 유지한다.
 - 스왑은 전투 계산 확정 전의 보드 편집 단계다. 스핀/스왑 중에는 매칭 셀 preview만 갱신하고, `ATTACK` 이후에 패턴 계산 → 유물/보너스 → 전투 적용 순서를 따른다.
 - `RunGame` 씬을 Title Boot 없이 직접 실행해도 스왑 대기 하이라이트가 보이도록 전투 씬 조립 단계에서 `Symbol Sheet Highlight`를 로드해 슬롯 보드에 주입한다.
+- 슬롯 회전 haptic은 Android에서 짧은 저강도 `VibrationEffect` pulse를 반복해 "돌돌돌" 느낌을 낸다. Editor와 기본 fallback에서는 단발 `Handheld.Vibrate()`를 쓰지 않아 긴 진동으로 떨어지지 않게 한다.
 - 실패 시 브랜치 단위로 자기장 없이 버릴 수 있도록 기존 main 흐름과 분리한다.

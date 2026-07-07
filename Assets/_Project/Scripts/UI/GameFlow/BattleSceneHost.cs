@@ -38,6 +38,7 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private SlotLeverView _spinLeverView;
         [SerializeField] private SlotMachineFrameView _slotMachineFrameView;
         [SerializeField] private SlotPresentationManager _slotPresentationManager;
+        [SerializeField] private SlotSpinHapticPlayer _slotSpinHapticPlayer;
 
         private BattleFlowController _battleFlowController;
         private readonly EncounterSelector _encounterSelector = new();
@@ -221,7 +222,10 @@ namespace SlotRogue.UI.GameFlow
                 new SlotPatternResolver(),
                 new SlotResultCalculator(),
                 new SlotCombatRequestBuilder());
-            var spinSequence = new RunBattleSpinSequence(_spinLeverView, _slotMachineFrameView);
+            var spinSequence = new RunBattleSpinSequence(
+                _spinLeverView,
+                _slotMachineFrameView,
+                ResolveSlotSpinHapticPlayer());
             var slotTurnController =
                 new SlotTurnController(
                     slotViewModel,
@@ -253,6 +257,23 @@ namespace SlotRogue.UI.GameFlow
                 combatViewModel,
                 screenController,
                 cancellationToken);
+        }
+
+        private SlotSpinHapticPlayer ResolveSlotSpinHapticPlayer()
+        {
+            if (_slotSpinHapticPlayer != null)
+            {
+                return _slotSpinHapticPlayer;
+            }
+
+            if (TryGetComponent(out SlotSpinHapticPlayer existing))
+            {
+                _slotSpinHapticPlayer = existing;
+                return _slotSpinHapticPlayer;
+            }
+
+            _slotSpinHapticPlayer = gameObject.AddComponent<SlotSpinHapticPlayer>();
+            return _slotSpinHapticPlayer;
         }
 
         private BattleFlowContext CreateBattleFlowContext()
