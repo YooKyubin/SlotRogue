@@ -62,16 +62,16 @@ MonoBehaviour:
   _rectTransform: {fileID: 1000000000000000101}
   _normalFontSize: 50
   _normalColor: {r: 1, g: 0.47058824, b: 0.47058824, a: 1}
+  _damageScaledFontSizeEnabled: 1
+  _damageFontScaleMinAmount: 4
+  _damageFontScaleMaxAmount: 50
+  _damageFontScaleMinSize: 30
+  _damageFontScaleMaxSize: 70
   _healFontSize: 50
   _healColor: {r: 0.47058824, g: 1, b: 0.627451, a: 1}
   _healPrefix: +
-  _criticalFontSize: 60
-  _criticalColor: {r: 1, g: 0.8235294, b: 0.2509804, a: 1}
-  _criticalPrefix: '[CRIT] '
-  _criticalPeakScale: 1.15
-  _criticalScaleDuration: 0.15
   _duration: 0.55
-  _moveDistance: 22
+  _moveDistance: 50
   _moveEase: 6
   _fadeEase: 1
 --- !u!114 &991348571556424339

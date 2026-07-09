@@ -50,7 +50,7 @@ namespace SlotRogue.UI.Combat.Presentation
             var request = new FloatingCombatTextRequest(
                 FloatingCombatTextKind.Damage,
                 combatEvent.ApplyResult.DamageDealt,
-                combatEvent.Kind == CombatEventKind.EffectApplied && context.IsCritical,
+                ShouldUseDamageScaledFontSize(combatEvent),
                 combatEvent.IsPlayerParticipant,
                 combatEvent.TargetParticipantId);
 
@@ -108,6 +108,14 @@ namespace SlotRogue.UI.Combat.Presentation
                 combatEvent.TargetParticipantId.IsValid &&
                 combatEvent.TargetBefore.Hp > 0 &&
                 combatEvent.TargetAfter.Hp <= 0;
+        }
+
+        private static bool ShouldUseDamageScaledFontSize(CombatEvent combatEvent)
+        {
+            return !combatEvent.IsPlayerParticipant &&
+                combatEvent.Effect.Kind == CombatEffectKind.Damage &&
+                (combatEvent.Effect.DamageOrigin == DamageOrigin.DirectAction ||
+                 combatEvent.Effect.DamageOrigin == DamageOrigin.Status);
         }
     }
 }

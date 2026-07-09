@@ -7,13 +7,13 @@ namespace SlotRogue.UI.Combat.Presentation
         public FloatingCombatTextRequest(
             FloatingCombatTextKind kind,
             int amount,
-            bool isCritical,
+            bool useDamageScaledFontSize,
             bool isPlayerTarget,
             CombatParticipantId targetParticipantId)
         {
             Kind = kind;
             Amount = amount;
-            IsCritical = isCritical;
+            UseDamageScaledFontSize = useDamageScaledFontSize;
             IsPlayerTarget = isPlayerTarget;
             TargetParticipantId = targetParticipantId;
         }
@@ -22,7 +22,7 @@ namespace SlotRogue.UI.Combat.Presentation
 
         public int Amount { get; }
 
-        public bool IsCritical { get; }
+        public bool UseDamageScaledFontSize { get; }
 
         public bool IsPlayerTarget { get; }
 
