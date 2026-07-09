@@ -181,27 +181,30 @@ namespace SlotRogue.UI.Combat.Presentation
             PresentationContext context,
             CancellationToken cancellationToken)
         {
-            if (combatEvent.IsPlayerParticipant)
-            {
-                return;
-            }
-
             switch (combatEvent.Kind)
             {
                 case CombatEventKind.StatusTicked:
-                    await _commands.PlayEnemyStatusActivationAsync(
-                        combatEvent.TargetParticipantId,
-                        combatEvent.StatusEffectKind,
-                        cancellationToken);
+                    if (!combatEvent.IsPlayerParticipant)
+                    {
+                        await _commands.PlayEnemyStatusActivationAsync(
+                            combatEvent.TargetParticipantId,
+                            combatEvent.StatusEffectKind,
+                            cancellationToken);
+                    }
+
                     break;
                 case CombatEventKind.StatusApplied:
                 {
                     StatusEffectViewData status = Map(combatEvent);
                     viewModel.AddOrReplaceStatus(combatEvent.TargetParticipantId, status);
-                    await _commands.AddEnemyStatusAsync(
-                        combatEvent.TargetParticipantId,
-                        status,
-                        cancellationToken);
+                    if (!combatEvent.IsPlayerParticipant)
+                    {
+                        await _commands.AddEnemyStatusAsync(
+                            combatEvent.TargetParticipantId,
+                            status,
+                            cancellationToken);
+                    }
+
                     viewModel.PublishStatusChanged();
                     break;
                 }
@@ -212,7 +215,8 @@ namespace SlotRogue.UI.Combat.Presentation
                     if (combatEvent.StatusEffectKind != StatusEffectKind.Infection &&
                         combatEvent.StatusEffectKind != StatusEffectKind.Vulnerable &&
                         combatEvent.StatusEffectKind != StatusEffectKind.Weaken &&
-                        combatEvent.StatusEffectKind != StatusEffectKind.Lifesteal)
+                        combatEvent.StatusEffectKind != StatusEffectKind.Lifesteal &&
+                        !combatEvent.IsPlayerParticipant)
                     {
                         await _commands.PlayEnemyStatusActivationAsync(
                             combatEvent.TargetParticipantId,
@@ -220,10 +224,14 @@ namespace SlotRogue.UI.Combat.Presentation
                             cancellationToken);
                     }
 
-                    await _commands.UpdateEnemyStatusValueAsync(
-                        combatEvent.TargetParticipantId,
-                        status,
-                        cancellationToken);
+                    if (!combatEvent.IsPlayerParticipant)
+                    {
+                        await _commands.UpdateEnemyStatusValueAsync(
+                            combatEvent.TargetParticipantId,
+                            status,
+                            cancellationToken);
+                    }
+
                     viewModel.PublishStatusChanged();
                     break;
                 }
@@ -231,10 +239,14 @@ namespace SlotRogue.UI.Combat.Presentation
                     viewModel.RemoveStatus(
                         combatEvent.TargetParticipantId,
                         combatEvent.StatusEffectKind);
-                    await _commands.RemoveEnemyStatusAsync(
-                        combatEvent.TargetParticipantId,
-                        combatEvent.StatusEffectKind,
-                        cancellationToken);
+                    if (!combatEvent.IsPlayerParticipant)
+                    {
+                        await _commands.RemoveEnemyStatusAsync(
+                            combatEvent.TargetParticipantId,
+                            combatEvent.StatusEffectKind,
+                            cancellationToken);
+                    }
+
                     viewModel.PublishStatusChanged();
                     break;
                 default:

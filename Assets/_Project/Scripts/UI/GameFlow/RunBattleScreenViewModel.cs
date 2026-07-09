@@ -19,6 +19,7 @@ namespace SlotRogue.UI.GameFlow
         private string _slotResultText = string.Empty;
         private string _attackResultText = string.Empty;
         private string _playerHudText = string.Empty;
+        private StatusEffectViewData[] _playerStatuses = Array.Empty<StatusEffectViewData>();
         private RunBattleRelicShopState _relicShop = RunBattleRelicShopState.Empty;
         private RunBattleSwapState _swapState = RunBattleSwapState.Disabled;
         private int _playerHp;
@@ -115,6 +116,12 @@ namespace SlotRogue.UI.GameFlow
             _playerMaxHp = Math.Max(1, maxHp);
             _playerShield = Math.Max(0, shield);
             _playerShieldMax = Math.Max(1, shieldMax);
+            RequestPublish();
+        }
+
+        public void SetPlayerStatuses(StatusEffectViewData[] statuses)
+        {
+            _playerStatuses = Clone(statuses);
             RequestPublish();
         }
 
@@ -238,6 +245,7 @@ namespace SlotRogue.UI.GameFlow
                 _playerMaxHp,
                 _playerShield,
                 _playerShieldMax,
+                _playerStatuses,
                 _actionMode,
                 _spinInteractable,
                 _slotOutcome,
@@ -245,12 +253,25 @@ namespace SlotRogue.UI.GameFlow
                 _relicShop,
                 _runCoins);
         }
+
+        private static StatusEffectViewData[] Clone(StatusEffectViewData[] source)
+        {
+            if (source == null)
+            {
+                return Array.Empty<StatusEffectViewData>();
+            }
+
+            var copy = new StatusEffectViewData[source.Length];
+            Array.Copy(source, copy, source.Length);
+            return copy;
+        }
     }
 
     public sealed class RunBattleScreenState
     {
         private readonly string[] _slotCells;
         private readonly RunBattleEnemySlotState[] _enemySlots;
+        private readonly StatusEffectViewData[] _playerStatuses;
 
         internal RunBattleScreenState(
             string[] slotCells,
@@ -262,6 +283,7 @@ namespace SlotRogue.UI.GameFlow
             int playerMaxHp,
             int playerShield,
             int playerShieldMax,
+            StatusEffectViewData[] playerStatuses,
             RunBattleActionMode actionMode,
             bool spinInteractable,
             RunBattleSlotOutcomeState slotOutcome,
@@ -279,6 +301,7 @@ namespace SlotRogue.UI.GameFlow
             PlayerMaxHp = playerMaxHp;
             PlayerShield = playerShield;
             PlayerShieldMax = playerShieldMax;
+            _playerStatuses = Clone(playerStatuses);
             ActionMode = actionMode;
             SpinInteractable = spinInteractable;
             SlotOutcome = slotOutcome;
@@ -289,6 +312,8 @@ namespace SlotRogue.UI.GameFlow
         public string[] SlotCells => Clone(_slotCells);
 
         public RunBattleEnemySlotState[] EnemySlots => Clone(_enemySlots);
+
+        public StatusEffectViewData[] PlayerStatuses => Clone(_playerStatuses);
 
         public string SlotResultText { get; }
 
@@ -336,6 +361,18 @@ namespace SlotRogue.UI.GameFlow
             }
 
             var copy = new RunBattleEnemySlotState[source.Length];
+            Array.Copy(source, copy, source.Length);
+            return copy;
+        }
+
+        private static StatusEffectViewData[] Clone(StatusEffectViewData[] source)
+        {
+            if (source == null)
+            {
+                return Array.Empty<StatusEffectViewData>();
+            }
+
+            var copy = new StatusEffectViewData[source.Length];
             Array.Copy(source, copy, source.Length);
             return copy;
         }

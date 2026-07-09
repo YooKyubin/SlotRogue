@@ -3,6 +3,12 @@ using SlotRogue.Core.Combat;
 
 namespace SlotRogue.UI.Combat.Presentation
 {
+    public enum StatusEffectDisplayGroup
+    {
+        Buff = 0,
+        Debuff = 1,
+    }
+
     public static class StatusEffectPresentationMapper
     {
         public static StatusEffectViewData Map(StatusEffectInstance status)
@@ -53,6 +59,28 @@ namespace SlotRogue.UI.Combat.Presentation
                 kind,
                 displayValue,
                 showValue: displayValue > 0);
+        }
+
+        public static StatusEffectDisplayGroup GetDisplayGroup(StatusEffectKind kind)
+        {
+            switch (kind)
+            {
+                case StatusEffectKind.Lifesteal:
+                case StatusEffectKind.Thorns:
+                    return StatusEffectDisplayGroup.Buff;
+                case StatusEffectKind.Burn:
+                case StatusEffectKind.Freeze:
+                case StatusEffectKind.Infection:
+                case StatusEffectKind.Vulnerable:
+                case StatusEffectKind.Weaken:
+                    return StatusEffectDisplayGroup.Debuff;
+                case StatusEffectKind.None:
+                default:
+                    throw new ArgumentOutOfRangeException(
+                        nameof(kind),
+                        kind,
+                        "Status effect kind does not have a display group.");
+            }
         }
     }
 }

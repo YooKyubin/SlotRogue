@@ -12,8 +12,12 @@ namespace SlotRogue.UI.RunGame
         private const float PanelScreenPadding = 18f;
 
         [SerializeField] private RectTransform _panelRoot;
-        [SerializeField] private Text _bodyText;
         [SerializeField] private TMP_Text _bodyTmpText;
+
+        [Header("Panel Animation")]
+        [SerializeField] private Image _panelImage;
+        [SerializeField] private Sprite[] _panelAnimationFrames = Array.Empty<Sprite>();
+        [SerializeField] private float _panelFrameInterval = 0.35f;
 
         [Header("Spotlight")]
         [SerializeField] private RectTransform _spotlightRoot;
@@ -21,37 +25,24 @@ namespace SlotRogue.UI.RunGame
         [SerializeField] private RectTransform _bottomBlocker;
         [SerializeField] private RectTransform _leftBlocker;
         [SerializeField] private RectTransform _rightBlocker;
-        [SerializeField] private RectTransform _highlightFrame;
         [SerializeField] private float _spotlightPadding = 20f;
         [SerializeField] private Vector2 _spotlightMinSize = new(56f, 56f);
         [SerializeField] private Color _generatedBlockerColor = new(0f, 0f, 0f, 0.72f);
-        [SerializeField] private Color _generatedFrameColor = new(1f, 0.82f, 0.22f, 0.2f);
-
-        [Header("Hand Pointer")]
-        [SerializeField] private Image _handImage;
-        [SerializeField] private Sprite[] _handSprites = Array.Empty<Sprite>();
-        [SerializeField] private Vector2 _handOffset = new(36f, -36f);
-        [SerializeField] private Vector2 _handSize = new(56f, 56f);
-        [SerializeField] private float _handFrameInterval = 0.18f;
-        [SerializeField] private float _handPulseDistance = 8f;
-        [SerializeField] private float _handPulseSpeed = 5f;
 
         [Header("Step Advance")]
         [SerializeField] private RectTransform _inputBlocker;
-        [SerializeField] private Button _nextButton;
-        [SerializeField] private Text _nextButtonText;
-        [SerializeField] private TMP_Text _nextButtonTmpText;
-        [SerializeField] private string _nextButtonLabel = "다음";
 
         private readonly Vector3[] _targetWorldCorners = new Vector3[4];
         private readonly Vector2[] _targetLocalCorners = new Vector2[4];
         private bool _reportedMissingReferences;
         private RectTransform _spotlightTarget;
         private Canvas _canvas;
-        private bool _showHand;
+        private Button _inputBlockerButton;
         private RunBattleTutorialStep _currentStep;
         private Action _pendingAdvance;
         private bool _advanceListenerWired;
+        private int _lastPanelFrameIndex = -1;
+        private readonly SlotSymbolTmpSpriteAssetBinder _symbolSpriteAssetBinder = new();
 
         private void Awake()
         {
@@ -61,12 +52,16 @@ namespace SlotRogue.UI.RunGame
 
         private void LateUpdate()
         {
-            if (_panelRoot == null ||
-                !_panelRoot.gameObject.activeInHierarchy ||
+            RectTransform messagePanelRoot = ResolveMessagePanelRoot();
+            if (messagePanelRoot == null ||
+                !messagePanelRoot.gameObject.activeInHierarchy ||
                 _currentStep == null)
             {
+                UpdatePanelAnimation();
                 return;
             }
+
+            UpdatePanelAnimation();
 
             if (_spotlightTarget != null)
             {
@@ -83,16 +78,21 @@ namespace SlotRogue.UI.RunGame
 
         private void OnDestroy()
         {
-            if (_advanceListenerWired && _nextButton != null)
+            if (_advanceListenerWired && _inputBlockerButton != null)
             {
-                _nextButton.onClick.RemoveListener(HandleAdvanceClicked);
+                _inputBlockerButton.onClick.RemoveListener(HandleAdvanceClicked);
             }
+
+            _symbolSpriteAssetBinder.Dispose();
         }
 
         public bool EnsureRuntimeLayout()
         {
-            if (_panelRoot != null && HasBodyText())
+            ResolvePanelImage();
+
+            if (ResolveMessagePanelRoot() != null && HasBodyText())
             {
+                _symbolSpriteAssetBinder.ApplyTo(_bodyTmpText);
                 return true;
             }
 
@@ -153,13 +153,11 @@ namespace SlotRogue.UI.RunGame
             _currentStep = step;
             _pendingAdvance = onAdvance;
             _spotlightTarget = target;
-            _showHand = step.ShowHand;
             SetBodyRaycast(false);
 
             if (target == null || !EnsureSpotlightReferences())
             {
                 _spotlightTarget = null;
-                _showHand = false;
                 SetSpotlightActive(false);
                 ApplyMessagePlacement(step, ResolveLayoutRootRect(), null, null);
             }
@@ -183,7 +181,6 @@ namespace SlotRogue.UI.RunGame
             SetMessage(message);
             _currentStep = null;
             _spotlightTarget = target;
-            _showHand = showHand;
             ClearAdvanceControls();
 
             if (target == null || !EnsureSpotlightReferences())
@@ -200,43 +197,39 @@ namespace SlotRogue.UI.RunGame
 
         public void Hide()
         {
-            if (_panelRoot != null)
+            RectTransform messagePanelRoot = ResolveMessagePanelRoot();
+            if (messagePanelRoot != null)
             {
-                _panelRoot.gameObject.SetActive(false);
+                messagePanelRoot.gameObject.SetActive(false);
             }
 
             ClearSpotlight();
             ClearAdvanceControls();
-            gameObject.SetActive(false);
+            // Keep the root active so a delayed Awake cannot re-hide the overlay
+            // during ShowStep activation.
+            _lastPanelFrameIndex = -1;
         }
 
         private void ClearAdvanceControls()
         {
             _pendingAdvance = null;
             SetActive(_inputBlocker, false);
-            if (_nextButton != null)
-            {
-                _nextButton.gameObject.SetActive(false);
-            }
         }
 
         private bool EnsureAdvanceControls()
         {
-            EnsureInputBlocker();
-            if (!EnsureNextButton())
+            if (!EnsureInputBlocker() || !EnsureInputBlockerButton())
             {
                 return false;
             }
 
             if (!_advanceListenerWired)
             {
-                _nextButton.onClick.AddListener(HandleAdvanceClicked);
+                _inputBlockerButton.onClick.AddListener(HandleAdvanceClicked);
                 _advanceListenerWired = true;
             }
 
-            ConfigureNextButtonText();
             SetActive(_inputBlocker, true);
-            _nextButton.gameObject.SetActive(true);
             return true;
         }
 
@@ -257,7 +250,8 @@ namespace SlotRogue.UI.RunGame
                 "Tutorial Input Blocker",
                 typeof(RectTransform),
                 typeof(CanvasRenderer),
-                typeof(Image));
+                typeof(Image),
+                typeof(Button));
             generated.transform.SetParent(parent, false);
 
             _inputBlocker = generated.GetComponent<RectTransform>();
@@ -274,95 +268,35 @@ namespace SlotRogue.UI.RunGame
             return true;
         }
 
-        private bool EnsureNextButton()
+        private bool EnsureInputBlockerButton()
         {
-            if (_nextButton == null)
+            if (_inputBlocker == null)
             {
-                if (_panelRoot == null)
+                return false;
+            }
+
+            if (!_inputBlocker.TryGetComponent(out Image blockerImage))
+            {
+                blockerImage = _inputBlocker.gameObject.AddComponent<Image>();
+            }
+
+            blockerImage.color = new Color(0f, 0f, 0f, 0f);
+            blockerImage.raycastTarget = true;
+
+            if (_inputBlockerButton == null)
+            {
+                if (!_inputBlocker.TryGetComponent(out Button button))
                 {
-                    return false;
+                    button = _inputBlocker.gameObject.AddComponent<Button>();
                 }
 
-                var generated = new GameObject(
-                    "Tutorial Next Button",
-                    typeof(RectTransform),
-                    typeof(CanvasRenderer),
-                    typeof(Image),
-                    typeof(Button));
-                generated.transform.SetParent(_panelRoot, false);
-
-                RectTransform rectTransform = generated.GetComponent<RectTransform>();
-                rectTransform.anchorMin = new Vector2(1f, 0f);
-                rectTransform.anchorMax = new Vector2(1f, 0f);
-                rectTransform.pivot = new Vector2(1f, 0f);
-                rectTransform.anchoredPosition = new Vector2(-18f, 12f);
-                rectTransform.sizeDelta = new Vector2(120f, 44f);
-                rectTransform.localScale = Vector3.one;
-
-                var image = generated.GetComponent<Image>();
-                image.color = new Color(0.08f, 0.09f, 0.11f, 0.92f);
-                image.raycastTarget = true;
-
-                _nextButton = generated.GetComponent<Button>();
-                _nextButton.transition = Selectable.Transition.ColorTint;
-
-                var textObject = new GameObject(
-                    "Tutorial Next Button Label",
-                    typeof(RectTransform),
-                    typeof(CanvasRenderer),
-                    typeof(Text));
-                textObject.transform.SetParent(generated.transform, false);
-
-                RectTransform textTransform = textObject.GetComponent<RectTransform>();
-                textTransform.anchorMin = Vector2.zero;
-                textTransform.anchorMax = Vector2.one;
-                textTransform.offsetMin = Vector2.zero;
-                textTransform.offsetMax = Vector2.zero;
-
-                _nextButtonText = textObject.GetComponent<Text>();
-                _nextButtonText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-                if (_nextButtonText.font == null)
-                {
-                    _nextButtonText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-                }
-
-                _nextButtonText.alignment = TextAnchor.MiddleCenter;
-                _nextButtonText.color = Color.white;
-                _nextButtonText.fontSize = 22;
-                _nextButtonText.raycastTarget = false;
-                generated.SetActive(false);
+                _inputBlockerButton = button;
             }
 
-            if (_nextButtonText == null && _nextButton != null)
-            {
-                _nextButtonText = _nextButton.GetComponentInChildren<Text>(true);
-            }
-
-            if (_nextButtonTmpText == null && _nextButton != null)
-            {
-                _nextButtonTmpText = _nextButton.GetComponentInChildren<TMP_Text>(true);
-            }
-
-            return _nextButton != null;
-        }
-
-        private void ConfigureNextButtonText()
-        {
-            string label = string.IsNullOrWhiteSpace(_nextButtonLabel)
-                ? "다음"
-                : _nextButtonLabel;
-
-            if (_nextButtonText != null)
-            {
-                _nextButtonText.text = label;
-                _nextButtonText.raycastTarget = false;
-            }
-
-            if (_nextButtonTmpText != null)
-            {
-                _nextButtonTmpText.text = label;
-                _nextButtonTmpText.raycastTarget = false;
-            }
+            _inputBlockerButton.transition = Selectable.Transition.None;
+            _inputBlockerButton.targetGraphic = blockerImage;
+            _inputBlockerButton.interactable = true;
+            return true;
         }
 
         private void HandleAdvanceClicked()
@@ -370,52 +304,107 @@ namespace SlotRogue.UI.RunGame
             Action advance = _pendingAdvance;
             _pendingAdvance = null;
             SetActive(_inputBlocker, false);
-            if (_nextButton != null)
-            {
-                _nextButton.gameObject.SetActive(false);
-            }
 
             advance?.Invoke();
         }
 
         private bool HasBodyText()
         {
-            return _bodyText != null || _bodyTmpText != null;
+            return _bodyTmpText != null;
+        }
+
+        private void ResolvePanelImage()
+        {
+            RectTransform messagePanelRoot = ResolveMessagePanelRoot();
+            if (_panelImage == null && messagePanelRoot != null)
+            {
+                _panelImage = messagePanelRoot.GetComponent<Image>();
+            }
+
+            if (_panelImage != null)
+            {
+                _panelImage.raycastTarget = false;
+            }
+        }
+
+        private bool CanAnimatePanel()
+        {
+            return _panelImage != null &&
+                _panelAnimationFrames != null &&
+                _panelAnimationFrames.Length > 0 &&
+                _panelAnimationFrames[0] != null;
+        }
+
+        private void ApplyFirstPanelFrame()
+        {
+            if (!CanAnimatePanel())
+            {
+                return;
+            }
+
+            _panelImage.sprite = _panelAnimationFrames[0];
+            _lastPanelFrameIndex = 0;
+        }
+
+        private void UpdatePanelAnimation()
+        {
+            if (!CanAnimatePanel())
+            {
+                return;
+            }
+
+            float interval = Mathf.Max(0.01f, _panelFrameInterval);
+            int frameIndex = Mathf.FloorToInt(Time.unscaledTime / interval) %
+                _panelAnimationFrames.Length;
+            Sprite frame = _panelAnimationFrames[frameIndex] ??
+                _panelAnimationFrames[0];
+            if (frameIndex == _lastPanelFrameIndex && _panelImage.sprite == frame)
+            {
+                return;
+            }
+
+            _panelImage.sprite = frame;
+            _lastPanelFrameIndex = frameIndex;
         }
 
         private void SetMessage(string message)
         {
-            if (!gameObject.activeSelf)
+            SetHierarchyActive(transform);
+
+            RectTransform messagePanelRoot = ResolveMessagePanelRoot();
+            if (messagePanelRoot != null)
             {
-                gameObject.SetActive(true);
+                messagePanelRoot.gameObject.SetActive(true);
             }
 
-            if (_panelRoot != null)
-            {
-                _panelRoot.gameObject.SetActive(true);
-            }
-
-            if (_bodyText != null)
-            {
-                _bodyText.text = message ?? string.Empty;
-            }
+            ApplyFirstPanelFrame();
 
             if (_bodyTmpText != null)
             {
+                _symbolSpriteAssetBinder.ApplyTo(_bodyTmpText);
                 _bodyTmpText.text = message ?? string.Empty;
             }
         }
 
         private void SetBodyRaycast(bool raycastTarget)
         {
-            if (_bodyText != null)
-            {
-                _bodyText.raycastTarget = raycastTarget;
-            }
-
             if (_bodyTmpText != null)
             {
                 _bodyTmpText.raycastTarget = raycastTarget;
+            }
+        }
+
+        private static void SetHierarchyActive(Transform target)
+        {
+            if (target == null)
+            {
+                return;
+            }
+
+            SetHierarchyActive(target.parent);
+            if (!target.gameObject.activeSelf)
+            {
+                target.gameObject.SetActive(true);
             }
         }
 
@@ -427,16 +416,12 @@ namespace SlotRogue.UI.RunGame
             _leftBlocker?.SetAsFirstSibling();
             _rightBlocker?.SetAsFirstSibling();
             _inputBlocker?.SetAsLastSibling();
-            _highlightFrame?.SetAsLastSibling();
-            _handImage?.rectTransform.SetAsLastSibling();
-            _panelRoot?.SetAsLastSibling();
-            _nextButton?.transform.SetAsLastSibling();
+            ResolveMessagePanelRoot()?.SetAsLastSibling();
         }
 
         private void ClearSpotlight()
         {
             _spotlightTarget = null;
-            _showHand = false;
             _currentStep = null;
             SetSpotlightActive(false);
         }
@@ -457,14 +442,11 @@ namespace SlotRogue.UI.RunGame
             _bottomBlocker ??= CreateGeneratedImage("Tutorial Spotlight Bottom", _generatedBlockerColor, true);
             _leftBlocker ??= CreateGeneratedImage("Tutorial Spotlight Left", _generatedBlockerColor, true);
             _rightBlocker ??= CreateGeneratedImage("Tutorial Spotlight Right", _generatedBlockerColor, true);
-            _highlightFrame ??= CreateGeneratedImage("Tutorial Spotlight Highlight", _generatedFrameColor, false);
 
             SetImageRaycast(_topBlocker, true);
             SetImageRaycast(_bottomBlocker, true);
             SetImageRaycast(_leftBlocker, true);
             SetImageRaycast(_rightBlocker, true);
-            SetImageRaycast(_highlightFrame, false);
-            EnsureHandImage();
 
             return _topBlocker != null &&
                 _bottomBlocker != null &&
@@ -506,8 +488,6 @@ namespace SlotRogue.UI.RunGame
             SetActive(_bottomBlocker, active);
             SetActive(_leftBlocker, active);
             SetActive(_rightBlocker, active);
-            SetActive(_highlightFrame, active && _highlightFrame != null);
-            SetActive(_handImage, active && _showHand && CanShowHand());
         }
 
         private void UpdateSpotlightLayout()
@@ -580,14 +560,6 @@ namespace SlotRogue.UI.RunGame
                 targetMin.y,
                 rootRect.xMax - targetMax.x,
                 targetMax.y - targetMin.y);
-            SetRect(
-                _highlightFrame,
-                rootRect,
-                targetMin.x,
-                targetMin.y,
-                targetMax.x - targetMin.x,
-                targetMax.y - targetMin.y);
-            UpdateHandLayout(rootRect, targetMin, targetMax);
             ApplyMessagePlacement(_currentStep, rootRect, targetMin, targetMax);
         }
 
@@ -615,7 +587,7 @@ namespace SlotRogue.UI.RunGame
             Vector2? targetMin,
             Vector2? targetMax)
         {
-            if (_panelRoot == null || step == null)
+            if (ResolveMessagePanelRoot() == null || step == null)
             {
                 return;
             }
@@ -626,29 +598,25 @@ namespace SlotRogue.UI.RunGame
                     ApplyPresetMessagePlacement(
                         new Vector2(0.06f, 0.82f),
                         new Vector2(0.94f, 0.965f),
-                        step.MessageOffset,
-                        step.MessageSize);
+                        step.MessageOffset);
                     break;
                 case RunTutorialMessagePlacement.Center:
                     ApplyPresetMessagePlacement(
                         new Vector2(0.08f, 0.38f),
                         new Vector2(0.92f, 0.62f),
-                        step.MessageOffset,
-                        step.MessageSize);
+                        step.MessageOffset);
                     break;
                 case RunTutorialMessagePlacement.Left:
                     ApplyPresetMessagePlacement(
                         new Vector2(0.04f, 0.28f),
                         new Vector2(0.46f, 0.72f),
-                        step.MessageOffset,
-                        step.MessageSize);
+                        step.MessageOffset);
                     break;
                 case RunTutorialMessagePlacement.Right:
                     ApplyPresetMessagePlacement(
                         new Vector2(0.54f, 0.28f),
                         new Vector2(0.96f, 0.72f),
-                        step.MessageOffset,
-                        step.MessageSize);
+                        step.MessageOffset);
                     break;
                 case RunTutorialMessagePlacement.AboveTarget:
                 case RunTutorialMessagePlacement.BelowTarget:
@@ -661,8 +629,7 @@ namespace SlotRogue.UI.RunGame
                     ApplyPresetMessagePlacement(
                         new Vector2(0.06f, 0.035f),
                         new Vector2(0.94f, 0.18f),
-                        step.MessageOffset,
-                        step.MessageSize);
+                        step.MessageOffset);
                     break;
             }
         }
@@ -670,17 +637,19 @@ namespace SlotRogue.UI.RunGame
         private void ApplyPresetMessagePlacement(
             Vector2 anchorMin,
             Vector2 anchorMax,
-            Vector2 offset,
-            Vector2 requestedSize)
+            Vector2 offset)
         {
-            _panelRoot.anchorMin = anchorMin;
-            _panelRoot.anchorMax = anchorMax;
-            _panelRoot.pivot = new Vector2(0.5f, 0.5f);
-            _panelRoot.anchoredPosition = offset;
-            _panelRoot.sizeDelta = HasCustomSize(requestedSize)
-                ? requestedSize
-                : Vector2.zero;
-            _panelRoot.localScale = Vector3.one;
+            RectTransform messagePanelRoot = ResolveMessagePanelRoot();
+            if (messagePanelRoot == null)
+            {
+                return;
+            }
+
+            Vector2 anchorCenter = (anchorMin + anchorMax) * 0.5f;
+            messagePanelRoot.anchorMin = anchorCenter;
+            messagePanelRoot.anchorMax = anchorCenter;
+            messagePanelRoot.pivot = new Vector2(0.5f, 0.5f);
+            messagePanelRoot.anchoredPosition = offset;
         }
 
         private void ApplyTargetMessagePlacement(
@@ -694,15 +663,20 @@ namespace SlotRogue.UI.RunGame
                 ApplyPresetMessagePlacement(
                     new Vector2(0.06f, 0.035f),
                     new Vector2(0.94f, 0.18f),
-                    step.MessageOffset,
-                    step.MessageSize);
+                    step.MessageOffset);
+                return;
+            }
+
+            RectTransform messagePanelRoot = ResolveMessagePanelRoot();
+            if (messagePanelRoot == null)
+            {
                 return;
             }
 
             Vector2 min = targetMin.Value;
             Vector2 max = targetMax.Value;
             Vector2 center = (min + max) * 0.5f;
-            Vector2 panelSize = ResolveMessageSize(step.MessageSize, rootRect);
+            Vector2 panelSize = ResolveMessagePanelVisualSize(messagePanelRoot);
             Vector2 desiredCenter = step.MessagePlacement switch
             {
                 RunTutorialMessagePlacement.AboveTarget =>
@@ -719,25 +693,45 @@ namespace SlotRogue.UI.RunGame
             desiredCenter += step.MessageOffset;
             desiredCenter = ClampPanelCenter(desiredCenter, rootRect, panelSize);
 
-            _panelRoot.anchorMin = Vector2.zero;
-            _panelRoot.anchorMax = Vector2.zero;
-            _panelRoot.pivot = new Vector2(0.5f, 0.5f);
-            _panelRoot.sizeDelta = panelSize;
-            _panelRoot.anchoredPosition =
+            messagePanelRoot.anchorMin = Vector2.zero;
+            messagePanelRoot.anchorMax = Vector2.zero;
+            messagePanelRoot.pivot = new Vector2(0.5f, 0.5f);
+            messagePanelRoot.anchoredPosition =
                 new Vector2(desiredCenter.x - rootRect.xMin, desiredCenter.y - rootRect.yMin);
-            _panelRoot.localScale = Vector3.one;
         }
 
-        private static Vector2 ResolveMessageSize(Vector2 requestedSize, Rect rootRect)
+        private RectTransform ResolveMessagePanelRoot()
         {
-            if (HasCustomSize(requestedSize))
+            if (_panelRoot == null)
             {
-                return requestedSize;
+                return null;
             }
 
-            float width = Mathf.Clamp(rootRect.width * 0.78f, 280f, 760f);
-            float height = Mathf.Clamp(rootRect.height * 0.14f, 130f, 210f);
-            return new Vector2(width, height);
+            if (_panelRoot.transform != transform)
+            {
+                return _panelRoot;
+            }
+
+            // Legacy scene wiring uses _panelRoot as the overlay activation root.
+            // In that case, move the actual message panel child instead of the whole overlay.
+            if (_bodyTmpText != null &&
+                _bodyTmpText.rectTransform != null &&
+                _bodyTmpText.rectTransform.parent is RectTransform bodyParent &&
+                bodyParent != _panelRoot)
+            {
+                return bodyParent;
+            }
+
+            return _panelRoot;
+        }
+
+        private static Vector2 ResolveMessagePanelVisualSize(RectTransform messagePanelRoot)
+        {
+            Rect rect = messagePanelRoot.rect;
+            Vector3 scale = messagePanelRoot.localScale;
+            return new Vector2(
+                Mathf.Max(1f, Mathf.Abs(rect.width * scale.x)),
+                Mathf.Max(1f, Mathf.Abs(rect.height * scale.y)));
         }
 
         private static Vector2 ClampPanelCenter(
@@ -757,85 +751,6 @@ namespace SlotRogue.UI.RunGame
                 ? Mathf.Clamp(center.y, minY, maxY)
                 : (rootRect.yMin + rootRect.yMax) * 0.5f;
             return center;
-        }
-
-        private static bool HasCustomSize(Vector2 size)
-        {
-            return size.x > 0.1f && size.y > 0.1f;
-        }
-
-        private bool EnsureHandImage()
-        {
-            if (_handImage != null)
-            {
-                _handImage.raycastTarget = false;
-                return true;
-            }
-
-            RectTransform layoutRoot = ResolveLayoutRoot();
-            if (layoutRoot == null)
-            {
-                return false;
-            }
-
-            var generated = new GameObject(
-                "Tutorial Hand Pointer",
-                typeof(RectTransform),
-                typeof(CanvasRenderer),
-                typeof(Image));
-            generated.transform.SetParent(layoutRoot, false);
-            _handImage = generated.GetComponent<Image>();
-            _handImage.raycastTarget = false;
-            generated.SetActive(false);
-            return true;
-        }
-
-        private bool CanShowHand()
-        {
-            return _handImage != null &&
-                _handSprites != null &&
-                _handSprites.Length > 0 &&
-                _handSprites[0] != null;
-        }
-
-        private void UpdateHandLayout(
-            Rect rootRect,
-            Vector2 targetMin,
-            Vector2 targetMax)
-        {
-            if (!_showHand || !EnsureHandImage() || !CanShowHand())
-            {
-                SetActive(_handImage, false);
-                return;
-            }
-
-            RectTransform handTransform = _handImage.rectTransform;
-            handTransform.gameObject.SetActive(true);
-            handTransform.anchorMin = Vector2.zero;
-            handTransform.anchorMax = Vector2.zero;
-            handTransform.pivot = new Vector2(0.5f, 0.5f);
-            handTransform.sizeDelta = _handSize;
-            handTransform.localScale = Vector3.one;
-
-            float pulse = Mathf.Sin(Time.unscaledTime * Mathf.Max(0.01f, _handPulseSpeed)) *
-                Mathf.Max(0f, _handPulseDistance);
-            Vector2 center = (targetMin + targetMax) * 0.5f;
-            Vector2 localPosition = center + _handOffset + new Vector2(0f, pulse);
-            handTransform.anchoredPosition =
-                new Vector2(localPosition.x - rootRect.xMin, localPosition.y - rootRect.yMin);
-
-            int spriteIndex = 0;
-            if (_handSprites.Length > 1 && _handFrameInterval > 0f)
-            {
-                spriteIndex = Mathf.FloorToInt(Time.unscaledTime / _handFrameInterval) %
-                    _handSprites.Length;
-            }
-
-            _handImage.sprite = _handSprites[spriteIndex] != null
-                ? _handSprites[spriteIndex]
-                : _handSprites[0];
-            _handImage.SetNativeSize();
-            handTransform.sizeDelta = _handSize;
         }
 
         private bool TryGetTargetLocalBounds(
@@ -939,7 +854,7 @@ namespace SlotRogue.UI.RunGame
         private string BuildMissingReferenceSummary()
         {
             var builder = new System.Text.StringBuilder();
-            AppendMissing(builder, _panelRoot != null, "Tutorial Overlay Panel");
+            AppendMissing(builder, ResolveMessagePanelRoot() != null, "Tutorial Overlay Panel");
             AppendMissing(builder, HasBodyText(), "Tutorial Overlay Body");
             return builder.Length > 0 ? builder.ToString() : "none";
         }

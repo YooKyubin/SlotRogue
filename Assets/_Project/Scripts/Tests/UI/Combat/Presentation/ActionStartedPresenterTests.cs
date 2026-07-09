@@ -1269,15 +1269,85 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
             }
         }
 
+        [Test]
+        public void PresentAsync_PlayerStatus_UpdatesViewModelWithoutEnemyCommands()
+        {
+            var hostObject = new GameObject("Presentation Host");
+            try
+            {
+                var commands = new StatusRecordingCommands();
+                var host = new CombatPresentationHost(
+                    hostObject,
+                    NullCombatPresentationCommands.Instance,
+                    commands);
+                var presenter = new StatusEffectPresenter(host);
+                var viewModel = new CombatViewModel();
+                var playerId = new CombatParticipantId(1);
+                var context = new PresentationContext(isCritical: false, patternName: string.Empty);
+
+                presenter.PresentAsync(
+                        StatusEvent(
+                            CombatEventKind.StatusApplied,
+                            playerId,
+                            StatusEffectKind.Weaken,
+                            stackCount: 2,
+                            isPlayerParticipant: true),
+                        viewModel,
+                        context,
+                        CancellationToken.None)
+                    .GetAwaiter()
+                    .GetResult();
+
+                StatusEffectViewData[] statuses = viewModel.GetStatuses(playerId);
+                Assert.That(statuses, Has.Length.EqualTo(1));
+                Assert.That(statuses[0].Kind, Is.EqualTo(StatusEffectKind.Weaken));
+                Assert.That(statuses[0].DisplayValue, Is.EqualTo(2));
+
+                presenter.PresentAsync(
+                        StatusEvent(
+                            CombatEventKind.StatusValueChanged,
+                            playerId,
+                            StatusEffectKind.Weaken,
+                            stackCount: 1,
+                            isPlayerParticipant: true),
+                        viewModel,
+                        context,
+                        CancellationToken.None)
+                    .GetAwaiter()
+                    .GetResult();
+                Assert.That(viewModel.GetStatuses(playerId)[0].DisplayValue, Is.EqualTo(1));
+
+                presenter.PresentAsync(
+                        StatusEvent(
+                            CombatEventKind.StatusExpired,
+                            playerId,
+                            StatusEffectKind.Weaken,
+                            stackCount: 0,
+                            isPlayerParticipant: true),
+                        viewModel,
+                        context,
+                        CancellationToken.None)
+                    .GetAwaiter()
+                    .GetResult();
+                Assert.That(viewModel.GetStatuses(playerId), Is.Empty);
+                Assert.That(commands.Calls, Is.Empty);
+            }
+            finally
+            {
+                Object.DestroyImmediate(hostObject);
+            }
+        }
+
         private static CombatEvent StatusEvent(
             CombatEventKind kind,
             CombatParticipantId participantId,
             StatusEffectKind statusEffectKind,
-            int stackCount)
+            int stackCount,
+            bool isPlayerParticipant = false)
         {
             return new CombatEvent(
                 kind,
-                isPlayerParticipant: false,
+                isPlayerParticipant: isPlayerParticipant,
                 targetParticipantId: participantId,
                 statusEffectKind: statusEffectKind,
                 statusStackCount: stackCount);

@@ -31,6 +31,7 @@
 
 ## Checklist
 
+- [x] `RelicPresentationDirector`가 하이어라키 Icon 하나만 활성화·비활성화하며 유물 발동을 순차 연출
 - [x] `codex/reel-lock-prototype` 브랜치 분리
 - [x] 릴 잠금 프로토타입 구현
 - [x] `ShopPanel` 유물 5칸, 구매 버튼 5개, `RerollButton` 자동 연결

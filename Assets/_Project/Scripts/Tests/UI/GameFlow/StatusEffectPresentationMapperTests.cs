@@ -2,6 +2,9 @@ using System;
 using NUnit.Framework;
 using SlotRogue.Core.Combat;
 using SlotRogue.UI.Combat.Presentation;
+using SlotRogue.UI.GameFlow;
+using UnityEditor;
+using UnityEngine;
 
 namespace SlotRogue.UI.Tests.GameFlow
 {
@@ -69,6 +72,22 @@ namespace SlotRogue.UI.Tests.GameFlow
                     remainingTurns: 1));
         }
 
+        [TestCase(StatusEffectKind.Lifesteal, StatusEffectDisplayGroup.Buff)]
+        [TestCase(StatusEffectKind.Thorns, StatusEffectDisplayGroup.Buff)]
+        [TestCase(StatusEffectKind.Burn, StatusEffectDisplayGroup.Debuff)]
+        [TestCase(StatusEffectKind.Freeze, StatusEffectDisplayGroup.Debuff)]
+        [TestCase(StatusEffectKind.Infection, StatusEffectDisplayGroup.Debuff)]
+        [TestCase(StatusEffectKind.Vulnerable, StatusEffectDisplayGroup.Debuff)]
+        [TestCase(StatusEffectKind.Weaken, StatusEffectDisplayGroup.Debuff)]
+        public void GetDisplayGroup_ClassifiesBuffsAndDebuffs(
+            StatusEffectKind kind,
+            StatusEffectDisplayGroup expected)
+        {
+            Assert.That(
+                StatusEffectPresentationMapper.GetDisplayGroup(kind),
+                Is.EqualTo(expected));
+        }
+
         [Test]
         public void PresentationState_AddOrReplace_DoesNotDuplicateSameKind()
         {
@@ -105,5 +124,57 @@ namespace SlotRogue.UI.Tests.GameFlow
             Assert.That(state.GetAll(firstParticipantId), Is.Empty);
             Assert.That(state.GetAll(secondParticipantId), Has.Length.EqualTo(1));
         }
+
+        [Test]
+        public void PlayerStatusPanel_RenderPositionsBuffsFromTopAndDebuffsFromBottom()
+        {
+            const string PrefabPath = "Assets/_Project/Prefabs/UI/RunGame/Bottom Panel.prefab";
+            const string IconSetPath = "Assets/_Project/Data/UI/StatusEffectIconSet.asset";
+
+            GameObject prefabRoot = PrefabUtility.LoadPrefabContents(PrefabPath);
+            PlayerStatusPanelView view = null;
+            try
+            {
+                RectTransform[] rectTransforms =
+                    prefabRoot.GetComponentsInChildren<RectTransform>(includeInactive: true);
+                RectTransform panelRoot = Array.Find(
+                    rectTransforms,
+                    rectTransform => rectTransform.name == "Player Stat Panel");
+                StatusEffectIconSet iconSet =
+                    AssetDatabase.LoadAssetAtPath<StatusEffectIconSet>(IconSetPath);
+
+                Assert.That(panelRoot, Is.Not.Null);
+                Assert.That(iconSet, Is.Not.Null);
+
+                view = new PlayerStatusPanelView(panelRoot, iconSet);
+                view.Render(new[]
+                {
+                    new StatusEffectViewData(StatusEffectKind.Thorns, 3, showValue: true),
+                    new StatusEffectViewData(StatusEffectKind.Lifesteal, 1, showValue: true),
+                    new StatusEffectViewData(StatusEffectKind.Infection, 4, showValue: true),
+                    new StatusEffectViewData(StatusEffectKind.Weaken, 2, showValue: true),
+                });
+
+                RectTransform firstBuff = (RectTransform)panelRoot.GetChild(0);
+                RectTransform secondBuff = (RectTransform)panelRoot.GetChild(1);
+                RectTransform firstDebuff = (RectTransform)panelRoot.GetChild(2);
+                RectTransform secondDebuff = (RectTransform)panelRoot.GetChild(3);
+
+                Assert.That(firstBuff.anchorMin.y, Is.EqualTo(1f));
+                Assert.That(firstBuff.anchoredPosition.y, Is.EqualTo(0f));
+                Assert.That(secondBuff.anchorMin.y, Is.EqualTo(1f));
+                Assert.That(secondBuff.anchoredPosition.y, Is.LessThan(0f));
+                Assert.That(firstDebuff.anchorMin.y, Is.EqualTo(0f));
+                Assert.That(firstDebuff.anchoredPosition.y, Is.EqualTo(0f));
+                Assert.That(secondDebuff.anchorMin.y, Is.EqualTo(0f));
+                Assert.That(secondDebuff.anchoredPosition.y, Is.GreaterThan(0f));
+            }
+            finally
+            {
+                view?.Dispose();
+                PrefabUtility.UnloadPrefabContents(prefabRoot);
+            }
+        }
+
     }
 }

@@ -17,9 +17,17 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private TMP_Text _priceText;
         [SerializeField] private TMP_SpriteAsset _currencySpriteAsset;
 
+        private readonly SlotSymbolTmpSpriteAssetBinder _symbolSpriteAssetBinder = new();
+
         private void Awake()
         {
+            _symbolSpriteAssetBinder.ApplyTo(_bodyText);
             Hide();
+        }
+
+        private void OnDestroy()
+        {
+            _symbolSpriteAssetBinder.Dispose();
         }
 
         public void Show(RunBattleRelicShopOfferState offer)
@@ -34,6 +42,7 @@ namespace SlotRogue.UI.GameFlow
             transform.SetAsLastSibling();
             SetText(_tierText, offer.Grade);
             SetText(_nameText, offer.Name);
+            _symbolSpriteAssetBinder.ApplyTo(_bodyText);
             SetText(_bodyText, offer.Description);
 
             if (_priceText != null)
