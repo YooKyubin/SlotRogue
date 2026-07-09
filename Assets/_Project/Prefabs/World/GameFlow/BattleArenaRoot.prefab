@@ -111,6 +111,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Formation Slot 2
       objectReference: {fileID: 0}
+    - target: {fileID: 6250042977336763503, guid: e8b6eee7d9733ca488c34f1495920c6b, type: 3}
+      propertyPath: _intentIconPrefab
+      value: 
+      objectReference: {fileID: 7975852844219345148, guid: 59fabc5a6746e704691aa1eb07411abe, type: 3}
     - target: {fileID: 7616402410386701772, guid: e8b6eee7d9733ca488c34f1495920c6b, type: 3}
       propertyPath: m_SizeDelta.x
       value: 0
@@ -224,6 +228,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Formation Slot 3
       objectReference: {fileID: 0}
+    - target: {fileID: 6250042977336763503, guid: e8b6eee7d9733ca488c34f1495920c6b, type: 3}
+      propertyPath: _intentIconPrefab
+      value: 
+      objectReference: {fileID: 7975852844219345148, guid: 59fabc5a6746e704691aa1eb07411abe, type: 3}
     - target: {fileID: 7616402410386701772, guid: e8b6eee7d9733ca488c34f1495920c6b, type: 3}
       propertyPath: m_SizeDelta.x
       value: 0
@@ -337,6 +345,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Formation Slot 1
       objectReference: {fileID: 0}
+    - target: {fileID: 6250042977336763503, guid: e8b6eee7d9733ca488c34f1495920c6b, type: 3}
+      propertyPath: _intentIconPrefab
+      value: 
+      objectReference: {fileID: 7975852844219345148, guid: 59fabc5a6746e704691aa1eb07411abe, type: 3}
     - target: {fileID: 7616402410386701772, guid: e8b6eee7d9733ca488c34f1495920c6b, type: 3}
       propertyPath: m_SizeDelta.x
       value: 0

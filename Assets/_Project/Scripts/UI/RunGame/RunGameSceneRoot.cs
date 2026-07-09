@@ -160,10 +160,18 @@ namespace SlotRogue.UI.RunGame
         // 진행 중인 런이 있으면(=GameStart에서 시작) 덮어쓰지 않습니다.
         private static void EnsureRunStarted()
         {
-            if (!GameFlowSession.HasRun)
+            if (GameFlowSession.HasRun)
             {
-                GameFlowSession.StartNewRun();
+                return;
             }
+
+            if (!FirstRunTutorialState.IsCompleted)
+            {
+                GameFlowSession.StartTutorialRun();
+                return;
+            }
+
+            GameFlowSession.StartNewRun();
         }
 
         private void ConfigureInitialSymbolProbabilities()

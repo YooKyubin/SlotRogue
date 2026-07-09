@@ -1,4 +1,5 @@
 using System;
+using SlotRogue.UI.GameFlow;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -108,6 +109,23 @@ namespace SlotRogue.UI.RunGame
             {
                 _legacyText.text = combined;
             }
+        }
+
+        internal void ApplyRelicDescriptionSpriteAsset(
+            SlotSymbolTmpSpriteAssetBinder spriteAssetBinder)
+        {
+            if (spriteAssetBinder == null)
+            {
+                return;
+            }
+
+            if (_descriptionText != null)
+            {
+                spriteAssetBinder.ApplyTo(_descriptionText);
+                return;
+            }
+
+            spriteAssetBinder.ApplyTo(_nameText);
         }
 
         internal void SetHighlight(bool on)

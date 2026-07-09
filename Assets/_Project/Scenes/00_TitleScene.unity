@@ -445,7 +445,6 @@ MonoBehaviour:
   _loadingSlider: {fileID: 0}
   _loadingFillImage: {fileID: 2090739928}
   _loadingText: {fileID: 1149560033}
-  _legacyLoadingText: {fileID: 0}
   _loadingMessageIntervalSeconds: 0.8
   _loadingMessages:
   - "\uC6B0\uC8FC\uC120 \uC2DC\uB3D9 \uAC70\uB294 \uC911..."

@@ -278,6 +278,130 @@ namespace SlotRogue.UI.GameFlow
         }
     }
 
+    internal sealed class SlotSymbolTmpSpriteAssetBinder : IDisposable
+    {
+        private readonly SlotSymbolTmpSpriteAssetProvider _provider = new();
+        private readonly CancellationTokenSource _loadCts = new();
+        private readonly List<TMP_Text> _targets = new();
+        private TMP_SpriteAsset _spriteAsset;
+        private bool _loadStarted;
+        private bool _disposed;
+
+        public void ApplyTo(TMP_Text text)
+        {
+            if (_disposed || text == null)
+            {
+                return;
+            }
+
+            RegisterTarget(text);
+            if (_spriteAsset != null)
+            {
+                ApplySpriteAsset(text, _spriteAsset);
+                return;
+            }
+
+            EnsureLoadStarted();
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+            _loadCts.Cancel();
+            _provider.Dispose();
+            _loadCts.Dispose();
+            _targets.Clear();
+            _spriteAsset = null;
+        }
+
+        private void EnsureLoadStarted()
+        {
+            if (_loadStarted)
+            {
+                return;
+            }
+
+            _loadStarted = true;
+            LoadAsync(_loadCts.Token).Forget();
+        }
+
+        private async UniTaskVoid LoadAsync(CancellationToken cancellationToken)
+        {
+            TMP_SpriteAsset spriteAsset;
+            try
+            {
+                spriteAsset = await _provider.LoadAsync(cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            if (_disposed ||
+                cancellationToken.IsCancellationRequested ||
+                spriteAsset == null)
+            {
+                return;
+            }
+
+            _spriteAsset = spriteAsset;
+            ApplyToRegisteredTargets(spriteAsset);
+        }
+
+        private void RegisterTarget(TMP_Text text)
+        {
+            RemoveInvalidTargets();
+            if (!_targets.Contains(text))
+            {
+                _targets.Add(text);
+            }
+        }
+
+        private void ApplyToRegisteredTargets(TMP_SpriteAsset spriteAsset)
+        {
+            for (int index = _targets.Count - 1; index >= 0; index--)
+            {
+                TMP_Text target = _targets[index];
+                if (target == null)
+                {
+                    _targets.RemoveAt(index);
+                    continue;
+                }
+
+                ApplySpriteAsset(target, spriteAsset);
+            }
+        }
+
+        private void RemoveInvalidTargets()
+        {
+            for (int index = _targets.Count - 1; index >= 0; index--)
+            {
+                if (_targets[index] == null)
+                {
+                    _targets.RemoveAt(index);
+                }
+            }
+        }
+
+        private static void ApplySpriteAsset(TMP_Text text, TMP_SpriteAsset spriteAsset)
+        {
+            if (text == null ||
+                spriteAsset == null ||
+                text.spriteAsset == spriteAsset)
+            {
+                return;
+            }
+
+            text.spriteAsset = spriteAsset;
+            text.ForceMeshUpdate(ignoreActiveState: true, forceTextReparsing: true);
+        }
+    }
+
     public sealed class RelicIconRenderer : IDisposable
     {
         private readonly AddressableSpriteProvider _spriteProvider;
