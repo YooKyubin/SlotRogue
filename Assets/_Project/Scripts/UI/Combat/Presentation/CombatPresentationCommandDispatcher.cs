@@ -15,6 +15,7 @@ namespace SlotRogue.UI.Combat.Presentation
         private readonly TurnBannerView _turnBannerView;
         private readonly ICombatShieldGaugeRegistry _shieldGaugeRegistry;
         private readonly IEnemyCombatVisualPresentationTarget _enemyCombatVisualTarget;
+        private readonly ICombatDamageVFXPresentationTarget _damageVFXTarget;
         private readonly ICombatHealthBarPresentationTarget _healthBarPresentationTarget;
         private readonly ICombatStatusPresentationCommands _statusPresentationCommands;
 
@@ -23,6 +24,7 @@ namespace SlotRogue.UI.Combat.Presentation
             TurnBannerView turnBannerView,
             ICombatShieldGaugeRegistry shieldGaugeRegistry,
             IEnemyCombatVisualPresentationTarget enemyCombatVisualTarget,
+            ICombatDamageVFXPresentationTarget damageVFXTarget,
             ICombatHealthBarPresentationTarget healthBarPresentationTarget,
             ICombatStatusPresentationCommands statusPresentationCommands)
         {
@@ -30,6 +32,7 @@ namespace SlotRogue.UI.Combat.Presentation
             _turnBannerView = turnBannerView;
             _shieldGaugeRegistry = shieldGaugeRegistry;
             _enemyCombatVisualTarget = enemyCombatVisualTarget;
+            _damageVFXTarget = damageVFXTarget;
             _healthBarPresentationTarget = healthBarPresentationTarget;
             _statusPresentationCommands = statusPresentationCommands;
         }
@@ -82,7 +85,9 @@ namespace SlotRogue.UI.Combat.Presentation
             CombatDamageVFXRequest request,
             CancellationToken cancellationToken)
         {
-            return UniTask.CompletedTask;
+            return _damageVFXTarget != null
+                ? _damageVFXTarget.ShowCombatDamageVFXAsync(request, cancellationToken)
+                : UniTask.CompletedTask;
         }
 
         public UniTask WaitHealthBarAsync(

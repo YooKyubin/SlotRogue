@@ -65,6 +65,11 @@ namespace SlotRogue.UI.Combat.Presentation
             CancellationToken cancellationToken);
     }
 
+    public interface ICombatDamageVFXPresentationTarget
+    {
+        UniTask ShowCombatDamageVFXAsync(CombatDamageVFXRequest request, CancellationToken cancellationToken);
+    }
+
     public interface ICombatStatusPresentationCommands
     {
         UniTask AddEnemyStatusAsync(

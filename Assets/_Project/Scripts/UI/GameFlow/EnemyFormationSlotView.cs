@@ -173,6 +173,13 @@ namespace SlotRogue.UI.GameFlow
             return _combatVisual.WaitForActionCompletedAsync(cancellationToken);
         }
 
+        public UniTask ShowCombatDamageVFXAsync(
+            CombatDamageVFXRequest request,
+            CancellationToken cancellationToken)
+        {
+            return UniTask.CompletedTask;
+        }
+
         public async UniTask PlayDeathAsync(CancellationToken cancellationToken)
         {
             if (_deathPresented)

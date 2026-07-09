@@ -240,6 +240,7 @@ namespace SlotRogue.UI.GameFlow
                 _view,
                 _view,
                 _view,
+                _view,
                 _view);
             var presentationHost = new CombatPresentationHost(gameObject, commands, commands);
             CombatPresentationPipeline pipeline = CombatPresentationPipeline.CreateDefault(presentationHost);

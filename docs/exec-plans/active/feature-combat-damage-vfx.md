@@ -29,15 +29,16 @@
 - 2026-07-09: 1-A 완료. 피해 VFX profile/request/context 타입, module 계약, Inspector 직렬화 set을 추가했다.
 - 2026-07-09: 1-B 완료. `DamagePresenter`에 플레이어 직접 피해 VFX 판별 함수를 추가했다. command 호출 연결은 아직 하지 않았다.
 - 2026-07-09: 1-C 완료. `ICombatPresentationCommands`에 Damage VFX command를 추가하고 dispatcher/null/test command 구현체를 맞췄다. 실제 전달 경로는 1-D에서 연결한다.
+- 2026-07-09: 1-D 완료. `CombatPresentationCommandDispatcher`에서 `RunBattleScreenView`/`RunBattleWorldView`/`EnemyFormationView`를 거쳐 `EnemyFormationSlotView`까지 Damage VFX 요청 전달 경로를 연결했다. Slot의 module 실행은 1-E에서 구현한다.
 - 완료 커밋: `9deb520 feat: 피해 VFX 조합 타입 추가`.
-- 다음 작업은 1-D부터 시작한다.
+- 다음 작업은 1-E부터 시작한다.
 
 ## Checklist
 
 - [x] 1-A. 피해 VFX 타입과 module 계약 추가 — Codex
 - [x] 1-B. `DamagePresenter`에 플레이어 직접 피해 판별 함수만 추가 — Codex
 - [x] 1-C. `ICombatPresentationCommands`에 피해 VFX command 추가 — Codex
-- [ ] 1-D. `RunBattleWorldView` → `EnemyFormationView` → `EnemyFormationSlotView` 전달 경로 연결 — Codex
+- [x] 1-D. `RunBattleWorldView` → `EnemyFormationView` → `EnemyFormationSlotView` 전달 경로 연결 — Codex
 - [ ] 1-E. `EnemyFormationSlotView`에서 profile-module runner 구현 — Codex
 - [ ] 2-A. `HitFlashDamageVFXModule` 구현 — Codex
 - [ ] 2-B. `PlayerDirectDamage` set에 `HitFlash` 연결 및 Unity 확인 — Codex

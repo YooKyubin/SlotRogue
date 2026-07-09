@@ -282,6 +282,22 @@ namespace SlotRogue.UI.GameFlow
             return UniTask.CompletedTask;
         }
 
+        public UniTask ShowCombatDamageVFXAsync(
+            CombatDamageVFXRequest request,
+            CancellationToken cancellationToken)
+        {
+            CombatParticipantId participantId = request.TargetParticipantId;
+            if (participantId.IsValid &&
+                _slotIndexByParticipantId.TryGetValue(participantId.Value, out int slotIndex) &&
+                TryGetFormationSlotView(slotIndex, out EnemyFormationSlotView formationSlotView))
+            {
+                return formationSlotView.ShowCombatDamageVFXAsync(request, cancellationToken);
+            }
+
+            _warnings.MissingDamageVFXSlot(participantId);
+            return UniTask.CompletedTask;
+        }
+
         private static void RenderFormationSlot(
             EnemyFormationSlotView formationSlotView,
             RunBattleEnemySlotState state)
