@@ -468,6 +468,13 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 return WaitAsync(_floatingDamageCompletion, cancellationToken);
             }
 
+            public UniTask ShowCombatDamageVFXAsync(
+                CombatDamageVFXRequest request,
+                CancellationToken cancellationToken)
+            {
+                return UniTask.CompletedTask;
+            }
+
             public UniTask WaitHealthBarAsync(
                 CombatParticipantId participantId,
                 bool isPlayerTarget,
@@ -678,6 +685,14 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
 
             public UniTask ShowFloatingCombatTextAsync(
                 FloatingCombatTextRequest request,
+                CancellationToken cancellationToken)
+            {
+                OtherCommandCallCount++;
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask ShowCombatDamageVFXAsync(
+                CombatDamageVFXRequest request,
                 CancellationToken cancellationToken)
             {
                 OtherCommandCallCount++;
@@ -907,6 +922,13 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 return UniTask.CompletedTask;
             }
 
+            public UniTask ShowCombatDamageVFXAsync(
+                CombatDamageVFXRequest request,
+                CancellationToken cancellationToken)
+            {
+                return UniTask.CompletedTask;
+            }
+
             public UniTask WaitHealthBarAsync(
                 CombatParticipantId participantId,
                 bool isPlayerTarget,
@@ -1107,6 +1129,14 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
 
             public UniTask ShowFloatingCombatTextAsync(
                 FloatingCombatTextRequest request,
+                CancellationToken cancellationToken)
+            {
+                OtherCommandCallCount++;
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask ShowCombatDamageVFXAsync(
+                CombatDamageVFXRequest request,
                 CancellationToken cancellationToken)
             {
                 OtherCommandCallCount++;

@@ -4,6 +4,9 @@ using SlotRogue.Core.Combat;
 
 namespace SlotRogue.UI.Combat.Presentation
 {
+    /// <summary>
+    /// Combat Presenter가 구체적인 View 계층을 직접 참조하지 않고 전투 연출 명령을 요청하는 경계다.
+    /// </summary>
     public interface ICombatPresentationCommands
     {
         UniTask PlayEnemyActionUntilEffectPointAsync(
@@ -21,6 +24,10 @@ namespace SlotRogue.UI.Combat.Presentation
 
         UniTask ShowFloatingCombatTextAsync(
             FloatingCombatTextRequest request,
+            CancellationToken cancellationToken);
+
+        UniTask ShowCombatDamageVFXAsync(
+            CombatDamageVFXRequest request,
             CancellationToken cancellationToken);
 
         UniTask WaitHealthBarAsync(

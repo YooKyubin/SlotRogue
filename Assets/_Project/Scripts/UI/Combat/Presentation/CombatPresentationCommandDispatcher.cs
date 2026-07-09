@@ -4,6 +4,9 @@ using SlotRogue.Core.Combat;
 
 namespace SlotRogue.UI.Combat.Presentation
 {
+    /// <summary>
+    /// Presenter의 전투 연출 명령을 실제 화면 대상 View/Registry로 전달하는 dispatcher다.
+    /// </summary>
     public sealed class CombatPresentationCommandDispatcher :
         ICombatPresentationCommands,
         ICombatStatusPresentationCommands
@@ -73,6 +76,13 @@ namespace SlotRogue.UI.Combat.Presentation
             return _floatingTextLayerView != null
                 ? _floatingTextLayerView.ShowFloatingCombatTextAsync(request, cancellationToken)
                 : UniTask.CompletedTask;
+        }
+
+        public UniTask ShowCombatDamageVFXAsync(
+            CombatDamageVFXRequest request,
+            CancellationToken cancellationToken)
+        {
+            return UniTask.CompletedTask;
         }
 
         public UniTask WaitHealthBarAsync(

@@ -110,6 +110,17 @@ namespace SlotRogue.UI.Combat.Presentation
                 combatEvent.TargetAfter.Hp <= 0;
         }
 
+        private static bool ShouldRequestPlayerDirectDamageVFX(CombatEvent combatEvent)
+        {
+            return combatEvent.Kind == CombatEventKind.EffectApplied &&
+                combatEvent.Phase == BattlePhase.Resolving &&
+                !combatEvent.IsPlayerParticipant &&
+                combatEvent.TargetParticipantId.IsValid &&
+                combatEvent.Effect.Kind == CombatEffectKind.Damage &&
+                combatEvent.Effect.DamageOrigin == DamageOrigin.DirectAction &&
+                combatEvent.ApplyResult.DamageDealt > 0;
+        }
+
         private static bool ShouldUseDamageScaledFontSize(CombatEvent combatEvent)
         {
             return !combatEvent.IsPlayerParticipant &&

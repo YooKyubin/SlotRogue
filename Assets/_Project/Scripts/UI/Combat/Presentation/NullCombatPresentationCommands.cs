@@ -41,6 +41,13 @@ namespace SlotRogue.UI.Combat.Presentation
             return UniTask.CompletedTask;
         }
 
+        public UniTask ShowCombatDamageVFXAsync(
+            CombatDamageVFXRequest request,
+            CancellationToken cancellationToken)
+        {
+            return UniTask.CompletedTask;
+        }
+
         public UniTask WaitHealthBarAsync(
             CombatParticipantId participantId,
             bool isPlayerTarget,
