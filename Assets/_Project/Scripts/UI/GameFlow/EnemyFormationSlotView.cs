@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -47,6 +48,10 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private RectTransform _damageAnchor;
         [SerializeField] private Collider2D _clickCollider;
 
+        [Header("Damage VFX")]
+        [SerializeField] private Transform _damageVFXEffectRoot;
+        [SerializeField] private CombatDamageVFXSet[] _damageVFXSets = Array.Empty<CombatDamageVFXSet>();
+
         [Header("Status Effects")]
         [SerializeField] private RectTransform _statusEffectRoot;
         [SerializeField] private GameObject _statusEffectIconPrefab;
@@ -55,6 +60,7 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private Transform _intentRoot;
         [SerializeField] private EnemyIntentIconView _intentIconPrefab;
 
+        private readonly CombatDamageVFXRunner _damageVFXRunner = new();
         private readonly Dictionary<StatusEffectKind, EnemyStatusEffectIconView> _statusEffectIconsByKind = new();
         private readonly List<EnemyIntentIconView> _intentIcons = new();
         private UnityAction _clickHandler;
@@ -70,6 +76,8 @@ namespace SlotRogue.UI.GameFlow
         private IEnemyCombatVisual _combatVisual;
         private bool _visualRootMissingWarningLogged;
         private bool _combatVisualMissingWarningLogged;
+        private bool _damageVFXTargetMissingWarningLogged;
+        private bool _damageVFXEffectRootMissingWarningLogged;
         private bool _deathPresented;
         private bool _shieldedHpBarLayoutRendered;
         private Tween _deathTween;
@@ -173,11 +181,27 @@ namespace SlotRogue.UI.GameFlow
             return _combatVisual.WaitForActionCompletedAsync(cancellationToken);
         }
 
-        public UniTask ShowCombatDamageVFXAsync(
-            CombatDamageVFXRequest request,
-            CancellationToken cancellationToken)
+        public UniTask ShowCombatDamageVFXAsync(CombatDamageVFXRequest request, CancellationToken cancellationToken)
         {
-            return UniTask.CompletedTask;
+            if (_combatVisualInstance == null)
+            {
+                LogMissingDamageVFXTargetWarning();
+                return UniTask.CompletedTask;
+            }
+
+            if (_damageVFXEffectRoot == null)
+            {
+                LogMissingDamageVFXEffectRootWarning();
+                return UniTask.CompletedTask;
+            }
+
+            return _damageVFXRunner.PlayAsync(
+                request,
+                _damageVFXSets,
+                _combatVisualInstance,
+                _damageVFXEffectRoot,
+                _damageAnchor,
+                cancellationToken);
         }
 
         public async UniTask PlayDeathAsync(CancellationToken cancellationToken)
@@ -898,6 +922,34 @@ namespace SlotRogue.UI.GameFlow
             Debug.LogError(
                 $"[EnemyFormationSlotView] {prefabName} does not provide IEnemyCombatVisual. " +
                 "Add a monster combat visual component to the prefab before using animation requests.",
+                this);
+        }
+
+        private void LogMissingDamageVFXTargetWarning()
+        {
+            if (_damageVFXTargetMissingWarningLogged)
+            {
+                return;
+            }
+
+            _damageVFXTargetMissingWarningLogged = true;
+            Debug.LogError(
+                "[EnemyFormationSlotView] Damage VFX target is missing. " +
+                "Bind a combat visual prefab before requesting Damage VFX.",
+                this);
+        }
+
+        private void LogMissingDamageVFXEffectRootWarning()
+        {
+            if (_damageVFXEffectRootMissingWarningLogged)
+            {
+                return;
+            }
+
+            _damageVFXEffectRootMissingWarningLogged = true;
+            Debug.LogError(
+                "[EnemyFormationSlotView] Damage VFX Effect Root is missing. " +
+                "Assign the Damage VFX Effect Root before requesting Damage VFX.",
                 this);
         }
 

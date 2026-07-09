@@ -63,6 +63,16 @@ namespace SlotRogue.UI.Combat.Presentation
                     cancellationToken),
             };
 
+            if (ShouldRequestPlayerDirectDamageVFX(combatEvent))
+            {
+                CombatDamageVFXRequest damageVFXRequest = new(
+                    CombatDamageVFXProfile.PlayerDirectDamage,
+                    combatEvent.TargetParticipantId,
+                    combatEvent.ApplyResult.DamageDealt);
+                presentationTasks.Add(
+                    Host.Commands.ShowCombatDamageVFXAsync(damageVFXRequest, cancellationToken));
+            }
+
             if (Host.StatusCommands != null)
             {
                 if (combatEvent.IsPlayerParticipant &&

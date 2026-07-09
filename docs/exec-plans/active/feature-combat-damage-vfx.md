@@ -30,8 +30,9 @@
 - 2026-07-09: 1-B 완료. `DamagePresenter`에 플레이어 직접 피해 VFX 판별 함수를 추가했다. command 호출 연결은 아직 하지 않았다.
 - 2026-07-09: 1-C 완료. `ICombatPresentationCommands`에 Damage VFX command를 추가하고 dispatcher/null/test command 구현체를 맞췄다. 실제 전달 경로는 1-D에서 연결한다.
 - 2026-07-09: 1-D 완료. `CombatPresentationCommandDispatcher`에서 `RunBattleScreenView`/`RunBattleWorldView`/`EnemyFormationView`를 거쳐 `EnemyFormationSlotView`까지 Damage VFX 요청 전달 경로를 연결했다. Slot의 module 실행은 1-E에서 구현한다.
+- 2026-07-09: 1-E 완료. `EnemyFormationSlotView`에 profile-module runner를 추가하고, `DamagePresenter`가 플레이어 직접 피해에서 `PlayerDirectDamage` VFX 요청을 발생시키도록 연결했다.
 - 완료 커밋: `9deb520 feat: 피해 VFX 조합 타입 추가`.
-- 다음 작업은 1-E부터 시작한다.
+- 다음 작업은 2-A부터 시작한다.
 
 ## Checklist
 
@@ -39,7 +40,7 @@
 - [x] 1-B. `DamagePresenter`에 플레이어 직접 피해 판별 함수만 추가 — Codex
 - [x] 1-C. `ICombatPresentationCommands`에 피해 VFX command 추가 — Codex
 - [x] 1-D. `RunBattleWorldView` → `EnemyFormationView` → `EnemyFormationSlotView` 전달 경로 연결 — Codex
-- [ ] 1-E. `EnemyFormationSlotView`에서 profile-module runner 구현 — Codex
+- [x] 1-E. `EnemyFormationSlotView`에서 profile-module runner 구현 — Codex
 - [ ] 2-A. `HitFlashDamageVFXModule` 구현 — Codex
 - [ ] 2-B. `PlayerDirectDamage` set에 `HitFlash` 연결 및 Unity 확인 — Codex
 - [ ] 3-A. `SlashCutDamageVFXModule` 구현 — Codex
@@ -49,9 +50,9 @@
 ## Verification
 
 - [x] `dotnet build SlotRogue.slnx --no-restore` 통과.
-- [ ] 플레이어 직접 피해에서만 Damage VFX 요청이 발생한다.
+- [x] 플레이어 직접 피해에서만 Damage VFX 요청이 발생한다.
 - [ ] 상태 피해, 반사 피해, 몬스터 공격 피해에서는 직접 피해 VFX가 발생하지 않는다.
-- [ ] shield에 전부 막힌 피해는 `PlayerDirectDamage` VFX를 재생하지 않는다.
+- [x] shield에 전부 막힌 피해는 `PlayerDirectDamage` VFX를 재생하지 않는다.
 - [ ] `HitFlash`가 연속 피격, 사망, 다음 몬스터 등장 후에도 색상을 복구한다.
 - [ ] `SlashCut`과 `SparkParticle`이 올바른 몬스터 슬롯 위치에서 재생되고 lifetime 뒤 제거된다.
 
@@ -62,6 +63,14 @@
 - 1-C 이후부터 기존 presentation command 경로를 수정하므로, 각 단계마다 compile 확인을 권장한다.
 - module은 `MonoBehaviour`로 구현하고 `ICombatDamageVFXModule`을 구현한다. `CombatDamageVFXSet.Modules`는 Inspector에서 `MonoBehaviour` 배열로 받되 runner에서 interface 구현 여부를 검증한다.
 - 구현 중 누락된 module 참조는 조용히 무시하지 말고 `Debug.LogError` 또는 명확한 검증 실패로 드러낸다.
+
+## Refactor Follow-ups
+
+- [x] `EnemyFormationSlotView`의 Damage VFX 실행 책임을 `CombatDamageVFXRunner`로 분리한다.
+- [ ] `EnemyFormationSlotView`의 Status Effect icon 목록 책임을 별도 View로 분리한다.
+- [ ] `EnemyFormationSlotView`의 Intent icon 목록 책임을 별도 View로 분리한다.
+- [ ] 구조 정리 여유가 생기면 CombatVisual 생성/행동/사망 연출 책임을 별도 View로 분리한다.
+- [ ] 구조 정리 여유가 생기면 HP bar와 shielded HP bar 표시 책임을 별도 View로 분리한다.
 
 ## Completion
 
