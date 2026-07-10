@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace SlotRogue.UI.Combat.Presentation
 {
-    public sealed class HitFlashDamageVFXModule : MonoBehaviour, ICombatDamageVFXModule
+    public sealed class TintFlashDamageVFXModule : MonoBehaviour, ICombatDamageVFXModule
     {
         [SerializeField] private Color _flashColor = Color.white;
         [SerializeField, Min(0f)] private float _flashInDuration = 0.04f;
@@ -153,8 +153,8 @@ namespace SlotRogue.UI.Combat.Presentation
 
             _missingTargetWarningLogged = true;
             Debug.LogWarning(
-                "[HitFlashDamageVFXModule] Damage VFX target is missing. " +
-                "Hit flash cannot be played without a target object.",
+                "[TintFlashDamageVFXModule] Damage VFX target is missing. " +
+                "Tint flash cannot be played without a target object.",
                 this);
         }
 
@@ -167,7 +167,7 @@ namespace SlotRogue.UI.Combat.Presentation
 
             _missingRendererWarningLogged = true;
             Debug.LogWarning(
-                $"[HitFlashDamageVFXModule] {targetObject.name} has no SpriteRenderer children. " +
+                $"[TintFlashDamageVFXModule] {targetObject.name} has no SpriteRenderer children. " +
                 "Assign this module to a damage VFX set whose target visual uses SpriteRenderer.",
                 this);
         }

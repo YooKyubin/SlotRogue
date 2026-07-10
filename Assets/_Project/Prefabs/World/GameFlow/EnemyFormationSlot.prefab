@@ -619,7 +619,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f1214045f6434781a9126db4e69b681c, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.Combat.Presentation.HitFlashDamageVFXModule
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.Combat.Presentation.TintFlashDamageVFXModule
   _flashColor: {r: 1, g: 1, b: 1, a: 1}
   _flashInDuration: 0.04
   _flashOutDuration: 0.35

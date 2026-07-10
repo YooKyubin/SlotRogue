@@ -42,7 +42,7 @@ _Last updated: 2026-07-10_
 
 **Run Battle 전투 연출** — [`feature-run-battle-presentation`](./exec-plans/completed/feature-run-battle-presentation.md) **완료** (2026-06-01): RunBattle Replay 연동.
 
-**전투 피해 VFX 조합형 모듈** — [`feature-combat-damage-vfx`](./exec-plans/active/feature-combat-damage-vfx.md): 플레이어 직접 피해를 시작으로 피해 종류별 VFX profile을 `MonoBehaviour` module 조합으로 재생하는 presentation 경로를 단계적으로 추가한다. 현재 `SpriteRenderer.color` 기반 HitFlash가 tint flash로 동작함을 확인했으며, 다음 단계는 `PlayerDirectDamage`용 HitFlash를 shader 또는 `MaterialPropertyBlock` 기반 white override flash로 전환하는 2-B다.
+**전투 피해 VFX 조합형 모듈** — [`feature-combat-damage-vfx`](./exec-plans/active/feature-combat-damage-vfx.md): 플레이어 직접 피해를 시작으로 피해 종류별 VFX profile을 `MonoBehaviour` module 조합으로 재생하는 presentation 경로를 단계적으로 추가한다. 현재 `SpriteRenderer.color` 기반 구현은 `TintFlashDamageVFXModule`로 분리했으며, 다음 단계는 `PlayerDirectDamage`용 white override `HitFlashDamageVFXModule`을 shader 또는 `MaterialPropertyBlock` 기반으로 새로 구현하는 2-B다.
 
 **다인전 전투 확장 (Core)** — [`feature-multi-participant-combat`](./exec-plans/completed/feature-multi-participant-combat.md) **완료** (2026-06-03): ADR-0004 roster·타겟·멀티히트·적 턴 + EditMode 테스트.
 

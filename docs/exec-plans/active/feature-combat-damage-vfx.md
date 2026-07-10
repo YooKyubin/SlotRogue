@@ -31,10 +31,10 @@
 - 2026-07-09: 1-C 완료. `ICombatPresentationCommands`에 Damage VFX command를 추가하고 dispatcher/null/test command 구현체를 맞췄다. 실제 전달 경로는 1-D에서 연결한다.
 - 2026-07-09: 1-D 완료. `CombatPresentationCommandDispatcher`에서 `RunBattleScreenView`/`RunBattleWorldView`/`EnemyFormationView`를 거쳐 `EnemyFormationSlotView`까지 Damage VFX 요청 전달 경로를 연결했다. Slot의 module 실행은 1-E에서 구현한다.
 - 2026-07-09: 1-E 완료. `EnemyFormationSlotView`에 profile-module runner를 추가하고, `DamagePresenter`가 플레이어 직접 피해에서 `PlayerDirectDamage` VFX 요청을 발생시키도록 연결했다.
-- 2026-07-10: 2-A 완료. `HitFlashDamageVFXModule`을 추가해 대상 `SpriteRenderer` 색상을 flash color로 전환한 뒤 원래 색상으로 복구하도록 구현했다. Unity Inspector 연결은 2-B에서 진행한다.
-- 2026-07-10: 2-B 검토 중 시각 목표를 정정했다. 기존 `SpriteRenderer.color` 기반 구현은 tint flash라서 `PlayerDirectDamage` 의도와 다르다. 다음 세션은 shader 또는 `MaterialPropertyBlock` 기반으로 `FlashAmount`를 tween해 sprite RGB를 white override하고 alpha는 유지하는 HitFlash로 전환한다. tint flash는 상태 피해 VFX 후보로 보류한다.
+- 2026-07-10: 2-A 완료. `TintFlashDamageVFXModule`을 추가해 대상 `SpriteRenderer` 색상을 flash color로 전환한 뒤 원래 색상으로 복구하도록 구현했다.
+- 2026-07-10: 2-B 검토 중 시각 목표를 정정했다. `SpriteRenderer.color` 기반 구현은 tint flash로 이름을 분리하고, `PlayerDirectDamage`용 HitFlash는 shader 또는 `MaterialPropertyBlock` 기반으로 `FlashAmount`를 tween해 sprite RGB를 white override하고 alpha는 유지하는 별도 module로 구현한다.
 - 완료 커밋: `9deb520 feat: 피해 VFX 조합 타입 추가`.
-- 다음 작업은 2-B의 white override HitFlash 전환부터 시작한다.
+- 다음 작업은 2-B의 white override `HitFlashDamageVFXModule` 신규 구현부터 시작한다.
 
 ## Checklist
 
@@ -43,8 +43,8 @@
 - [x] 1-C. `ICombatPresentationCommands`에 피해 VFX command 추가 — Codex
 - [x] 1-D. `RunBattleWorldView` → `EnemyFormationView` → `EnemyFormationSlotView` 전달 경로 연결 — Codex
 - [x] 1-E. `EnemyFormationSlotView`에서 profile-module runner 구현 — Codex
-- [x] 2-A. `HitFlashDamageVFXModule` 구현 — Codex
-- [ ] 2-B. `HitFlashDamageVFXModule`을 white override flash 방식으로 전환 — Codex
+- [x] 2-A. `TintFlashDamageVFXModule` 구현 및 임시 연결 — Codex
+- [ ] 2-B. white override `HitFlashDamageVFXModule` 신규 구현 — Codex
 - [ ] 2-C. `PlayerDirectDamage` set에 white override `HitFlash` 연결 및 Unity 확인 — Codex
 - [ ] 3-A. `SlashCutDamageVFXModule` 구현 — Codex
 - [ ] 3-B. `SparkParticleDamageVFXModule` 구현 — Codex
@@ -68,7 +68,7 @@
 - 구현 중 누락된 module 참조는 조용히 무시하지 말고 `Debug.LogError` 또는 명확한 검증 실패로 드러낸다.
 - `SpriteRenderer.color = Color.white`는 원본 texture 색에 tint를 곱하는 동작이라 몬스터 전체를 흰색으로 치환하지 않는다. `PlayerDirectDamage` HitFlash는 shader/material property로 `finalRgb = lerp(originalRgb, flashColor, flashAmount)`, `finalAlpha = originalAlpha` 형태를 목표로 한다.
 - white override flash 구현 시 renderer별 shared material을 직접 수정하지 않는다. 가능하면 `MaterialPropertyBlock`으로 `_FlashAmount` / `_FlashColor` 같은 per-renderer 값을 tween하고, 종료·취소·비활성화 시 0으로 복구한다.
-- 기존 tint flash 동작은 상태 피해나 약한 피격 표현 후보로 보류한다. 필요하면 별도 `TintFlashDamageVFXModule`로 분리한다.
+- `TintFlashDamageVFXModule`은 상태 피해나 약한 피격 표현 후보로 보류한다. `PlayerDirectDamage` set에 임시 연결되어 있으면 2-C에서 white override `HitFlashDamageVFXModule`로 교체한다.
 
 ## Refactor Follow-ups
 
