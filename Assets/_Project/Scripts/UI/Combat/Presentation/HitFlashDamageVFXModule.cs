@@ -10,7 +10,7 @@ namespace SlotRogue.UI.Combat.Presentation
     {
         [SerializeField] private Color _flashColor = Color.white;
         [SerializeField, Min(0f)] private float _flashInDuration = 0.04f;
-        [SerializeField, Min(0f)] private float _flashOutDuration = 0.12f;
+        [SerializeField, Min(0f)] private float _flashOutDuration = 0.35f;
         [SerializeField] private bool _includeInactiveRenderers = true;
 
         private Tween _activeTween;
@@ -40,8 +40,7 @@ namespace SlotRogue.UI.Combat.Presentation
                 return;
             }
 
-            SpriteRenderer[] renderers =
-                context.TargetObject.GetComponentsInChildren<SpriteRenderer>(_includeInactiveRenderers);
+            SpriteRenderer[] renderers = context.TargetObject.GetComponentsInChildren<SpriteRenderer>(_includeInactiveRenderers);
             if (renderers.Length == 0)
             {
                 LogMissingRendererWarning(context.TargetObject);

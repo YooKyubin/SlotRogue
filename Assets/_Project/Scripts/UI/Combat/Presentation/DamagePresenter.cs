@@ -102,9 +102,7 @@ namespace SlotRogue.UI.Combat.Presentation
 
             if (ShouldPlayEnemyDeath(combatEvent))
             {
-                await Host.Commands.PlayEnemyDeathAsync(
-                    combatEvent.TargetParticipantId,
-                    cancellationToken);
+                await Host.Commands.PlayEnemyDeathAsync(combatEvent.TargetParticipantId, cancellationToken);
             }
         }
 
