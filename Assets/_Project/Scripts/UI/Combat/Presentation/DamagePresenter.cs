@@ -57,10 +57,7 @@ namespace SlotRogue.UI.Combat.Presentation
             var presentationTasks = new List<UniTask>
             {
                 Host.Commands.ShowFloatingCombatTextAsync(request, cancellationToken),
-                Host.Commands.WaitHealthBarAsync(
-                    combatEvent.TargetParticipantId,
-                    combatEvent.IsPlayerParticipant,
-                    cancellationToken),
+                Host.Commands.WaitHealthBarAsync(combatEvent.TargetParticipantId, combatEvent.IsPlayerParticipant, cancellationToken),
             };
 
             if (ShouldRequestPlayerDirectDamageVFX(combatEvent))
@@ -69,8 +66,7 @@ namespace SlotRogue.UI.Combat.Presentation
                     CombatDamageVFXProfile.PlayerDirectDamage,
                     combatEvent.TargetParticipantId,
                     combatEvent.ApplyResult.DamageDealt);
-                presentationTasks.Add(
-                    Host.Commands.ShowCombatDamageVFXAsync(damageVFXRequest, cancellationToken));
+                presentationTasks.Add(Host.Commands.ShowCombatDamageVFXAsync(damageVFXRequest, cancellationToken));
             }
 
             if (Host.StatusCommands != null)

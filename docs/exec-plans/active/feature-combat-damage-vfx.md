@@ -31,8 +31,9 @@
 - 2026-07-09: 1-C 완료. `ICombatPresentationCommands`에 Damage VFX command를 추가하고 dispatcher/null/test command 구현체를 맞췄다. 실제 전달 경로는 1-D에서 연결한다.
 - 2026-07-09: 1-D 완료. `CombatPresentationCommandDispatcher`에서 `RunBattleScreenView`/`RunBattleWorldView`/`EnemyFormationView`를 거쳐 `EnemyFormationSlotView`까지 Damage VFX 요청 전달 경로를 연결했다. Slot의 module 실행은 1-E에서 구현한다.
 - 2026-07-09: 1-E 완료. `EnemyFormationSlotView`에 profile-module runner를 추가하고, `DamagePresenter`가 플레이어 직접 피해에서 `PlayerDirectDamage` VFX 요청을 발생시키도록 연결했다.
+- 2026-07-10: 2-A 완료. `HitFlashDamageVFXModule`을 추가해 대상 `SpriteRenderer` 색상을 flash color로 전환한 뒤 원래 색상으로 복구하도록 구현했다. Unity Inspector 연결은 2-B에서 진행한다.
 - 완료 커밋: `9deb520 feat: 피해 VFX 조합 타입 추가`.
-- 다음 작업은 2-A부터 시작한다.
+- 다음 작업은 2-B부터 시작한다.
 
 ## Checklist
 
@@ -41,7 +42,7 @@
 - [x] 1-C. `ICombatPresentationCommands`에 피해 VFX command 추가 — Codex
 - [x] 1-D. `RunBattleWorldView` → `EnemyFormationView` → `EnemyFormationSlotView` 전달 경로 연결 — Codex
 - [x] 1-E. `EnemyFormationSlotView`에서 profile-module runner 구현 — Codex
-- [ ] 2-A. `HitFlashDamageVFXModule` 구현 — Codex
+- [x] 2-A. `HitFlashDamageVFXModule` 구현 — Codex
 - [ ] 2-B. `PlayerDirectDamage` set에 `HitFlash` 연결 및 Unity 확인 — Codex
 - [ ] 3-A. `SlashCutDamageVFXModule` 구현 — Codex
 - [ ] 3-B. `SparkParticleDamageVFXModule` 구현 — Codex
