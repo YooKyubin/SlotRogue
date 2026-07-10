@@ -586,6 +586,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5957300370784658955}
   - component: {fileID: 9187630377755564576}
+  - component: {fileID: 4017459142390439712}
   m_Layer: 0
   m_Name: DamageVFXModules
   m_TagString: Untagged
@@ -620,6 +621,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f1214045f6434781a9126db4e69b681c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.Combat.Presentation.TintFlashDamageVFXModule
+  _flashColor: {r: 1, g: 0, b: 0, a: 1}
+  _flashInDuration: 0.04
+  _flashOutDuration: 0.35
+  _includeInactiveRenderers: 1
+--- !u!114 &4017459142390439712
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3003453714586158367}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0d2e9b876c04c48b4a6f7275d02b6d1, type: 3}
+  m_Name: ''
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.Combat.Presentation.HitFlashDamageVFXModule
   _flashColor: {r: 1, g: 1, b: 1, a: 1}
   _flashInDuration: 0.04
   _flashOutDuration: 0.35
@@ -892,7 +909,7 @@ MonoBehaviour:
   _damageVFXSets:
   - _profile: 0
     _modules:
-    - {fileID: 9187630377755564576}
+    - {fileID: 4017459142390439712}
   _statusEffectRoot: {fileID: 728450995424023123}
   _statusEffectIconPrefab: {fileID: 2479965767819659198, guid: 74f263931e0f2d94896a68498b746ebe, type: 3}
   _intentRoot: {fileID: 429236092112441516}

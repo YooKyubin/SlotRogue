@@ -33,8 +33,10 @@
 - 2026-07-09: 1-E 완료. `EnemyFormationSlotView`에 profile-module runner를 추가하고, `DamagePresenter`가 플레이어 직접 피해에서 `PlayerDirectDamage` VFX 요청을 발생시키도록 연결했다.
 - 2026-07-10: 2-A 완료. `TintFlashDamageVFXModule`을 추가해 대상 `SpriteRenderer` 색상을 flash color로 전환한 뒤 원래 색상으로 복구하도록 구현했다.
 - 2026-07-10: 2-B 검토 중 시각 목표를 정정했다. `SpriteRenderer.color` 기반 구현은 tint flash로 이름을 분리하고, `PlayerDirectDamage`용 HitFlash는 shader 또는 `MaterialPropertyBlock` 기반으로 `FlashAmount`를 tween해 sprite RGB를 white override하고 alpha는 유지하는 별도 module로 구현한다.
+- 2026-07-11: 2-B 완료. `VFXSprite` shader/material과 `HitFlashDamageVFXModule`을 추가했다. 공통 `EnemyCombatVisualBase`가 VFX material을 사용하며, module은 renderer별 `MaterialPropertyBlock`의 `_FlashColor`/`_FlashAmount`만 tween하고 취소·비활성화 시 amount를 0으로 복구한다.
+- 2026-07-11: 2-C 완료. `PlayerDirectDamage` set을 white override `HitFlashDamageVFXModule`로 연결했고, Unity Editor에서 의도한 흰색 flash 동작을 수동 확인했다.
 - 완료 커밋: `9deb520 feat: 피해 VFX 조합 타입 추가`.
-- 다음 작업은 2-B의 white override `HitFlashDamageVFXModule` 신규 구현부터 시작한다.
+- 다음 작업은 `SlashCutDamageVFXModule` 구현(3-A)이다.
 
 ## Checklist
 
@@ -44,8 +46,8 @@
 - [x] 1-D. `RunBattleWorldView` → `EnemyFormationView` → `EnemyFormationSlotView` 전달 경로 연결 — Codex
 - [x] 1-E. `EnemyFormationSlotView`에서 profile-module runner 구현 — Codex
 - [x] 2-A. `TintFlashDamageVFXModule` 구현 및 임시 연결 — Codex
-- [ ] 2-B. white override `HitFlashDamageVFXModule` 신규 구현 — Codex
-- [ ] 2-C. `PlayerDirectDamage` set에 white override `HitFlash` 연결 및 Unity 확인 — Codex
+- [x] 2-B. white override `HitFlashDamageVFXModule` 신규 구현 — Codex
+- [x] 2-C. `PlayerDirectDamage` set에 white override `HitFlash` 연결 및 Unity 확인 — Codex
 - [ ] 3-A. `SlashCutDamageVFXModule` 구현 — Codex
 - [ ] 3-B. `SparkParticleDamageVFXModule` 구현 — Codex
 - [ ] 3-C. slash prefab, spark particle 연결 및 타이밍 확인 — Codex
@@ -54,6 +56,7 @@
 
 - [x] `dotnet build SlotRogue.slnx --no-restore` 통과.
 - [x] 플레이어 직접 피해에서만 Damage VFX 요청이 발생한다.
+- [x] `PlayerDirectDamage` white override `HitFlash`가 Unity Editor에서 의도대로 재생된다.
 - [ ] 상태 피해, 반사 피해, 몬스터 공격 피해에서는 직접 피해 VFX가 발생하지 않는다.
 - [x] shield에 전부 막힌 피해는 `PlayerDirectDamage` VFX를 재생하지 않는다.
 - [ ] `HitFlash`가 연속 피격, 사망, 다음 몬스터 등장 후에도 색상을 복구한다.
