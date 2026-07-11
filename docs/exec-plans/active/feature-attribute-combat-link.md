@@ -43,6 +43,7 @@
 
 ## Checklist
 
+- [x] UI/GameFlow: 플레이어 상태를 `Player Stat Panel`에 연결하고 버프는 위에서 아래로, 디버프는 아래에서 위로 표시 — Codex
 - [x] 기존 상태이상 컴포넌트 기반 구조 파악 — Codex
 - [x] v6 속성/방해 기획서를 design-doc으로 재작성 — Codex
 - [x] Core/Combat: `StatusEffectKind`를 v6 6속성 기준으로 정리하고 기존 독 제거 및 `Freeze` 호환 경로 유지 — Codex

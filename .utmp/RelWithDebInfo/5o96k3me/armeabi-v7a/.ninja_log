@@ -1,0 +1,12 @@
+# ninja log v5
+76	299	8052080194469020	FramePacing/CMakeFiles/swappywrapper.dir/UnitySwappyWrapper.cpp.o	df88a37bcd8576be
+301	606	8052080197312022	C:/Users/danggunee/Documents/GitHub/SlotRogue/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/RelWithDebInfo/5o96k3me/obj/armeabi-v7a/libswappywrapper.so	50ba4b5a30bc3261
+28	1380	8052080205248700	GameActivity/CMakeFiles/game.dir/UGAEntry.cpp.o	b618740e81e78221
+45	1404	8052080205498699	GameActivity/CMakeFiles/game.dir/UGAInputKeyEvent.cpp.o	d78550e0454f0091
+20	1427	8052080205738756	GameActivity/CMakeFiles/game.dir/UGAConfiguration.cpp.o	2705083322584682
+55	1441	8052080205878965	GameActivity/CMakeFiles/game.dir/UGAInputMotionEvent.cpp.o	3454cf3a20673ba1
+12	1460	8052080206071699	GameActivity/CMakeFiles/game.dir/UGADebug.cpp.o	7ef2f92d35ca2249
+65	1602	8052080207497077	GameActivity/CMakeFiles/game.dir/UGASoftKeyboard.cpp.o	6805ccd586302218
+36	1661	8052080208077197	GameActivity/CMakeFiles/game.dir/UGAInput.cpp.o	c63f52c991686ea
+1	1810	8052080209577621	GameActivity/CMakeFiles/game.dir/UGAApplication.cpp.o	3a52ae75030f0bd2
+1811	1924	8052080210706529	C:/Users/danggunee/Documents/GitHub/SlotRogue/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/RelWithDebInfo/5o96k3me/obj/armeabi-v7a/libgame.so	58161b747de7d63

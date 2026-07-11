@@ -8,8 +8,8 @@ using UnityEngine.UI;
 namespace SlotRogue.UI.SlotPresentation
 {
     /// <summary>
-    /// 유물 발동 연출: 유물 아이콘이 인벤토리 버튼(앵커) 위치에서 튀어나와 흔들리고 다시 들어간다.
-    /// 아이콘만 다루며 이름/설명/값 패널이나 비행 연출은 없다.
+    /// Reuses one hierarchy icon for relic trigger presentation.
+    /// The icon is positioned above the inventory anchor, shaken, and hidden.
     /// </summary>
     public sealed class RelicPresentationDirector : MonoBehaviour
     {
@@ -18,25 +18,26 @@ namespace SlotRogue.UI.SlotPresentation
         [Header("Burst")]
         [Tooltip("앵커에서 위로 튀어나오는 거리(px)")]
         [SerializeField] private float _popRise = 44f;
-        [SerializeField] private float _popDuration = 0.16f;
         [SerializeField] private float _shakeDuration = 0.28f;
         [SerializeField] private float _shakeAngle = 14f;
-        [SerializeField] private float _returnDuration = 0.14f;
-        [Tooltip("아이콘이 여러 개일 때 가로 간격(px)")]
-        [SerializeField] private float _iconSpacing = 20f;
         [Tooltip("아이콘 사이 순차 등장 간격(초)")]
         [SerializeField] private float _stagger = 0.06f;
 
         private Tween _activeTween;
-        private readonly List<Image> _iconClones = new();
         private Vector2 _iconDefaultAnchoredPosition;
+        private Vector2 _iconDefaultAnchorMin;
+        private Vector2 _iconDefaultAnchorMax;
+        private Vector2 _iconDefaultPivot;
         private Vector3 _iconDefaultScale = Vector3.one;
         private Quaternion _iconDefaultRotation = Quaternion.identity;
         private Sprite _iconDefaultSprite;
+        private Color _iconDefaultColor = Color.white;
         private bool _iconDefaultEnabled;
+        private bool _iconDefaultPreserveAspect;
+        private bool _iconDefaultRaycastTarget;
         private bool _hasCachedIconDefaults;
 
-        /// <summary>유물 아이콘들이 앵커(인벤토리 버튼) 위치에서 튀어나와 흔들리고 들어간다.</summary>
+        /// <summary>Shows each triggered relic sequentially with the same hierarchy icon.</summary>
         public IEnumerator PlayBurstAtAnchor(
             IReadOnlyList<SlotRelicTriggerPresentationResult> results,
             RectTransform anchor,
@@ -62,20 +63,21 @@ namespace SlotRogue.UI.SlotPresentation
             Vector2 anchorPosition = anchor != null
                 ? ResolveRectCenter(anchor, animationParent)
                 : Vector2.zero;
-
             Sequence masterSequence = DOTween.Sequence().SetTarget(this).SetUpdate(true);
             for (int index = 0; index < flights.Count; index++)
             {
                 Sequence burst = CreateBurstSequence(
                     flights[index],
-                    index,
-                    flights.Count,
-                    animationParent,
                     anchorPosition,
                     onImpact);
                 if (burst != null)
                 {
-                    masterSequence.Insert(index * Mathf.Max(0f, _stagger), burst);
+                    if (masterSequence.Duration() > 0f && _stagger > 0f)
+                    {
+                        masterSequence.AppendInterval(_stagger);
+                    }
+
+                    masterSequence.Append(burst);
                 }
             }
 
@@ -110,71 +112,47 @@ namespace SlotRogue.UI.SlotPresentation
 
         private Sequence CreateBurstSequence(
             RelicIconFlight flight,
-            int index,
-            int count,
-            RectTransform animationParent,
             Vector2 anchorPosition,
             Action<SlotRelicTriggerPresentationResult> onImpact)
         {
-            Image icon = CreateIconClone(animationParent);
-            if (icon == null || icon.transform is not RectTransform rt)
+            if (_iconImage == null || _iconImage.transform is not RectTransform rt)
             {
                 return null;
             }
 
-            icon.sprite = flight.Sprite;
-            icon.enabled = true;
-            icon.preserveAspect = true;
-            icon.raycastTarget = false;
+            Vector2 presentationPosition = anchorPosition + new Vector2(0f, _popRise);
 
-            float offset = (index - (count - 1) * 0.5f) * _iconSpacing;
-            Vector2 popPosition = anchorPosition + new Vector2(offset, _popRise);
-
-            Color visible = _iconImage.color;
+            Color visible = _iconDefaultColor;
             if (visible.a <= 0.01f)
             {
                 visible.a = 1f;
             }
 
-            Color hidden = visible;
-            hidden.a = 0f;
-
-            rt.anchorMin = new Vector2(0.5f, 0.5f);
-            rt.anchorMax = new Vector2(0.5f, 0.5f);
-            rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.anchoredPosition = anchorPosition;
-            rt.localScale = Vector3.zero;
-            rt.localRotation = Quaternion.identity;
-            icon.color = hidden;
-
             Sequence seq = DOTween.Sequence().SetTarget(rt).SetUpdate(true);
+            seq.AppendCallback(() =>
+            {
+                _iconImage.gameObject.SetActive(true);
+                _iconImage.sprite = flight.Sprite;
+                _iconImage.enabled = true;
+                _iconImage.preserveAspect = true;
+                _iconImage.raycastTarget = false;
 
-            // 튀어나오기
-            seq.Append(
-                DOTween.To(
-                    () => rt.anchoredPosition,
-                    value => rt.anchoredPosition = value,
-                    popPosition,
-                    _popDuration).SetEase(Ease.OutBack).SetTarget(rt).SetUpdate(true));
-            seq.Join(rt.DOScale(Vector3.one, _popDuration).SetEase(Ease.OutBack).SetUpdate(true));
-            seq.Join(CreateColorTween(icon, visible, Mathf.Min(0.08f, _popDuration)));
+                rt.anchorMin = new Vector2(0.5f, 0.5f);
+                rt.anchorMax = new Vector2(0.5f, 0.5f);
+                rt.pivot = new Vector2(0.5f, 0.5f);
+                rt.anchoredPosition = presentationPosition;
+                rt.localScale = _iconDefaultScale;
+                rt.localRotation = _iconDefaultRotation;
+                _iconImage.color = visible;
+            });
 
-            // 흔들기
+            // Shake.
             seq.Append(
                 rt.DOShakeRotation(_shakeDuration, new Vector3(0f, 0f, _shakeAngle), 12, 90f, false)
                     .SetUpdate(true));
 
             seq.AppendCallback(() => onImpact?.Invoke(flight.Result));
-
-            // 다시 들어가기
-            seq.Append(
-                DOTween.To(
-                    () => rt.anchoredPosition,
-                    value => rt.anchoredPosition = value,
-                    anchorPosition,
-                    _returnDuration).SetEase(Ease.InBack).SetTarget(rt).SetUpdate(true));
-            seq.Join(rt.DOScale(Vector3.zero, _returnDuration).SetEase(Ease.InBack).SetUpdate(true));
-            seq.Join(CreateColorTween(icon, hidden, _returnDuration));
+            seq.AppendCallback(() => _iconImage.gameObject.SetActive(false));
 
             return seq;
         }
@@ -222,29 +200,6 @@ namespace SlotRogue.UI.SlotPresentation
             return new Vector2(localCenter.x, localCenter.y);
         }
 
-        private Image CreateIconClone(RectTransform parent)
-        {
-            Image clone = Instantiate(
-                _iconImage,
-                parent != null ? parent : _iconImage.transform.parent,
-                false);
-            _iconClones.Add(clone);
-            return clone;
-        }
-
-        private void DestroyIconClones()
-        {
-            for (int index = 0; index < _iconClones.Count; index++)
-            {
-                if (_iconClones[index] != null)
-                {
-                    Destroy(_iconClones[index].gameObject);
-                }
-            }
-
-            _iconClones.Clear();
-        }
-
         private void CacheIconDefaultsIfNeeded()
         {
             if (_hasCachedIconDefaults || _iconImage == null)
@@ -253,11 +208,17 @@ namespace SlotRogue.UI.SlotPresentation
             }
 
             _iconDefaultSprite = _iconImage.sprite;
+            _iconDefaultColor = _iconImage.color;
             _iconDefaultEnabled = _iconImage.enabled;
+            _iconDefaultPreserveAspect = _iconImage.preserveAspect;
+            _iconDefaultRaycastTarget = _iconImage.raycastTarget;
 
             if (_iconImage.transform is RectTransform rt)
             {
                 _iconDefaultAnchoredPosition = rt.anchoredPosition;
+                _iconDefaultAnchorMin = rt.anchorMin;
+                _iconDefaultAnchorMax = rt.anchorMax;
+                _iconDefaultPivot = rt.pivot;
                 _iconDefaultScale = rt.localScale;
                 _iconDefaultRotation = rt.localRotation;
             }
@@ -267,22 +228,30 @@ namespace SlotRogue.UI.SlotPresentation
 
         private void RestoreState()
         {
-            DestroyIconClones();
-
             if (!_hasCachedIconDefaults || _iconImage == null)
             {
                 return;
             }
 
+            _iconImage.transform.DOKill(complete: true);
+            _iconImage.DOKill(complete: true);
             _iconImage.sprite = _iconDefaultSprite;
+            _iconImage.color = _iconDefaultColor;
             _iconImage.enabled = _iconDefaultEnabled;
+            _iconImage.preserveAspect = _iconDefaultPreserveAspect;
+            _iconImage.raycastTarget = _iconDefaultRaycastTarget;
 
             if (_iconImage.transform is RectTransform rt)
             {
+                rt.anchorMin = _iconDefaultAnchorMin;
+                rt.anchorMax = _iconDefaultAnchorMax;
+                rt.pivot = _iconDefaultPivot;
                 rt.anchoredPosition = _iconDefaultAnchoredPosition;
                 rt.localScale = _iconDefaultScale;
                 rt.localRotation = _iconDefaultRotation;
             }
+
+            _iconImage.gameObject.SetActive(false);
         }
 
         private IEnumerator PlayTween(Tween tween, Func<bool> shouldSkip)
@@ -309,22 +278,6 @@ namespace SlotRogue.UI.SlotPresentation
             {
                 _activeTween = null;
             }
-        }
-
-        private static Tween CreateColorTween(Image image, Color targetColor, float duration)
-        {
-            if (image == null)
-            {
-                return null;
-            }
-
-            return DOTween.To(
-                    () => image.color,
-                    value => image.color = value,
-                    targetColor,
-                    duration)
-                .SetTarget(image)
-                .SetUpdate(true);
         }
 
         private void KillActiveTween()

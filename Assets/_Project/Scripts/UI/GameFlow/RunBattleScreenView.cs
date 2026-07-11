@@ -21,6 +21,8 @@ namespace SlotRogue.UI.GameFlow
         ICombatStatusPresentationCommands
     {
         [SerializeField] private RunBattlePlayerHudView _playerHudView;
+        [SerializeField] private RectTransform _playerStatusPanelRoot;
+        [SerializeField] private StatusEffectIconSet _statusEffectIconSet;
         [SerializeField] private RunBattleSlotBoardView _slotBoardView;
         [SerializeField] private RunBattleSpinButtonView _actionView;
         [SerializeField] private RunBattleShopView _shopView;
@@ -48,6 +50,7 @@ namespace SlotRogue.UI.GameFlow
         private bool _hasRenderedShopBoardVisibility;
         private bool _shopBoardTransitionActive;
         private bool _shopBoardVisible;
+        private PlayerStatusPanelView _playerStatusPanelView;
 
         private readonly struct SlotShutterRestPose
         {
@@ -101,6 +104,8 @@ namespace SlotRogue.UI.GameFlow
             _shopFlipSequence?.Kill();
             _shopFlipSequence = null;
             _shopBoardTransitionActive = false;
+            _playerStatusPanelView?.Dispose();
+            _playerStatusPanelView = null;
             UnsubscribeActions();
         }
 
@@ -136,10 +141,13 @@ namespace SlotRogue.UI.GameFlow
         public bool EnsureReferences()
         {
             _worldView?.EnsureReferences();
+            EnsurePlayerStatusPanel();
 
             // 슬롯 셔터 연출·보유유물 아이콘 줄은 선택 요소다. 미배선이어도 각자 null-guard되므로
             // 필수 참조에서 제외한다(없으면 셔터 연출/보유유물 표시만 생략).
             bool complete = _playerHudView != null &&
+                _playerStatusPanelRoot != null &&
+                _statusEffectIconSet != null &&
                 _slotBoardView != null &&
                 _actionView != null &&
                 _shopView != null &&
@@ -157,6 +165,18 @@ namespace SlotRogue.UI.GameFlow
             }
 
             return complete;
+        }
+
+        private void EnsurePlayerStatusPanel()
+        {
+            if (_playerStatusPanelView == null &&
+                _playerStatusPanelRoot != null &&
+                _statusEffectIconSet != null)
+            {
+                _playerStatusPanelView = new PlayerStatusPanelView(
+                    _playerStatusPanelRoot,
+                    _statusEffectIconSet);
+            }
         }
 
         public bool HasRequiredControls()
@@ -186,6 +206,7 @@ namespace SlotRogue.UI.GameFlow
 
             bool shopVisible = state.RelicShop?.Visible == true;
             _playerHudView?.Render(state);
+            _playerStatusPanelView?.Render(state.PlayerStatuses);
             _slotBoardView?.Render(state);
             _actionView?.Render(state);
             RenderShopBoardTransition(shopVisible);
@@ -769,6 +790,10 @@ namespace SlotRogue.UI.GameFlow
             var missing = new List<string>();
             if (_playerHudView == null)
                 missing.Add("Player HUD View");
+            if (_playerStatusPanelRoot == null)
+                missing.Add("Player Status Panel Root");
+            if (_statusEffectIconSet == null)
+                missing.Add("Status Effect Icon Set");
             if (_slotBoardView == null)
                 missing.Add("Slot Board View");
             if (_actionView == null)
@@ -895,6 +920,6 @@ namespace SlotRogue.UI.GameFlow
             _subscribedShopButton.onClick.RemoveListener(HandleRelicShopToggleRequested);
             _subscribedShopButton = null;
         }
-
     }
+
 }

@@ -104,6 +104,7 @@ namespace SlotRogue.UI.GameFlow
                 player.MaxHp,
                 combatViewModel.PlayerShield,
                 Mathf.Max(1, player.MaxHp));
+            _vm.SetPlayerStatuses(combatViewModel.GetStatuses(player.Id));
         }
 
         internal int[] UpdateEnemySlots(

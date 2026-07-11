@@ -28,6 +28,7 @@ namespace SlotRogue.UI.RunGame
         private bool _reportedMissingReferences;
         private int _iconVersion;
 
+        private readonly SlotSymbolTmpSpriteAssetBinder _descriptionSpriteAssetBinder = new();
         private AddressableSpriteProvider _relicIconProvider;
         private CancellationTokenSource _iconCts;
 
@@ -46,6 +47,7 @@ namespace SlotRogue.UI.RunGame
             _iconCts = null;
             _relicIconProvider?.Dispose();
             _relicIconProvider = null;
+            _descriptionSpriteAssetBinder.Dispose();
         }
 
         public void Bind(RunInventoryViewModel viewModel, IRunGameFlow presenter)
@@ -160,7 +162,9 @@ namespace SlotRogue.UI.RunGame
             {
                 GameObject clone = Instantiate(_cellTemplate, _cellsContainer);
                 clone.name = $"Frame ({_cellPool.Count})";
-                _cellPool.Add(RunInventoryCell.Resolve(clone));
+                RunInventoryCell cell = RunInventoryCell.Resolve(clone);
+                cell.ApplyRelicDescriptionSpriteAsset(_descriptionSpriteAssetBinder);
+                _cellPool.Add(cell);
             }
         }
 
@@ -187,6 +191,7 @@ namespace SlotRogue.UI.RunGame
 
                 RunInventoryRelicViewState relic = relics[index];
                 ApplyRelicIcon(cell, relic.IconKey);
+                cell.ApplyRelicDescriptionSpriteAsset(_descriptionSpriteAssetBinder);
                 cell.SetRelicText(relic.Name, relic.Description);
             }
         }
