@@ -1,7 +1,7 @@
 # 전투 피해 VFX
 
 **Status**: draft  
-**Last updated**: 2026-07-11
+**Last updated**: 2026-07-12
 
 ## Purpose
 
@@ -58,6 +58,18 @@ Core는 피해량·대상·사망 여부의 권위만 가진다. `CueHub`, Anima
 
 일반 module은 `ICombatDamageVFXModule.PlayAsync(context, cancellationToken)`을 구현한다. cue만 수신하는 module은 `ICombatDamageVFXCueSubscriber.Subscribe(context, cueHub, cancellationToken)`을 구현한다. 한 module은 필요하면 두 계약을 모두 구현할 수 있지만, 현재 Spark는 cue subscriber만 구현한다.
 
+## Current implementation and use
+
+현재 `PlayerDirectDamage` set에는 HitFlash·SlashCut·SparkParticle module이 등록되어 있다. 직접 피해가 Replay되면 runner는 HitFlash와 Slash를 즉시 시작하고, Spark는 `Impact` cue를 수신할 때만 생성한다. Spark particle prefab의 아트·움직임·머티리얼 폴리싱과 실제 RunGame 검증은 보류 상태이며, 이는 cue/module 호출 구조의 구현 완료와 분리한다.
+
+재개 시에는 다음만 수행하면 된다.
+
+1. non-looping `ParticleSystem` prefab을 준비한다.
+2. `EnemyFormationSlot`의 `SparkParticleDamageVFXModule._sparkPrefab`에 할당한다.
+3. RunGame에서 `NotifyImpact` 프레임, sorting order, lifetime, 연속 피격·적 사망 시 정리를 확인한다.
+
+Particle System의 burst·속도·drag·Stretched Billboard·머티리얼은 prefab authoring 영역이다. 이 값들은 module 코드나 Core 이벤트를 수정하지 않고 언제든 조정할 수 있다.
+
 ## CueHub 호출 흐름
 
 `CombatDamageVFXCueHub`은 피해 요청 하나에만 존재하는 순수 C# 중계 객체다. runner가 생성하고, cue subscriber를 먼저 등록하며, VFX 완료·취소 뒤 구독을 해제하고 폐기한다. scene object나 static event가 아니므로 다른 적·다른 피해 요청으로 신호가 섞이지 않는다.
@@ -106,6 +118,10 @@ sequenceDiagram
 3. Slash prefab의 clip에 `NotifyImpact`와 `NotifyAnimationCompleted` Animation Event를 넣는다.
 4. Spark module의 `_sparkPrefab`에 non-looping particle prefab을 연결한다.
 5. RunGame에서 위치, sorting order, lifetime, 연속 피격·사망·다음 적 등장 시 정리 상태를 확인한다.
+
+### Deferred particle polish
+
+Spark particle은 현재 기술 경로만 마련하고 아트 폴리싱은 보류한다. 아티스트 리소스 또는 충분한 튜닝 시간이 생기기 전까지는 particle의 텍스처·머티리얼·색·burst·감속·Stretched Billboard 값을 완료 기준으로 삼지 않는다. 이 기간에도 HitFlash와 SlashCut의 기존 직접 피해 연출은 독립적으로 유지된다.
 
 ## Extension rules
 

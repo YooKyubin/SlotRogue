@@ -39,8 +39,9 @@
 - 2026-07-11: slash prefab을 `PlayerDirectDamage` set에 연결하고 `World` sorting layer/order 10으로 설정했다. Unity Editor에서 재생과 Animation Event 뒤 인스턴스 제거를 수동 확인했다.
 - 2026-07-11: 3-B 완료. 요청 단위 `CombatDamageVFXCueHub`를 runner가 생성·폐기하고, Spark module을 먼저 구독시킨다. Slash clip의 `NotifyImpact` Animation Event가 cue를 발행하면 `SparkParticleDamageVFXModule`이 해당 월드 위치에 particle prefab을 생성하고 종료까지 기다린다. Spark prefab 직렬화 연결과 Unity Editor 재생 확인은 3-C에서 수행한다.
 - 2026-07-11: 3-C 확인 중 slash clip이 끝난 뒤 Spark lifetime을 기다리면서 마지막 sprite가 남는 문제를 확인했다. `NotifyAnimationCompleted`에서 slash renderer만 먼저 숨기고, Spark 완료 뒤 instance를 정리하도록 수정했다. Unity Editor 재확인이 남아 있다.
+- 2026-07-12: Spark particle prefab의 아트·움직임 폴리싱과 RunGame 연결 검증은 보류한다. CueHub 구독·발행과 `SparkParticleDamageVFXModule`의 생성·대기·정리 코드는 완료 상태로 유지하며, 재개 절차는 [`combat-damage-vfx.md`](../../design-docs/combat-damage-vfx.md)에 기록한다.
 - 완료 커밋: `9deb520 feat: 피해 VFX 조합 타입 추가`.
-- 다음 작업은 slash renderer 숨김 뒤 Spark의 Impact 시점·위치·lifetime과 연속 피격 정리를 Unity Editor에서 재확인하는 3-C다.
+- 다음 작업은 보류한 Spark prefab 연결 뒤 Impact 시점·위치·lifetime과 연속 피격 정리를 Unity Editor에서 재확인하는 3-C다.
 
 ## Checklist
 
@@ -54,7 +55,7 @@
 - [x] 2-C. `PlayerDirectDamage` set에 white override `HitFlash` 연결 및 Unity 확인 — Codex
 - [x] 3-A. `SlashCutDamageVFXModule` 구현 — Codex
 - [x] 3-B. `SparkParticleDamageVFXModule` 구현 — Codex
-- [ ] 3-C. slash prefab, spark particle 연결 및 타이밍 확인 — Codex
+- [ ] 3-C. slash prefab, spark particle 연결 및 타이밍 확인 — Codex _(보류: particle 아트/튜닝 재개 시)_
 
 ## Verification
 

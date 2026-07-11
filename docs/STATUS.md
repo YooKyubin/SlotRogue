@@ -1,6 +1,6 @@
 ﻿# 프로젝트 상태
 
-_Last updated: 2026-07-11_
+_Last updated: 2026-07-12_
 
 ---
 
@@ -42,7 +42,7 @@ _Last updated: 2026-07-11_
 
 **Run Battle 전투 연출** — [`feature-run-battle-presentation`](./exec-plans/completed/feature-run-battle-presentation.md) **완료** (2026-06-01): RunBattle Replay 연동.
 
-**전투 피해 VFX 조합형 모듈** — [`feature-combat-damage-vfx`](./exec-plans/active/feature-combat-damage-vfx.md): 플레이어 직접 피해를 시작으로 피해 종류별 VFX profile을 `MonoBehaviour` module 조합으로 재생하는 presentation 경로를 단계적으로 추가한다. `SpriteRenderer.color` 기반 구현은 `TintFlashDamageVFXModule`로 분리했으며, `VFXSprite` shader/material과 `MaterialPropertyBlock` 기반 white override `HitFlashDamageVFXModule`을 추가했다. `PlayerDirectDamage`에 Animator Event 완료형 `SlashCutDamageVFXModule`과 `World` sorting layer slash prefab을 연결해 Unity Editor 수동 확인을 마쳤고, 다음 단계는 `SparkParticleDamageVFXModule` 구현이다.
+**전투 피해 VFX 조합형 모듈** — [`feature-combat-damage-vfx`](./exec-plans/active/feature-combat-damage-vfx.md): 플레이어 직접 피해를 시작으로 피해 종류별 VFX profile을 `MonoBehaviour` module 조합으로 재생하는 presentation 경로를 단계적으로 추가한다. `HitFlash`·`SlashCut`과 요청 단위 `CombatDamageVFXCueHub` 기반 `SparkParticleDamageVFXModule`까지 구현했으며, Slash `Impact` Animation Event가 Spark cue를 발행한다. Spark particle prefab의 아트 폴리싱·RunGame 연결·수동 검증은 보류하고, 코드 적용 방식과 재개 절차는 [`combat-damage-vfx.md`](./design-docs/combat-damage-vfx.md)에 기록한다.
 
 **다인전 전투 확장 (Core)** — [`feature-multi-participant-combat`](./exec-plans/completed/feature-multi-participant-combat.md) **완료** (2026-06-03): ADR-0004 roster·타겟·멀티히트·적 턴 + EditMode 테스트.
 
