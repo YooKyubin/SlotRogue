@@ -60,12 +60,12 @@ Core는 피해량·대상·사망 여부의 권위만 가진다. `CueHub`, Anima
 
 ## Current implementation and use
 
-현재 `PlayerDirectDamage` set에는 HitFlash·SlashCut·SparkParticle module이 등록되어 있다. 직접 피해가 Replay되면 runner는 HitFlash와 Slash를 즉시 시작하고, Spark는 `Impact` cue를 수신할 때만 생성한다. Spark particle prefab의 아트·움직임·머티리얼 폴리싱과 실제 RunGame 검증은 보류 상태이며, 이는 cue/module 호출 구조의 구현 완료와 분리한다.
+현재 `PlayerDirectDamage` set에는 HitFlash·SlashCut만 등록되어 있다. 직접 피해가 Replay되면 runner는 두 module을 즉시 시작한다. `SparkParticleDamageVFXModule` component와 CueHub 호출 구조는 유지하되, particle 아트·움직임·머티리얼 폴리싱과 실제 RunGame 검증을 보류하는 동안에는 set에서 제외해 구독·생성을 일으키지 않는다.
 
 재개 시에는 다음만 수행하면 된다.
 
 1. non-looping `ParticleSystem` prefab을 준비한다.
-2. `EnemyFormationSlot`의 `SparkParticleDamageVFXModule._sparkPrefab`에 할당한다.
+2. `EnemyFormationSlot`의 `SparkParticleDamageVFXModule._sparkPrefab`에 할당하고, `PlayerDirectDamage` set에 component를 다시 등록한다.
 3. RunGame에서 `NotifyImpact` 프레임, sorting order, lifetime, 연속 피격·적 사망 시 정리를 확인한다.
 
 Particle System의 burst·속도·drag·Stretched Billboard·머티리얼은 prefab authoring 영역이다. 이 값들은 module 코드나 Core 이벤트를 수정하지 않고 언제든 조정할 수 있다.

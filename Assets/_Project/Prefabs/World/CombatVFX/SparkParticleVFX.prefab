@@ -116,7 +116,7 @@ ParticleSystem:
     startLifetime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.35
+      scalar: 0.2
       minScalar: 0.18
       maxCurve:
         serializedVersion: 2
@@ -169,7 +169,7 @@ ParticleSystem:
     startSpeed:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 5
+      scalar: 8.77
       minScalar: 2
       maxCurve:
         serializedVersion: 2
@@ -287,7 +287,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.14
+      scalar: 0.12
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -751,7 +751,7 @@ ParticleSystem:
     sphericalDirectionAmount: 0
     randomPositionAmount: 0
     radius:
-      value: 0.1
+      value: 0.35
       mode: 0
       spread: 0
       speed:
@@ -980,7 +980,7 @@ ParticleSystem:
       countCurve:
         serializedVersion: 2
         minMaxState: 0
-        scalar: 8
+        scalar: 10
         minScalar: 8
         maxCurve:
           serializedVersion: 2
@@ -2634,7 +2634,7 @@ ParticleSystem:
     magnitude:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.2
+      scalar: 2
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -2688,7 +2688,7 @@ ParticleSystem:
     inWorldSpace: 0
     multiplyDragByParticleSize: 1
     multiplyDragByParticleVelocity: 1
-    dampen: 0.5
+    dampen: 0.3
     drag:
       serializedVersion: 2
       minMaxState: 0
@@ -4869,7 +4869,7 @@ ParticleSystemRenderer:
   m_MinParticleSize: 0
   m_MaxParticleSize: 0.5
   m_CameraVelocityScale: 0
-  m_VelocityScale: 0.1
+  m_VelocityScale: 0.05
   m_LengthScale: 1
   m_SortingFudge: 0
   m_NormalDirection: 1

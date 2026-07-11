@@ -941,7 +941,6 @@ MonoBehaviour:
     _modules:
     - {fileID: 4017459142390439712}
     - {fileID: 3814079657761002183}
-    - {fileID: 6714899913778202650}
   _statusEffectRoot: {fileID: 728450995424023123}
   _statusEffectIconPrefab: {fileID: 2479965767819659198, guid: 74f263931e0f2d94896a68498b746ebe, type: 3}
   _intentRoot: {fileID: 429236092112441516}
