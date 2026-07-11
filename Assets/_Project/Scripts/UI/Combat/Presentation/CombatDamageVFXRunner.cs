@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -10,7 +11,7 @@ namespace SlotRogue.UI.Combat.Presentation
         private readonly HashSet<CombatDamageVFXProfile> _missingSetWarningsLogged = new();
         private readonly HashSet<string> _invalidModuleWarningsLogged = new();
 
-        public UniTask PlayAsync(
+        public async UniTask PlayAsync(
             CombatDamageVFXRequest request,
             IReadOnlyList<CombatDamageVFXSet> sets,
             GameObject targetObject,
@@ -21,35 +22,67 @@ namespace SlotRogue.UI.Combat.Presentation
             if (!TryFindSet(request.Profile, sets, out CombatDamageVFXSet damageVFXSet))
             {
                 LogMissingSetWarning(request.Profile);
-                return UniTask.CompletedTask;
+                return;
             }
 
             IReadOnlyList<MonoBehaviour> modules = damageVFXSet.Modules;
-            var tasks = new List<UniTask>();
-            CombatDamageVFXContext context = new(request, targetObject, effectRoot, damageAnchor);
+            using var cueHub = new CombatDamageVFXCueHub();
+            var subscriptions = new List<IDisposable>();
+            CombatDamageVFXContext context = new(request, targetObject, effectRoot, damageAnchor, cueHub);
 
-            for (int index = 0; index < modules.Count; index++)
+            try
             {
-                MonoBehaviour module = modules[index];
-                if (module == null)
+                for (int index = 0; index < modules.Count; index++)
                 {
-                    LogInvalidModuleWarning(request.Profile, index, "module reference is missing");
-                    continue;
+                    MonoBehaviour module = modules[index];
+                    if (module == null)
+                    {
+                        LogInvalidModuleWarning(request.Profile, index, "module reference is missing");
+                        continue;
+                    }
+
+                    if (module is ICombatDamageVFXCueSubscriber cueSubscriber)
+                    {
+                        subscriptions.Add(cueSubscriber.Subscribe(context, cancellationToken));
+                    }
                 }
 
-                if (module is not ICombatDamageVFXModule damageVFXModule)
+                var tasks = new List<UniTask>();
+                for (int index = 0; index < modules.Count; index++)
                 {
-                    LogInvalidModuleWarning(
-                        request.Profile,
-                        index,
-                        $"{module.GetType().Name} does not implement ICombatDamageVFXModule");
-                    continue;
+                    MonoBehaviour module = modules[index];
+                    if (module == null)
+                    {
+                        continue;
+                    }
+
+                    if (module is ICombatDamageVFXModule damageVFXModule)
+                    {
+                        tasks.Add(damageVFXModule.PlayAsync(context, cancellationToken));
+                        continue;
+                    }
+
+                    if (module is not ICombatDamageVFXCueSubscriber)
+                    {
+                        LogInvalidModuleWarning(
+                            request.Profile,
+                            index,
+                            $"{module.GetType().Name} does not implement a Damage VFX module contract");
+                    }
                 }
 
-                tasks.Add(damageVFXModule.PlayAsync(context, cancellationToken));
+                if (tasks.Count > 0)
+                {
+                    await UniTask.WhenAll(tasks);
+                }
             }
-
-            return tasks.Count > 0 ? UniTask.WhenAll(tasks) : UniTask.CompletedTask;
+            finally
+            {
+                for (int index = subscriptions.Count - 1; index >= 0; index--)
+                {
+                    subscriptions[index].Dispose();
+                }
+            }
         }
 
         private static bool TryFindSet(

@@ -43,6 +43,7 @@ namespace SlotRogue.UI.Combat.Presentation
 
             SlashCutVFXPlayer slashPlayer = Instantiate(_slashPrefab, context.EffectRoot);
             ConfigureTransform(slashPlayer.transform);
+            slashPlayer.ConfigureCueHub(context.CueHub, cancellationToken);
             _activeSlashPlayers.Add(slashPlayer);
 
             try

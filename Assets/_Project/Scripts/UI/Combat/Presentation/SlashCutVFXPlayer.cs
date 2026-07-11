@@ -18,6 +18,10 @@ namespace SlotRogue.UI.Combat.Presentation
         [SerializeField] private string _animationStateName = "Slash";
 
         private SlashCutPlaybackState _currentPlayback;
+        private CombatDamageVFXCueHub _cueHub;
+        private CancellationToken _cancellationToken;
+        private UniTask _impactTask;
+        private bool _impactRaised;
 
         private void OnDisable()
         {
@@ -37,6 +41,8 @@ namespace SlotRogue.UI.Combat.Presentation
             }
 
             CancelPlayback();
+            _impactTask = UniTask.CompletedTask;
+            _impactRaised = false;
             var playback = new SlashCutPlaybackState();
             _currentPlayback = playback;
             int stateHash = Animator.StringToHash(_animationStateName);
@@ -53,11 +59,47 @@ namespace SlotRogue.UI.Combat.Presentation
             }
         }
 
+        public void ConfigureCueHub(CombatDamageVFXCueHub cueHub, CancellationToken cancellationToken)
+        {
+            _cueHub = cueHub;
+            _cancellationToken = cancellationToken;
+        }
+
+        /// <summary>
+        /// slash 애니메이션의 명중 프레임 Animation Event가 호출한다.
+        /// </summary>
+        public void NotifyImpact()
+        {
+            if (_impactRaised)
+            {
+                return;
+            }
+
+            _impactRaised = true;
+            _impactTask = _cueHub != null
+                ? _cueHub.PublishImpactAsync(transform.position, _cancellationToken)
+                : UniTask.CompletedTask;
+        }
+
         /// <summary>
         /// slash 애니메이션 마지막 프레임의 Animation Event가 호출한다.
         /// </summary>
         public void NotifyAnimationCompleted()
         {
+            CompleteAfterImpactAsync().Forget();
+        }
+
+        private async UniTaskVoid CompleteAfterImpactAsync()
+        {
+            try
+            {
+                await _impactTask;
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
             SlashCutPlaybackState completedPlayback = DetachCurrentPlayback();
             if (completedPlayback == null)
             {

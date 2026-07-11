@@ -14,12 +14,14 @@ namespace SlotRogue.UI.Combat.Presentation
             CombatDamageVFXRequest request,
             GameObject targetObject,
             Transform effectRoot,
-            RectTransform damageAnchor)
+            RectTransform damageAnchor,
+            CombatDamageVFXCueHub cueHub)
         {
             Request = request;
             TargetObject = targetObject;
             EffectRoot = effectRoot;
             DamageAnchor = damageAnchor;
+            CueHub = cueHub;
         }
 
         public CombatDamageVFXRequest Request { get; }
@@ -29,5 +31,7 @@ namespace SlotRogue.UI.Combat.Presentation
         public Transform EffectRoot { get; }
 
         public RectTransform DamageAnchor { get; }
+
+        public CombatDamageVFXCueHub CueHub { get; }
     }
 }

@@ -134,7 +134,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -201,7 +201,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 30649d3a9faa99c48a7b1166b86bf2a0, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.HorizontalLayoutGroup
   m_Padding:
     m_Left: 0
@@ -588,6 +588,7 @@ GameObject:
   - component: {fileID: 9187630377755564576}
   - component: {fileID: 4017459142390439712}
   - component: {fileID: 3814079657761002183}
+  - component: {fileID: 6714899913778202650}
   m_Layer: 0
   m_Name: DamageVFXModules
   m_TagString: Untagged
@@ -655,6 +656,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.Combat.Presentation.SlashCutDamageVFXModule
   _slashPrefab: {fileID: 3249070616175942087, guid: 0f193d039068be848bf31e10adfa945d, type: 3}
+  _localPosition: {x: 0, y: 0, z: 0}
+--- !u!114 &6714899913778202650
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3003453714586158367}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20beac2c52bc461ab950567f10d8c3a4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.Combat.Presentation.SparkParticleDamageVFXModule
+  _sparkPrefab: {fileID: 8847796098740386008, guid: 249f0dbd4573c564d849e7f7749986b9, type: 3}
   _localPosition: {x: 0, y: 0, z: 0}
 --- !u!1 &3869769238842465685
 GameObject:
@@ -926,6 +941,7 @@ MonoBehaviour:
     _modules:
     - {fileID: 4017459142390439712}
     - {fileID: 3814079657761002183}
+    - {fileID: 6714899913778202650}
   _statusEffectRoot: {fileID: 728450995424023123}
   _statusEffectIconPrefab: {fileID: 2479965767819659198, guid: 74f263931e0f2d94896a68498b746ebe, type: 3}
   _intentRoot: {fileID: 429236092112441516}
