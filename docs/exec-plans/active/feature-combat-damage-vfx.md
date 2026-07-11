@@ -35,8 +35,10 @@
 - 2026-07-10: 2-B 검토 중 시각 목표를 정정했다. `SpriteRenderer.color` 기반 구현은 tint flash로 이름을 분리하고, `PlayerDirectDamage`용 HitFlash는 shader 또는 `MaterialPropertyBlock` 기반으로 `FlashAmount`를 tween해 sprite RGB를 white override하고 alpha는 유지하는 별도 module로 구현한다.
 - 2026-07-11: 2-B 완료. `VFXSprite` shader/material과 `HitFlashDamageVFXModule`을 추가했다. 공통 `EnemyCombatVisualBase`가 VFX material을 사용하며, module은 renderer별 `MaterialPropertyBlock`의 `_FlashColor`/`_FlashAmount`만 tween하고 취소·비활성화 시 amount를 0으로 복구한다.
 - 2026-07-11: 2-C 완료. `PlayerDirectDamage` set을 white override `HitFlashDamageVFXModule`로 연결했고, Unity Editor에서 의도한 흰색 flash 동작을 수동 확인했다.
+- 2026-07-11: 3-A 완료. `SlashCutDamageVFXModule`이 Damage VFX Effect Root 아래에 slash prefab을 생성하고, `SlashCutVFXPlayer`가 Animator의 마지막 Animation Event 완료 신호를 기다린 뒤 인스턴스를 정리하도록 구현했다. `DamageAnchor`는 사용하지 않는다.
+- 2026-07-11: slash prefab을 `PlayerDirectDamage` set에 연결하고 `World` sorting layer/order 10으로 설정했다. Unity Editor에서 재생과 Animation Event 뒤 인스턴스 제거를 수동 확인했다.
 - 완료 커밋: `9deb520 feat: 피해 VFX 조합 타입 추가`.
-- 다음 작업은 `SlashCutDamageVFXModule` 구현(3-A)이다.
+- 다음 작업은 `SparkParticleDamageVFXModule` 구현(3-B)과 slash prefab 연결·타이밍 확인(3-C)이다.
 
 ## Checklist
 
@@ -48,7 +50,7 @@
 - [x] 2-A. `TintFlashDamageVFXModule` 구현 및 임시 연결 — Codex
 - [x] 2-B. white override `HitFlashDamageVFXModule` 신규 구현 — Codex
 - [x] 2-C. `PlayerDirectDamage` set에 white override `HitFlash` 연결 및 Unity 확인 — Codex
-- [ ] 3-A. `SlashCutDamageVFXModule` 구현 — Codex
+- [x] 3-A. `SlashCutDamageVFXModule` 구현 — Codex
 - [ ] 3-B. `SparkParticleDamageVFXModule` 구현 — Codex
 - [ ] 3-C. slash prefab, spark particle 연결 및 타이밍 확인 — Codex
 
@@ -60,7 +62,8 @@
 - [ ] 상태 피해, 반사 피해, 몬스터 공격 피해에서는 직접 피해 VFX가 발생하지 않는다.
 - [x] shield에 전부 막힌 피해는 `PlayerDirectDamage` VFX를 재생하지 않는다.
 - [ ] `HitFlash`가 연속 피격, 사망, 다음 몬스터 등장 후에도 색상을 복구한다.
-- [ ] `SlashCut`과 `SparkParticle`이 올바른 몬스터 슬롯 위치에서 재생되고 lifetime 뒤 제거된다.
+- [x] `SlashCut`이 Damage VFX Effect Root 위치에서 재생되고 Animation Event 뒤 제거된다.
+- [ ] `SparkParticle`이 올바른 몬스터 슬롯 위치에서 재생되고 lifetime 뒤 제거된다.
 
 ## Handoff Notes
 
@@ -72,6 +75,7 @@
 - `SpriteRenderer.color = Color.white`는 원본 texture 색에 tint를 곱하는 동작이라 몬스터 전체를 흰색으로 치환하지 않는다. `PlayerDirectDamage` HitFlash는 shader/material property로 `finalRgb = lerp(originalRgb, flashColor, flashAmount)`, `finalAlpha = originalAlpha` 형태를 목표로 한다.
 - white override flash 구현 시 renderer별 shared material을 직접 수정하지 않는다. 가능하면 `MaterialPropertyBlock`으로 `_FlashAmount` / `_FlashColor` 같은 per-renderer 값을 tween하고, 종료·취소·비활성화 시 0으로 복구한다.
 - `TintFlashDamageVFXModule`은 상태 피해나 약한 피격 표현 후보로 보류한다. `PlayerDirectDamage` set에 임시 연결되어 있으면 2-C에서 white override `HitFlashDamageVFXModule`로 교체한다.
+- `SlashCutDamageVFXModule`은 `DamageAnchor`가 아니라 `DamageVFXEffectRoot` 아래에 slash prefab을 생성한다. prefab의 `SlashCutVFXPlayer.NotifyAnimationCompleted`를 slash clip 마지막 프레임 Animation Event로 연결한다.
 
 ## Refactor Follow-ups
 
