@@ -134,7 +134,6 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
-            canceledPlayback.Cancel();
             canceledPlayback.Dispose();
         }
 
