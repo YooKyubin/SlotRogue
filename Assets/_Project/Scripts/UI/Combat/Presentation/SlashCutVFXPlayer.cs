@@ -15,6 +15,7 @@ namespace SlotRogue.UI.Combat.Presentation
         private const float RestartFromBeginning = 0f;
 
         [SerializeField] private Animator _animator;
+        [SerializeField] private SpriteRenderer _slashRenderer;
         [SerializeField] private string _animationStateName = "Slash";
 
         private SlashCutPlaybackState _currentPlayback;
@@ -22,6 +23,7 @@ namespace SlotRogue.UI.Combat.Presentation
         private CancellationToken _cancellationToken;
         private UniTask _impactTask;
         private bool _impactRaised;
+        private bool _missingRendererWarningLogged;
 
         private void OnDisable()
         {
@@ -35,12 +37,13 @@ namespace SlotRogue.UI.Combat.Presentation
 
         public async UniTask PlayAsync(CancellationToken cancellationToken)
         {
-            if (!ValidateAnimator() || !ValidateAnimationStateName())
+            if (!ValidateAnimator() || !ValidateSlashRenderer() || !ValidateAnimationStateName())
             {
                 return;
             }
 
             CancelPlayback();
+            ShowSlashRenderer();
             _impactTask = UniTask.CompletedTask;
             _impactRaised = false;
             var playback = new SlashCutPlaybackState();
@@ -86,6 +89,7 @@ namespace SlotRogue.UI.Combat.Presentation
         /// </summary>
         public void NotifyAnimationCompleted()
         {
+            HideSlashRenderer();
             CompleteAfterImpactAsync().Forget();
         }
 
@@ -152,6 +156,38 @@ namespace SlotRogue.UI.Combat.Presentation
                 "[SlashCutVFXPlayer] Animation state name is empty. Assign the slash Animator state name.",
                 this);
             return false;
+        }
+
+        private bool ValidateSlashRenderer()
+        {
+            if (_slashRenderer != null)
+            {
+                return true;
+            }
+
+            if (_missingRendererWarningLogged)
+            {
+                return false;
+            }
+
+            _missingRendererWarningLogged = true;
+            Debug.LogError(
+                "[SlashCutVFXPlayer] Slash SpriteRenderer reference is missing. Assign the slash prefab renderer.",
+                this);
+            return false;
+        }
+
+        private void ShowSlashRenderer()
+        {
+            _slashRenderer.enabled = true;
+        }
+
+        private void HideSlashRenderer()
+        {
+            if (_slashRenderer != null)
+            {
+                _slashRenderer.enabled = false;
+            }
         }
     }
 

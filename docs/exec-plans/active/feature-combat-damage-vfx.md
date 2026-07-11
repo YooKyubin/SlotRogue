@@ -38,8 +38,9 @@
 - 2026-07-11: 3-A 완료. `SlashCutDamageVFXModule`이 Damage VFX Effect Root 아래에 slash prefab을 생성하고, `SlashCutVFXPlayer`가 Animator의 마지막 Animation Event 완료 신호를 기다린 뒤 인스턴스를 정리하도록 구현했다. `DamageAnchor`는 사용하지 않는다.
 - 2026-07-11: slash prefab을 `PlayerDirectDamage` set에 연결하고 `World` sorting layer/order 10으로 설정했다. Unity Editor에서 재생과 Animation Event 뒤 인스턴스 제거를 수동 확인했다.
 - 2026-07-11: 3-B 완료. 요청 단위 `CombatDamageVFXCueHub`를 runner가 생성·폐기하고, Spark module을 먼저 구독시킨다. Slash clip의 `NotifyImpact` Animation Event가 cue를 발행하면 `SparkParticleDamageVFXModule`이 해당 월드 위치에 particle prefab을 생성하고 종료까지 기다린다. Spark prefab 직렬화 연결과 Unity Editor 재생 확인은 3-C에서 수행한다.
+- 2026-07-11: 3-C 확인 중 slash clip이 끝난 뒤 Spark lifetime을 기다리면서 마지막 sprite가 남는 문제를 확인했다. `NotifyAnimationCompleted`에서 slash renderer만 먼저 숨기고, Spark 완료 뒤 instance를 정리하도록 수정했다. Unity Editor 재확인이 남아 있다.
 - 완료 커밋: `9deb520 feat: 피해 VFX 조합 타입 추가`.
-- 다음 작업은 Spark particle prefab을 `PlayerDirectDamage` set에 연결하고, slash Impact 시점·위치·lifetime을 Unity Editor에서 확인하는 3-C다.
+- 다음 작업은 slash renderer 숨김 뒤 Spark의 Impact 시점·위치·lifetime과 연속 피격 정리를 Unity Editor에서 재확인하는 3-C다.
 
 ## Checklist
 

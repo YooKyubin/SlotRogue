@@ -69,6 +69,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.Combat.Presentation.SlashCutVFXPlayer
   _animator: {fileID: 494865707436857203}
+  _slashRenderer: {fileID: 1955721760324396946}
   _animationStateName: Slash
 --- !u!212 &1955721760324396946
 SpriteRenderer:

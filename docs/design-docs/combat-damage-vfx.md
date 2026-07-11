@@ -53,7 +53,7 @@ Core는 피해량·대상·사망 여부의 권위만 가진다. `CueHub`, Anima
 | Module | 시작 시점 | 완료 기준 | 역할 |
 |---|---|---|---|
 | `HitFlashDamageVFXModule` | Damage VFX 요청 직후 | flash tween 종료 | 대상 sprite RGB를 white override하고 alpha를 보존한다. |
-| `SlashCutDamageVFXModule` | Damage VFX 요청 직후 | slash clip 완료 및 Impact 반응 완료 | slash prefab을 Effect Root 아래에 생성한다. |
+| `SlashCutDamageVFXModule` | Damage VFX 요청 직후 | slash clip 시각 종료 및 Impact 반응 완료 | slash prefab을 Effect Root 아래에 생성한다. |
 | `SparkParticleDamageVFXModule` | `Impact` cue 수신 | particle lifetime 종료 | 명중 월드 위치에 non-looping particle prefab을 생성한다. |
 
 일반 module은 `ICombatDamageVFXModule.PlayAsync(context, cancellationToken)`을 구현한다. cue만 수신하는 module은 `ICombatDamageVFXCueSubscriber.Subscribe(context, cueHub, cancellationToken)`을 구현한다. 한 module은 필요하면 두 계약을 모두 구현할 수 있지만, 현재 Spark는 cue subscriber만 구현한다.
@@ -76,8 +76,9 @@ sequenceDiagram
     L->>P: CueHub 전달 후 slash 재생
     P->>H: NotifyImpact() → PublishImpactAsync(position)
     H->>S: Impact cue 전달
+    P->>P: NotifyAnimationCompleted() → slash renderer 숨김
     S-->>P: particle 종료 후 완료
-    P-->>L: NotifyAnimationCompleted 후 완료
+    P-->>L: slash playback 완료
     L-->>R: slash instance 제거
     R->>H: 구독 해제 및 폐기
 ```
@@ -86,13 +87,14 @@ sequenceDiagram
 
 - `NotifyImpact`는 slash clip의 명중 프레임 Animation Event에서 한 번만 호출한다.
 - cue payload는 현재 `WorldPosition`이다. Spark는 이를 `DamageVFXEffectRoot`의 local 좌표로 변환해 생성한다.
-- `NotifyAnimationCompleted`는 마지막 Animation Event다. Impact 이후 particle이 남아 있으면 완료를 미뤄, slash와 Spark의 정리 순서를 보장한다.
+- `NotifyAnimationCompleted`는 마지막 Animation Event다. 먼저 slash `SpriteRenderer`를 숨겨 마지막 프레임이 남지 않게 하고, Impact 이후 particle이 남아 있으면 완료를 미뤄 instance 정리 순서를 보장한다.
 - cue subscriber는 Slash module이나 `SlashCutVFXPlayer`를 직접 참조하지 않는다. 이후 타격음·camera shake·추가 파편도 같은 cue를 구독할 수 있다.
 
 ## Lifetime, cancellation, validation
 
 - Damage VFX 요청의 `CancellationToken`은 slash와 particle의 대기에 전달한다.
 - `SlashCutDamageVFXModule`과 `SparkParticleDamageVFXModule`은 비활성화·파괴 시 자신이 만든 runtime instance를 중지하고 제거한다.
+- `SlashCutVFXPlayer`는 clip 종료 시 slash renderer만 숨긴다. GameObject는 Spark 완료까지 유지하므로 CueHub 구독과 cancellation 수명은 끊기지 않는다.
 - `HitFlashDamageVFXModule`은 취소·비활성화 시 `MaterialPropertyBlock`의 flash amount를 0으로 복구한다.
 - profile, module, Effect Root, Spark prefab이 누락되면 조용히 대체하지 않고 명확한 오류를 남긴다.
 - Spark prefab은 non-looping `ParticleSystem`이어야 한다. loop particle은 `IsAlive` 대기를 끝내지 못하게 하므로 금지한다.
