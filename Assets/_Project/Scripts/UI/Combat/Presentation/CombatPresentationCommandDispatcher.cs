@@ -4,6 +4,9 @@ using SlotRogue.Core.Combat;
 
 namespace SlotRogue.UI.Combat.Presentation
 {
+    /// <summary>
+    /// Presenter의 전투 연출 명령을 실제 화면 대상 View/Registry로 전달하는 dispatcher다.
+    /// </summary>
     public sealed class CombatPresentationCommandDispatcher :
         ICombatPresentationCommands,
         ICombatStatusPresentationCommands
@@ -12,6 +15,7 @@ namespace SlotRogue.UI.Combat.Presentation
         private readonly TurnBannerView _turnBannerView;
         private readonly ICombatShieldGaugeRegistry _shieldGaugeRegistry;
         private readonly IEnemyCombatVisualPresentationTarget _enemyCombatVisualTarget;
+        private readonly ICombatDamageVFXPresentationTarget _damageVFXTarget;
         private readonly ICombatHealthBarPresentationTarget _healthBarPresentationTarget;
         private readonly ICombatStatusPresentationCommands _statusPresentationCommands;
 
@@ -20,6 +24,7 @@ namespace SlotRogue.UI.Combat.Presentation
             TurnBannerView turnBannerView,
             ICombatShieldGaugeRegistry shieldGaugeRegistry,
             IEnemyCombatVisualPresentationTarget enemyCombatVisualTarget,
+            ICombatDamageVFXPresentationTarget damageVFXTarget,
             ICombatHealthBarPresentationTarget healthBarPresentationTarget,
             ICombatStatusPresentationCommands statusPresentationCommands)
         {
@@ -27,6 +32,7 @@ namespace SlotRogue.UI.Combat.Presentation
             _turnBannerView = turnBannerView;
             _shieldGaugeRegistry = shieldGaugeRegistry;
             _enemyCombatVisualTarget = enemyCombatVisualTarget;
+            _damageVFXTarget = damageVFXTarget;
             _healthBarPresentationTarget = healthBarPresentationTarget;
             _statusPresentationCommands = statusPresentationCommands;
         }
@@ -72,6 +78,15 @@ namespace SlotRogue.UI.Combat.Presentation
         {
             return _floatingTextLayerView != null
                 ? _floatingTextLayerView.ShowFloatingCombatTextAsync(request, cancellationToken)
+                : UniTask.CompletedTask;
+        }
+
+        public UniTask ShowCombatDamageVFXAsync(
+            CombatDamageVFXRequest request,
+            CancellationToken cancellationToken)
+        {
+            return _damageVFXTarget != null
+                ? _damageVFXTarget.ShowCombatDamageVFXAsync(request, cancellationToken)
                 : UniTask.CompletedTask;
         }
 

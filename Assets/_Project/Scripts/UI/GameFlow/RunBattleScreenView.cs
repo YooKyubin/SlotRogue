@@ -17,6 +17,7 @@ namespace SlotRogue.UI.GameFlow
         ICombatShieldGaugeRegistry,
         ICombatHealthBarPresentationTarget,
         IEnemyCombatVisualPresentationTarget,
+        ICombatDamageVFXPresentationTarget,
         ICombatStatusPresentationCommands
     {
         [SerializeField] private RunBattlePlayerHudView _playerHudView;
@@ -320,6 +321,13 @@ namespace SlotRogue.UI.GameFlow
         {
             return _worldView != null
                 ? _worldView.PlayEnemyDeathAsync(participantId, cancellationToken)
+                : UniTask.CompletedTask;
+        }
+
+        public UniTask ShowCombatDamageVFXAsync(CombatDamageVFXRequest request, CancellationToken cancellationToken)
+        {
+            return _worldView != null
+                ? _worldView.ShowCombatDamageVFXAsync(request, cancellationToken)
                 : UniTask.CompletedTask;
         }
 
@@ -780,16 +788,26 @@ namespace SlotRogue.UI.GameFlow
         private string BuildMissingReferenceSummary()
         {
             var missing = new List<string>();
-            if (_playerHudView == null) missing.Add("Player HUD View");
-            if (_playerStatusPanelRoot == null) missing.Add("Player Status Panel Root");
-            if (_statusEffectIconSet == null) missing.Add("Status Effect Icon Set");
-            if (_slotBoardView == null) missing.Add("Slot Board View");
-            if (_actionView == null) missing.Add("Action View");
-            if (_shopView == null) missing.Add("Shop View");
-            if (_shopButton == null) missing.Add("Shop Button");
-            if (_currencyView == null) missing.Add("Currency View");
-            if (_presentationOverlayView == null) missing.Add("Presentation Overlay View");
-            if (_worldView == null) missing.Add("World View");
+            if (_playerHudView == null)
+                missing.Add("Player HUD View");
+            if (_playerStatusPanelRoot == null)
+                missing.Add("Player Status Panel Root");
+            if (_statusEffectIconSet == null)
+                missing.Add("Status Effect Icon Set");
+            if (_slotBoardView == null)
+                missing.Add("Slot Board View");
+            if (_actionView == null)
+                missing.Add("Action View");
+            if (_shopView == null)
+                missing.Add("Shop View");
+            if (_shopButton == null)
+                missing.Add("Shop Button");
+            if (_currencyView == null)
+                missing.Add("Currency View");
+            if (_presentationOverlayView == null)
+                missing.Add("Presentation Overlay View");
+            if (_worldView == null)
+                missing.Add("World View");
             return missing.Count > 0 ? string.Join(", ", missing) : "None";
         }
 

@@ -50,18 +50,24 @@ namespace SlotRogue.UI.Combat.Presentation
             var request = new FloatingCombatTextRequest(
                 FloatingCombatTextKind.Damage,
                 combatEvent.ApplyResult.DamageDealt,
-                combatEvent.Kind == CombatEventKind.EffectApplied && context.IsCritical,
+                ShouldUseDamageScaledFontSize(combatEvent),
                 combatEvent.IsPlayerParticipant,
                 combatEvent.TargetParticipantId);
 
             var presentationTasks = new List<UniTask>
             {
                 Host.Commands.ShowFloatingCombatTextAsync(request, cancellationToken),
-                Host.Commands.WaitHealthBarAsync(
-                    combatEvent.TargetParticipantId,
-                    combatEvent.IsPlayerParticipant,
-                    cancellationToken),
+                Host.Commands.WaitHealthBarAsync(combatEvent.TargetParticipantId, combatEvent.IsPlayerParticipant, cancellationToken),
             };
+
+            if (ShouldRequestPlayerDirectDamageVFX(combatEvent))
+            {
+                CombatDamageVFXRequest damageVFXRequest = new(
+                    CombatDamageVFXProfile.PlayerDirectDamage,
+                    combatEvent.TargetParticipantId,
+                    combatEvent.ApplyResult.DamageDealt);
+                presentationTasks.Add(Host.Commands.ShowCombatDamageVFXAsync(damageVFXRequest, cancellationToken));
+            }
 
             if (Host.StatusCommands != null)
             {
@@ -96,9 +102,7 @@ namespace SlotRogue.UI.Combat.Presentation
 
             if (ShouldPlayEnemyDeath(combatEvent))
             {
-                await Host.Commands.PlayEnemyDeathAsync(
-                    combatEvent.TargetParticipantId,
-                    cancellationToken);
+                await Host.Commands.PlayEnemyDeathAsync(combatEvent.TargetParticipantId, cancellationToken);
             }
         }
 
@@ -108,6 +112,25 @@ namespace SlotRogue.UI.Combat.Presentation
                 combatEvent.TargetParticipantId.IsValid &&
                 combatEvent.TargetBefore.Hp > 0 &&
                 combatEvent.TargetAfter.Hp <= 0;
+        }
+
+        private static bool ShouldRequestPlayerDirectDamageVFX(CombatEvent combatEvent)
+        {
+            return combatEvent.Kind == CombatEventKind.EffectApplied &&
+                combatEvent.Phase == BattlePhase.Resolving &&
+                !combatEvent.IsPlayerParticipant &&
+                combatEvent.TargetParticipantId.IsValid &&
+                combatEvent.Effect.Kind == CombatEffectKind.Damage &&
+                combatEvent.Effect.DamageOrigin == DamageOrigin.DirectAction &&
+                combatEvent.ApplyResult.DamageDealt > 0;
+        }
+
+        private static bool ShouldUseDamageScaledFontSize(CombatEvent combatEvent)
+        {
+            return !combatEvent.IsPlayerParticipant &&
+                combatEvent.Effect.Kind == CombatEffectKind.Damage &&
+                (combatEvent.Effect.DamageOrigin == DamageOrigin.DirectAction ||
+                 combatEvent.Effect.DamageOrigin == DamageOrigin.Status);
         }
     }
 }

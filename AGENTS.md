@@ -8,7 +8,8 @@
 
 - **내부 추론은 영어, 사용자 응답은 항상 한국어.** 예외 없음.
 - 문서 언어: **전부 한국어** (`AGENTS.md`, `DOCS-STRUCTURE.md`, `docs/`, `references/` 모두).
-- 코드 / 주석 / 식별자 / 파일명: **영어**.
+- 코드 / 식별자 / 파일명: **영어**.
+- 주석: **한국어 허용**. 단, 외부 API·엔진 관용 문구처럼 영어가 더 명확한 경우 영어도 허용.
 - 기술 용어는 원문 유지 (Addressables, ScriptableObject, asmdef, UniTask, DOTween 등).
 
 ---

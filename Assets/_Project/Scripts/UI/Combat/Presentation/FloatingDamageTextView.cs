@@ -2,10 +2,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using TMPro;
-
-#if DOTWEEN
 using DG.Tweening;
-#endif
 
 namespace SlotRogue.UI.Combat.Presentation
 {
@@ -18,25 +15,23 @@ namespace SlotRogue.UI.Combat.Presentation
         [SerializeField] private int _normalFontSize = 50;
         [SerializeField] private Color _normalColor = new Color32(255, 120, 120, 255);
 
+        [Header("Damage Font Scaling")]
+        [SerializeField] private bool _damageScaledFontSizeEnabled = true;
+        [SerializeField] private int _damageFontScaleMinAmount = 1;
+        [SerializeField] private int _damageFontScaleMaxAmount = 50;
+        [SerializeField] private float _damageFontScaleMinSize = 50f;
+        [SerializeField] private float _damageFontScaleMaxSize = 86f;
+
         [Header("Heal")]
         [SerializeField] private int _healFontSize = 50;
         [SerializeField] private Color _healColor = new Color32(120, 255, 160, 255);
         [SerializeField] private string _healPrefix = "+";
 
-        [Header("Critical")]
-        [SerializeField] private int _criticalFontSize = 34;
-        [SerializeField] private Color _criticalColor = new Color32(255, 210, 64, 255);
-        [SerializeField] private string _criticalPrefix = "[CRIT] ";
-        [SerializeField] private float _criticalPeakScale = 1.15f;
-        [SerializeField] private float _criticalScaleDuration = 0.15f;
-
         [Header("Motion")]
         [SerializeField] private float _duration = 0.55f;
         [SerializeField] private float _moveDistance = 22f;
-#if DOTWEEN
         [SerializeField] private Ease _moveEase = Ease.OutQuad;
         [SerializeField] private Ease _fadeEase = Ease.Linear;
-#endif
 
         private void Reset()
         {
@@ -46,9 +41,7 @@ namespace SlotRogue.UI.Combat.Presentation
 
         private void OnDisable()
         {
-#if DOTWEEN
             transform.DOKill(true);
-#endif
         }
 
         public async UniTask Play(
@@ -65,9 +58,7 @@ namespace SlotRogue.UI.Combat.Presentation
 
             try
             {
-                await PlayMotionAsync(
-                    request.Kind == FloatingCombatTextKind.Damage && request.IsCritical,
-                    cancellationToken);
+                await PlayMotionAsync(cancellationToken);
             }
             finally
             {
@@ -90,26 +81,41 @@ namespace SlotRogue.UI.Combat.Presentation
                     break;
                 case FloatingCombatTextKind.Damage:
                 default:
-                    bool isCritical = request.IsCritical;
-                    _text.fontSize = isCritical ? _criticalFontSize : _normalFontSize;
-                    _text.color = isCritical ? _criticalColor : _normalColor;
-                    _text.text = isCritical
-                        ? $"{_criticalPrefix}-{request.Amount}"
-                        : $"-{request.Amount}";
+                    _text.fontSize = ResolveDamageFontSize(request);
+                    _text.color = _normalColor;
+                    _text.text = $"-{request.Amount}";
                     break;
             }
 
             _rectTransform.localScale = Vector3.one;
         }
 
-        private async UniTask PlayMotionAsync(bool isCritical, CancellationToken cancellationToken)
+        private float ResolveDamageFontSize(FloatingCombatTextRequest request)
+        {
+            if (!_damageScaledFontSizeEnabled || !request.UseDamageScaledFontSize)
+            {
+                return _normalFontSize;
+            }
+
+            if (_damageFontScaleMaxAmount <= _damageFontScaleMinAmount)
+            {
+                return Mathf.Max(_damageFontScaleMinSize, _damageFontScaleMaxSize);
+            }
+
+            float t = Mathf.InverseLerp(
+                _damageFontScaleMinAmount,
+                _damageFontScaleMaxAmount,
+                request.Amount);
+            return Mathf.Lerp(_damageFontScaleMinSize, _damageFontScaleMaxSize, t);
+        }
+
+        private async UniTask PlayMotionAsync(CancellationToken cancellationToken)
         {
             if (_duration <= 0f)
             {
                 return;
             }
 
-#if DOTWEEN
             Vector2 startPosition = _rectTransform.anchoredPosition;
             Color startColor = _text.color;
 
@@ -130,38 +136,8 @@ namespace SlotRogue.UI.Combat.Presentation
                     _duration)
                 .SetEase(_fadeEase));
 
-            if (isCritical && _criticalPeakScale > 1f && _criticalScaleDuration > 0f)
-            {
-                sequence.Join(
-                    _rectTransform
-                        .DOScale(_criticalPeakScale, _criticalScaleDuration)
-                        .SetLoops(2, LoopType.Yoyo)
-                        .SetEase(Ease.OutQuad));
-            }
-
             sequence.SetLink(gameObject);
             await CombatPresentationTweens.AwaitTweenAsync(sequence, cancellationToken);
-#else
-            float elapsed = 0f;
-            Vector2 startPosition = _rectTransform.anchoredPosition;
-            Color startColor = _text.color;
-
-            while (elapsed < _duration)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                if (_text == null)
-                {
-                    return;
-                }
-
-                elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / _duration);
-                _rectTransform.anchoredPosition = startPosition + new Vector2(0f, _moveDistance * t);
-                _text.color = new Color(startColor.r, startColor.g, startColor.b, 1f - t);
-                await UniTask.Yield(PlayerLoopTiming.Update, cancellationToken);
-            }
-#endif
         }
     }
 }

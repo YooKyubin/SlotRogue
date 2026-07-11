@@ -34,7 +34,7 @@ MonoBehaviour:
       type: {class: StatusEffectDefinition, ns: SlotRogue.Data.Combat, asm: SlotRogue.Data}
       data:
         _statusKind: 6
-        _amount: 1
+        _amount: 2
         _target:
           _targetMode: 0
           _targetParticipantId: 0

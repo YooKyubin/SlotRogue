@@ -140,6 +140,16 @@ namespace SlotRogue.UI.GameFlow
                 : UniTask.CompletedTask;
         }
 
+        public UniTask ShowCombatDamageVFXAsync(
+            CombatDamageVFXRequest request,
+            CancellationToken cancellationToken)
+        {
+            EnsureReferences();
+            return _enemyFormationView != null
+                ? _enemyFormationView.ShowCombatDamageVFXAsync(request, cancellationToken)
+                : UniTask.CompletedTask;
+        }
+
         public ShieldGaugeView ResolveEnemyShieldGauge(CombatParticipantId participantId)
         {
             EnsureReferences();
@@ -210,7 +220,8 @@ namespace SlotRogue.UI.GameFlow
         private string BuildMissingReferenceSummary()
         {
             var missing = new System.Collections.Generic.List<string>();
-            if (_battleShakeRoot == null) missing.Add("Battle Shake Root");
+            if (_battleShakeRoot == null)
+                missing.Add("Battle Shake Root");
             if (_enemyFormationView == null)
             {
                 missing.Add("Enemy Formation View");

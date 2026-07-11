@@ -32,7 +32,7 @@ namespace SlotRogue.UI.Combat.Presentation
             var request = new FloatingCombatTextRequest(
                 FloatingCombatTextKind.Heal,
                 combatEvent.ApplyResult.HealApplied,
-                isCritical: false,
+                useDamageScaledFontSize: false,
                 combatEvent.IsPlayerParticipant,
                 combatEvent.TargetParticipantId);
 

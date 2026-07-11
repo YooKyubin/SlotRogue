@@ -80,6 +80,54 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
         }
 
         [Test]
+        public async Task PresentAsync_PlayerDirectResolvingEnemyDamageRequestsDamageVFX()
+        {
+            var hostObject = new GameObject("Presentation Host");
+            try
+            {
+                var commands = new DamageRecordingCommands();
+                var presenter = new DamagePresenter(new CombatPresentationHost(hostObject, commands));
+                var targetParticipantId = new CombatParticipantId(101);
+                var combatEvent = new CombatEvent(
+                    CombatEventKind.EffectApplied,
+                    BattlePhase.Resolving,
+                    effect: new CombatEffect(
+                        CombatEffectKind.Damage,
+                        amount: 4,
+                        CombatEffectTarget.Enemy),
+                    applyResult: new EffectApplyResult(
+                        damageDealt: 4,
+                        shieldConsumed: 0,
+                        shieldGained: 0,
+                        healApplied: 0),
+                    isPlayerParticipant: false,
+                    targetParticipantId: targetParticipantId,
+                    targetAfter: new CombatParticipantSnapshot(hp: 6, shield: 0));
+
+                Task presentTask = presenter.PresentAsync(
+                        combatEvent,
+                        new CombatViewModel(),
+                        new PresentationContext(isCritical: false, patternName: string.Empty),
+                        CancellationToken.None)
+                    .AsTask();
+
+                await Task.Yield();
+                Assert.That(commands.DamageVFXCallCount, Is.EqualTo(1));
+                Assert.That(commands.LastDamageVFXRequest.Profile, Is.EqualTo(CombatDamageVFXProfile.PlayerDirectDamage));
+                Assert.That(commands.LastDamageVFXRequest.TargetParticipantId.Value, Is.EqualTo(targetParticipantId.Value));
+                Assert.That(commands.LastDamageVFXRequest.DamageAmount, Is.EqualTo(4));
+
+                commands.CompleteFloatingDamage();
+                commands.CompleteHealthBar();
+                await presentTask;
+            }
+            finally
+            {
+                Object.DestroyImmediate(hostObject);
+            }
+        }
+
+        [Test]
         public async Task PresentAsync_LethalEnemyDamageWaitsThenPlaysEnemyDeath()
         {
             var hostObject = new GameObject("Presentation Host");
@@ -266,6 +314,8 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 commands.CompleteFloatingDamage();
                 commands.CompleteHealthBar();
                 await presentTask;
+
+                Assert.That(commands.DamageVFXCallCount, Is.EqualTo(0));
             }
             finally
             {
@@ -408,6 +458,10 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
 
             public int ShieldBreakCallCount { get; private set; }
 
+            public int DamageVFXCallCount { get; private set; }
+
+            public CombatDamageVFXRequest LastDamageVFXRequest { get; private set; }
+
             public CombatParticipantId LastHealthBarParticipantId { get; private set; }
 
             public bool LastHealthBarIsPlayerTarget { get; private set; }
@@ -466,6 +520,15 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
             {
                 FloatingDamageCallCount++;
                 return WaitAsync(_floatingDamageCompletion, cancellationToken);
+            }
+
+            public UniTask ShowCombatDamageVFXAsync(
+                CombatDamageVFXRequest request,
+                CancellationToken cancellationToken)
+            {
+                DamageVFXCallCount++;
+                LastDamageVFXRequest = request;
+                return UniTask.CompletedTask;
             }
 
             public UniTask WaitHealthBarAsync(
@@ -678,6 +741,14 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
 
             public UniTask ShowFloatingCombatTextAsync(
                 FloatingCombatTextRequest request,
+                CancellationToken cancellationToken)
+            {
+                OtherCommandCallCount++;
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask ShowCombatDamageVFXAsync(
+                CombatDamageVFXRequest request,
                 CancellationToken cancellationToken)
             {
                 OtherCommandCallCount++;
@@ -907,6 +978,13 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 return UniTask.CompletedTask;
             }
 
+            public UniTask ShowCombatDamageVFXAsync(
+                CombatDamageVFXRequest request,
+                CancellationToken cancellationToken)
+            {
+                return UniTask.CompletedTask;
+            }
+
             public UniTask WaitHealthBarAsync(
                 CombatParticipantId participantId,
                 bool isPlayerTarget,
@@ -1107,6 +1185,14 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
 
             public UniTask ShowFloatingCombatTextAsync(
                 FloatingCombatTextRequest request,
+                CancellationToken cancellationToken)
+            {
+                OtherCommandCallCount++;
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask ShowCombatDamageVFXAsync(
+                CombatDamageVFXRequest request,
                 CancellationToken cancellationToken)
             {
                 OtherCommandCallCount++;
