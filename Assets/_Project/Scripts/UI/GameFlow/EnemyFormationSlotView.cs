@@ -74,6 +74,7 @@ namespace SlotRogue.UI.GameFlow
         private GameObject _combatVisualPrefab;
         private GameObject _combatVisualInstance;
         private IEnemyCombatVisual _combatVisual;
+        private bool _combatVisualIdlePlaybackPending;
         private bool _visualRootMissingWarningLogged;
         private bool _combatVisualMissingWarningLogged;
         private bool _damageVFXTargetMissingWarningLogged;
@@ -141,7 +142,7 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
-            PlayCombatVisualIdle();
+            _combatVisualIdlePlaybackPending = true;
         }
 
         public void SetPortraitSprite(Sprite portraitSprite)
@@ -154,6 +155,7 @@ namespace SlotRogue.UI.GameFlow
             _deathTween?.Kill();
             _combatVisualPrefab = null;
             _combatVisual = null;
+            _combatVisualIdlePlaybackPending = false;
             DestroyCombatVisualInstance();
         }
 
@@ -298,7 +300,11 @@ namespace SlotRogue.UI.GameFlow
             _combatVisual.PlayIdle();
         }
 
-        public void SetActive(bool active)
+        /// <summary>
+        /// 슬롯의 표시 수명주기를 전환한다.
+        /// 새 전투 비주얼의 최초 Idle 재생은 Root가 활성화된 뒤에만 시작한다.
+        /// </summary>
+        public void SetPresentationActive(bool active)
         {
             if (Root != null)
             {
@@ -313,6 +319,12 @@ namespace SlotRogue.UI.GameFlow
             if (active && _deathPresented)
             {
                 HideDeathPresentation();
+            }
+
+            if (active && _combatVisualIdlePlaybackPending)
+            {
+                _combatVisualIdlePlaybackPending = false;
+                PlayCombatVisualIdle();
             }
         }
 

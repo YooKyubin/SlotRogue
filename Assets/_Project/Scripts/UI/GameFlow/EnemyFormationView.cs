@@ -302,7 +302,7 @@ namespace SlotRogue.UI.GameFlow
             EnemyFormationSlotView formationSlotView,
             RunBattleEnemySlotState state)
         {
-            formationSlotView.SetActive(state.Active);
+            formationSlotView.SetPresentationActive(state.Active);
             if (!state.Active)
             {
                 return;
