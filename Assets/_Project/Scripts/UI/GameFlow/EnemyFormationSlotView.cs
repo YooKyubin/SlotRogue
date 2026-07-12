@@ -53,19 +53,16 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private CombatDamageVFXSet[] _damageVFXSets = Array.Empty<CombatDamageVFXSet>();
 
         [Header("Status Effects")]
-        [SerializeField] private RectTransform _statusEffectRoot;
-        [SerializeField] private GameObject _statusEffectIconPrefab;
+        [SerializeField] private EnemyStatusEffectListView _statusEffectListView;
 
         [Header("Intent")]
         [SerializeField] private Transform _intentRoot;
         [SerializeField] private EnemyIntentIconView _intentIconPrefab;
 
         private readonly CombatDamageVFXRunner _damageVFXRunner = new();
-        private readonly Dictionary<StatusEffectKind, EnemyStatusEffectIconView> _statusEffectIconsByKind = new();
         private readonly List<EnemyIntentIconView> _intentIcons = new();
         private UnityAction _clickHandler;
         private bool _interactable = true;
-        private bool _statusEffectMissingReferenceWarningLogged;
         private bool _intentMissingReferenceWarningLogged;
         private float _hpFillMaxWidth;
         private bool _hpFillLayoutInitialized;
@@ -400,9 +397,7 @@ namespace SlotRogue.UI.GameFlow
 
         public UniTask WaitHpFillAsync(CancellationToken cancellationToken)
         {
-            return SlotRogue.UI.Combat.Presentation.CombatPresentationTweens.AwaitTweenAsync(
-                _hpFillTween,
-                cancellationToken);
+            return SlotRogue.UI.Combat.Presentation.CombatPresentationTweens.AwaitTweenAsync(_hpFillTween, cancellationToken);
         }
 
         public void SetShield(int shield)
@@ -429,128 +424,29 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
-            if (!HasStatusEffectReferences())
-            {
-                return;
-            }
-
-            var activeKinds = new HashSet<StatusEffectKind>();
-            int statusCount = statuses != null ? statuses.Count : 0;
-            for (int index = 0; index < statusCount; index++)
-            {
-                StatusEffectViewData status = statuses[index];
-                activeKinds.Add(status.Kind);
-                if (!_statusEffectIconsByKind.TryGetValue(
-                        status.Kind,
-                        out EnemyStatusEffectIconView icon))
-                {
-                    icon = CreateStatusEffectIcon(status.Kind);
-                    if (icon == null)
-                    {
-                        return;
-                    }
-
-                    _statusEffectIconsByKind.Add(status.Kind, icon);
-                }
-
-                icon.gameObject.SetActive(true);
-                icon.Set(status);
-            }
-
-            var removedKinds = new List<StatusEffectKind>();
-            foreach (KeyValuePair<StatusEffectKind, EnemyStatusEffectIconView> pair in _statusEffectIconsByKind)
-            {
-                if (!activeKinds.Contains(pair.Key))
-                {
-                    DestroyStatusEffectIcon(pair.Value);
-                    removedKinds.Add(pair.Key);
-                }
-            }
-
-            for (int index = 0; index < removedKinds.Count; index++)
-            {
-                _statusEffectIconsByKind.Remove(removedKinds[index]);
-            }
+            _statusEffectListView.SetStatusEffects(statuses);
         }
 
-        public async UniTask AddStatusAsync(
-            StatusEffectViewData status,
-            CancellationToken cancellationToken)
+        public UniTask AddStatusAsync(StatusEffectViewData status, CancellationToken cancellationToken)
         {
-            if (!HasStatusEffectReferences())
-            {
-                return;
-            }
-
-            if (!_statusEffectIconsByKind.TryGetValue(
-                    status.Kind,
-                    out EnemyStatusEffectIconView icon))
-            {
-                icon = CreateStatusEffectIcon(status.Kind);
-                if (icon == null)
-                {
-                    return;
-                }
-
-                _statusEffectIconsByKind.Add(status.Kind, icon);
-                await icon.ShowAsync(status, cancellationToken);
-                return;
-            }
-
-            await icon.UpdateValueAsync(status, cancellationToken);
+            return _statusEffectListView.AddStatusAsync(status, cancellationToken);
         }
 
-        public UniTask UpdateStatusValueAsync(
-            StatusEffectViewData status,
-            CancellationToken cancellationToken)
+        public UniTask UpdateStatusValueAsync(StatusEffectViewData status, CancellationToken cancellationToken)
         {
-            if (!_statusEffectIconsByKind.TryGetValue(
-                    status.Kind,
-                    out EnemyStatusEffectIconView icon))
-            {
-                Debug.LogError(
-                    $"[EnemyFormationSlotView] Cannot update missing status icon '{status.Kind}'.",
-                    this);
-                return UniTask.CompletedTask;
-            }
-
-            return icon.UpdateValueAsync(status, cancellationToken);
+            return _statusEffectListView.UpdateStatusValueAsync(status, cancellationToken);
         }
 
         public UniTask PlayStatusActivationAsync(
             StatusEffectKind kind,
             CancellationToken cancellationToken)
         {
-            if (!_statusEffectIconsByKind.TryGetValue(
-                    kind,
-                    out EnemyStatusEffectIconView icon))
-            {
-                Debug.LogError(
-                    $"[EnemyFormationSlotView] Cannot animate missing status icon '{kind}'.",
-                    this);
-                return UniTask.CompletedTask;
-            }
-
-            return icon.PlayActivationAsync(cancellationToken);
+            return _statusEffectListView.PlayStatusActivationAsync(kind, cancellationToken);
         }
 
-        public async UniTask RemoveStatusAsync(
-            StatusEffectKind kind,
-            CancellationToken cancellationToken)
+        public UniTask RemoveStatusAsync(StatusEffectKind kind, CancellationToken cancellationToken)
         {
-            if (!_statusEffectIconsByKind.TryGetValue(
-                    kind,
-                    out EnemyStatusEffectIconView icon))
-            {
-                Debug.LogError(
-                    $"[EnemyFormationSlotView] Cannot remove missing status icon '{kind}'.",
-                    this);
-                return;
-            }
-
-            await icon.HideAsync(cancellationToken);
-            _statusEffectIconsByKind.Remove(kind);
-            DestroyStatusEffectIcon(icon);
+            return _statusEffectListView.RemoveStatusAsync(kind, cancellationToken);
         }
 
         public void SetUpcomingActions(IReadOnlyList<EnemyUpcomingActionViewData> upcomingActions)
@@ -743,9 +639,9 @@ namespace SlotRogue.UI.GameFlow
                 _hudRoot.gameObject.SetActive(true);
             }
 
-            if (_statusEffectRoot != null)
+            if (_statusEffectListView != null)
             {
-                _statusEffectRoot.gameObject.SetActive(true);
+                _statusEffectListView.gameObject.SetActive(true);
             }
         }
 
@@ -763,9 +659,9 @@ namespace SlotRogue.UI.GameFlow
                 _hudRoot.gameObject.SetActive(false);
             }
 
-            if (_statusEffectRoot != null)
+            if (_statusEffectListView != null)
             {
-                _statusEffectRoot.gameObject.SetActive(false);
+                _statusEffectListView.gameObject.SetActive(false);
             }
 
             if (_intentRoot != null)
@@ -794,52 +690,6 @@ namespace SlotRogue.UI.GameFlow
                 Color color = spriteRenderer.color;
                 color.a = 1f;
                 spriteRenderer.color = color;
-            }
-        }
-
-        private bool HasStatusEffectReferences()
-        {
-            if (_statusEffectRoot == null)
-            {
-                LogMissingStatusEffectReferenceWarning("Status Effect Root");
-                return false;
-            }
-
-            if (_statusEffectIconPrefab == null)
-            {
-                LogMissingStatusEffectReferenceWarning("Status Effect Icon Prefab");
-                return false;
-            }
-
-            return true;
-        }
-
-        private EnemyStatusEffectIconView CreateStatusEffectIcon(StatusEffectKind kind)
-        {
-            GameObject iconObject = Instantiate(_statusEffectIconPrefab, _statusEffectRoot);
-            iconObject.name = $"Status Effect Icon {kind}";
-
-            EnemyStatusEffectIconView icon = iconObject.GetComponent<EnemyStatusEffectIconView>();
-            if (icon == null)
-            {
-                Destroy(iconObject);
-                LogMissingStatusEffectReferenceWarning("EnemyStatusEffectIconView component on Status Effect Icon Prefab");
-                return null;
-            }
-
-            iconObject.SetActive(false);
-            return icon;
-        }
-
-        private static void DestroyStatusEffectIcon(EnemyStatusEffectIconView icon)
-        {
-            if (Application.isPlaying)
-            {
-                Destroy(icon.gameObject);
-            }
-            else
-            {
-                DestroyImmediate(icon.gameObject);
             }
         }
 
@@ -880,19 +730,6 @@ namespace SlotRogue.UI.GameFlow
                     icon.gameObject.SetActive(false);
                 }
             }
-        }
-
-        private void LogMissingStatusEffectReferenceWarning(string missingReferenceName)
-        {
-            if (_statusEffectMissingReferenceWarningLogged)
-            {
-                return;
-            }
-
-            _statusEffectMissingReferenceWarningLogged = true;
-            Debug.LogWarning(
-                $"[EnemyFormationSlotView] {missingReferenceName} is missing. " +
-                "Status effect icons will not be shown for this slot.");
         }
 
         private void LogMissingIntentReferenceWarning(string missingReferenceName)

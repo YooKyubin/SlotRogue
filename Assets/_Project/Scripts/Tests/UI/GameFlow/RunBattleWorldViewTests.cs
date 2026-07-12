@@ -427,7 +427,7 @@ namespace SlotRogue.UI.Tests.GameFlow
                     visualRoot: visualRoot.transform);
 
                 view.PlayDeathAsync(CancellationToken.None).GetAwaiter().GetResult();
-                view.SetActive(true);
+                view.SetPresentationActive(true);
                 view.SetHud("Should Not Render");
                 view.SetUpcomingActions(new[]
                 {
