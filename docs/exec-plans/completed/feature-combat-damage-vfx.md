@@ -1,6 +1,6 @@
 # 전투 피해 VFX 조합형 모듈
 
-**Status**: active  
+**Status**: completed  
 **Started**: 2026-07-09  
 **Owner**: Codex  
 **Contributors**: _(없음)_  
@@ -93,6 +93,6 @@
 
 ## Completion
 
-- **Finished**:
-- **Outcome**:
-- **Follow-ups**:
+- **Finished**: 2026-07-12
+- **Outcome**: `PlayerDirectDamage`의 HitFlash·SlashCut과 조합형 Damage VFX profile/module 전달 경로를 구현했다. 다수 적 슬롯의 비활성 Animator 경고는 슬롯 표시 활성화 뒤 최초 Idle을 재생하도록 수정했다.
+- **Follow-ups**: SparkParticle prefab의 아트·직렬화 연결·RunGame 수동 검증을 별도 작업으로 재개한다. 구조 리팩터링은 Status Effect icon 목록 View 분리, Intent icon 목록 View 분리, CombatVisual 생성·행동·사망 연출 View 분리, HP/shielded HP bar View 분리 순서로 검토한다.
