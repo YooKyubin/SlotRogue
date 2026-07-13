@@ -56,14 +56,11 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private EnemyStatusEffectListView _statusEffectListView;
 
         [Header("Intent")]
-        [SerializeField] private Transform _intentRoot;
-        [SerializeField] private EnemyIntentIconView _intentIconPrefab;
+        [SerializeField] private EnemyIntentListView _intentListView;
 
         private readonly CombatDamageVFXRunner _damageVFXRunner = new();
-        private readonly List<EnemyIntentIconView> _intentIcons = new();
         private UnityAction _clickHandler;
         private bool _interactable = true;
-        private bool _intentMissingReferenceWarningLogged;
         private float _hpFillMaxWidth;
         private bool _hpFillLayoutInitialized;
         private bool _hpFillRendered;
@@ -212,10 +209,9 @@ namespace SlotRogue.UI.GameFlow
 
             _deathPresented = true;
             SetInteractable(false);
-            HideIntentIcons(startIndex: 0);
-            if (_intentRoot != null)
+            if (_intentListView != null)
             {
-                _intentRoot.gameObject.SetActive(false);
+                _intentListView.gameObject.SetActive(false);
             }
 
             if (_combatVisualInstance == null)
@@ -457,42 +453,7 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
-            int actionCount = upcomingActions != null ? upcomingActions.Count : 0;
-            if (_intentRoot != null)
-            {
-                _intentRoot.gameObject.SetActive(actionCount > 0);
-            }
-
-            if (actionCount == 0)
-            {
-                HideIntentIcons(startIndex: 0);
-                return;
-            }
-
-            if (_intentRoot == null)
-            {
-                LogMissingIntentReferenceWarning("Intent Root");
-                return;
-            }
-
-            if (_intentIconPrefab == null)
-            {
-                LogMissingIntentReferenceWarning("Intent Icon Prefab");
-                return;
-            }
-
-            EnsureIntentIconCount(actionCount);
-
-            for (int index = 0; index < _intentIcons.Count; index++)
-            {
-                EnemyIntentIconView icon = _intentIcons[index];
-                bool active = index < actionCount;
-                icon.gameObject.SetActive(active);
-                if (active)
-                {
-                    icon.Set(upcomingActions[index]);
-                }
-            }
+            _intentListView.Render(upcomingActions);
         }
 
         public void SetSelected(bool selected)
@@ -664,9 +625,9 @@ namespace SlotRogue.UI.GameFlow
                 _statusEffectListView.gameObject.SetActive(false);
             }
 
-            if (_intentRoot != null)
+            if (_intentListView != null)
             {
-                _intentRoot.gameObject.SetActive(false);
+                _intentListView.gameObject.SetActive(false);
             }
         }
 
@@ -691,58 +652,6 @@ namespace SlotRogue.UI.GameFlow
                 color.a = 1f;
                 spriteRenderer.color = color;
             }
-        }
-
-        private void EnsureIntentIconCount(int count)
-        {
-            while (_intentIcons.Count < count)
-            {
-                EnemyIntentIconView icon = CreateIntentIcon();
-                if (icon == null)
-                {
-                    return;
-                }
-
-                _intentIcons.Add(icon);
-            }
-        }
-
-        private EnemyIntentIconView CreateIntentIcon()
-        {
-            if (_intentIconPrefab == null || _intentRoot == null)
-            {
-                return null;
-            }
-
-            EnemyIntentIconView icon = Instantiate(_intentIconPrefab, _intentRoot);
-            icon.name = $"Intent Icon {_intentIcons.Count}";
-            icon.gameObject.SetActive(false);
-            return icon;
-        }
-
-        private void HideIntentIcons(int startIndex)
-        {
-            for (int index = startIndex; index < _intentIcons.Count; index++)
-            {
-                EnemyIntentIconView icon = _intentIcons[index];
-                if (icon != null)
-                {
-                    icon.gameObject.SetActive(false);
-                }
-            }
-        }
-
-        private void LogMissingIntentReferenceWarning(string missingReferenceName)
-        {
-            if (_intentMissingReferenceWarningLogged)
-            {
-                return;
-            }
-
-            _intentMissingReferenceWarningLogged = true;
-            Debug.LogWarning(
-                $"[EnemyFormationSlotView] {missingReferenceName} is missing. " +
-                "Enemy intent icons will not be shown for this slot.");
         }
 
         private void LogMissingVisualRootWarning()

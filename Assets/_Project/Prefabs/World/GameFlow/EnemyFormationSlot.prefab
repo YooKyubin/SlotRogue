@@ -362,6 +362,7 @@ GameObject:
   - component: {fileID: 429236092112441516}
   - component: {fileID: 8800461222521236412}
   - component: {fileID: 5275451658065394593}
+  - component: {fileID: 7196845023917602841}
   m_Layer: 0
   m_Name: IntentRoot
   m_TagString: Untagged
@@ -428,6 +429,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.ContentSizeFitter
   m_HorizontalFit: 2
   m_VerticalFit: 2
+--- !u!114 &7196845023917602841
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1554179762781672551}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c2b31a09e6f4d7c8b5a2e1f0d9c8b7a, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.EnemyIntentListView
+  _iconRoot: {fileID: 429236092112441516}
+  _iconPrefab: {fileID: 7975852844219345148, guid: 59fabc5a6746e704691aa1eb07411abe, type: 3}
 --- !u!1 &2337309137484765667
 GameObject:
   m_ObjectHideFlags: 0
@@ -957,8 +972,7 @@ MonoBehaviour:
     - {fileID: 4017459142390439712}
     - {fileID: 3814079657761002183}
   _statusEffectListView: {fileID: 1065841239764512387}
-  _intentRoot: {fileID: 429236092112441516}
-  _intentIconPrefab: {fileID: 7975852844219345148, guid: 59fabc5a6746e704691aa1eb07411abe, type: 3}
+  _intentListView: {fileID: 7196845023917602841}
 --- !u!1 &5233817760683525268
 GameObject:
   m_ObjectHideFlags: 0
