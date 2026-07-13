@@ -953,16 +953,7 @@ MonoBehaviour:
   _shakeGroup: {fileID: 5544154377086351525}
   _visualRoot: {fileID: 884222139430000001}
   _selectionIndicator: {fileID: 428745810277243998}
-  _hudRoot: {fileID: 7007034043896490227}
-  _hudText: {fileID: 0}
-  _hpFill: {fileID: 2146629859500977907}
-  _hpBarFrame: {fileID: 8585725545451199678}
-  _hpBarRoot: {fileID: 5785763370326782151}
-  _shieldGauge: {fileID: 2563102726358517046}
-  _normalHpFillSprite: {fileID: -7900870427792562562, guid: 94626e996a6d60d449d2892fdf83c9e0, type: 3}
-  _shieldedHpFillSprite: {fileID: -2578357195275736500, guid: 8c3dbe0559d4b124088cc9f3dd7c9b01, type: 3}
-  _normalHpBarFrameSprite: {fileID: -324552712357261979, guid: 91b069894149300448acda291d7afea5, type: 3}
-  _shieldedHpBarFrameSprite: {fileID: -324552712357261979, guid: 91b069894149300448acda291d7afea5, type: 3}
+  _healthHudView: {fileID: 4604089987715483491}
   _damageAnchor: {fileID: 7453423559490118063}
   _clickCollider: {fileID: 4201644066975238051}
   _damageVFXEffectRoot: {fileID: 5957300370784658955}
@@ -973,6 +964,28 @@ MonoBehaviour:
     - {fileID: 3814079657761002183}
   _statusEffectListView: {fileID: 1065841239764512387}
   _intentListView: {fileID: 7196845023917602841}
+--- !u!114 &4604089987715483491
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9104823617742193650}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c9bd88f4e8342de9473a9b619991742, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.EnemyHealthHudView
+  _hudRoot: {fileID: 7007034043896490227}
+  _hpText: {fileID: 0}
+  _hpFill: {fileID: 2146629859500977907}
+  _hpBarFrame: {fileID: 8585725545451199678}
+  _hpBarRoot: {fileID: 5785763370326782151}
+  _shieldGauge: {fileID: 2563102726358517046}
+  _normalHpFillSprite: {fileID: -7900870427792562562, guid: 94626e996a6d60d449d2892fdf83c9e0, type: 3}
+  _shieldedHpFillSprite: {fileID: -2578357195275736500, guid: 8c3dbe0559d4b124088cc9f3dd7c9b01, type: 3}
+  _normalHpBarFrameSprite: {fileID: -324552712357261979, guid: 91b069894149300448acda291d7afea5, type: 3}
+  _shieldedHpBarFrameSprite: {fileID: -324552712357261979, guid: 91b069894149300448acda291d7afea5, type: 3}
 --- !u!1 &5233817760683525268
 GameObject:
   m_ObjectHideFlags: 0
@@ -1172,6 +1185,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9104823617742193651}
+  - component: {fileID: 4604089987715483491}
   m_Layer: 0
   m_Name: Shield HP Row
   m_TagString: Untagged
