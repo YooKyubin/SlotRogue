@@ -1,6 +1,6 @@
 # 전투 피해 VFX 조합형 모듈
 
-**Status**: active  
+**Status**: completed  
 **Started**: 2026-07-09  
 **Owner**: Codex  
 **Contributors**: _(없음)_  
@@ -41,6 +41,7 @@
 - 2026-07-11: 3-C 확인 중 slash clip이 끝난 뒤 Spark lifetime을 기다리면서 마지막 sprite가 남는 문제를 확인했다. `NotifyAnimationCompleted`에서 slash renderer만 먼저 숨기고, Spark 완료 뒤 instance를 정리하도록 수정했다. Unity Editor 재확인이 남아 있다.
 - 2026-07-12: Spark particle prefab의 아트·움직임 폴리싱과 RunGame 연결 검증은 보류한다. CueHub 구독·발행과 `SparkParticleDamageVFXModule`의 생성·대기·정리 코드는 완료 상태로 유지하며, 재개 절차는 [`combat-damage-vfx.md`](../../design-docs/combat-damage-vfx.md)에 기록한다.
 - 2026-07-12: 보류 중 Spark가 runtime 요청을 받지 않도록 `PlayerDirectDamage` set에서 `SparkParticleDamageVFXModule`을 제거했다. component와 prefab은 유지하며, 재개 시 prefab 참조를 확인한 뒤 set에 다시 등록한다.
+- 2026-07-12: 다수 적 formation slot이 비활성인 상태에서 `Animator.Play`가 호출되던 순서를 수정했다. 전투 비주얼은 슬롯 Root가 활성화된 뒤 Idle을 한 번 재생한다.
 - 완료 커밋: `9deb520 feat: 피해 VFX 조합 타입 추가`.
 - 다음 작업은 보류한 Spark prefab 연결 뒤 Impact 시점·위치·lifetime과 연속 피격 정리를 Unity Editor에서 재확인하는 3-C다.
 
@@ -92,6 +93,6 @@
 
 ## Completion
 
-- **Finished**:
-- **Outcome**:
-- **Follow-ups**:
+- **Finished**: 2026-07-12
+- **Outcome**: `PlayerDirectDamage`의 HitFlash·SlashCut과 조합형 Damage VFX profile/module 전달 경로를 구현했다. 다수 적 슬롯의 비활성 Animator 경고는 슬롯 표시 활성화 뒤 최초 Idle을 재생하도록 수정했다.
+- **Follow-ups**: SparkParticle prefab의 아트·직렬화 연결·RunGame 수동 검증을 별도 작업으로 재개한다. 구조 리팩터링은 Status Effect icon 목록 View 분리, Intent icon 목록 View 분리, CombatVisual 생성·행동·사망 연출 View 분리, HP/shielded HP bar View 분리 순서로 검토한다.

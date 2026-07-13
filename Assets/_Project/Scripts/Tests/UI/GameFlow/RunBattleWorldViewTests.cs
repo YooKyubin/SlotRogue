@@ -272,7 +272,7 @@ namespace SlotRogue.UI.Tests.GameFlow
             var root = new GameObject("Enemy");
             try
             {
-                EnemyFormationSlotView view = root.AddComponent<EnemyFormationSlotView>();
+                EnemyHealthHudView healthHudView = root.AddComponent<EnemyHealthHudView>();
                 var bar = new GameObject("HP Bar", typeof(RectTransform));
                 RectTransform barRect = bar.GetComponent<RectTransform>();
                 barRect.SetParent(root.transform, false);
@@ -291,18 +291,9 @@ namespace SlotRogue.UI.Tests.GameFlow
                 fillRect.pivot = new Vector2(0.5f, 0.5f);
                 Image fill = fillObject.GetComponent<Image>();
 
-                ConfigureEnemyFormationSlot(
-                    view,
-                    root: root.transform,
-                    shakeGroup: null,
-                    hudRoot: null,
-                    hudText: null,
-                    hpFill: fill,
-                    shieldGauge: null,
-                    damageAnchor: null,
-                    clickCollider: null);
+                SetPrivateField(healthHudView, "_hpFill", fill);
 
-                view.SetHpFill(current: 5, max: 10);
+                healthHudView.SetHpFill(current: 5, max: 10);
 
                 Assert.That(fill.type, Is.EqualTo(Image.Type.Simple));
                 Assert.That(fillRect.anchorMin.x, Is.EqualTo(0f));
@@ -311,7 +302,7 @@ namespace SlotRogue.UI.Tests.GameFlow
                 Assert.That(fillRect.anchoredPosition.x, Is.EqualTo(5f).Within(0.001f));
                 Assert.That(fillRect.rect.width, Is.EqualTo(80f).Within(0.001f));
 
-                view.SetHpFill(current: 10, max: 10);
+                healthHudView.SetHpFill(current: 10, max: 10);
 
                 Assert.That(fillRect.anchoredPosition.x, Is.EqualTo(5f).Within(0.001f));
                 Assert.That(fillRect.rect.width, Is.EqualTo(160f).Within(0.001f));
@@ -332,7 +323,7 @@ namespace SlotRogue.UI.Tests.GameFlow
             Sprite shieldedFrame = CreateTestSprite("Shielded Frame");
             try
             {
-                EnemyFormationSlotView view = root.AddComponent<EnemyFormationSlotView>();
+                EnemyHealthHudView healthHudView = root.AddComponent<EnemyHealthHudView>();
 
                 var fillObject = new GameObject(
                     "HP Bar Fill",
@@ -352,26 +343,17 @@ namespace SlotRogue.UI.Tests.GameFlow
                 Image frame = frameObject.GetComponent<Image>();
                 frame.sprite = normalFrame;
 
-                ConfigureEnemyFormationSlot(
-                    view,
-                    root: root.transform,
-                    shakeGroup: null,
-                    hudRoot: null,
-                    hudText: null,
-                    hpFill: fill,
-                    hpBarFrame: frame,
-                    shieldGauge: null,
-                    damageAnchor: null,
-                    clickCollider: null);
-                SetPrivateField(view, "_shieldedHpFillSprite", shieldedFill);
-                SetPrivateField(view, "_shieldedHpBarFrameSprite", shieldedFrame);
+                SetPrivateField(healthHudView, "_hpFill", fill);
+                SetPrivateField(healthHudView, "_hpBarFrame", frame);
+                SetPrivateField(healthHudView, "_shieldedHpFillSprite", shieldedFill);
+                SetPrivateField(healthHudView, "_shieldedHpBarFrameSprite", shieldedFrame);
 
-                view.SetShield(6);
+                healthHudView.SetShield(6);
 
                 Assert.That(fill.sprite, Is.SameAs(shieldedFill));
                 Assert.That(frame.sprite, Is.SameAs(shieldedFrame));
 
-                view.SetShield(0);
+                healthHudView.SetShield(0);
 
                 Assert.That(fill.sprite, Is.SameAs(normalFill));
                 Assert.That(frame.sprite, Is.SameAs(normalFrame));
@@ -403,11 +385,6 @@ namespace SlotRogue.UI.Tests.GameFlow
                 var hudTextObject = new GameObject("HUD Text", typeof(Text));
                 hudTextObject.transform.SetParent(hudRootObject.transform, false);
                 Text hudText = hudTextObject.GetComponent<Text>();
-                var statusRootObject = new GameObject("Status Root", typeof(RectTransform));
-                RectTransform statusRoot = statusRootObject.GetComponent<RectTransform>();
-                statusRoot.SetParent(root.transform, false);
-                var intentRoot = new GameObject("Intent Root");
-                intentRoot.transform.SetParent(root.transform, false);
                 var collider = root.AddComponent<BoxCollider2D>();
 
                 ConfigureEnemyFormationSlot(
@@ -420,33 +397,22 @@ namespace SlotRogue.UI.Tests.GameFlow
                     shieldGauge: null,
                     damageAnchor: null,
                     clickCollider: collider,
-                    statusEffectRoot: statusRoot,
-                    statusEffectIconPrefab: null,
-                    intentRoot: intentRoot.transform,
-                    intentIconPrefab: null,
                     visualRoot: visualRoot.transform);
 
                 view.PlayDeathAsync(CancellationToken.None).GetAwaiter().GetResult();
-                view.SetActive(true);
-                view.SetHud("Should Not Render");
-                view.SetUpcomingActions(new[]
-                {
-                    new EnemyUpcomingActionViewData(EnemyUpcomingActionKind.Damage, 4),
-                });
+                view.SetPresentationActive(true);
+                view.SetHealthHud("Should Not Render", currentHp: 1, maxHp: 1, shield: 0);
                 view.SetInteractable(true);
 
                 Assert.That(hudRootObject.activeSelf, Is.False);
-                Assert.That(statusRootObject.activeSelf, Is.False);
-                Assert.That(intentRoot.activeSelf, Is.False);
                 Assert.That(collider.enabled, Is.False);
                 Assert.That(hudText.text, Is.Not.EqualTo("Should Not Render"));
 
                 view.SetCombatVisualPrefab(combatVisualPrefab);
-                view.SetHud("Alive Again");
+                view.SetHealthHud("Alive Again", currentHp: 1, maxHp: 1, shield: 0);
                 view.SetInteractable(true);
 
                 Assert.That(hudRootObject.activeSelf, Is.True);
-                Assert.That(statusRootObject.activeSelf, Is.True);
                 Assert.That(visualRoot.transform.childCount, Is.EqualTo(1));
                 Assert.That(collider.enabled, Is.True);
                 Assert.That(hudText.text, Is.EqualTo("Alive Again"));
@@ -611,15 +577,12 @@ namespace SlotRogue.UI.Tests.GameFlow
                 .Invoke(visual, parameters: null);
         }
 
-        private static void SetPrivateField(
-            EnemyFormationSlotView view,
-            string fieldName,
-            object value)
+        private static void SetPrivateField(object target, string fieldName, object value)
         {
-            FieldInfo field = typeof(EnemyFormationSlotView)
+            FieldInfo field = target.GetType()
                 .GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
             Assert.That(field, Is.Not.Null, $"Missing private field {fieldName}.");
-            field.SetValue(view, value);
+            field.SetValue(target, value);
         }
 
         private static void ConfigureEnemyFormationSlot(
@@ -633,26 +596,23 @@ namespace SlotRogue.UI.Tests.GameFlow
             RectTransform damageAnchor,
             Collider2D clickCollider,
             Image hpBarFrame = null,
-            RectTransform statusEffectRoot = null,
-            GameObject statusEffectIconPrefab = null,
-            Transform intentRoot = null,
-            EnemyIntentIconView intentIconPrefab = null,
             Transform visualRoot = null)
         {
             SetPrivateField(view, "_root", root);
             SetPrivateField(view, "_shakeGroup", shakeGroup);
-            SetPrivateField(view, "_visualRoot", visualRoot);
-            SetPrivateField(view, "_hudRoot", hudRoot);
-            SetPrivateField(view, "_hudText", hudText);
-            SetPrivateField(view, "_hpFill", hpFill);
-            SetPrivateField(view, "_hpBarFrame", hpBarFrame);
-            SetPrivateField(view, "_shieldGauge", shieldGauge);
+            GameObject combatVisualHostObject = visualRoot != null ? visualRoot.gameObject : view.gameObject;
+            EnemyCombatVisualHostView combatVisualHost =
+                combatVisualHostObject.AddComponent<EnemyCombatVisualHostView>();
+            SetPrivateField(view, "_combatVisualHost", combatVisualHost);
+            EnemyHealthHudView healthHudView = view.gameObject.AddComponent<EnemyHealthHudView>();
+            SetPrivateField(healthHudView, "_hudRoot", hudRoot);
+            SetPrivateField(healthHudView, "_hpText", hudText);
+            SetPrivateField(healthHudView, "_hpFill", hpFill);
+            SetPrivateField(healthHudView, "_hpBarFrame", hpBarFrame);
+            SetPrivateField(healthHudView, "_shieldGauge", shieldGauge);
+            SetPrivateField(view, "_healthHudView", healthHudView);
             SetPrivateField(view, "_damageAnchor", damageAnchor);
             SetPrivateField(view, "_clickCollider", clickCollider);
-            SetPrivateField(view, "_statusEffectRoot", statusEffectRoot);
-            SetPrivateField(view, "_statusEffectIconPrefab", statusEffectIconPrefab);
-            SetPrivateField(view, "_intentRoot", intentRoot);
-            SetPrivateField(view, "_intentIconPrefab", intentIconPrefab);
         }
 
         private static Sprite CreateTestSprite(string name)

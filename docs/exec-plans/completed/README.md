@@ -10,6 +10,7 @@
 
 | Plan | Finished | Outcome (한 줄) |
 |------|----------|-----------------|
+| [`feature-combat-damage-vfx.md`](./feature-combat-damage-vfx.md) | 2026-07-12 | PlayerDirectDamage HitFlash·SlashCut과 조합형 VFX 전달 경로, 비활성 Animator Idle 시작 순서 정리 |
 | [`feature-rule-based-encounter-selection.md`](./feature-rule-based-encounter-selection.md) | 2026-06-22 | ThemeGroup·Tier·Weight 기반 Encounter 선택, WaveSchedule/HP scaling/roster build 경로 연결 |
 | [`feature-enemy-action-effect-point-sync.md`](./feature-enemy-action-effect-point-sync.md) | 2026-06-17 | 적 행동 Animation Event `EffectPoint`와 EffectApplied Replay 연출 순서 동기화 |
 | [`feature-monster-battle-view-integration.md`](./feature-monster-battle-view-integration.md) | 2026-06-17 | 몬스터 combat visual prefab 생성과 ActionStarted 기반 Idle/Attack 애니메이션 경로 연결 |
