@@ -619,7 +619,10 @@ namespace SlotRogue.UI.Tests.GameFlow
         {
             SetPrivateField(view, "_root", root);
             SetPrivateField(view, "_shakeGroup", shakeGroup);
-            SetPrivateField(view, "_visualRoot", visualRoot);
+            GameObject combatVisualHostObject = visualRoot != null ? visualRoot.gameObject : view.gameObject;
+            EnemyCombatVisualHostView combatVisualHost =
+                combatVisualHostObject.AddComponent<EnemyCombatVisualHostView>();
+            SetPrivateField(view, "_combatVisualHost", combatVisualHost);
             EnemyHealthHudView healthHudView = view.gameObject.AddComponent<EnemyHealthHudView>();
             SetPrivateField(healthHudView, "_hudRoot", hudRoot);
             SetPrivateField(healthHudView, "_hpText", hudText);

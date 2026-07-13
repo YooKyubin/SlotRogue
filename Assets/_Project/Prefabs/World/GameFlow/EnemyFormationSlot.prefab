@@ -253,6 +253,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 884222139430000001}
+  - component: {fileID: 769433190082124011}
   m_Layer: 0
   m_Name: VisualRoot
   m_TagString: Untagged
@@ -951,19 +952,32 @@ MonoBehaviour:
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.EnemyFormationSlotView
   _root: {fileID: 7734689118347477723}
   _shakeGroup: {fileID: 5544154377086351525}
-  _visualRoot: {fileID: 884222139430000001}
+  _combatVisualHost: {fileID: 769433190082124011}
   _selectionIndicator: {fileID: 428745810277243998}
   _healthHudView: {fileID: 4604089987715483491}
   _damageAnchor: {fileID: 7453423559490118063}
   _clickCollider: {fileID: 4201644066975238051}
+  _statusEffectListView: {fileID: 1065841239764512387}
+  _intentListView: {fileID: 7196845023917602841}
+--- !u!114 &769433190082124011
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 884222139430000000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d47c7f3140a44a6c8f56d7c9b4e1a208, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.EnemyCombatVisualHostView
   _damageVFXEffectRoot: {fileID: 5957300370784658955}
+  _damageAnchor: {fileID: 7453423559490118063}
   _damageVFXSets:
   - _profile: 0
     _modules:
     - {fileID: 4017459142390439712}
     - {fileID: 3814079657761002183}
-  _statusEffectListView: {fileID: 1065841239764512387}
-  _intentListView: {fileID: 7196845023917602841}
 --- !u!114 &4604089987715483491
 MonoBehaviour:
   m_ObjectHideFlags: 0
