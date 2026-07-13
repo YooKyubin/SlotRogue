@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
-using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -12,10 +11,6 @@ namespace SlotRogue.UI.GameFlow
 {
     public sealed class EnemyFormationSlotView : MonoBehaviour, IPointerClickHandler
     {
-        private const float DeathDuration = 0.35f;
-        private const float DeathEndScale = 0.82f;
-        private const float DeathDropDistance = 0.18f;
-
         [Header("Root")]
         [SerializeField] private Transform _root;
         [SerializeField] private Transform _shakeGroup;
@@ -134,16 +129,6 @@ namespace SlotRogue.UI.GameFlow
             _combatVisualHost.SetPresentationActive(active);
         }
 
-        public void SetHud(string value)
-        {
-            if (_deathPresented)
-            {
-                return;
-            }
-
-            _healthHudView?.SetHpText(value);
-        }
-
         public void SetHealthHud(string hpText, int currentHp, int maxHp, int shield)
         {
             if (_deathPresented)
@@ -154,31 +139,11 @@ namespace SlotRogue.UI.GameFlow
             _healthHudView?.Render(hpText, currentHp, maxHp, shield);
         }
 
-        public void SetHpFill(int current, int max)
-        {
-            if (_deathPresented)
-            {
-                return;
-            }
-
-            _healthHudView?.SetHpFill(current, max);
-        }
-
         public UniTask WaitHpFillAsync(CancellationToken cancellationToken)
         {
             return _healthHudView != null
                 ? _healthHudView.WaitHpFillAsync(cancellationToken)
                 : UniTask.CompletedTask;
-        }
-
-        public void SetShield(int shield)
-        {
-            if (_deathPresented)
-            {
-                return;
-            }
-
-            _healthHudView?.SetShield(shield);
         }
 
         public void SetStatusEffects(IReadOnlyList<StatusEffectViewData> statuses)
