@@ -22,6 +22,7 @@ namespace SlotRogue.UI.Combat.Presentation
             if (!TryFindSet(request.Profile, sets, out CombatDamageVFXSet damageVFXSet))
             {
                 LogMissingSetWarning(request.Profile);
+                await request.HandleImpactAsync(cancellationToken);
                 return;
             }
 
@@ -32,6 +33,12 @@ namespace SlotRogue.UI.Combat.Presentation
 
             try
             {
+                if (request.HasImpactHandler)
+                {
+                    subscriptions.Add(cueHub.SubscribeImpact(
+                        (_, impactCancellationToken) => request.HandleImpactAsync(impactCancellationToken)));
+                }
+
                 for (int index = 0; index < modules.Count; index++)
                 {
                     MonoBehaviour module = modules[index];
