@@ -1067,9 +1067,8 @@ MonoBehaviour:
   _shieldImage: {fileID: 2687943610940165242}
   _gainDuration: 0.5
   _gainStartYOffset: -5
-  _hitDuration: 1
+  _hitDuration: 0.5
   _hitShakeDistance: 4
-  _hitShakeCount: 3
   _hitTextScaleMultiplier: 1.25
   _hitTextColor: {r: 1, g: 0, b: 0, a: 1}
   _breakDuration: 0.5
