@@ -41,7 +41,11 @@ namespace SlotRogue.UI.Combat.Presentation
                         combatEvent.TargetAfter,
                         combatEvent.IsPlayerParticipant);
                     targetSnapshotApplied = true;
-                    await shieldBreakTask;
+                    UniTask hpBarTask = Host.Commands.WaitHealthBarAsync(
+                        combatEvent.TargetParticipantId,
+                        combatEvent.IsPlayerParticipant,
+                        cancellationToken);
+                    await UniTask.WhenAll(shieldBreakTask, hpBarTask);
                 }
                 else
                 {
@@ -67,8 +71,16 @@ namespace SlotRogue.UI.Combat.Presentation
             var presentationTasks = new List<UniTask>
             {
                 Host.Commands.ShowFloatingCombatTextAsync(request, cancellationToken),
-                Host.Commands.WaitHealthBarAsync(combatEvent.TargetParticipantId, combatEvent.IsPlayerParticipant, cancellationToken),
             };
+
+            if (!targetSnapshotApplied)
+            {
+                presentationTasks.Add(
+                    Host.Commands.WaitHealthBarAsync(
+                        combatEvent.TargetParticipantId,
+                        combatEvent.IsPlayerParticipant,
+                        cancellationToken));
+            }
 
             if (ShouldRequestPlayerDirectDamageVFX(combatEvent))
             {

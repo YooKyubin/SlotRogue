@@ -365,8 +365,16 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 Assert.That(snapshot.Shield, Is.Zero);
 
                 commands.CompleteShieldBreak();
-                commands.CompleteFloatingDamage();
+                await Task.Yield();
+
+                Assert.That(presentTask.IsCompleted, Is.False);
+
                 commands.CompleteHealthBar();
+                await Task.Yield();
+
+                Assert.That(presentTask.IsCompleted, Is.False);
+
+                commands.CompleteFloatingDamage();
                 await presentTask;
             }
             finally

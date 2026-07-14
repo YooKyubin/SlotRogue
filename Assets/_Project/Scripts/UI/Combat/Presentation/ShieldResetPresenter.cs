@@ -33,7 +33,11 @@ namespace SlotRogue.UI.Combat.Presentation
                     combatEvent.TargetParticipantId,
                     0,
                     combatEvent.IsPlayerParticipant);
-                await shieldExpireTask;
+                UniTask hpBarTask = Host.Commands.WaitHealthBarAsync(
+                    combatEvent.TargetParticipantId,
+                    combatEvent.IsPlayerParticipant,
+                    cancellationToken);
+                await UniTask.WhenAll(shieldExpireTask, hpBarTask);
                 return;
             }
 

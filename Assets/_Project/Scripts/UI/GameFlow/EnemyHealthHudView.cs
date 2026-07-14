@@ -113,7 +113,9 @@ namespace SlotRogue.UI.GameFlow
 
         public UniTask WaitHpFillAsync(CancellationToken cancellationToken)
         {
-            return CombatPresentationTweens.AwaitTweenAsync(_hpFillTween, cancellationToken);
+            return UniTask.WhenAll(
+                CombatPresentationTweens.AwaitTweenAsync(_hpFillTween, cancellationToken),
+                CombatPresentationTweens.AwaitTweenAsync(_hpBarRootTween, cancellationToken));
         }
 
         public void SetShield(int shield)
