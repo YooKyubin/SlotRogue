@@ -63,15 +63,15 @@ MonoBehaviour:
   _normalFontSize: 50
   _normalColor: {r: 1, g: 0.47058824, b: 0.47058824, a: 1}
   _damageScaledFontSizeEnabled: 1
-  _damageFontScaleMinAmount: 4
-  _damageFontScaleMaxAmount: 50
-  _damageFontScaleMinSize: 30
-  _damageFontScaleMaxSize: 70
+  _damageFontScaleMinAmount: 10
+  _damageFontScaleMaxAmount: 100
+  _damageFontScaleMinSize: 50
+  _damageFontScaleMaxSize: 100
   _healFontSize: 50
   _healColor: {r: 0.47058824, g: 1, b: 0.627451, a: 1}
   _healPrefix: +
-  _duration: 0.55
-  _moveDistance: 50
+  _duration: 0.75
+  _moveDistance: 100
   _moveEase: 6
   _fadeEase: 1
 --- !u!114 &991348571556424339
