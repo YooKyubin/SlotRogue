@@ -332,6 +332,7 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 var commands = new DamageRecordingCommands();
                 var presenter = new DamagePresenter(new CombatPresentationHost(hostObject, commands));
                 var targetParticipantId = new CombatParticipantId(101);
+                var viewModel = new CombatViewModel();
                 var combatEvent = new CombatEvent(
                     CombatEventKind.EffectApplied,
                     effect: new CombatEffect(
@@ -350,7 +351,7 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
 
                 Task presentTask = presenter.PresentAsync(
                         combatEvent,
-                        new CombatViewModel(),
+                        viewModel,
                         new PresentationContext(isCritical: false, patternName: string.Empty),
                         CancellationToken.None)
                     .AsTask();
@@ -360,6 +361,8 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 Assert.That(commands.ShieldHitCallCount, Is.EqualTo(0));
                 Assert.That(commands.ShieldBreakCallCount, Is.EqualTo(1));
                 Assert.That(presentTask.IsCompleted, Is.False);
+                Assert.That(viewModel.TryGetParticipantSnapshot(targetParticipantId, out CombatParticipantSnapshot snapshot), Is.True);
+                Assert.That(snapshot.Shield, Is.Zero);
 
                 commands.CompleteShieldBreak();
                 commands.CompleteFloatingDamage();

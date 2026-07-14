@@ -25,6 +25,7 @@ namespace SlotRogue.UI.Combat.Presentation
                 return;
             }
 
+            bool targetSnapshotApplied = false;
             if (combatEvent.ApplyResult.ShieldConsumed > 0)
             {
                 var shieldRequest = new ShieldPresentationRequest(
@@ -34,7 +35,13 @@ namespace SlotRogue.UI.Combat.Presentation
 
                 if (combatEvent.TargetBefore.Shield > 0 && combatEvent.TargetAfter.Shield == 0)
                 {
-                    await Host.Commands.ShowShieldBreakAsync(shieldRequest, cancellationToken);
+                    UniTask shieldBreakTask = Host.Commands.ShowShieldBreakAsync(shieldRequest, cancellationToken);
+                    viewModel.ApplyParticipantSnapshot(
+                        combatEvent.TargetParticipantId,
+                        combatEvent.TargetAfter,
+                        combatEvent.IsPlayerParticipant);
+                    targetSnapshotApplied = true;
+                    await shieldBreakTask;
                 }
                 else
                 {
@@ -42,10 +49,13 @@ namespace SlotRogue.UI.Combat.Presentation
                 }
             }
 
-            viewModel.ApplyParticipantSnapshot(
-                combatEvent.TargetParticipantId,
-                combatEvent.TargetAfter,
-                combatEvent.IsPlayerParticipant);
+            if (!targetSnapshotApplied)
+            {
+                viewModel.ApplyParticipantSnapshot(
+                    combatEvent.TargetParticipantId,
+                    combatEvent.TargetAfter,
+                    combatEvent.IsPlayerParticipant);
+            }
 
             var request = new FloatingCombatTextRequest(
                 FloatingCombatTextKind.Damage,

@@ -31,10 +31,12 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private float _breakScaleMultiplier = 1.18f;
 
         private Tween _shieldTween;
+        private bool _removalAnimationInProgress;
 
         private void OnDisable()
         {
             _shieldTween?.Kill();
+            _removalAnimationInProgress = false;
         }
 
         public void Bind(Text shieldText)
@@ -44,6 +46,11 @@ namespace SlotRogue.UI.GameFlow
 
         public void Render(int shield)
         {
+            if (shield <= 0 && _removalAnimationInProgress)
+            {
+                return;
+            }
+
             gameObject.SetActive(shield > 0);
 
             if (_shieldText != null)
@@ -190,6 +197,8 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
+            _removalAnimationInProgress = true;
+
             RectTransform imageTransform = shieldImage.rectTransform;
             Vector2 targetPosition = imageTransform.anchoredPosition;
             Vector3 targetScale = imageTransform.localScale;
@@ -250,6 +259,7 @@ namespace SlotRogue.UI.GameFlow
                 textTransform.localScale = targetTextScale;
             }
 
+            _removalAnimationInProgress = false;
             gameObject.SetActive(false);
         }
 
@@ -265,6 +275,8 @@ namespace SlotRogue.UI.GameFlow
             {
                 return;
             }
+
+            _removalAnimationInProgress = true;
 
             RectTransform imageTransform = shieldImage.rectTransform;
             Vector2 targetPosition = imageTransform.anchoredPosition;
@@ -292,6 +304,7 @@ namespace SlotRogue.UI.GameFlow
                 imageTransform.anchoredPosition = targetPosition;
             }
 
+            _removalAnimationInProgress = false;
             gameObject.SetActive(false);
         }
 
