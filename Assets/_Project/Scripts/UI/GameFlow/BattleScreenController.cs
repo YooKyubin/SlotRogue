@@ -104,6 +104,7 @@ namespace SlotRogue.UI.GameFlow
                 Refresh);
             _targetSelectionController.ResolveSelectedEnemyId();
             _enemyVisibleIntentState.RefreshFromBattle(_battle, _battle.Enemies, _encounterRoster);
+            ApplyEnemyFormationLayout();
             BindEnemyCombatVisualPrefabs();
 
             Bind();
@@ -347,6 +348,18 @@ namespace SlotRogue.UI.GameFlow
         private void HandleStateChanged(RunBattleScreenState state)
         {
             _view.Render(state);
+        }
+
+        private void ApplyEnemyFormationLayout()
+        {
+            int enemyCount = _encounterRoster.Enemies.Count;
+            var occupiedSlotIndices = new int[enemyCount];
+            for (int index = 0; index < enemyCount; index++)
+            {
+                occupiedSlotIndices[index] = _encounterRoster.Enemies[index].FormationSlot;
+            }
+
+            _view.ApplyEnemyFormationLayout(occupiedSlotIndices);
         }
 
         private void HandleSpinRequested()

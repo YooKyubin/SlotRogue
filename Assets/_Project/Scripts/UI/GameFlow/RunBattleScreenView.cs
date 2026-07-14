@@ -248,6 +248,11 @@ namespace SlotRogue.UI.GameFlow
             _worldView?.ClearEnemyCombatVisualPrefabs();
         }
 
+        public void ApplyEnemyFormationLayout(IReadOnlyList<int> occupiedSlotIndices)
+        {
+            _worldView?.ApplyEnemyFormationLayout(occupiedSlotIndices);
+        }
+
         public void SetEnemyPortraitSprite(int formationSlot, Sprite portraitSprite)
         {
             _worldView?.SetEnemyPortraitSprite(formationSlot, portraitSprite);
