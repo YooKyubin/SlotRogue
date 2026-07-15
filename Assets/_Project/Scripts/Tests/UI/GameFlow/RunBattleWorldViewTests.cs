@@ -13,6 +13,44 @@ namespace SlotRogue.UI.Tests.GameFlow
     public sealed class RunBattleWorldViewTests
     {
         [Test]
+        public void ApplyEnemyFormationLayout_ForwardsToEnemyFormationPositioner()
+        {
+            var root = new GameObject("BattleArenaRoot");
+            try
+            {
+                RunBattleWorldView worldView = root.AddComponent<RunBattleWorldView>();
+                var formationRoot = new GameObject("FormationSlotsRoot");
+                formationRoot.transform.SetParent(root.transform, false);
+                EnemyFormationView formationView = formationRoot.AddComponent<EnemyFormationView>();
+                EnemyFormationPositioner positioner = formationRoot.AddComponent<EnemyFormationPositioner>();
+                EnemyFormationSlotView[] slotViews = new EnemyFormationSlotView[3];
+                for (int index = 0; index < slotViews.Length; index++)
+                {
+                    var slot = new GameObject($"Formation Slot {index + 1}");
+                    slot.transform.SetParent(formationRoot.transform, false);
+                    slotViews[index] = slot.AddComponent<EnemyFormationSlotView>();
+                }
+
+                Transform[] twoEnemyAnchors = CreateAnchors(formationRoot.transform, -1f, 1f);
+                SetPrivateField(positioner, "_oneEnemyAnchors", CreateAnchors(formationRoot.transform, 0f));
+                SetPrivateField(positioner, "_twoEnemyAnchors", twoEnemyAnchors);
+                SetPrivateField(positioner, "_threeEnemyAnchors", CreateAnchors(formationRoot.transform, -1.8f, 0f, 1.8f));
+                formationView.Bind(slotViews);
+                SetPrivateField(formationView, "_positioner", positioner);
+                worldView.Bind(root.transform, formationView);
+
+                worldView.ApplyEnemyFormationLayout(new[] { 0, 2 });
+
+                Assert.That(slotViews[0].Root.position, Is.EqualTo(twoEnemyAnchors[0].position));
+                Assert.That(slotViews[2].Root.position, Is.EqualTo(twoEnemyAnchors[1].position));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void EnsureReferences_WithFormationSlotChildren_BindsEnemyFormationView()
         {
             var root = new GameObject("BattleArenaRoot");
@@ -583,6 +621,20 @@ namespace SlotRogue.UI.Tests.GameFlow
                 .GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
             Assert.That(field, Is.Not.Null, $"Missing private field {fieldName}.");
             field.SetValue(target, value);
+        }
+
+        private static Transform[] CreateAnchors(Transform parent, params float[] xPositions)
+        {
+            var anchors = new Transform[xPositions.Length];
+            for (int index = 0; index < anchors.Length; index++)
+            {
+                var anchor = new GameObject($"Anchor {index}");
+                anchor.transform.SetParent(parent, false);
+                anchor.transform.localPosition = new Vector3(xPositions[index], 0f, 0f);
+                anchors[index] = anchor.transform;
+            }
+
+            return anchors;
         }
 
         private static void ConfigureEnemyFormationSlot(

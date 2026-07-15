@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using SlotRogue.Core.Combat;
@@ -44,6 +45,12 @@ namespace SlotRogue.UI.GameFlow
         {
             EnsureReferences();
             _enemyFormationView?.Render(state.EnemySlots);
+        }
+
+        public void ApplyEnemyFormationLayout(IReadOnlyList<int> occupiedSlotIndices)
+        {
+            EnsureReferences();
+            _enemyFormationView?.ApplyFormationLayout(occupiedSlotIndices);
         }
 
         public void SetEnemyCombatVisualPrefab(int formationSlot, GameObject combatVisualPrefab)

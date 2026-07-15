@@ -14,6 +14,9 @@ namespace SlotRogue.UI.GameFlow
         private readonly EnemyFormationViewWarnings _warnings = new();
 
         [SerializeField] private EnemyFormationSlotView[] _formationSlotViews = Array.Empty<EnemyFormationSlotView>();
+        [SerializeField] private EnemyFormationPositioner _positioner;
+
+        private bool _missingPositionerErrorLogged;
 
         public int SlotCount
         {
@@ -26,6 +29,22 @@ namespace SlotRogue.UI.GameFlow
         public void Bind(EnemyFormationSlotView[] formationSlotViews)
         {
             _formationSlotViews = formationSlotViews ?? Array.Empty<EnemyFormationSlotView>();
+        }
+
+        public void ApplyFormationLayout(IReadOnlyList<int> occupiedSlotIndices)
+        {
+            if (_positioner == null)
+            {
+                if (!_missingPositionerErrorLogged)
+                {
+                    _missingPositionerErrorLogged = true;
+                    Debug.LogError("[EnemyFormationView] EnemyFormationPositioner must be wired in the inspector.");
+                }
+
+                return;
+            }
+
+            _positioner.ApplyLayout(_formationSlotViews, occupiedSlotIndices);
         }
 
         public void Render(RunBattleEnemySlotState[] enemySlots)
