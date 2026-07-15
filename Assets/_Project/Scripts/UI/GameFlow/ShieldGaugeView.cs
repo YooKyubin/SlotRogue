@@ -22,7 +22,6 @@ namespace SlotRogue.UI.GameFlow
         [Header("Hit")]
         [SerializeField] private float _hitDuration = 0.25f;
         [SerializeField] private float _hitShakeDistance = 3f;
-        [SerializeField] private int _hitShakeCount = 4;
         [SerializeField] private float _hitTextScaleMultiplier = 1.25f;
         [SerializeField] private Color _hitTextColor = Color.red;
 
@@ -31,10 +30,12 @@ namespace SlotRogue.UI.GameFlow
         [SerializeField] private float _breakScaleMultiplier = 1.18f;
 
         private Tween _shieldTween;
+        private bool _removalAnimationInProgress;
 
         private void OnDisable()
         {
             _shieldTween?.Kill();
+            _removalAnimationInProgress = false;
         }
 
         public void Bind(Text shieldText)
@@ -44,6 +45,11 @@ namespace SlotRogue.UI.GameFlow
 
         public void Render(int shield)
         {
+            if (shield <= 0 && _removalAnimationInProgress)
+            {
+                return;
+            }
+
             gameObject.SetActive(shield > 0);
 
             if (_shieldText != null)
@@ -190,6 +196,8 @@ namespace SlotRogue.UI.GameFlow
                 return;
             }
 
+            _removalAnimationInProgress = true;
+
             RectTransform imageTransform = shieldImage.rectTransform;
             Vector2 targetPosition = imageTransform.anchoredPosition;
             Vector3 targetScale = imageTransform.localScale;
@@ -250,6 +258,7 @@ namespace SlotRogue.UI.GameFlow
                 textTransform.localScale = targetTextScale;
             }
 
+            _removalAnimationInProgress = false;
             gameObject.SetActive(false);
         }
 
@@ -265,6 +274,8 @@ namespace SlotRogue.UI.GameFlow
             {
                 return;
             }
+
+            _removalAnimationInProgress = true;
 
             RectTransform imageTransform = shieldImage.rectTransform;
             Vector2 targetPosition = imageTransform.anchoredPosition;
@@ -292,6 +303,7 @@ namespace SlotRogue.UI.GameFlow
                 imageTransform.anchoredPosition = targetPosition;
             }
 
+            _removalAnimationInProgress = false;
             gameObject.SetActive(false);
         }
 
@@ -365,7 +377,6 @@ namespace SlotRogue.UI.GameFlow
                 imageTransform,
                 targetPosition,
                 _hitShakeDistance,
-                _hitShakeCount,
                 _hitDuration);
 
             Sequence sequence = DOTween.Sequence()
@@ -416,7 +427,6 @@ namespace SlotRogue.UI.GameFlow
                     imageTransform,
                     targetPosition,
                     _hitShakeDistance,
-                    _hitShakeCount,
                     _hitDuration));
 
             if (shieldText != null)
@@ -454,10 +464,8 @@ namespace SlotRogue.UI.GameFlow
             RectTransform target,
             Vector2 targetPosition,
             float distance,
-            int shakeCount,
             float duration)
         {
-            int clampedShakeCount = Mathf.Max(1, shakeCount);
             float clampedDuration = Mathf.Max(0.01f, duration);
 
             return DOTween.To(
@@ -465,11 +473,12 @@ namespace SlotRogue.UI.GameFlow
                 progress =>
                 {
                     float damping = 1f - progress;
-                    float offset = Mathf.Sin(progress * clampedShakeCount * Mathf.PI * 2f) * distance * damping;
-                    target.anchoredPosition = targetPosition + new Vector2(offset, 0f);
+                    Vector2 offset = Random.insideUnitCircle * (distance * damping);
+                    target.anchoredPosition = targetPosition + offset;
                 },
                 1f,
-                clampedDuration);
+                clampedDuration)
+                .OnKill(() => target.anchoredPosition = targetPosition);
         }
 
         private static void UpdateShieldTextAfterHit(Text shieldText, int consumedAmount)

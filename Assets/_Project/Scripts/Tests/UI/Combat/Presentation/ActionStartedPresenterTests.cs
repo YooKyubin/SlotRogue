@@ -80,7 +80,7 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
         }
 
         [Test]
-        public async Task PresentAsync_PlayerDirectResolvingEnemyDamageRequestsDamageVFX()
+        public async Task PresentAsync_PlayerDirectResolvingEnemyDamageStartsHealthBarAtDamageVFXImpact()
         {
             var hostObject = new GameObject("Presentation Host");
             try
@@ -88,6 +88,7 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 var commands = new DamageRecordingCommands();
                 var presenter = new DamagePresenter(new CombatPresentationHost(hostObject, commands));
                 var targetParticipantId = new CombatParticipantId(101);
+                var viewModel = new CombatViewModel();
                 var combatEvent = new CombatEvent(
                     CombatEventKind.EffectApplied,
                     BattlePhase.Resolving,
@@ -106,7 +107,7 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
 
                 Task presentTask = presenter.PresentAsync(
                         combatEvent,
-                        new CombatViewModel(),
+                        viewModel,
                         new PresentationContext(isCritical: false, patternName: string.Empty),
                         CancellationToken.None)
                     .AsTask();
@@ -116,9 +117,18 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 Assert.That(commands.LastDamageVFXRequest.Profile, Is.EqualTo(CombatDamageVFXProfile.PlayerDirectDamage));
                 Assert.That(commands.LastDamageVFXRequest.TargetParticipantId.Value, Is.EqualTo(targetParticipantId.Value));
                 Assert.That(commands.LastDamageVFXRequest.DamageAmount, Is.EqualTo(4));
+                Assert.That(commands.LastDamageVFXRequest.HasImpactHandler, Is.True);
+                Assert.That(commands.HealthBarCallCount, Is.Zero);
+                Assert.That(viewModel.TryGetParticipantSnapshot(targetParticipantId, out _), Is.False);
+
+                Task impactTask = commands.LastDamageVFXRequest.HandleImpactAsync(CancellationToken.None).AsTask();
+                Assert.That(commands.HealthBarCallCount, Is.EqualTo(1));
+                Assert.That(viewModel.TryGetParticipantSnapshot(targetParticipantId, out CombatParticipantSnapshot snapshot), Is.True);
+                Assert.That(snapshot.Hp, Is.EqualTo(6));
 
                 commands.CompleteFloatingDamage();
                 commands.CompleteHealthBar();
+                await impactTask;
                 await presentTask;
             }
             finally
@@ -332,6 +342,7 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 var commands = new DamageRecordingCommands();
                 var presenter = new DamagePresenter(new CombatPresentationHost(hostObject, commands));
                 var targetParticipantId = new CombatParticipantId(101);
+                var viewModel = new CombatViewModel();
                 var combatEvent = new CombatEvent(
                     CombatEventKind.EffectApplied,
                     effect: new CombatEffect(
@@ -350,7 +361,7 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
 
                 Task presentTask = presenter.PresentAsync(
                         combatEvent,
-                        new CombatViewModel(),
+                        viewModel,
                         new PresentationContext(isCritical: false, patternName: string.Empty),
                         CancellationToken.None)
                     .AsTask();
@@ -360,10 +371,80 @@ namespace SlotRogue.UI.Tests.Combat.Presentation
                 Assert.That(commands.ShieldHitCallCount, Is.EqualTo(0));
                 Assert.That(commands.ShieldBreakCallCount, Is.EqualTo(1));
                 Assert.That(presentTask.IsCompleted, Is.False);
+                Assert.That(viewModel.TryGetParticipantSnapshot(targetParticipantId, out CombatParticipantSnapshot snapshot), Is.True);
+                Assert.That(snapshot.Shield, Is.Zero);
+
+                commands.CompleteShieldBreak();
+                await Task.Yield();
+
+                Assert.That(presentTask.IsCompleted, Is.False);
+
+                commands.CompleteHealthBar();
+                await Task.Yield();
+
+                Assert.That(presentTask.IsCompleted, Is.False);
+
+                commands.CompleteFloatingDamage();
+                await presentTask;
+            }
+            finally
+            {
+                Object.DestroyImmediate(hostObject);
+            }
+        }
+
+        [Test]
+        public async Task PresentAsync_ShieldBreakingPlayerDirectDamageStartsHealthBarAtDamageVFXImpact()
+        {
+            var hostObject = new GameObject("Presentation Host");
+            try
+            {
+                var commands = new DamageRecordingCommands();
+                var presenter = new DamagePresenter(new CombatPresentationHost(hostObject, commands));
+                var targetParticipantId = new CombatParticipantId(101);
+                var viewModel = new CombatViewModel();
+                var combatEvent = new CombatEvent(
+                    CombatEventKind.EffectApplied,
+                    BattlePhase.Resolving,
+                    effect: new CombatEffect(
+                        CombatEffectKind.Damage,
+                        amount: 4,
+                        CombatEffectTarget.Enemy),
+                    applyResult: new EffectApplyResult(
+                        damageDealt: 1,
+                        shieldConsumed: 3,
+                        shieldGained: 0,
+                        healApplied: 0),
+                    isPlayerParticipant: false,
+                    targetParticipantId: targetParticipantId,
+                    targetBefore: new CombatParticipantSnapshot(hp: 10, shield: 3),
+                    targetAfter: new CombatParticipantSnapshot(hp: 9, shield: 0));
+
+                Task presentTask = presenter.PresentAsync(
+                        combatEvent,
+                        viewModel,
+                        new PresentationContext(isCritical: false, patternName: string.Empty),
+                        CancellationToken.None)
+                    .AsTask();
+
+                await Task.Yield();
+
+                Assert.That(commands.ShieldBreakCallCount, Is.EqualTo(1));
+                Assert.That(commands.DamageVFXCallCount, Is.EqualTo(1));
+                Assert.That(commands.HealthBarCallCount, Is.Zero);
+                Assert.That(viewModel.TryGetParticipantSnapshot(targetParticipantId, out _), Is.False);
+
+                Task impactTask = commands.LastDamageVFXRequest.HandleImpactAsync(CancellationToken.None).AsTask();
+
+                Assert.That(commands.HealthBarCallCount, Is.EqualTo(1));
+                Assert.That(viewModel.TryGetParticipantSnapshot(targetParticipantId, out CombatParticipantSnapshot snapshot), Is.True);
+                Assert.That(snapshot.Hp, Is.EqualTo(9));
+                Assert.That(snapshot.Shield, Is.Zero);
 
                 commands.CompleteShieldBreak();
                 commands.CompleteFloatingDamage();
                 commands.CompleteHealthBar();
+                await impactTask;
                 await presentTask;
             }
             finally

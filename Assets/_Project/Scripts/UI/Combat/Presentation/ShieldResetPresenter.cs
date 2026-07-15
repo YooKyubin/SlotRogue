@@ -28,7 +28,17 @@ namespace SlotRogue.UI.Combat.Presentation
                     combatEvent.TargetBefore.Shield,
                     combatEvent.IsPlayerParticipant,
                     combatEvent.TargetParticipantId);
-                await Host.Commands.ShowShieldExpireAsync(request, cancellationToken);
+                UniTask shieldExpireTask = Host.Commands.ShowShieldExpireAsync(request, cancellationToken);
+                viewModel.SetParticipantShield(
+                    combatEvent.TargetParticipantId,
+                    0,
+                    combatEvent.IsPlayerParticipant);
+                UniTask hpBarTask = Host.Commands.WaitHealthBarAsync(
+                    combatEvent.TargetParticipantId,
+                    combatEvent.IsPlayerParticipant,
+                    cancellationToken);
+                await UniTask.WhenAll(shieldExpireTask, hpBarTask);
+                return;
             }
 
             viewModel.SetParticipantShield(

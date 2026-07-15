@@ -276,6 +276,25 @@ Transform:
   m_Children: []
   m_Father: {fileID: 5544154377086351525}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &769433190082124011
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 884222139430000000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d47c7f3140a44a6c8f56d7c9b4e1a208, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.EnemyCombatVisualHostView
+  _damageVFXEffectRoot: {fileID: 5957300370784658955}
+  _damageAnchor: {fileID: 7453423559490118063}
+  _damageVFXSets:
+  - _profile: 0
+    _modules:
+    - {fileID: 4017459142390439712}
+    - {fileID: 3814079657761002183}
 --- !u!1 &1332742078177598300
 GameObject:
   m_ObjectHideFlags: 0
@@ -959,47 +978,6 @@ MonoBehaviour:
   _clickCollider: {fileID: 4201644066975238051}
   _statusEffectListView: {fileID: 1065841239764512387}
   _intentListView: {fileID: 7196845023917602841}
---- !u!114 &769433190082124011
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 884222139430000000}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d47c7f3140a44a6c8f56d7c9b4e1a208, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.EnemyCombatVisualHostView
-  _damageVFXEffectRoot: {fileID: 5957300370784658955}
-  _damageAnchor: {fileID: 7453423559490118063}
-  _damageVFXSets:
-  - _profile: 0
-    _modules:
-    - {fileID: 4017459142390439712}
-    - {fileID: 3814079657761002183}
---- !u!114 &4604089987715483491
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9104823617742193650}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9c9bd88f4e8342de9473a9b619991742, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.EnemyHealthHudView
-  _hudRoot: {fileID: 7007034043896490227}
-  _hpText: {fileID: 0}
-  _hpFill: {fileID: 2146629859500977907}
-  _hpBarFrame: {fileID: 8585725545451199678}
-  _hpBarRoot: {fileID: 5785763370326782151}
-  _shieldGauge: {fileID: 2563102726358517046}
-  _normalHpFillSprite: {fileID: -7900870427792562562, guid: 94626e996a6d60d449d2892fdf83c9e0, type: 3}
-  _shieldedHpFillSprite: {fileID: -2578357195275736500, guid: 8c3dbe0559d4b124088cc9f3dd7c9b01, type: 3}
-  _normalHpBarFrameSprite: {fileID: -324552712357261979, guid: 91b069894149300448acda291d7afea5, type: 3}
-  _shieldedHpBarFrameSprite: {fileID: -324552712357261979, guid: 91b069894149300448acda291d7afea5, type: 3}
 --- !u!1 &5233817760683525268
 GameObject:
   m_ObjectHideFlags: 0
@@ -1089,9 +1067,8 @@ MonoBehaviour:
   _shieldImage: {fileID: 2687943610940165242}
   _gainDuration: 0.5
   _gainStartYOffset: -5
-  _hitDuration: 1
+  _hitDuration: 0.5
   _hitShakeDistance: 4
-  _hitShakeCount: 3
   _hitTextScaleMultiplier: 1.25
   _hitTextColor: {r: 1, g: 0, b: 0, a: 1}
   _breakDuration: 0.5
@@ -1228,3 +1205,25 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 82, y: 15}
   m_Pivot: {x: 0.5, y: 0}
+--- !u!114 &4604089987715483491
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9104823617742193650}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c9bd88f4e8342de9473a9b619991742, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.EnemyHealthHudView
+  _hudRoot: {fileID: 7007034043896490227}
+  _hpText: {fileID: 0}
+  _hpFill: {fileID: 2146629859500977907}
+  _hpBarFrame: {fileID: 8585725545451199678}
+  _hpBarRoot: {fileID: 5785763370326782151}
+  _shieldGauge: {fileID: 2563102726358517046}
+  _normalHpFillSprite: {fileID: -7900870427792562562, guid: 94626e996a6d60d449d2892fdf83c9e0, type: 3}
+  _shieldedHpFillSprite: {fileID: -2578357195275736500, guid: 8c3dbe0559d4b124088cc9f3dd7c9b01, type: 3}
+  _normalHpBarFrameSprite: {fileID: -324552712357261979, guid: 91b069894149300448acda291d7afea5, type: 3}
+  _shieldedHpBarFrameSprite: {fileID: -2524783600037217748, guid: edaaa5a111880be44b21c26546794966, type: 3}

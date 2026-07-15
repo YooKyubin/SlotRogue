@@ -25,6 +25,10 @@ namespace SlotRogue.UI.Combat.Presentation
                 return;
             }
 
+            bool shouldRequestDamageVFX = ShouldRequestPlayerDirectDamageVFX(combatEvent);
+            bool shouldDeferTargetSnapshotUntilImpact = shouldRequestDamageVFX;
+            bool targetSnapshotApplied = false;
+            var presentationTasks = new List<UniTask>();
             if (combatEvent.ApplyResult.ShieldConsumed > 0)
             {
                 var shieldRequest = new ShieldPresentationRequest(
@@ -34,7 +38,24 @@ namespace SlotRogue.UI.Combat.Presentation
 
                 if (combatEvent.TargetBefore.Shield > 0 && combatEvent.TargetAfter.Shield == 0)
                 {
-                    await Host.Commands.ShowShieldBreakAsync(shieldRequest, cancellationToken);
+                    UniTask shieldBreakTask = Host.Commands.ShowShieldBreakAsync(shieldRequest, cancellationToken);
+                    if (shouldDeferTargetSnapshotUntilImpact)
+                    {
+                        presentationTasks.Add(shieldBreakTask);
+                    }
+                    else
+                    {
+                        viewModel.ApplyParticipantSnapshot(
+                            combatEvent.TargetParticipantId,
+                            combatEvent.TargetAfter,
+                            combatEvent.IsPlayerParticipant);
+                        targetSnapshotApplied = true;
+                        UniTask hpBarTask = Host.Commands.WaitHealthBarAsync(
+                            combatEvent.TargetParticipantId,
+                            combatEvent.IsPlayerParticipant,
+                            cancellationToken);
+                        await UniTask.WhenAll(shieldBreakTask, hpBarTask);
+                    }
                 }
                 else
                 {
@@ -42,10 +63,13 @@ namespace SlotRogue.UI.Combat.Presentation
                 }
             }
 
-            viewModel.ApplyParticipantSnapshot(
-                combatEvent.TargetParticipantId,
-                combatEvent.TargetAfter,
-                combatEvent.IsPlayerParticipant);
+            if (!targetSnapshotApplied && !shouldDeferTargetSnapshotUntilImpact)
+            {
+                viewModel.ApplyParticipantSnapshot(
+                    combatEvent.TargetParticipantId,
+                    combatEvent.TargetAfter,
+                    combatEvent.IsPlayerParticipant);
+            }
 
             var request = new FloatingCombatTextRequest(
                 FloatingCombatTextKind.Damage,
@@ -54,18 +78,29 @@ namespace SlotRogue.UI.Combat.Presentation
                 combatEvent.IsPlayerParticipant,
                 combatEvent.TargetParticipantId);
 
-            var presentationTasks = new List<UniTask>
-            {
-                Host.Commands.ShowFloatingCombatTextAsync(request, cancellationToken),
-                Host.Commands.WaitHealthBarAsync(combatEvent.TargetParticipantId, combatEvent.IsPlayerParticipant, cancellationToken),
-            };
+            presentationTasks.Add(Host.Commands.ShowFloatingCombatTextAsync(request, cancellationToken));
 
-            if (ShouldRequestPlayerDirectDamageVFX(combatEvent))
+            if (!targetSnapshotApplied && !shouldDeferTargetSnapshotUntilImpact)
+            {
+                presentationTasks.Add(
+                    Host.Commands.WaitHealthBarAsync(
+                        combatEvent.TargetParticipantId,
+                        combatEvent.IsPlayerParticipant,
+                        cancellationToken));
+            }
+
+            if (shouldRequestDamageVFX)
             {
                 CombatDamageVFXRequest damageVFXRequest = new(
                     CombatDamageVFXProfile.PlayerDirectDamage,
                     combatEvent.TargetParticipantId,
-                    combatEvent.ApplyResult.DamageDealt);
+                    combatEvent.ApplyResult.DamageDealt,
+                    shouldDeferTargetSnapshotUntilImpact
+                        ? impactCancellationToken => ApplyTargetSnapshotAtImpactAsync(
+                            combatEvent,
+                            viewModel,
+                            impactCancellationToken)
+                        : null);
                 presentationTasks.Add(Host.Commands.ShowCombatDamageVFXAsync(damageVFXRequest, cancellationToken));
             }
 
@@ -112,6 +147,21 @@ namespace SlotRogue.UI.Combat.Presentation
                 combatEvent.TargetParticipantId.IsValid &&
                 combatEvent.TargetBefore.Hp > 0 &&
                 combatEvent.TargetAfter.Hp <= 0;
+        }
+
+        private UniTask ApplyTargetSnapshotAtImpactAsync(
+            CombatEvent combatEvent,
+            CombatViewModel viewModel,
+            CancellationToken cancellationToken)
+        {
+            viewModel.ApplyParticipantSnapshot(
+                combatEvent.TargetParticipantId,
+                combatEvent.TargetAfter,
+                combatEvent.IsPlayerParticipant);
+            return Host.Commands.WaitHealthBarAsync(
+                combatEvent.TargetParticipantId,
+                combatEvent.IsPlayerParticipant,
+                cancellationToken);
         }
 
         private static bool ShouldRequestPlayerDirectDamageVFX(CombatEvent combatEvent)

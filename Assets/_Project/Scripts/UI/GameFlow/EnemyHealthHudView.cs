@@ -11,7 +11,7 @@ namespace SlotRogue.UI.GameFlow
     {
         private const float ShieldedHpBarOffsetX = 7f;
         private const float ShieldedHpBarMoveDuration = 0.2f;
-        private const float HpFillDuration = 0.35f;
+        private const float HpFillDuration = 0.5f;
 
         [SerializeField] private Canvas _hudRoot;
         [SerializeField] private Text _hpText;
@@ -113,7 +113,9 @@ namespace SlotRogue.UI.GameFlow
 
         public UniTask WaitHpFillAsync(CancellationToken cancellationToken)
         {
-            return CombatPresentationTweens.AwaitTweenAsync(_hpFillTween, cancellationToken);
+            return UniTask.WhenAll(
+                CombatPresentationTweens.AwaitTweenAsync(_hpFillTween, cancellationToken),
+                CombatPresentationTweens.AwaitTweenAsync(_hpBarRootTween, cancellationToken));
         }
 
         public void SetShield(int shield)
