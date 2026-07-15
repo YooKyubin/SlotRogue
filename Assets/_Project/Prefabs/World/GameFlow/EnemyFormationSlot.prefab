@@ -240,7 +240,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3f1e642a8b7d4c9f96e5a0d1b2c3d4e5, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.EnemyStatusEffectListView
   _iconRoot: {fileID: 728450995424023123}
   _iconPrefab: {fileID: 2479965767819659198, guid: 74f263931e0f2d94896a68498b746ebe, type: 3}
@@ -286,7 +286,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d47c7f3140a44a6c8f56d7c9b4e1a208, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.EnemyCombatVisualHostView
   _damageVFXEffectRoot: {fileID: 5957300370784658955}
   _damageAnchor: {fileID: 7453423559490118063}
@@ -459,7 +459,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4c2b31a09e6f4d7c8b5a2e1f0d9c8b7a, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.EnemyIntentListView
   _iconRoot: {fileID: 429236092112441516}
   _iconPrefab: {fileID: 7975852844219345148, guid: 59fabc5a6746e704691aa1eb07411abe, type: 3}
@@ -1215,7 +1215,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9c9bd88f4e8342de9473a9b619991742, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: SlotRogue.UI::SlotRogue.UI.GameFlow.EnemyHealthHudView
   _hudRoot: {fileID: 7007034043896490227}
   _hpText: {fileID: 0}
